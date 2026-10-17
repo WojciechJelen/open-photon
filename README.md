@@ -31,9 +31,12 @@ npm run build
 npm run check:client
 node scripts/verify-video.mjs
 node scripts/verify-sdk.mjs
+node scripts/verify-upload-memory.mjs
 ```
 
 The video verification command targets a running container named `comfy-start-spike`, uses the `colima` Docker context, and intentionally kills and restarts that container at 50% progress. It also uploads 100 MiB, measures cgroup memory, and checks declared and chunked upload limits. Set `SPIKE_CONTAINER`, `SPIKE_DOCKER_CONTEXT`, and `BASE_URL` to use another dedicated test instance. It writes `work/video-checks.json` and removes its large upload fixtures after verification.
+
+The upload-memory command runs six 100 MiB uploads, with fresh and reused server processes and throttled and unthrottled transfers. It restarts the dedicated test container and records cgroup categories, application memory, process RSS, and health-check timestamps in `work/upload-memory.json`, including failed runs. It uses the same container and context overrides as the video command and removes its upload fixtures. The 64 MiB ceiling now applies to anonymous-memory growth, application RSS growth, and the array-buffer peak. The original working-set result is retained alongside them, since that calculation includes active file cache. Readiness loads the home page before measuring uploads, matching the original video verification. On Apple Silicon, use the native ARM control described in `docs/upload-memory-recheck.md` for an application RSS benchmark; an amd64 process includes QEMU overhead.
 
 The browser cases are also captured in `tests/studio.spec.ts`. With Playwright Chromium installed and a server running, use `npm run test:e2e`. The recorded verification in `docs/video-readiness.md` distinguishes automated server checks from browser checks.
 

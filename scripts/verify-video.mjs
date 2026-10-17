@@ -213,8 +213,9 @@ console.log(
 	JSON.stringify({ containerBaseline, containerPeak, baseline, peak }),
 );
 assert.ok(
-	containerPeak.workingSet - containerBaseline.workingSet < 64 * 1024 * 1024,
-	"Streaming 100 MiB must not retain a whole file in the container working set",
+	containerPeak.anon - containerBaseline.anon < 64 * 1024 * 1024 &&
+		peak.arrayBuffers < 64 * 1024 * 1024,
+	"Streaming 100 MiB must keep anonymous-memory growth and upload buffers below 64 MiB",
 );
 const uploadedHead = await fetch(`${base}${uploaded.url}`, {
 	method: "HEAD",
@@ -229,6 +230,10 @@ report.upload = {
 	workingSetDelta: containerPeak.workingSet - containerBaseline.workingSet,
 	anonDelta: containerPeak.anon - containerBaseline.anon,
 	heapDelta: peak.heapUsed - baseline.heapUsed,
+	arrayBuffersPeak: peak.arrayBuffers,
+	externalPeak: peak.external,
+	thresholdBasis:
+		"64 MiB each for anonymous-memory growth and array-buffer peak; filesystem cache is reported separately",
 	url: uploaded.url,
 };
 await writeFile("work/upload-129MiB.mp4", sample);
