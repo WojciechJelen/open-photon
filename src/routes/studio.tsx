@@ -5,30 +5,34 @@ import { JobProgress } from "#/components/job-progress";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { studioSearchSchema } from "#/lib/contracts";
-import { createJob } from "#/lib/jobs.functions";
+import { createJob, getJob } from "#/lib/jobs.functions";
 
 export const Route = createFileRoute("/studio")({
 	validateSearch: (search) => studioSearchSchema.parse(search),
+	loaderDeps: ({ search }) => ({ job: search.job }),
+	loader: ({ deps }) => (deps.job ? getJob({ data: { id: deps.job } }) : null),
 	component: Studio,
 });
 
 type Submission =
 	| { kind: "idle" }
 	| { kind: "saving" }
-	| { kind: "saved"; row: Awaited<ReturnType<typeof createJob>> }
 	| { kind: "error"; message: string };
 
 function Studio() {
 	const { preset, take } = Route.useSearch();
+	const row = Route.useLoaderData();
+	const navigate = Route.useNavigate();
 	const [submission, setSubmission] = useState<Submission>({ kind: "idle" });
 
-	async function submit(form: FormData) {
+	const submit = async (form: FormData) => {
 		setSubmission({ kind: "saving" });
 		try {
 			const prompt = form.get("prompt");
 			if (typeof prompt !== "string") throw new Error("Write a prompt first.");
 			const row = await createJob({ data: { prompt, preset, take } });
-			setSubmission({ kind: "saved", row });
+			await navigate({ search: { preset, take, job: row.id } });
+			setSubmission({ kind: "idle" });
 		} catch (error) {
 			setSubmission({
 				kind: "error",
@@ -36,7 +40,7 @@ function Studio() {
 					error instanceof Error ? error.message : "Could not save the job.",
 			});
 		}
-	}
+	};
 
 	return (
 		<main className="mx-auto max-w-3xl space-y-8 px-6 py-12">
@@ -88,7 +92,7 @@ function Studio() {
 					</p>
 				)}
 			</form>
-			{submission.kind === "saved" && (
+			{row !== null && (
 				<section
 					className="space-y-5 rounded-xl border bg-card p-6 shadow-sm"
 					aria-label="Saved job"
@@ -99,10 +103,17 @@ function Studio() {
 							className="break-all font-mono text-xs text-muted-foreground"
 							data-testid="job-id"
 						>
-							{submission.row.id}
+							{row.id}
 						</p>
 					</div>
-					<JobProgress key={submission.row.id} jobId={submission.row.id} />
+					<JobProgress key={row.id} job={row} />
+					<Link
+						to="/r/$jobId"
+						params={{ jobId: row.id }}
+						className="block text-sm underline"
+					>
+						Share this job
+					</Link>
 					<details className="text-sm">
 						<summary className="cursor-pointer text-muted-foreground">
 							View the returned row
@@ -111,7 +122,7 @@ function Studio() {
 							className="mt-3 overflow-auto rounded-lg bg-muted p-4 text-xs"
 							data-testid="saved-row"
 						>
-							{JSON.stringify(submission.row, null, 2)}
+							{JSON.stringify(row, null, 2)}
 						</pre>
 					</details>
 				</section>

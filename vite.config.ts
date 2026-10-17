@@ -8,10 +8,14 @@ import { defineConfig } from "vite";
 
 const config = defineConfig({
 	resolve: { tsconfigPaths: true },
+	ssr: { external: ["@comfyorg/sdk"] },
 	plugins: [
 		tailwindcss(),
 		tanstackStart(),
-		nitro({ preset: "node-server" }),
+		nitro({
+			preset: "node-server",
+			traceDeps: ["@comfyorg/sdk*"],
+		}),
 		viteReact(),
 	],
 });

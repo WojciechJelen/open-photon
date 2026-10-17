@@ -14,9 +14,12 @@
 		"check": "biome check .",
 		"format": "biome check --write .",
 		"test:e2e": "playwright test",
-		"test:server": "node --experimental-strip-types --test tests/stream.test.ts"
+		"test:server": "node --experimental-strip-types --test tests/*.test.ts",
+		"check:client": "node scripts/check-client-secrets.mjs"
 	},
 	"dependencies": {
+		"@comfyorg/sdk": "^0.5.0",
+		"@fastify/busboy": "^3.2.3",
 		"@tailwindcss/vite": "^4.1.18",
 		"@tanstack/react-router": "1.170.45",
 		"@tanstack/react-start": "1.169.3",

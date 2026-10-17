@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
 import { Progress } from "#/components/ui/progress";
-import { type JobEvent, jobEventSchema } from "#/lib/contracts";
+import { type JobEvent, type JobRow, jobEventSchema } from "#/lib/contracts";
 
 type StreamState =
 	| { kind: "connecting" }
 	| JobEvent
 	| { kind: "error"; message: string };
 
-export function JobProgress({ jobId }: { jobId: string }) {
-	const [state, setState] = useState<StreamState>({ kind: "connecting" });
+export function JobProgress({ job }: { job: JobRow }) {
+	const jobId = job.id;
+	const [state, setState] = useState<StreamState>(() =>
+		job.status === "complete"
+			? { kind: "complete", jobId, percent: 100 }
+			: { kind: "progress", jobId, percent: job.percent },
+	);
 
 	useEffect(() => {
+		if (job.status === "complete") return;
 		const source = new EventSource(
 			`/api/jobs/${encodeURIComponent(jobId)}/events`,
 		);
@@ -30,15 +36,16 @@ export function JobProgress({ jobId }: { jobId: string }) {
 			}
 		};
 		source.onerror = () => {
-			source.close();
-			setState({
-				kind: "error",
-				message:
-					"The progress stream disconnected. Create a new job to try again.",
-			});
+			if (source.readyState === EventSource.CLOSED) {
+				setState({
+					kind: "error",
+					message:
+						"Progress is unavailable. Reload this page to recover the saved job.",
+				});
+			}
 		};
 		return () => source.close();
-	}, [jobId]);
+	}, [jobId, job.status]);
 
 	if (state.kind === "error")
 		return (
