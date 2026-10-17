@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:3030:3000"
+    volumes:
+      - sqlite-data:/app/data
+    init: true
+volumes:
+  sqlite-data:

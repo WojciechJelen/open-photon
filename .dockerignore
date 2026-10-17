@@ -1,0 +1,10 @@
+node_modules
+.git
+.output
+.nitro
+.tanstack
+data
+test-results
+playwright-report
+.env*
+work
