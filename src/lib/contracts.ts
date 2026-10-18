@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const presetSchema = z.enum(["cinematic", "portrait"]);
+const presetSchema = z.enum(["cinematic", "portrait"]);
 
 export const studioSearchSchema = z.object({
   job: z.uuid().optional().catch(undefined),
@@ -76,5 +76,3 @@ export const jobEventSchema = z.object({
 });
 
 export type NewJob = z.infer<typeof newJobSchema>;
-
-export type JobEvent = z.infer<typeof jobEventSchema>;

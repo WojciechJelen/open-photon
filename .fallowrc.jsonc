@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/fallow/schema.json",
+  "entry": [
+    // Run by hand or from CI, not imported.
+    "scripts/*.mjs",
+    // Compile-time route inference tripwire; only tsgo reads it.
+    "tests/type-contracts.ts",
+  ],
+  // The vendored plugin is upstream source, as in oxlint.config.ts.
+  "ignorePatterns": ["tools/oxlint/anti-slop/**"],
+  // Imported only by that vendored plugin.
+  "ignoreDependencies": ["@oxlint/plugins"],
+}

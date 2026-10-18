@@ -66,33 +66,26 @@ npm run build
 npm run check:client
 ```
 
-To check the production container without Comfy credentials or paid jobs:
+With the app running on port 3030, run the browser tests:
 
 ```sh
 npx playwright install chromium
-docker build --platform linux/amd64 -t open-photon:latest .
-npm run test:container
-node scripts/verify-sdk.mjs
+npm run test:e2e
 ```
-
-Set `SPIKE_DOCKER_CONTEXT=colima` for both verification commands when using Colima; their default is the current Docker context. `SPIKE_IMAGE` selects a different image. The container check uses a temporary container and data volume, checks health, media ranges and disabled diagnostic endpoints, then runs the browser suite. The SDK check uses a local mock and a dummy credential.
 
 Additional checks against a dedicated running app with diagnostics enabled (`ENABLE_SPIKE_CHECKS=1`):
 
 ```sh
-SPIKE_JOB_ID=<existing-render-uuid> node scripts/verify-video.mjs
 node scripts/verify-upload-memory.mjs
 ```
 
-The video verifier uses an existing render and never creates a paid job. It restarts the dedicated container, checks provider-ID persistence, uploads 100 MiB, measures memory, and checks declared and chunked upload limits. It removes its upload fixtures and writes `work/video-checks.json`. Prefer a completed real render to check output persistence. A failed render can check the transport and upload paths but cannot prove live generation recovery.
-
 The upload-memory script runs six transfers against a dedicated test instance. Its memory measurements depend on the container environment and sampling interval. Historical simulation and detailed measurement records are private; simulated jobs are not evidence of real generation.
 
-Browser cases in `tests/studio.spec.ts` consume `WAN_TEST_JOB_ID` instead of starting a paid job. They cover typed search, saved render reload, terminal state, and invalid input. The saved-live-render case is skipped when no existing render ID is supplied; the container check deliberately runs without that ID.
+Browser cases in `tests/studio.spec.ts` consume `WAN_TEST_JOB_ID` instead of starting a paid job. They cover typed search, saved render reload, terminal state, and invalid input. The saved-live-render case is skipped when no existing render ID is supplied. Set `BASE_URL` to test an app on a different address.
 
 ## Continuous integration
 
-[CI](.github/workflows/ci.yml) runs on pushes and pull requests once this repository is hosted on GitHub. It installs from the lockfile, checks types, lint and formatting, checks private paths across Git history, runs server tests, builds the Linux AMD64 image (including its client-secret scan), and runs container, browser and mocked SDK checks. It uses no Comfy secrets and submits no paid jobs. The workflow can only be verified on GitHub after a remote is explicitly created and the repository is pushed.
+[CI](.github/workflows/ci.yml) runs on pushes and pull requests once this repository is hosted on GitHub. It installs from the lockfile, checks types, lint and formatting, checks private paths across Git history, runs server tests, and builds the Linux AMD64 image (including its client-secret scan). Browser tests are run separately against a running app. CI uses no Comfy secrets and submits no paid jobs. The workflow can only be verified on GitHub after a remote is explicitly created and the repository is pushed.
 
 `npm run check:privacy` requires a full Git checkout. It rejects tracked private paths and their historical document locations. Local notes belong in `docs/priv/`, which is excluded from both Git and the Docker context. An ignore rule cannot remove files already committed; run the privacy check before the first push as well as in CI.
 
@@ -102,4 +95,4 @@ The SDK runs only in server modules. Vite externalizes it; Nitro traces the pack
 
 `/api/spike/comfy` checks typed NotFound against a deliberately nonexistent job. `/api/spike/status` reports subscription and memory counters. These require `ENABLE_SPIKE_CHECKS=1`; leave it unset outside diagnostics. The old fake-job creation route has been removed.
 
-`scripts/verify-sdk.mjs` uses an isolated local mock requiring a dummy authorization header. It proves packaging and credential plumbing, not GPU execution. The Vite/Nitro build still emits upstream `use client` warnings.
+The Vite/Nitro build still emits upstream `use client` warnings.

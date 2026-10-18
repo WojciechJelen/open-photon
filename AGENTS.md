@@ -3,7 +3,7 @@
 Use the latest version of Shadcn to install new components, like this command to add a button component:
 
 ```bash
-pnpm dlx shadcn@latest add button
+npx shadcn@latest add button
 ```
 
 # Toolchain
@@ -12,7 +12,7 @@ Type checking, linting, and formatting are oxc/tsgo based. Do not reintroduce
 Biome, Prettier, ESLint, or `tsc` for these jobs.
 
 ```bash
-npm run check        # typecheck + lint + format check, in parallel
+npm run check        # typecheck + lint + format check + fallow, in parallel
 npm run fix          # autofix lint findings, format, then typecheck
 npm run typecheck    # tsgo --noEmit (routes are generated first)
 npm run test:server  # node:test suite
@@ -28,6 +28,11 @@ npm run test:e2e     # Playwright (needs `npm run dev` on :3030)
   `@shadcn/lint` for the Tailwind design system, and **anti-slop**, vendored into
   `tools/oxlint/anti-slop`. `@oxlint/plugins` and `oxlint` are pinned to the same
   exact version (1.88.0); bump them together or the plugin API breaks.
+- **Fallow** (`.fallowrc.jsonc`) checks what per-file lint cannot: unused files,
+  exports and dependencies (`fallow dead-code`) and copy-paste across files
+  (`fallow dupes`). Scripts and `tests/type-contracts.ts` are declared entries.
+  Delete an unused export rather than suppressing it; a run-by-hand file
+  belongs in `entry`.
 ## Do not sort route option keys
 
 TanStack Router infers route types *positionally*: `validateSearch` feeds
