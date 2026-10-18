@@ -4,11 +4,15 @@ import { mkdir, readFile, rm, truncate, writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 
 const context = process.env.SPIKE_DOCKER_CONTEXT ?? "colima";
-const container = process.env.SPIKE_CONTAINER ?? "open-photon";
-const base = process.env.BASE_URL ?? "http://127.0.0.1:3030";
+const container = process.env.SPIKE_CONTAINER;
+const base = process.env.BASE_URL;
 const output = process.env.MEMORY_REPORT ?? "work/upload-memory.json";
 const fixture = "work/memory-upload-100MiB.mp4";
 const limit = 64 * 1024 * 1024;
+
+assert.ok(container, "Set SPIKE_CONTAINER to a dedicated test container; it will be restarted");
+
+assert.ok(base, "Set BASE_URL to the dedicated test container's HTTP address");
 
 function docker(...args) {
   const result = spawnSync("docker", ["--context", context, ...args], {
@@ -136,23 +140,20 @@ function removeUploaded(names) {
     assert.match(name, /^[a-f0-9-]+\.mp4$/);
   }
 
-  docker(
-    "exec",
-    container,
-    "node",
-    "--input-type=module",
-    "-e",
-    'import{unlinkSync}from"node:fs";for(const name of JSON.parse(process.argv[1]))unlinkSync("/app/data/media/"+name)',
-    JSON.stringify(names),
-  );
+  docker("exec", container, "rm", "--", ...names.map((name) => `/app/data/media/${name}`));
 }
+
+const imageId = docker("inspect", container, "--format", "{{.Image}}");
 
 const report = {
   container,
   createdAt: new Date().toISOString(),
+  engineArchitecture: docker("info", "--format", "{{.Architecture}}"),
   healthcheck: JSON.parse(
     docker("inspect", container, "--format", "{{json .Config.Healthcheck.Test}}"),
   ),
+  imageId,
+  imagePlatform: docker("image", "inspect", imageId, "--format", "{{.Os}}/{{.Architecture}}"),
   readiness: "Home page loaded, then one small multipart upload",
   runs: [],
   runtime: docker("exec", container, "uname", "-m"),

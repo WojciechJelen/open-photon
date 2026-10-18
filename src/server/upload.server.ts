@@ -6,6 +6,7 @@ import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 import Busboy from "@fastify/busboy";
+import type { ServerRequest } from "srvx";
 
 import { mediaDirectory } from "./media.server.ts";
 
@@ -20,7 +21,7 @@ class UploadError extends Error {
   }
 }
 
-export async function uploadMedia(request: Request) {
+export async function uploadMedia(request: ServerRequest) {
   const contentType = request.headers.get("content-type") ?? "";
 
   if (!contentType.startsWith("multipart/form-data;")) {
@@ -33,7 +34,9 @@ export async function uploadMedia(request: Request) {
     return Response.json({ error: "Maximum file size is 128 MiB" }, { status: 413 });
   }
 
-  if (!request.body) {
+  const body = request.runtime?.node?.req ?? request.body;
+
+  if (!body) {
     return Response.json({ error: "Missing upload body" }, { status: 400 });
   }
 
@@ -119,9 +122,15 @@ export async function uploadMedia(request: Request) {
       },
     });
 
-    await pipeline(Readable.from(readBody(request.body)), limit, parser, {
-      signal: abort.signal,
-    });
+    const chunks =
+      body instanceof Readable ? body.iterator({ destroyOnReturn: false }) : readBody(body);
+
+    await pipeline(
+      Readable.from(chunks, { highWaterMark: 65_536, objectMode: false }),
+      limit,
+      parser,
+      { signal: abort.signal },
+    );
     await saving;
 
     if (failure) {
@@ -149,6 +158,10 @@ export async function uploadMedia(request: Request) {
     );
   } finally {
     request.signal.removeEventListener("abort", onAbort);
+
+    if (body instanceof Readable && !body.readableEnded) {
+      body.resume();
+    }
   }
 }
 

@@ -9,8 +9,8 @@ Start is pinned to `1.169.3`; the registry does not publish an exact `1.0.0`. Th
 Put `COMFY_API_KEY=...` in the ignored `.env` file. The account needs access to Comfy Cloud workflow generation and enough credits. Authentication alone does not establish this access. Supply the key only at runtime.
 
 ```sh
-docker build --platform linux/amd64 -t open-photon:latest .
-docker run -d --name open-photon --platform linux/amd64 --init \
+docker build -t open-photon:latest .
+docker run -d --name open-photon --init \
   --env-file .env -e COMFY_BASE_URL=https://cloud.comfy.org \
   -p 127.0.0.1:3030:3000 \
   --mount type=volume,source=open-photon-data,target=/app/data \
@@ -18,6 +18,8 @@ docker run -d --name open-photon --platform linux/amd64 --init \
 ```
 
 For Colima, add `--context colima` after `docker`. Stop the running app before building on a small Docker VM. `docker compose up --build -d` is an alternative using the key from `.env`; it uses a separate Compose volume. Keep the volume containing your render data when replacing containers.
+
+Build and run natively: ARM64 on Apple Silicon, AMD64 on x86 hosts. Compose follows the Docker host architecture. CI builds the AMD64 image on an x86 runner. For an explicit cross-platform compatibility check, add `--platform linux/amd64` to both build and run, using a separate image tag and container. Earlier emulated runs had a route-generator segmentation fault and inconsistent memory measurements; use native runs for memory checks.
 
 Open <http://localhost:3030>, follow the typed link to the studio, and submit a render. **This submits a real GPU job and uses Comfy credits.** The reference image and driving video are the official public samples. The prompt describes the character and background; motion comes from the driving video. See [workflow provenance and bindings](workflows/wan-animate-2/README.md).
 
@@ -52,6 +54,8 @@ The new `renders` table retains real-job state separately from historical fake r
 
 `POST /api/uploads` streams one multipart MP4 to disk through Busboy. The file limit is 128 MiB, with 64 KiB additional multipart overhead. Interrupted and rejected uploads remove partial files.
 
+On Node, uploads read the underlying HTTP stream directly with byte-based backpressure. This avoids the extra buffer copies from converting the incoming Node stream to a Web stream and back. Standard Web requests use the streaming fallback. HTTP tests cover both oversized chunked uploads returning 413 and disconnect cleanup.
+
 `GET` and `HEAD /media/:filename` support single byte ranges, suffix ranges, 206, and unsatisfiable-range 416 responses. `x.mp4` and `x.jpg` are playback test fixtures, not generated results.
 
 SSE includes `Cache-Control: no-cache, no-transform` and `X-Accel-Buffering: no`. `/r/:jobId` emits Open Graph tags in raw HTML; completed jobs reference their saved MP4. `/r/test` is explicitly a playback fixture. Set `PUBLIC_APP_URL` for absolute share URLs outside localhost.
@@ -73,19 +77,23 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Additional checks against a dedicated running app with diagnostics enabled (`ENABLE_SPIKE_CHECKS=1`):
+Check upload memory in a dedicated container, using the native image built above (for Colima, use `--context colima` and set `SPIKE_DOCKER_CONTEXT=colima`):
 
 ```sh
-node scripts/verify-upload-memory.mjs
+docker run -d --name open-photon-memory --init \
+  -e ENABLE_SPIKE_CHECKS=1 -p 127.0.0.1:3031:3000 open-photon:latest
+SPIKE_DOCKER_CONTEXT=default SPIKE_CONTAINER=open-photon-memory \
+  BASE_URL=http://127.0.0.1:3031 node scripts/verify-upload-memory.mjs
+docker rm --force --volumes open-photon-memory
 ```
 
-The upload-memory script runs six transfers against a dedicated test instance. Its memory measurements depend on the container environment and sampling interval. Historical simulation and detailed measurement records are private; simulated jobs are not evidence of real generation.
+The upload-memory script requires an explicit container and HTTP address, restarts that container, and runs six transfers without Comfy credentials. It retains the 64 MiB limits for anonymous-memory growth, application RSS growth, and sampled array-buffer peaks; failures return a nonzero exit code. The report in `work/upload-memory.json` includes the image and Docker host architecture. Measurements depend on the container environment and sampling interval. Historical simulation and detailed measurement records are private; simulated jobs are not evidence of real generation.
 
 Browser cases in `tests/studio.spec.ts` consume `WAN_TEST_JOB_ID` instead of starting a paid job. They cover typed search, saved render reload, terminal state, and invalid input. The saved-live-render case is skipped when no existing render ID is supplied. Set `BASE_URL` to test an app on a different address.
 
 ## Continuous integration
 
-[CI](.github/workflows/ci.yml) runs on pushes and pull requests once this repository is hosted on GitHub. It installs from the lockfile, checks types, lint and formatting, checks private paths across Git history, runs server tests, and builds the Linux AMD64 image (including its client-secret scan). Browser tests are run separately against a running app. CI uses no Comfy secrets and submits no paid jobs. The workflow can only be verified on GitHub after a remote is explicitly created and the repository is pushed.
+[CI](.github/workflows/ci.yml) runs on pushes and pull requests once this repository is hosted on GitHub. It installs from the lockfile, checks types, lint and formatting, checks private paths across Git history, runs server tests, builds the Linux AMD64 image (including its client-secret scan), and runs the six-upload memory check on the native x86 runner. Browser tests are run separately against a running app. CI uses no Comfy secrets and submits no paid jobs. The workflow can only be verified on GitHub after a remote is explicitly created and the repository is pushed.
 
 `npm run check:privacy` requires a full Git checkout. It rejects tracked private paths and their historical document locations. Local notes belong in `docs/priv/`, which is excluded from both Git and the Docker context. An ignore rule cannot remove files already committed; run the privacy check before the first push as well as in CI.
 
