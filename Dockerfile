@@ -5,7 +5,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 RUN test ! -e docs/priv && test ! -e .env \
-  && COMFY_API_KEY=spike-build-canary-not-a-real-key npm run build \
+  && COMFY_API_KEY=spike-build-canary-not-a-real-key APP_ACCESS_CODE=access-build-canary-not-a-real-code npm run build \
   && npm run check:client
 
 FROM node:24.19.0-bookworm-slim AS runtime
@@ -20,6 +20,6 @@ RUN mkdir /app/data && chown node:node /app/data
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s \
-  CMD curl --fail --silent --show-error --max-time 3 --output /dev/null http://127.0.0.1:3000/
+  CMD curl --fail --silent --show-error --max-time 3 --output /dev/null http://127.0.0.1:3000/healthz
 ENTRYPOINT ["open-photon-entrypoint"]
 CMD ["node", ".output/server/index.mjs"]

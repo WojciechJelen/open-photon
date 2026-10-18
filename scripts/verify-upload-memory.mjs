@@ -3,6 +3,10 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdir, readFile, rm, truncate, writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 
+import { accessCookie } from "./access-session.mjs";
+
+let cookie = "";
+
 const context = process.env.SPIKE_DOCKER_CONTEXT ?? "colima";
 const container = process.env.SPIKE_CONTAINER;
 const base = process.env.BASE_URL;
@@ -78,6 +82,7 @@ function snapshot() {
 
 async function status() {
   const response = await fetch(`${base}/api/spike/status`, {
+    headers: { Cookie: cookie },
     signal: AbortSignal.timeout(5000),
   });
 
@@ -89,9 +94,10 @@ async function status() {
 async function ready() {
   for (let i = 0; i < 160; i++) {
     try {
-      const page = await fetch(base, { signal: AbortSignal.timeout(5000) });
+      const page = await fetch(`${base}/healthz`, { signal: AbortSignal.timeout(5000) });
       assert.equal(page.status, 200);
       await page.arrayBuffer();
+      cookie = await accessCookie(base);
       await status();
 
       return;
@@ -109,6 +115,8 @@ function upload(path, rate) {
   return new Promise((resolve, reject) => {
     const child = spawn("curl", [
       "--silent",
+      "--cookie",
+      cookie,
       "--show-error",
       "--fail-with-body",
       "--max-time",

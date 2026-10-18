@@ -38,11 +38,13 @@ jobs:
           SPIKE_DOCKER_CONTEXT: default
           SPIKE_CONTAINER: open-photon-memory
           BASE_URL: http://127.0.0.1:3031
+          APP_ACCESS_CODE: ci-only-access-code-not-a-secret
         run: |
           test "$(uname -m)" = x86_64
           docker run -d --name open-photon-memory --init --user 0 \
             --mount type=volume,destination=/app/data,volume-nocopy \
-            -e ENABLE_SPIKE_CHECKS=1 -p 127.0.0.1:3031:3000 open-photon:ci
+            -e ENABLE_SPIKE_CHECKS=1 -e APP_ACCESS_CODE -p 127.0.0.1:3031:3000 open-photon:ci
+          node scripts/verify-access.mjs
           node scripts/verify-upload-memory.mjs
       - name: Verify volume permissions and unprivileged application process
         run: |

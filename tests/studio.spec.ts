@@ -2,6 +2,16 @@ import { expect, test } from "@playwright/test";
 
 import { jobRowSchema } from "../src/lib/contracts";
 
+test.beforeEach(async ({ request, context }) => {
+  const code = process.env.APP_ACCESS_CODE;
+
+  if (code) {
+    const response = await request.post("/access", { form: { code }, maxRedirects: 0 });
+    expect(response.status()).toBe(303);
+    await context.addCookies((await request.storageState()).cookies);
+  }
+});
+
 test("a saved live render is recoverable without submitting another generation", async ({
   page,
   request,

@@ -93,13 +93,13 @@ Browser cases in `tests/studio.spec.ts` consume `WAN_TEST_JOB_ID` instead of sta
 
 ## Railway staging
 
-The deployment test app is at <https://open-photon-staging.up.railway.app>. Railway builds the repository's Dockerfile in the `open-photon` project, `staging` environment. It runs one replica in Europe with a 1 CPU / 1 GB RAM limit and a 5 GB volume mounted at `/app/data`. Keep one replica while SQLite and output collection use local storage.
+The deployment test app is private. Railway builds the repository's Dockerfile in the `open-photon` project, `staging` environment. It runs one replica in Europe with a 1 CPU / 1 GB RAM limit and a 5 GB volume mounted at `/app/data`. Keep one replica while SQLite and output collection use local storage.
 
-Runtime variables are `PORT=3000`, `HOST=0.0.0.0`, `DATABASE_PATH=/app/data/spike.sqlite`, `MEDIA_DIRECTORY=/app/data/media`, `COMFY_BASE_URL=https://cloud.comfy.org`, and `PUBLIC_APP_URL=https://open-photon-staging.up.railway.app`. Set `COMFY_API_KEY` as a service secret; leave spike diagnostics disabled.
+Runtime variables are `PORT=3000`, `HOST=0.0.0.0`, `DATABASE_PATH=/app/data/spike.sqlite`, `MEDIA_DIRECTORY=/app/data/media`, `COMFY_BASE_URL=https://cloud.comfy.org`, and `PUBLIC_APP_URL` (the deployment origin). Set `COMFY_API_KEY` as a service secret; leave spike diagnostics disabled.
 
 Railway mounts volumes as root. `RAILWAY_RUN_UID=0` starts the entrypoint as root so it can create and assign the database and media directories to `node`, then `gosu` replaces it with the app running as UID 1000. Ordinary Docker runs still default to `USER node`. Existing files must already be writable by `node`; startup does not recursively change ownership of stored media.
 
-Railway service settings select the Dockerfile builder, check `/` with a 120-second health-check timeout, and restart on failure up to three times. The volume and runtime secrets also remain Railway configuration. We do not use the deprecated `railway.toml` format. The Dockerfile intentionally has no `VOLUME` instruction because Railway rejects it; local runs must explicitly mount storage as shown above.
+Railway service settings select the Dockerfile builder, check `/healthz` with a 120-second health-check timeout, and restart on failure up to three times. The volume and runtime secrets also remain Railway configuration. We do not use the deprecated `railway.toml` format. The Dockerfile intentionally has no `VOLUME` instruction because Railway rejects it; local runs must explicitly mount storage as shown above.
 
 ## Continuous integration and deployment
 
@@ -116,3 +116,11 @@ The SDK runs only in server modules. Vite externalizes it; Nitro traces the pack
 `/api/spike/comfy` checks typed NotFound against a deliberately nonexistent job. `/api/spike/status` reports subscription and memory counters. These require `ENABLE_SPIKE_CHECKS=1`; leave it unset outside diagnostics. The old fake-job creation route has been removed.
 
 The Vite/Nitro build still emits upstream `use client` warnings.
+
+## Private preview access
+
+Set `APP_ACCESS_CODE` to a random secret of 24–256 characters (for example, `openssl rand -hex 24`). Production fails closed when it is missing or invalid. Local development without the variable remains open. Supply it in `.env` for Docker and export it when running verification scripts or browser tests. Never commit the code.
+
+Every dynamic page, API, server function, upload, event stream, and media request requires an access session. `/access` accepts the code and sets a signed, HttpOnly, SameSite cookie for 12 hours; HTTPS deployments also set Secure. Changing the code and redeploying invalidates existing sessions. Login attempts are limited to 10 per minute across this single instance. `/healthz` is public and reports readiness without touching Comfy. Static application assets remain public and contain no credentials.
+
+This is a shared preview gate: anyone with the code can spend Comfy credits. It does not impose per-user spending limits. Protected pages and media are private, so public social-preview crawlers cannot access them. The deployment URL previously appeared in this README; removing it does not erase Git history or make it secret.

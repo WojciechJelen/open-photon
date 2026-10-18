@@ -9,8 +9,14 @@ import { pipeline } from "node:stream/promises";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { jobEventSchema, jobRowSchema } from "../src/lib/contracts.ts";
+import { accessCookie } from "./access-session.mjs";
 
 const base = process.env.BASE_URL ?? "http://127.0.0.1:3030";
+const cookie = await accessCookie(base);
+
+const authenticatedFetch = (url, options = {}) =>
+  fetch(url, { ...options, headers: { ...options.headers, Cookie: cookie } });
+
 const runFile = process.env.WAN_RUN_FILE ?? "work/wan-run.json";
 const directory = resolve(process.env.WAN_OUTPUT_DIRECTORY ?? "data/renders");
 
@@ -41,7 +47,7 @@ if (!record) {
   await writeFile(runFile, `${JSON.stringify(record, null, 2)}\n`);
 }
 
-const response = await fetch(`${base}/api/jobs`, {
+const response = await authenticatedFetch(`${base}/api/jobs`, {
   body: JSON.stringify(record.input),
   headers: { "Content-Type": "application/json" },
   method: "POST",
@@ -71,7 +77,7 @@ if (job.status === "failed" || job.status === "unknown") {
 }
 
 async function snapshot() {
-  const response = await fetch(`${base}/api/jobs/${job.id}`, {
+  const response = await authenticatedFetch(`${base}/api/jobs/${job.id}`, {
     signal: AbortSignal.timeout(180_000),
   });
 
@@ -104,7 +110,7 @@ if (process.env.WAN_RESTART_AFTER_ACCEPT === "1" && job.status !== "complete" &&
 
     for (let attempt = 0; attempt < 160; attempt++) {
       try {
-        if ((await fetch(base, { signal: AbortSignal.timeout(5000) })).ok) {
+        if ((await authenticatedFetch(base, { signal: AbortSignal.timeout(5000) })).ok) {
           ready = true;
           break;
         }
@@ -137,7 +143,7 @@ while (!["complete", "failed", "unknown"].includes(job.status)) {
   );
   const controller = new AbortController();
 
-  const stream = await fetch(`${base}/api/jobs/${job.id}/events`, {
+  const stream = await authenticatedFetch(`${base}/api/jobs/${job.id}/events`, {
     signal: controller.signal,
   });
 
@@ -202,7 +208,7 @@ while (!["complete", "failed", "unknown"].includes(job.status)) {
 
 assert.equal(job.status, "complete", job.message);
 
-const video = await fetch(`${base}/media/${job.output.filename}`);
+const video = await authenticatedFetch(`${base}/media/${job.output.filename}`);
 
 assert.equal(video.status, 200);
 
@@ -218,7 +224,7 @@ for await (const chunk of createReadStream(path)) {
 
 assert.equal(hash.digest("hex"), job.output.sha256);
 
-const range = await fetch(`${base}/media/${job.output.filename}`, {
+const range = await authenticatedFetch(`${base}/media/${job.output.filename}`, {
   headers: { Range: "bytes=0-99" },
 });
 
@@ -226,13 +232,13 @@ assert.equal(range.status, 206);
 
 assert.equal((await range.arrayBuffer()).byteLength, 100);
 
-const share = await (await fetch(`${base}/r/${job.id}`)).text();
+const share = await (await authenticatedFetch(`${base}/r/${job.id}`)).text();
 
 assert.ok(share.includes(job.output.filename));
 
 assert.ok(share.includes('property="og:video"'));
 
-const duplicate = await fetch(`${base}/api/jobs`, {
+const duplicate = await authenticatedFetch(`${base}/api/jobs`, {
   body: JSON.stringify(record.input),
   headers: { "Content-Type": "application/json" },
   method: "POST",
