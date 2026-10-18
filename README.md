@@ -1,4 +1,4 @@
-# Comfy Start spike
+# Open Photon
 
 TanStack Start v1 with typed routes, SQLite, the official Wan Animate 2 workflow, Comfy SDK progress over SSE, streamed uploads, video byte ranges, and server-rendered share metadata.
 
@@ -9,13 +9,13 @@ Start is pinned to `1.169.3`; the registry does not publish an exact `1.0.0`. Th
 Put `COMFY_API_KEY=...` in the ignored `.env` file. The account needs access to Comfy Cloud workflow generation and enough credits. Authentication alone does not establish this access. Supply the key only at runtime.
 
 ```sh
-docker build --platform linux/amd64 -t comfy-start-spike:latest .
-docker run -d --name comfy-start-spike --platform linux/amd64 --init \
+docker build --platform linux/amd64 -t open-photon:latest .
+docker run -d --name open-photon --platform linux/amd64 --init \
   --env-file .env -e COMFY_BASE_URL=https://cloud.comfy.org \
   -e ENABLE_SPIKE_CHECKS=1 \
   -p 127.0.0.1:3030:3000 \
-  --mount type=volume,source=comfy-start-spike-data,target=/app/data \
-  comfy-start-spike:latest
+  --mount type=volume,source=open-photon-data,target=/app/data \
+  open-photon:latest
 ```
 
 For Colima, add `--context colima` after `docker`. Stop the running app before building on a small Docker VM. `docker compose up --build -d` is an alternative using the key from `.env`; it uses a separate Compose volume. Keep the volume containing your render data when replacing containers.

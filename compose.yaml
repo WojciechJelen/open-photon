@@ -1,8 +1,8 @@
 services:
   app:
     build: .
+    platform: linux/amd64
     environment:
-      ENABLE_SPIKE_CHECKS: "1"
       COMFY_API_KEY: ${COMFY_API_KEY:?Set COMFY_API_KEY in .env}
       COMFY_BASE_URL: https://cloud.comfy.org
     ports:

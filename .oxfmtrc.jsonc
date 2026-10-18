@@ -1,0 +1,24 @@
+{
+  // Oxfmt replaces Biome's formatter. Defaults are Prettier-compatible:
+  // 2 spaces, double quotes, semicolons, printWidth 100, trailing commas.
+  "ignorePatterns": [
+    "src/routeTree.gen.ts",
+    "src/components/ui/**",
+    ".output/**",
+    ".tanstack/**",
+    "test-results/**",
+    "package-lock.json",
+    // Vendored upstream plugin source: keep diffable against the anti-slop repo.
+    "tools/oxlint/anti-slop/**",
+    // Vendored ComfyUI exports: keep byte-comparable to what ComfyUI emits.
+    "workflows/**",
+    // Prose and verification records; reflowing tables churns historical evidence.
+    "**/*.md",
+  ],
+  "sortImports": true,
+  "sortTailwindcss": {
+    // Tailwind v4 is configured CSS-first, so point the sorter at the stylesheet.
+    "stylesheet": "src/styles.css",
+    "functions": ["cn", "cva"],
+  },
+}

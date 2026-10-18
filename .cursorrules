@@ -5,3 +5,50 @@ Use the latest version of Shadcn to install new components, like this command to
 ```bash
 pnpm dlx shadcn@latest add button
 ```
+
+# Toolchain
+
+Type checking, linting, and formatting are oxc/tsgo based. Do not reintroduce
+Biome, Prettier, ESLint, or `tsc` for these jobs.
+
+```bash
+npm run check        # typecheck + lint + format check, in parallel
+npm run fix          # autofix lint findings, format, then typecheck
+npm run typecheck    # tsgo --noEmit (routes are generated first)
+npm run test:server  # node:test suite
+npm run test:e2e     # Playwright (needs `npm run dev` on :3030)
+```
+
+- **tsgo** (`@typescript/native-preview`) type checks; `typescript` stays installed
+  for the editor language service and Vite plugins.
+- **Oxfmt** formats (`.oxfmtrc.jsonc`): 2 spaces, double quotes, import and
+  Tailwind class sorting. `src/components/ui` and `src/routeTree.gen.ts` are
+  excluded, as they were under Biome.
+- **Oxlint** lints (`oxlint.config.ts`) with `--type-aware`, plus two JS plugins:
+  `@shadcn/lint` for the Tailwind design system, and **anti-slop**, vendored into
+  `tools/oxlint/anti-slop`. `@oxlint/plugins` and `oxlint` are pinned to the same
+  exact version (1.88.0); bump them together or the plugin API breaks.
+## Do not sort route option keys
+
+TanStack Router infers route types *positionally*: `validateSearch` feeds
+`loaderDeps`, which feeds `loader`, which feeds `component`. TypeScript resolves
+those dependent inferences in source order, so reordering the keys of the object
+passed to `createFileRoute(...)()` collapses the inferred types to `{}` and
+produces a wall of TS2339 errors.
+
+No currently enabled rule sorts object keys. `eslint-plugin-perfectionist` did
+(via `@nkzw/oxlint-config`) and broke the build this way; both were removed. If
+anything that sorts object keys is ever added back, exempt `src/routes` first:
+
+```ts
+{ files: ["src/routes/**"], rules: { "perfectionist/sort-objects": "off" } }
+```
+
+`tests/type-contracts.ts` is the tripwire for this class of break: it asserts the
+route search and loader types still resolve, so `npm run typecheck` fails loudly
+if inference ever collapses again. Keep it in the typecheck path.
+
+`npm run fix` typechecks after autofixing for the same reason: an autofix can be
+syntactically safe and still destroy inference, so the fixer verifies its own
+output. Keep that last step. Never add `--fix` to `npm run check` — verification
+must stay read-only, or an unreviewed autofix can ride along into a commit.
