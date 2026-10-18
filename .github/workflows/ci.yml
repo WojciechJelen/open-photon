@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -10,7 +11,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
@@ -39,9 +40,27 @@ jobs:
           BASE_URL: http://127.0.0.1:3031
         run: |
           test "$(uname -m)" = x86_64
-          docker run -d --name open-photon-memory --init \
+          docker run -d --name open-photon-memory --init --user 0 \
+            --mount type=volume,destination=/app/data,volume-nocopy \
             -e ENABLE_SPIKE_CHECKS=1 -p 127.0.0.1:3031:3000 open-photon:ci
           node scripts/verify-upload-memory.mjs
+      - name: Verify volume permissions and unprivileged application process
+        run: |
+          docker exec open-photon-memory sh -ec '
+            app_pid=$(cat /proc/1/task/1/children)
+            test -n "$app_pid"
+            for pid in $app_pid; do
+              test "$(awk "/^Uid:/ {print \$2}" /proc/$pid/status)" = 1000
+            done
+            test "$(stat -c %u /app/data)" = 1000
+            test "$(stat -c %u /app/data/media)" = 1000
+          '
+          docker exec --user node open-photon-memory node --input-type=module -e '
+            import { DatabaseSync } from "node:sqlite";
+            const db = new DatabaseSync("/app/data/permission-check.sqlite");
+            db.exec("CREATE TABLE permission_check (id INTEGER PRIMARY KEY); INSERT INTO permission_check VALUES (1)");
+            db.close();
+          '
       - name: Remove upload test container and its temporary volume
         if: always()
         run: docker rm --force --volumes open-photon-memory || true

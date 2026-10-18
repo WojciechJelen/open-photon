@@ -91,9 +91,21 @@ The upload-memory script requires an explicit container and HTTP address, restar
 
 Browser cases in `tests/studio.spec.ts` consume `WAN_TEST_JOB_ID` instead of starting a paid job. They cover typed search, saved render reload, terminal state, and invalid input. The saved-live-render case is skipped when no existing render ID is supplied. Set `BASE_URL` to test an app on a different address.
 
-## Continuous integration
+## Railway staging
 
-[CI](.github/workflows/ci.yml) runs on pushes and pull requests once this repository is hosted on GitHub. It installs from the lockfile, checks types, lint and formatting, checks private paths across Git history, runs server tests, builds the Linux AMD64 image (including its client-secret scan), and runs the six-upload memory check on the native x86 runner. Browser tests are run separately against a running app. CI uses no Comfy secrets and submits no paid jobs. The workflow can only be verified on GitHub after a remote is explicitly created and the repository is pushed.
+The deployment test app is at <https://open-photon-staging.up.railway.app>. Railway builds the repository's Dockerfile in the `open-photon` project, `staging` environment. It runs one replica in Europe with a 1 CPU / 1 GB RAM limit and a 5 GB volume mounted at `/app/data`. Keep one replica while SQLite and output collection use local storage.
+
+Runtime variables are `PORT=3000`, `HOST=0.0.0.0`, `DATABASE_PATH=/app/data/spike.sqlite`, `MEDIA_DIRECTORY=/app/data/media`, `COMFY_BASE_URL=https://cloud.comfy.org`, and `PUBLIC_APP_URL=https://open-photon-staging.up.railway.app`. Set `COMFY_API_KEY` as a service secret; leave spike diagnostics disabled.
+
+Railway mounts volumes as root. `RAILWAY_RUN_UID=0` starts the entrypoint as root so it can create and assign the database and media directories to `node`, then `gosu` replaces it with the app running as UID 1000. Ordinary Docker runs still default to `USER node`. Existing files must already be writable by `node`; startup does not recursively change ownership of stored media.
+
+[`railway.toml`](railway.toml) keeps the Dockerfile builder, HTTP health check, and restart policy in source control. The volume and runtime secrets remain Railway configuration.
+
+## Continuous integration and deployment
+
+[CI](.github/workflows/ci.yml) runs on every `main` push and pull request, and can be started manually. It installs from the lockfile, checks types, lint, formatting, unused code and duplication, checks private paths across Git history, runs server tests, builds the Linux AMD64 image (including its client-secret scan), and runs the six-upload memory check on the native x86 runner. The container starts with a fresh root-owned volume, and CI checks that the app runs as UID 1000 and can write SQLite on that volume. Browser tests are run separately against a running app. CI uses no Comfy secrets and submits no paid jobs.
+
+Railway follows `main` with **Wait for CI** enabled. Each push must pass GitHub Actions before Railway builds and deploys the Dockerfile; failed checks block that deployment. Main-branch CI runs are not canceled by newer pushes. Pull-request checks do not deploy to staging. A successful Railway deployment must pass the HTTP health check before becoming active.
 
 `npm run check:privacy` requires a full Git checkout. It rejects tracked private paths and their historical document locations. Local notes belong in `docs/priv/`, which is excluded from both Git and the Docker context. An ignore rule cannot remove files already committed; run the privacy check before the first push as well as in CI.
 

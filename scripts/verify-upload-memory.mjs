@@ -30,7 +30,7 @@ function snapshot() {
     container,
     "sh",
     "-c",
-    String.raw`cat /sys/fs/cgroup/memory.current /sys/fs/cgroup/memory.stat; for p in /proc/[0-9]*/status; do printf "PROCESS\n"; sed -n "/^Name:/p;/^Pid:/p;/^PPid:/p;/^VmRSS:/p;/^RssAnon:/p" "$p"; done`,
+    String.raw`cat /sys/fs/cgroup/memory.current /sys/fs/cgroup/memory.stat; for p in /proc/[0-9]*/status; do if process_status=$(sed -n "/^Name:/p;/^Pid:/p;/^PPid:/p;/^VmRSS:/p;/^RssAnon:/p" "$p" 2>/dev/null); then printf "PROCESS\n%s\n" "$process_status"; elif [ -e "$p" ]; then exit 1; fi; done`,
   );
 
   const [memory, ...processes] = raw.split("PROCESS\n");
