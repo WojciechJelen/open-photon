@@ -1,31 +1,52 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { after } from "node:test";
 import { jobEventSchema } from "../src/lib/contracts.ts";
-import { findJob, insertJob } from "../src/server/db.server.ts";
+import { findJob, insertJob, updateJob } from "../src/server/db.server.ts";
 import {
 	streamDiagnostics,
-	streamFakeJob,
-} from "../src/server/fake-job.server.ts";
+	streamJob,
+} from "../src/server/job-stream.server.ts";
 
 const directory = mkdtempSync(join(tmpdir(), "comfy-stream-"));
 process.env.DATABASE_PATH = join(directory, "test.sqlite");
 after(() => rmSync(directory, { recursive: true, force: true }));
 function job() {
-	return insertJob(
-		{ prompt: "Test", preset: "cinematic", take: 1 },
-		{ durationMs: 600 },
-	);
+	return insertJob({
+		id: randomUUID(),
+		prompt: "Test",
+		preset: "portrait",
+		take: 1,
+	}).job;
+}
+function completed() {
+	const row = job();
+	return updateJob(row.id, (current) => ({
+		...current,
+		status: "complete",
+		providerJobId: `provider-${row.id}`,
+		percent: 100,
+		completedAt: 1000,
+		message: "Saved",
+		output: {
+			filename: `${row.id}.mp4`,
+			posterFilename: `${row.id}.jpg`,
+			bytes: 86526,
+			width: 320,
+			height: 180,
+			durationSeconds: 3,
+			sha256: "0".repeat(64),
+			assetId: "asset-test",
+		},
+	}));
 }
 
-test("stream completes incrementally and persists completion", async () => {
-	const row = job();
-	const response = streamFakeJob(
-		new Request("http://localhost/events"),
-		row.id,
-	);
+test("a completed persisted render produces one terminal snapshot without calling Comfy", async () => {
+	const row = completed();
+	const response = streamJob(new Request("http://localhost/events"), row.id);
 	assert.match(
 		response.headers.get("content-type") ?? "",
 		/text\/event-stream/,
@@ -36,19 +57,14 @@ test("stream completes incrementally and persists completion", async () => {
 		.split("\n\n")
 		.filter(Boolean)
 		.map((line) => jobEventSchema.parse(JSON.parse(line.slice(6))));
-	assert.ok(events.length > 1);
-	assert.equal(events.at(-1)?.kind, "complete");
-	assert.deepEqual(
-		events.map((event) => event.percent),
-		events.map((event) => event.percent).sort((a, b) => a - b),
-	);
-	assert.equal(findJob(row.id)?.status, "complete");
+	assert.equal(events.length, 1);
+	assert.deepEqual(events[0]?.job, row);
 	assert.equal(streamDiagnostics().active, 0);
 });
-test("aborting a request fires cleanup and closes its stream", async () => {
+test("request abort closes the live subscription while leaving the render persisted", async () => {
 	const row = job(),
 		controller = new AbortController();
-	const response = streamFakeJob(
+	const response = streamJob(
 		new Request("http://localhost/events", { signal: controller.signal }),
 		row.id,
 	);
@@ -60,22 +76,20 @@ test("aborting a request fires cleanup and closes its stream", async () => {
 	assert.equal((await reader.read()).done, true);
 	assert.equal(streamDiagnostics().requestAborts, before + 1);
 	assert.equal(streamDiagnostics().active, 0);
+	assert.equal(findJob(row.id)?.status, "submitting");
 });
 test("pre-aborted requests have no active subscription", async () => {
 	const controller = new AbortController();
 	controller.abort();
-	const response = streamFakeJob(
+	const response = streamJob(
 		new Request("http://localhost/events", { signal: controller.signal }),
 		job().id,
 	);
 	assert.equal(await response.text(), "");
 	assert.equal(streamDiagnostics().active, 0);
 });
-test("consumer cancellation clears the timer", async () => {
-	const response = streamFakeJob(
-		new Request("http://localhost/events"),
-		job().id,
-	);
+test("consumer cancellation closes the generator", async () => {
+	const response = streamJob(new Request("http://localhost/events"), job().id);
 	assert.ok(response.body);
 	const reader = response.body.getReader();
 	await reader.read();
@@ -83,14 +97,38 @@ test("consumer cancellation clears the timer", async () => {
 	assert.equal((await reader.read()).done, true);
 	assert.equal(streamDiagnostics().active, 0);
 });
-test("lazy reads recover and finalize an elapsed job exactly once", () => {
-	const row = insertJob(
-		{ prompt: "Restart proof", preset: "portrait", take: 2 },
-		{ now: 100000, durationMs: 1000 },
+test("elapsed time cannot finalize a provider render", () => {
+	const row = job();
+	updateJob(row.id, (current) => ({
+		...current,
+		createdAt: "2000-01-01T00:00:00.000Z",
+		completedAt: null,
+		status: "running",
+		providerJobId: "provider-persisted",
+		percent: 50,
+	}));
+	assert.equal(findJob(row.id)?.status, "running");
+	assert.equal(findJob(row.id)?.percent, 50);
+	assert.equal(findJob(row.id)?.providerJobId, "provider-persisted");
+});
+test("repeated request IDs reuse the existing row and reject different inputs", () => {
+	const row = job();
+	assert.equal(insertJob(row).created, false);
+	assert.throws(
+		() => insertJob({ ...row, prompt: "different" }),
+		/different inputs/,
 	);
-	assert.equal(findJob(row.id, { now: 100500 })?.percent, 50);
-	const complete = findJob(row.id, { now: 101100 });
-	assert.equal(complete?.status, "complete");
-	assert.equal(complete?.completedAt, 101000);
-	assert.deepEqual(findJob(row.id, { now: 200000 }), complete);
+	assert.deepEqual(findJob(row.id), row);
+});
+test("completion is durable and cannot regress to running", () => {
+	const row = completed();
+	const again = updateJob(row.id, (current) => ({
+		...current,
+		status: "running",
+		providerJobId: `provider-${row.id}`,
+		percent: 50,
+		completedAt: null,
+	}));
+	assert.deepEqual(again, row);
+	assert.deepEqual(findJob(row.id), row);
 });

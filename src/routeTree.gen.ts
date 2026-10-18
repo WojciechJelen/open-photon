@@ -11,12 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudioRouteImport } from './routes/studio'
+import { Route as ApiJobsRouteImport } from './routes/api.jobs'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
 import { Route as RJobIdRouteImport } from './routes/r.$jobId'
 import { Route as ApiJobsJobIdRouteImport } from './routes/api.jobs.$jobId'
 import { Route as ApiSpikeComfyRouteImport } from './routes/api.spike.comfy'
-import { Route as ApiSpikeJobsRouteImport } from './routes/api.spike.jobs'
 import { Route as ApiSpikeStatusRouteImport } from './routes/api.spike.status'
 import { Route as ApiJobsJobIdEventsRouteImport } from './routes/api.jobs.$jobId.events'
 
@@ -28,6 +28,11 @@ const IndexRoute = IndexRouteImport.update({
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
   path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiJobsRoute = ApiJobsRouteImport.update({
+  id: '/api/jobs',
+  path: '/api/jobs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiUploadsRoute = ApiUploadsRouteImport.update({
@@ -46,18 +51,13 @@ const RJobIdRoute = RJobIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiJobsJobIdRoute = ApiJobsJobIdRouteImport.update({
-  id: '/api/jobs/$jobId',
-  path: '/api/jobs/$jobId',
-  getParentRoute: () => rootRouteImport,
+  id: '/$jobId',
+  path: '/$jobId',
+  getParentRoute: () => ApiJobsRoute,
 } as any)
 const ApiSpikeComfyRoute = ApiSpikeComfyRouteImport.update({
   id: '/api/spike/comfy',
   path: '/api/spike/comfy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSpikeJobsRoute = ApiSpikeJobsRouteImport.update({
-  id: '/api/spike/jobs',
-  path: '/api/spike/jobs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSpikeStatusRoute = ApiSpikeStatusRouteImport.update({
@@ -74,24 +74,24 @@ const ApiJobsJobIdEventsRoute = ApiJobsJobIdEventsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/studio': typeof StudioRoute
+  '/api/jobs': typeof ApiJobsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$jobId': typeof RJobIdRoute
   '/api/jobs/$jobId': typeof ApiJobsJobIdRouteWithChildren
   '/api/spike/comfy': typeof ApiSpikeComfyRoute
-  '/api/spike/jobs': typeof ApiSpikeJobsRoute
   '/api/spike/status': typeof ApiSpikeStatusRoute
   '/api/jobs/$jobId/events': typeof ApiJobsJobIdEventsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/studio': typeof StudioRoute
+  '/api/jobs': typeof ApiJobsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$jobId': typeof RJobIdRoute
   '/api/jobs/$jobId': typeof ApiJobsJobIdRouteWithChildren
   '/api/spike/comfy': typeof ApiSpikeComfyRoute
-  '/api/spike/jobs': typeof ApiSpikeJobsRoute
   '/api/spike/status': typeof ApiSpikeStatusRoute
   '/api/jobs/$jobId/events': typeof ApiJobsJobIdEventsRoute
 }
@@ -99,12 +99,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/studio': typeof StudioRoute
+  '/api/jobs': typeof ApiJobsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$jobId': typeof RJobIdRoute
   '/api/jobs/$jobId': typeof ApiJobsJobIdRouteWithChildren
   '/api/spike/comfy': typeof ApiSpikeComfyRoute
-  '/api/spike/jobs': typeof ApiSpikeJobsRoute
   '/api/spike/status': typeof ApiSpikeStatusRoute
   '/api/jobs/$jobId/events': typeof ApiJobsJobIdEventsRoute
 }
@@ -113,36 +113,36 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/studio'
+    | '/api/jobs'
     | '/api/uploads'
     | '/media/$filename'
     | '/r/$jobId'
     | '/api/jobs/$jobId'
     | '/api/spike/comfy'
-    | '/api/spike/jobs'
     | '/api/spike/status'
     | '/api/jobs/$jobId/events'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/studio'
+    | '/api/jobs'
     | '/api/uploads'
     | '/media/$filename'
     | '/r/$jobId'
     | '/api/jobs/$jobId'
     | '/api/spike/comfy'
-    | '/api/spike/jobs'
     | '/api/spike/status'
     | '/api/jobs/$jobId/events'
   id:
     | '__root__'
     | '/'
     | '/studio'
+    | '/api/jobs'
     | '/api/uploads'
     | '/media/$filename'
     | '/r/$jobId'
     | '/api/jobs/$jobId'
     | '/api/spike/comfy'
-    | '/api/spike/jobs'
     | '/api/spike/status'
     | '/api/jobs/$jobId/events'
   fileRoutesById: FileRoutesById
@@ -150,12 +150,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   StudioRoute: typeof StudioRoute
+  ApiJobsRoute: typeof ApiJobsRouteWithChildren
   ApiUploadsRoute: typeof ApiUploadsRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
   RJobIdRoute: typeof RJobIdRoute
-  ApiJobsJobIdRoute: typeof ApiJobsJobIdRouteWithChildren
   ApiSpikeComfyRoute: typeof ApiSpikeComfyRoute
-  ApiSpikeJobsRoute: typeof ApiSpikeJobsRoute
   ApiSpikeStatusRoute: typeof ApiSpikeStatusRoute
 }
 
@@ -173,6 +172,13 @@ declare module '@tanstack/react-router' {
       path: '/studio'
       fullPath: '/studio'
       preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/jobs': {
+      id: '/api/jobs'
+      path: '/api/jobs'
+      fullPath: '/api/jobs'
+      preLoaderRoute: typeof ApiJobsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/uploads': {
@@ -198,23 +204,16 @@ declare module '@tanstack/react-router' {
     }
     '/api/jobs/$jobId': {
       id: '/api/jobs/$jobId'
-      path: '/api/jobs/$jobId'
+      path: '/$jobId'
       fullPath: '/api/jobs/$jobId'
       preLoaderRoute: typeof ApiJobsJobIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ApiJobsRoute
     }
     '/api/spike/comfy': {
       id: '/api/spike/comfy'
       path: '/api/spike/comfy'
       fullPath: '/api/spike/comfy'
       preLoaderRoute: typeof ApiSpikeComfyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/spike/jobs': {
-      id: '/api/spike/jobs'
-      path: '/api/spike/jobs'
-      fullPath: '/api/spike/jobs'
-      preLoaderRoute: typeof ApiSpikeJobsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/spike/status': {
@@ -246,26 +245,27 @@ const ApiJobsJobIdRouteWithChildren = ApiJobsJobIdRoute._addFileChildren(
   ApiJobsJobIdRouteChildren,
 )
 
+interface ApiJobsRouteChildren {
+  ApiJobsJobIdRoute: typeof ApiJobsJobIdRouteWithChildren
+}
+
+const ApiJobsRouteChildren: ApiJobsRouteChildren = {
+  ApiJobsJobIdRoute: ApiJobsJobIdRouteWithChildren,
+}
+
+const ApiJobsRouteWithChildren =
+  ApiJobsRoute._addFileChildren(ApiJobsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   StudioRoute: StudioRoute,
+  ApiJobsRoute: ApiJobsRouteWithChildren,
   ApiUploadsRoute: ApiUploadsRoute,
   MediaFilenameRoute: MediaFilenameRoute,
   RJobIdRoute: RJobIdRoute,
-  ApiJobsJobIdRoute: ApiJobsJobIdRouteWithChildren,
   ApiSpikeComfyRoute: ApiSpikeComfyRoute,
-  ApiSpikeJobsRoute: ApiSpikeJobsRoute,
   ApiSpikeStatusRoute: ApiSpikeStatusRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

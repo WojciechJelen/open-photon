@@ -1,76 +1,91 @@
 import { useEffect, useState } from "react";
 import { Progress } from "#/components/ui/progress";
-import { type JobEvent, type JobRow, jobEventSchema } from "#/lib/contracts";
-
-type StreamState =
-	| { kind: "connecting" }
-	| JobEvent
-	| { kind: "error"; message: string };
+import { type JobRow, jobEventSchema } from "#/lib/contracts";
 
 export function JobProgress({ job }: { job: JobRow }) {
-	const jobId = job.id;
-	const [state, setState] = useState<StreamState>(() =>
-		job.status === "complete"
-			? { kind: "complete", jobId, percent: 100 }
-			: { kind: "progress", jobId, percent: job.percent },
-	);
-
+	const [snapshot, setSnapshot] = useState(job);
+	const [disconnected, setDisconnected] = useState(false);
 	useEffect(() => {
-		if (job.status === "complete") return;
+		if (["complete", "failed", "unknown"].includes(job.status)) return;
 		const source = new EventSource(
-			`/api/jobs/${encodeURIComponent(jobId)}/events`,
+			`/api/jobs/${encodeURIComponent(job.id)}/events`,
 		);
+		source.onopen = () => setDisconnected(false);
 		source.onmessage = (event: MessageEvent<string>) => {
 			try {
 				const update = jobEventSchema.parse(JSON.parse(event.data));
-				if (update.jobId !== jobId)
-					throw new Error("Received progress for a different job.");
-				setState(update);
-				if (update.kind === "complete") source.close();
+				if (update.job.id !== job.id) throw new Error("Wrong render ID");
+				setSnapshot(update.job);
+				setDisconnected(false);
+				if (["complete", "failed", "unknown"].includes(update.job.status))
+					source.close();
 			} catch {
 				source.close();
-				setState({
-					kind: "error",
-					message: "Received an invalid progress event.",
-				});
+				setDisconnected(true);
 			}
 		};
-		source.onerror = () => {
-			if (source.readyState === EventSource.CLOSED) {
-				setState({
-					kind: "error",
-					message:
-						"Progress is unavailable. Reload this page to recover the saved job.",
-				});
-			}
-		};
+		source.onerror = () => setDisconnected(true);
 		return () => source.close();
-	}, [jobId, job.status]);
-
-	if (state.kind === "error")
-		return (
-			<p role="alert" className="text-sm text-destructive">
-				{state.message}
-			</p>
-		);
-
-	const percent = state.kind === "connecting" ? 0 : state.percent;
-	const label =
-		state.kind === "complete"
-			? "Render complete"
-			: state.kind === "connecting"
-				? "Connecting…"
-				: "Rendering…";
-
+	}, [job.id, job.status]);
+	const failed = snapshot.status === "failed" || snapshot.status === "unknown";
 	return (
-		<div className="space-y-3">
-			<output className="flex justify-between text-sm" aria-live="polite">
-				<span>{label}</span>
+		<div className="space-y-4">
+			<output className="flex justify-between gap-4 text-sm" aria-live="polite">
+				<span>{snapshot.message}</span>
 				<span className="font-mono" data-testid="progress-value">
-					{percent}%
+					{snapshot.percent === null ? snapshot.status : `${snapshot.percent}%`}
 				</span>
 			</output>
-			<Progress value={percent} aria-label="Render progress" />
+			{!failed && (
+				<Progress
+					value={snapshot.percent ?? undefined}
+					aria-label="Render progress"
+				/>
+			)}
+			{failed && (
+				<p role="alert" className="text-sm text-destructive">
+					{snapshot.errorCode}
+				</p>
+			)}
+			{disconnected && !failed && snapshot.status !== "complete" && (
+				<p className="text-sm text-muted-foreground">
+					Reconnecting to Comfy. Reloading this page recovers the saved render.
+				</p>
+			)}
+			{snapshot.providerJobId && (
+				<p className="break-all font-mono text-xs text-muted-foreground">
+					Comfy job: {snapshot.providerJobId}
+				</p>
+			)}
+			{snapshot.status === "complete" && (
+				<>
+					<video
+						controls
+						preload="metadata"
+						poster={`/media/${snapshot.output.posterFilename}`}
+						className="w-full rounded-xl"
+						data-testid="render-video"
+					>
+						<source
+							src={`/media/${snapshot.output.filename}`}
+							type="video/mp4"
+						/>
+						<track kind="captions" />
+					</video>
+					<p className="text-sm text-muted-foreground">
+						{snapshot.output.width} × {snapshot.output.height} ·{" "}
+						{snapshot.output.durationSeconds.toFixed(2)} seconds ·{" "}
+						{(snapshot.output.bytes / 1048576).toFixed(2)} MiB saved
+					</p>
+					<a
+						href={`/media/${snapshot.output.filename}`}
+						download
+						className="inline-block text-sm underline"
+					>
+						Download MP4
+					</a>
+				</>
+			)}
 		</div>
 	);
 }

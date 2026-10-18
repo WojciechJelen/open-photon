@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Play } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { JobProgress } from "#/components/job-progress";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
@@ -23,6 +23,7 @@ function Studio() {
 	const { preset, take } = Route.useSearch();
 	const row = Route.useLoaderData();
 	const navigate = Route.useNavigate();
+	const attempt = useRef<{ id: string; signature: string } | null>(null);
 	const [submission, setSubmission] = useState<Submission>({ kind: "idle" });
 
 	const submit = async (form: FormData) => {
@@ -30,8 +31,15 @@ function Studio() {
 		try {
 			const prompt = form.get("prompt");
 			if (typeof prompt !== "string") throw new Error("Write a prompt first.");
-			const row = await createJob({ data: { prompt, preset, take } });
+			const signature = JSON.stringify({ prompt, preset, take });
+			if (!attempt.current || attempt.current.signature !== signature)
+				attempt.current = { id: crypto.randomUUID(), signature };
+			const row = await createJob({
+				data: { id: attempt.current.id, prompt, preset, take },
+			});
 			await navigate({ search: { preset, take, job: row.id } });
+			if (row.status !== "unknown" && row.status !== "submitting")
+				attempt.current = null;
 			setSubmission({ kind: "idle" });
 		} catch (error) {
 			setSubmission({
@@ -54,9 +62,13 @@ function Studio() {
 				<p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
 					Comfy / studio
 				</p>
-				<h1 className="text-4xl font-semibold tracking-tight">Try a render.</h1>
+				<h1 className="text-4xl font-semibold tracking-tight">
+					Animate a character.
+				</h1>
 				<p className="text-muted-foreground">
-					Save a real job, then watch a simulated render stream to your browser.
+					Wan Animate 2 transfers the sample video’s motion onto the reference
+					character. Progress comes from Comfy, and the finished MP4 is saved
+					here.
 				</p>
 			</header>
 			<div className="flex gap-3 text-sm">
@@ -72,19 +84,25 @@ function Studio() {
 				className="space-y-4 rounded-xl border bg-card p-6 shadow-sm"
 			>
 				<label htmlFor="prompt" className="block text-sm font-medium">
-					Describe your shot
+					Describe the character and background
 				</label>
 				<Input
 					id="prompt"
 					name="prompt"
-					placeholder="A slow orbit around a ceramic vase"
-					defaultValue="A slow orbit around a ceramic vase"
+					placeholder="Character appearance and background"
+					defaultValue="Character Description: Cartoon character lost. Background description: The background is an empty white room."
 					required
 					maxLength={500}
 				/>
-				<Button type="submit" disabled={submission.kind === "saving"}>
+				<Button
+					type="submit"
+					disabled={
+						submission.kind === "saving" ||
+						(row !== null && !["complete", "failed"].includes(row.status))
+					}
+				>
 					<Play aria-hidden="true" />{" "}
-					{submission.kind === "saving" ? "Saving…" : "Create job"}
+					{submission.kind === "saving" ? "Submitting…" : "Render on Comfy"}
 				</Button>
 				{submission.kind === "error" && (
 					<p role="alert" className="text-sm text-destructive">
@@ -98,7 +116,7 @@ function Studio() {
 					aria-label="Saved job"
 				>
 					<div className="space-y-1">
-						<h2 className="text-lg font-semibold">Job saved to SQLite</h2>
+						<h2 className="text-lg font-semibold">Saved render</h2>
 						<p
 							className="break-all font-mono text-xs text-muted-foreground"
 							data-testid="job-id"

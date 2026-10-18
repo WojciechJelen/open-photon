@@ -16,13 +16,13 @@ function Home() {
 					One job. The whole stack.
 				</h1>
 				<p className="max-w-xl text-lg text-muted-foreground">
-					A small test of typed navigation, a real SQLite write, and live server
-					events. The render is simulated.
+					Animate a character with Wan Animate 2. Submit to Comfy, follow live
+					progress, and keep the finished MP4 on disk.
 				</p>
 			</div>
 			<Link
 				to="/studio"
-				search={{ preset: "cinematic", take: 1 }}
+				search={{ preset: "portrait", take: 1 }}
 				className={buttonVariants({ size: "lg", className: "w-fit" })}
 			>
 				Open the studio <ArrowRight aria-hidden="true" />

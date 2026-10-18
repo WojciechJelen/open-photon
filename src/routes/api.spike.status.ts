@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { streamDiagnostics } from "#/server/fake-job.server";
+import { streamDiagnostics } from "#/server/job-stream.server";
 export const Route = createFileRoute("/api/spike/status")({
 	server: {
 		handlers: {

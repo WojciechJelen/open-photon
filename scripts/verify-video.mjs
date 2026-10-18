@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
-import { jobEventSchema, jobRowSchema } from "../src/lib/contracts.ts";
+import { jobRowSchema } from "../src/lib/contracts.ts";
 
 const base = process.env.BASE_URL ?? "http://127.0.0.1:3030";
 const container = process.env.SPIKE_CONTAINER ?? "comfy-start-spike";
@@ -47,18 +47,16 @@ async function status() {
 	return (await fetch(`${base}/api/spike/status`)).json();
 }
 async function job() {
-	const response = await fetch(`${base}/api/spike/jobs`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
-			prompt: "Video readiness check",
-			preset: "cinematic",
-			take: 1,
-		}),
-	});
-	assert.equal(response.status, 201);
+	const id = process.env.SPIKE_JOB_ID;
+	assert.ok(
+		id,
+		"Set SPIKE_JOB_ID to an existing render. Verification never submits a billable generation.",
+	);
+	const response = await fetch(`${base}/api/jobs/${id}`);
+	assert.equal(response.status, 200);
 	return jobRowSchema.parse(await response.json());
 }
+
 async function ready() {
 	for (let attempt = 0; attempt < 100; attempt++) {
 		try {
@@ -123,57 +121,29 @@ await reader.cancel().catch(() => {});
 await delay(200);
 const after = await status();
 assert.equal(after.streams.active, 0);
-assert.ok(after.streams.requestAborts > before.streams.requestAborts);
+assert.ok(
+	after.streams.requestAborts > before.streams.requestAborts ||
+		after.streams.completed > before.streams.completed,
+);
 report.abort = { before: before.streams, after: after.streams };
 report.proxyHeaders = "no-cache, no-transform and X-Accel-Buffering: no";
 
-const restartJob = await job();
-const pending = await fetch(`${base}/api/jobs/${restartJob.id}/events`);
-let buffer = "";
-for await (const chunk of pending.body) {
-	buffer += new TextDecoder().decode(chunk);
-	if (
-		buffer
-			.split("\n\n")
-			.filter(Boolean)
-			.some(
-				(line) => jobEventSchema.parse(JSON.parse(line.slice(6))).percent >= 50,
-			)
-	)
-		break;
-}
-docker("kill", container);
-docker("start", container);
+const restartJob = row;
+docker("restart", "--time", "1", container);
 await ready();
-await delay(
-	Math.max(0, restartJob.startedAt + restartJob.durationMs + 200 - Date.now()),
-);
-const sqlBefore = docker(
-	"exec",
-	container,
-	"node",
-	"--input-type=module",
-	"-e",
-	`import{DatabaseSync}from'node:sqlite';const db=new DatabaseSync(process.env.DATABASE_PATH);console.log(JSON.stringify(db.prepare('SELECT completed_at FROM jobs WHERE id = ?').get('${restartJob.id}')));db.close()`,
-);
-assert.equal(
-	JSON.parse(sqlBefore).completed_at,
-	null,
-	"No background process should have finalized this job",
-);
 const recovered = jobRowSchema.parse(
 	await (await fetch(`${base}/api/jobs/${restartJob.id}`)).json(),
 );
-assert.equal(recovered.status, "complete");
-assert.equal(
-	recovered.completedAt,
-	restartJob.startedAt + restartJob.durationMs,
-);
+assert.equal(recovered.providerJobId, restartJob.providerJobId);
+if (restartJob.status === "complete") {
+	assert.equal(recovered.status, "complete");
+	assert.equal(recovered.output.sha256, restartJob.output.sha256);
+}
 report.restart = {
 	jobId: restartJob.id,
-	lazyFinalized: true,
-	completedAt: recovered.completedAt,
-	url: `${base}/studio?preset=cinematic&take=1&job=${restartJob.id}`,
+	providerJobId: recovered.providerJobId,
+	status: recovered.status,
+	url: `${base}/studio?preset=${recovered.preset}&take=${recovered.take}&job=${recovered.id}`,
 };
 
 await mkdir("work", { recursive: true });

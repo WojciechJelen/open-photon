@@ -3,6 +3,8 @@ services:
     build: .
     environment:
       ENABLE_SPIKE_CHECKS: "1"
+      COMFY_API_KEY: ${COMFY_API_KEY:?Set COMFY_API_KEY in .env}
+      COMFY_BASE_URL: https://cloud.comfy.org
     ports:
       - "127.0.0.1:3030:3000"
     volumes:
