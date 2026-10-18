@@ -99,7 +99,7 @@ Runtime variables are `PORT=3000`, `HOST=0.0.0.0`, `DATABASE_PATH=/app/data/spik
 
 Railway mounts volumes as root. `RAILWAY_RUN_UID=0` starts the entrypoint as root so it can create and assign the database and media directories to `node`, then `gosu` replaces it with the app running as UID 1000. Ordinary Docker runs still default to `USER node`. Existing files must already be writable by `node`; startup does not recursively change ownership of stored media.
 
-[`railway.toml`](railway.toml) keeps the Dockerfile builder, HTTP health check, and restart policy in source control. The volume and runtime secrets remain Railway configuration.
+[`railway.toml`](railway.toml) keeps the Dockerfile builder, HTTP health check, and restart policy in source control. The volume and runtime secrets remain Railway configuration. The Dockerfile intentionally has no `VOLUME` instruction because Railway rejects it; local runs must explicitly mount storage as shown above.
 
 ## Continuous integration and deployment
 

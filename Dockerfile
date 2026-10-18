@@ -19,7 +19,6 @@ COPY --chmod=755 scripts/container-entrypoint.sh /usr/local/bin/open-photon-entr
 RUN mkdir /app/data && chown node:node /app/data
 USER node
 EXPOSE 3000
-VOLUME ["/app/data"]
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s \
   CMD curl --fail --silent --show-error --max-time 3 --output /dev/null http://127.0.0.1:3000/
 ENTRYPOINT ["open-photon-entrypoint"]
