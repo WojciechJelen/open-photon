@@ -4,6 +4,7 @@
 
 - Source: https://github.com/dmmulroy/anti-slop
 - Commit: `13909c9`
+- License: MIT; the upstream notice is preserved in `anti-slop/LICENSE`.
 - Copied from: `skills/install-anti-slop/assets/anti-slop/`
 - Local changes: none. The `effect/` rules were omitted because this project
   does not use Effect; upstream says to register those only in Effect repos.

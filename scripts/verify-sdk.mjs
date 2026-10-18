@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
-const context = process.env.SPIKE_DOCKER_CONTEXT ?? "colima";
+const context = process.env.SPIKE_DOCKER_CONTEXT;
 const image = process.env.SPIKE_IMAGE ?? "open-photon:latest";
 const suffix = randomUUID().slice(0, 8);
 
@@ -13,7 +13,7 @@ const network = `comfy-sdk-${suffix}`,
   app = `comfy-sdk-app-${suffix}`;
 
 function docker(...args) {
-  const result = spawnSync("docker", ["--context", context, ...args], {
+  const result = spawnSync("docker", [...(context ? ["--context", context] : []), ...args], {
     encoding: "utf8",
   });
 

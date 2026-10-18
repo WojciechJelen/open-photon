@@ -12,7 +12,6 @@ Put `COMFY_API_KEY=...` in the ignored `.env` file. The account needs access to 
 docker build --platform linux/amd64 -t open-photon:latest .
 docker run -d --name open-photon --platform linux/amd64 --init \
   --env-file .env -e COMFY_BASE_URL=https://cloud.comfy.org \
-  -e ENABLE_SPIKE_CHECKS=1 \
   -p 127.0.0.1:3030:3000 \
   --mount type=volume,source=open-photon-data,target=/app/data \
   open-photon:latest
@@ -22,7 +21,7 @@ For Colima, add `--context colima` after `docker`. Stop the running app before b
 
 Open <http://localhost:3030>, follow the typed link to the studio, and submit a render. **This submits a real GPU job and uses Comfy credits.** The reference image and driving video are the official public samples. The prompt describes the character and background; motion comes from the driving video. See [workflow provenance and bindings](workflows/wan-animate-2/README.md).
 
-For local development, use Node 24+, `npm ci`, then `npm run dev`. Install FFmpeg locally to save and verify generated outputs.
+For local development, use Node 24+ and npm 11.6.2 (`npm install --global npm@11.6.2`), then `npm ci` and `npm run dev`. Docker and CI use the same npm version declared in `packageManager`. Install FFmpeg locally to save and verify generated outputs.
 
 ## One live run
 
@@ -36,7 +35,7 @@ The script saves its request ID before submitting, restarts the container after 
 
 Re-running resumes that saved request; it does not intentionally create another render. Use `WAN_RUN_FILE` to choose a distinct request record only when you intend to start another job. A known rejected request stays failed. `WAN_OUTPUT_DIRECTORY`, `BASE_URL`, `SPIKE_CONTAINER`, and `SPIKE_DOCKER_CONTEXT` override local defaults.
 
-Verified on 2026-10-18 with one accepted real Comfy job. The app recovered its provider ID after a restart, streamed live progress, and saved a 480×848 H.264 MP4 with AAC audio, 121 frames, and a 5.017-second duration. Browser playback and seeking, output checksum, Range 206, raw SSR video tags, and duplicate-request reuse passed. See [the verification record and limits](docs/wan-live-verification.md).
+Verified on 2026-10-18 with one accepted real Comfy job. The app recovered its provider ID after a restart, streamed live progress, and saved a 480×848 H.264 MP4 with AAC audio, 121 frames, and a 5.017-second duration. Browser playback and seeking, output checksum, Range 206, raw SSR video tags, and duplicate-request reuse passed. This was one observed run, not a guarantee of provider availability or recovery in every failure mode. Detailed run records are kept privately.
 
 ## Render state and recovery
 
@@ -61,20 +60,41 @@ SSE includes `Cache-Control: no-cache, no-transform` and `X-Accel-Buffering: no`
 
 ```sh
 npm run check
-npm run typecheck
+npm run check:privacy
 npm run test:server
 npm run build
 npm run check:client
-SPIKE_JOB_ID=<existing-render-uuid> node scripts/verify-video.mjs
+```
+
+To check the production container without Comfy credentials or paid jobs:
+
+```sh
+npx playwright install chromium
+docker build --platform linux/amd64 -t open-photon:latest .
+npm run test:container
 node scripts/verify-sdk.mjs
+```
+
+Set `SPIKE_DOCKER_CONTEXT=colima` for both verification commands when using Colima; their default is the current Docker context. `SPIKE_IMAGE` selects a different image. The container check uses a temporary container and data volume, checks health, media ranges and disabled diagnostic endpoints, then runs the browser suite. The SDK check uses a local mock and a dummy credential.
+
+Additional checks against a dedicated running app with diagnostics enabled (`ENABLE_SPIKE_CHECKS=1`):
+
+```sh
+SPIKE_JOB_ID=<existing-render-uuid> node scripts/verify-video.mjs
 node scripts/verify-upload-memory.mjs
 ```
 
 The video verifier uses an existing render and never creates a paid job. It restarts the dedicated container, checks provider-ID persistence, uploads 100 MiB, measures memory, and checks declared and chunked upload limits. It removes its upload fixtures and writes `work/video-checks.json`. Prefer a completed real render to check output persistence. A failed render can check the transport and upload paths but cannot prove live generation recovery.
 
-The upload-memory script runs six transfers against a dedicated test instance. See [memory findings and measurement limits](docs/upload-memory-recheck.md). Historical simulation evidence is preserved in [video readiness](docs/video-readiness.md); it is not evidence of a real render.
+The upload-memory script runs six transfers against a dedicated test instance. Its memory measurements depend on the container environment and sampling interval. Historical simulation and detailed measurement records are private; simulated jobs are not evidence of real generation.
 
-Browser cases in `tests/studio.spec.ts` consume `WAN_TEST_JOB_ID` instead of starting a paid job. They cover typed search, saved render reload, terminal state, and invalid input. The current server suite runs locally; see the verification record for which browser cases were actually exercised.
+Browser cases in `tests/studio.spec.ts` consume `WAN_TEST_JOB_ID` instead of starting a paid job. They cover typed search, saved render reload, terminal state, and invalid input. The saved-live-render case is skipped when no existing render ID is supplied; the container check deliberately runs without that ID.
+
+## Continuous integration
+
+[CI](.github/workflows/ci.yml) runs on pushes and pull requests once this repository is hosted on GitHub. It installs from the lockfile, checks types, lint and formatting, checks private paths across Git history, runs server tests, builds the Linux AMD64 image (including its client-secret scan), and runs container, browser and mocked SDK checks. It uses no Comfy secrets and submits no paid jobs. The workflow can only be verified on GitHub after a remote is explicitly created and the repository is pushed.
+
+`npm run check:privacy` requires a full Git checkout. It rejects tracked private paths and their historical document locations. Local notes belong in `docs/priv/`, which is excluded from both Git and the Docker context. An ignore rule cannot remove files already committed; run the privacy check before the first push as well as in CI.
 
 ## SDK and secrets
 
