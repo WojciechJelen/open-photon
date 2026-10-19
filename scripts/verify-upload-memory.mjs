@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { mkdir, readFile, rm, truncate, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, rm, truncate, writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { accessCookie } from "./access-session.mjs";
@@ -143,14 +143,6 @@ function upload(path, rate) {
   });
 }
 
-function removeUploaded(names) {
-  for (const name of names) {
-    assert.match(name, /^[a-f0-9-]+\.mp4$/);
-  }
-
-  docker("exec", container, "rm", "--", ...names.map((name) => `/app/data/media/${name}`));
-}
-
 const imageId = docker("inspect", container, "--format", "{{.Image}}");
 
 const report = {
@@ -170,9 +162,21 @@ const report = {
 
 await mkdir("work", { recursive: true });
 
+// A real 3 s clip padded with zeros still probes as that clip, so the app stores it.
 await writeFile(fixture, await readFile("fixtures/x.mp4"));
 
 await truncate(fixture, 100 * 1024 * 1024);
+
+// Uploads are stored by content hash; a run marker in the padding makes each run a new file.
+async function markRun(index) {
+  const handle = await open(fixture, "r+");
+
+  try {
+    await handle.write(`run ${index}`, 100 * 1024 * 1024 - 16);
+  } finally {
+    await handle.close();
+  }
+}
 
 try {
   for (const [index, rate] of ["10M", "10M", undefined, undefined, "10M", "10M"].entries()) {
@@ -183,84 +187,75 @@ try {
       await ready();
     }
 
-    const files = [];
+    await upload("fixtures/x.mp4");
+    await markRun(index);
+    const baselines = [];
 
-    try {
-      const warm = await upload("fixtures/x.mp4");
-      files.push(warm.filename);
-      const baselines = [];
-
-      for (let i = 0; i < 5; i++) {
-        baselines.push(snapshot());
-        await delay(100);
-      }
-
-      const baseline = baselines.reduce((a, b) => (a.anon < b.anon ? a : b));
-      const nodeBaseline = await status();
-      const samples = [];
-      let uploading = true;
-
-      const pending = upload(fixture, rate).finally(() => {
-        uploading = false;
-      });
-
-      while (uploading) {
-        samples.push({ ...snapshot(), node: await status() });
-        await delay(100);
-      }
-
-      const uploaded = await pending;
-      files.push(uploaded.filename);
-      assert.equal(uploaded.bytes, 100 * 1024 * 1024);
-      await delay(500);
-      const after = { ...snapshot(), node: await status() };
-      const mainPid = baseline.processes.find((p) => p.parent === 1 && p.rss > 1024 * 1024)?.pid;
-      assert.ok(mainPid, "Find the application process independently of health checks");
-      const mainRss = (sample) => sample.processes.find((p) => p.pid === mainPid)?.rss ?? 0;
-      const peak = (key) => Math.max(...samples.map((sample) => sample[key]));
-      const peakNode = (key) => Math.max(...samples.map((sample) => sample.node[key]));
-
-      const summary = {
-        anonGrowth: peak("anon") - baseline.anon,
-        applicationThresholdPassed:
-          peak("anon") - baseline.anon < limit &&
-          Math.max(...samples.map(mainRss)) - mainRss(baseline) < limit &&
-          peakNode("arrayBuffers") < limit,
-        arrayBuffersPeak: peakNode("arrayBuffers"),
-        bytes: uploaded.bytes,
-        cold,
-        externalPeak: peakNode("external"),
-        heapGrowth: peakNode("heapUsed") - nodeBaseline.heapUsed,
-        mainRssGrowth: Math.max(...samples.map(mainRss)) - mainRss(baseline),
-        originalThresholdPassed: peak("workingSet") - baseline.workingSet < limit,
-        rate: rate ?? "unthrottled",
-        run: index + 1,
-        workingSetGrowth: peak("workingSet") - baseline.workingSet,
-      };
-
-      const healthChecks = JSON.parse(
-        docker("inspect", container, "--format", "{{json .State.Health.Log}}"),
-      ).map((entry) => ({
-        end: entry.End,
-        exitCode: entry.ExitCode,
-        start: entry.Start,
-      }));
-
-      report.runs.push({
-        after,
-        baseline,
-        healthChecks,
-        nodeBaseline,
-        samples,
-        summary,
-      });
-      await writeFile(output, `${JSON.stringify(report, null, 2)}\n`);
-      console.log(JSON.stringify(summary));
-    } finally {
-      if (files.length) {
-        removeUploaded(files);
-      }
+    for (let i = 0; i < 5; i++) {
+      baselines.push(snapshot());
+      await delay(100);
     }
+
+    const baseline = baselines.reduce((a, b) => (a.anon < b.anon ? a : b));
+    const nodeBaseline = await status();
+    const samples = [];
+    let uploading = true;
+
+    const pending = upload(fixture, rate).finally(() => {
+      uploading = false;
+    });
+
+    while (uploading) {
+      samples.push({ ...snapshot(), node: await status() });
+      await delay(100);
+    }
+
+    const uploaded = await pending;
+    assert.equal(uploaded.bytes, 100 * 1024 * 1024);
+    await delay(500);
+    const after = { ...snapshot(), node: await status() };
+    const mainPid = baseline.processes.find((p) => p.parent === 1 && p.rss > 1024 * 1024)?.pid;
+    assert.ok(mainPid, "Find the application process independently of health checks");
+    const mainRss = (sample) => sample.processes.find((p) => p.pid === mainPid)?.rss ?? 0;
+    const peak = (key) => Math.max(...samples.map((sample) => sample[key]));
+    const peakNode = (key) => Math.max(...samples.map((sample) => sample.node[key]));
+
+    const summary = {
+      anonGrowth: peak("anon") - baseline.anon,
+      applicationThresholdPassed:
+        peak("anon") - baseline.anon < limit &&
+        Math.max(...samples.map(mainRss)) - mainRss(baseline) < limit &&
+        peakNode("arrayBuffers") < limit,
+      arrayBuffersPeak: peakNode("arrayBuffers"),
+      bytes: uploaded.bytes,
+      cold,
+      externalPeak: peakNode("external"),
+      heapGrowth: peakNode("heapUsed") - nodeBaseline.heapUsed,
+      mainRssGrowth: Math.max(...samples.map(mainRss)) - mainRss(baseline),
+      originalThresholdPassed: peak("workingSet") - baseline.workingSet < limit,
+      rate: rate ?? "unthrottled",
+      run: index + 1,
+      workingSetGrowth: peak("workingSet") - baseline.workingSet,
+    };
+
+    const healthChecks = JSON.parse(
+      docker("inspect", container, "--format", "{{json .State.Health.Log}}"),
+    ).map((entry) => ({
+      end: entry.End,
+      exitCode: entry.ExitCode,
+      start: entry.Start,
+    }));
+
+    report.runs.push({
+      after,
+      baseline,
+      healthChecks,
+      nodeBaseline,
+      samples,
+      summary,
+    });
+    await writeFile(output, `${JSON.stringify(report, null, 2)}\n`);
+    console.log(JSON.stringify(summary));
   }
 } finally {
   await rm(fixture, { force: true });

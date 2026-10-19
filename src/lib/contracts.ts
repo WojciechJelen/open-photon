@@ -76,3 +76,33 @@ export const jobEventSchema = z.object({
 });
 
 export type NewJob = z.infer<typeof newJobSchema>;
+
+/** An `assets` row as the API returns it (no server path). */
+export const assetSchema = z.object({
+  bytes: z.int().nonnegative(),
+  created_at: z.iso.datetime(),
+  duration_ms: z.int().nullable(),
+  fps: z.number().nullable(),
+  has_audio: z.boolean().nullable(),
+  height: z.int().nullable(),
+  id: z.uuid(),
+  kind: z.enum(["video", "image", "poster"]),
+  mime: z.string(),
+  role: z.enum(["upload", "trimmed", "sample", "provider_output", "final", "poster"]),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  source_asset_id: z.uuid().nullable(),
+  width: z.int().nullable(),
+});
+
+/**
+ * `POST /api/uploads`: multipart, one MP4, QuickTime or WebM video in the field `file`, at most
+ * 128 MiB. ffprobe decides what the file is, not its name.
+ *
+ * - 201 with the new upload asset; 200 with the stored one when the same bytes were uploaded
+ *   before (assets are content-addressed).
+ * - 413 over 128 MiB (before anything is stored). 422 `{ error, reason }` with a
+ *   `VideoRejection` reason: `no_video` (no readable video stream in a supported container).
+ *   A rejected file leaves no asset row and no file.
+ * - Other errors are `{ error }` with 400 or 415.
+ */
+export type VideoRejection = "no_video";

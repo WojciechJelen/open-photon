@@ -30,6 +30,8 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm run check:privacy
+      - name: Install FFmpeg for the probe and trim tests
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends ffmpeg
       - run: npm run test:server
       - name: Build production image and scan client output
         run: docker build --platform linux/amd64 --tag open-photon:ci .

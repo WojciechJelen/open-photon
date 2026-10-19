@@ -9,6 +9,11 @@ export function mediaDirectory() {
   );
 }
 
+/** Content-addressed files (`<sha256>.<ext>`) of the `assets` table, next to the database. */
+export function assetsDirectory() {
+  return resolve(dirname(process.env.DATABASE_PATH ?? "data/spike.sqlite"), "assets");
+}
+
 export function byteRange(header: string, size: number) {
   const match = /^bytes=(\d*)-(\d*)$/.exec(header);
 

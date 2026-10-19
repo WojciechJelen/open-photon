@@ -1,50 +1,66 @@
-import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
-import { mkdir, rename, rm } from "node:fs/promises";
-import { resolve } from "node:path";
+import { rm } from "node:fs/promises";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 import Busboy from "@fastify/busboy";
 import type { ServerRequest } from "srvx";
 
-import { mediaDirectory } from "./media.server.ts";
+import { incomingPath } from "./assets.ts";
 
 export const MAX_UPLOAD_BYTES = 128 * 1024 * 1024;
 const MAX_REQUEST_BYTES = MAX_UPLOAD_BYTES + 64 * 1024;
 
-class UploadError extends Error {
+/** A request the upload routes refuse; `handleUpload` turns it into `{ error, reason? }` JSON. */
+export class UploadError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  reason: string | undefined;
+  constructor(status: number, message: string, reason?: string) {
     super(message);
     this.status = status;
+    this.reason = reason;
   }
 }
 
-export async function uploadMedia(request: ServerRequest) {
+type Upload = {
+  bytes: number;
+  /** The accepted text fields, by name. */
+  fields: Map<string, string>;
+  sha256: string;
+  /** The received file, in the assets directory; `handleUpload` deletes it unless it was moved. */
+  temporary: string;
+};
+
+/**
+ * Streams the one file of a multipart request (in `fileField`, alongside only `fieldNames`) to a
+ * temporary file, hashing it on the way. Over 128 MiB is a 413 before anything is written when
+ * the request declares its length, and as soon as the limit is crossed otherwise.
+ */
+async function receiveUpload(
+  request: ServerRequest,
+  fileField: string,
+  fieldNames: readonly string[],
+): Promise<Upload> {
   const contentType = request.headers.get("content-type") ?? "";
 
   if (!contentType.startsWith("multipart/form-data;")) {
-    return Response.json({ error: "Use multipart/form-data" }, { status: 415 });
+    throw new UploadError(415, "Use multipart/form-data");
   }
 
   const length = Number(request.headers.get("content-length") ?? 0);
 
   if (length > MAX_REQUEST_BYTES) {
-    return Response.json({ error: "Maximum file size is 128 MiB" }, { status: 413 });
+    throw new UploadError(413, "Maximum file size is 128 MiB");
   }
 
   const body = request.runtime?.node?.req ?? request.body;
 
   if (!body) {
-    return Response.json({ error: "Missing upload body" }, { status: 400 });
+    throw new UploadError(400, "Missing upload body");
   }
 
-  const directory = mediaDirectory();
-  await mkdir(directory, { recursive: true });
-  const filename = `${randomUUID()}.mp4`;
-  const destination = resolve(directory, filename);
-  const temporary = `${destination}.part`;
+  const temporary = await incomingPath();
   const abort = new AbortController();
   const onAbort = () => abort.abort(request.signal.reason);
   request.signal.addEventListener("abort", onAbort, { once: true });
@@ -53,6 +69,8 @@ export async function uploadMedia(request: ServerRequest) {
     onAbort();
   }
 
+  const hash = createHash("sha256");
+  const fields = new Map<string, string>();
   let fileSeen = false;
   let bytes = 0;
   let failure: Error | undefined;
@@ -64,7 +82,8 @@ export async function uploadMedia(request: ServerRequest) {
       headers: { "content-type": contentType },
       highWaterMark: 65_536,
       limits: {
-        fields: 0,
+        fieldSize: 1024,
+        fields: fieldNames.length,
         files: 1,
         fileSize: MAX_UPLOAD_BYTES,
         headerPairs: 32,
@@ -76,13 +95,20 @@ export async function uploadMedia(request: ServerRequest) {
       failure = new UploadError(400, "Upload exactly one file");
     });
     parser.on("fieldsLimit", () => {
-      failure = new UploadError(400, "Only the file field is accepted");
+      failure = new UploadError(400, "Too many form fields");
     });
-    parser.on("file", (field, file, originalName) => {
+    parser.on("field", (name, value) => {
+      if (fieldNames.includes(name)) {
+        fields.set(name, value);
+      } else {
+        failure = new UploadError(400, `Unexpected form field ${name}`);
+      }
+    });
+    parser.on("file", (field, file) => {
       fileSeen = true;
 
-      if (field !== "file" || !originalName.toLowerCase().endsWith(".mp4")) {
-        failure = new UploadError(400, "Use the file field with an MP4 filename");
+      if (field !== fileField) {
+        failure = new UploadError(400, `Upload the file in the ${fileField} field`);
         file.resume();
 
         return;
@@ -92,16 +118,17 @@ export async function uploadMedia(request: ServerRequest) {
         failure = new UploadError(413, "Maximum file size is 128 MiB");
       });
 
-      const counter = new Transform({
+      const digest = new Transform({
         transform(chunk: Buffer, _encoding, callback) {
           bytes += chunk.length;
+          hash.update(chunk);
           callback(null, chunk);
         },
       });
 
       saving = pipeline(
         file,
-        counter,
+        digest,
         createWriteStream(temporary, { flags: "wx", highWaterMark: 65_536 }),
         { signal: abort.signal },
       ).catch((error) => {
@@ -138,29 +165,57 @@ export async function uploadMedia(request: ServerRequest) {
     }
 
     if (!fileSeen || bytes === 0) {
-      throw new UploadError(400, "Upload a nonempty MP4 file");
+      throw new UploadError(400, `Upload a nonempty file in the ${fileField} field`);
     }
 
-    await rename(temporary, destination);
-
-    return Response.json({ bytes, filename, url: `/media/${filename}` }, { status: 201 });
+    return { bytes, fields, sha256: hash.digest("hex"), temporary };
   } catch (error) {
     abort.abort(error);
     await saving;
     await rm(temporary, { force: true });
 
-    return Response.json(
-      {
-        error:
-          error instanceof UploadError ? error.message : "Invalid or interrupted multipart upload",
-      },
-      { status: error instanceof UploadError ? error.status : 400 },
-    );
+    throw error instanceof UploadError
+      ? error
+      : new UploadError(400, "Invalid or interrupted multipart upload");
   } finally {
     request.signal.removeEventListener("abort", onAbort);
 
     if (body instanceof Readable && !body.readableEnded) {
       body.resume();
+    }
+  }
+}
+
+/**
+ * Receives the upload, hands it to `store` (which moves the file away or throws an
+ * `UploadError`), and deletes the temporary file whatever happens. An `UploadError` becomes a
+ * `{ error, reason? }` JSON response with its status.
+ */
+export async function handleUpload(
+  request: ServerRequest,
+  fileField: string,
+  fieldNames: readonly string[],
+  store: (upload: Upload) => Promise<Response>,
+) {
+  let temporary: string | undefined;
+
+  try {
+    const upload = await receiveUpload(request, fileField, fieldNames);
+    temporary = upload.temporary;
+
+    return await store(upload);
+  } catch (error) {
+    if (error instanceof UploadError) {
+      return Response.json(
+        { error: error.message, reason: error.reason },
+        { status: error.status },
+      );
+    }
+
+    throw error;
+  } finally {
+    if (temporary) {
+      await rm(temporary, { force: true });
     }
   }
 }

@@ -1,22 +1,24 @@
+import "./temp-database.ts";
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import test, { after } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 
-import { MAX_UPLOAD_BYTES, uploadMedia } from "../src/server/upload.server.ts";
+import { assetsDirectory } from "../src/server/media.server.ts";
+import { MAX_UPLOAD_BYTES } from "../src/server/upload.server.ts";
+import { uploadVideo } from "../src/server/videos.server.ts";
 
-const directory = mkdtempSync(join(tmpdir(), "comfy-http-upload-"));
+const directory = assetsDirectory();
 
-process.env.MEDIA_DIRECTORY = directory;
+// A real 3 s clip; zeros after it pad an upload to any size and still probe as that clip.
+const clip = readFileSync("fixtures/x.mp4");
 
 const server = createServer(async (req, res) => {
-  const response = await uploadMedia(new NodeRequest({ req, res }));
+  const response = await uploadVideo(new NodeRequest({ req, res }));
   await sendNodeResponse(res, response);
 });
 
@@ -32,12 +34,11 @@ const url = `http://127.0.0.1:${address.port}/api/uploads`;
 
 after(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
-  rmSync(directory, { force: true, recursive: true });
 });
 
 function multipart(bytes: number) {
   const encoder = new TextEncoder();
-  let remaining = bytes;
+  let remaining = bytes - clip.length;
 
   return new ReadableStream<Uint8Array>({
     start(controller) {
@@ -46,6 +47,7 @@ function multipart(bytes: number) {
           '--upload\r\nContent-Disposition: form-data; name="file"; filename="test.mp4"\r\nContent-Type: video/mp4\r\n\r\n',
         ),
       );
+      controller.enqueue(new Uint8Array(clip));
     },
     pull(controller) {
       if (remaining > 0) {
@@ -77,7 +79,7 @@ test("the Node HTTP adapter streams uploads and reports the saved byte count", a
   assert.equal(response.status, 201);
   const result = await response.json();
   assert.equal(result.bytes, 1024 * 1024);
-  assert.ok(readdirSync(directory).includes(result.filename));
+  assert.ok(readdirSync(directory).includes(`${result.sha256}.mp4`));
 });
 
 test("a chunked oversized HTTP upload returns 413 and removes its partial file", async () => {

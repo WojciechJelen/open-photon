@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { uploadMedia } from "#/server/upload.server";
+import { uploadVideo } from "#/server/videos.server";
 
 export const Route = createFileRoute("/api/uploads")({
-  server: { handlers: { POST: ({ request }) => uploadMedia(request) } },
+  server: { handlers: { POST: ({ request }) => uploadVideo(request) } },
 });

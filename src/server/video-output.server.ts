@@ -1,28 +1,13 @@
-import { execFile } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
-import { createReadStream } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { mkdir, rename, rm, stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { promisify } from "node:util";
 
 import type { Output } from "@comfyorg/sdk";
-import { z } from "zod";
 
 import { videoOutputSchema } from "../lib/contracts.ts";
+import { hashFile } from "./assets.ts";
 import { mediaDirectory } from "./media.server.ts";
-
-const execute = promisify(execFile);
-
-const probeSchema = z.object({
-  format: z.object({ duration: z.coerce.number().positive() }),
-  streams: z.array(
-    z.object({
-      codec_type: z.string().optional(),
-      height: z.number().optional(),
-      width: z.number().optional(),
-    }),
-  ),
-});
+import { probe, runTool } from "./media/probe.ts";
 
 export async function saveVideoOutput(id: string, output: Output, signal?: AbortSignal) {
   const directory = mediaDirectory();
@@ -42,48 +27,18 @@ export async function saveVideoOutput(id: string, output: Output, signal?: Abort
       throw new Error("Downloaded video size does not match the provider output");
     }
 
-    const probe = await execute(
-      "ffprobe",
-      [
-        "-v",
-        "error",
-        "-show_entries",
-        "format=duration:stream=codec_type,width,height",
-        "-of",
-        "json",
-        temporary,
-      ],
-      { maxBuffer: 65_536, signal, timeout: 15_000 },
-    );
+    const metadata = await probe(temporary, signal);
 
-    const metadata = probeSchema.parse(JSON.parse(probe.stdout));
-    const video = metadata.streams.find((stream) => stream.codec_type === "video");
-
-    if (!video?.width || !video.height) {
+    if (!metadata?.video || !metadata.durationMs) {
       throw new Error("The output has no decodable video stream");
     }
 
-    const hash = createHash("sha256");
+    const sha256 = await hashFile(temporary, signal);
 
-    for await (const chunk of createReadStream(temporary, { signal })) {
-      hash.update(chunk);
-    }
-
-    await execute(
+    await runTool(
       "ffmpeg",
-      [
-        "-v",
-        "error",
-        "-y",
-        "-i",
-        temporary,
-        "-frames:v",
-        "1",
-        "-vf",
-        "scale=640:-2",
-        posterTemporary,
-      ],
-      { maxBuffer: 65_536, signal, timeout: 30_000 },
+      ["-i", temporary, "-frames:v", "1", "-vf", "scale=640:-2", posterTemporary],
+      signal,
     );
     signal?.throwIfAborted();
     await rename(posterTemporary, resolve(directory, posterFilename));
@@ -92,12 +47,12 @@ export async function saveVideoOutput(id: string, output: Output, signal?: Abort
     return videoOutputSchema.parse({
       assetId: output.id,
       bytes: info.size,
-      durationSeconds: metadata.format.duration,
+      durationSeconds: metadata.durationMs / 1000,
       filename,
-      height: video.height,
+      height: metadata.video.height,
       posterFilename,
-      sha256: hash.digest("hex"),
-      width: video.width,
+      sha256,
+      width: metadata.video.width,
     });
   } finally {
     await rm(temporary, { force: true });

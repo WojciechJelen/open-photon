@@ -25,7 +25,7 @@ Build and run natively: ARM64 on Apple Silicon, AMD64 on x86 hosts. Compose foll
 
 Open <http://localhost:3030>, follow the typed link to the studio, and submit a render. **This submits a real GPU job and uses Comfy credits.** The reference image and driving video are the official public samples. The prompt describes the character and background; motion comes from the driving video. See [the workflow, its provenance and its input map](workflows/README.md).
 
-For local development, use Node 24+ and npm 11.6.2 (`npm install --global npm@11.6.2`), then `npm ci` and `npm run dev`. Docker and CI use the same npm version declared in `packageManager`. Install FFmpeg locally to save and verify generated outputs.
+For local development, use Node 24+ and npm 11.6.2 (`npm install --global npm@11.6.2`), then `npm ci` and `npm run dev`. Docker and CI use the same npm version declared in `packageManager`. Install FFmpeg locally (with libx264): uploads are probed with `ffprobe`, the server tests run it, and generated outputs are verified with them.
 
 ## One live run
 
@@ -60,13 +60,15 @@ Credits per 5 s 480×848 render (distilled: lightx2v LoRA, 6 steps, int8 model):
 - There is a remaining crash window between provider acceptance and saving its ID. Comfy's SDK describes idempotency keys as single-use, without replay, and the tested Cloud job-list endpoint returned 501. The app marks an interrupted submission `unknown` and refuses automatic resubmission. Check the Comfy queue before starting another render.
 - Output collection has an in-process lock. Run one app instance against this SQLite volume. Multi-instance submission and download coordination are outside this spike.
 
-The new `renders` table retains real-job state separately from historical fake rows. Existing data is not deleted. SQLite and media default to `data/spike.sqlite` and `data/media`; override with `DATABASE_PATH` and `MEDIA_DIRECTORY`.
+The new `renders` table retains real-job state separately from historical fake rows. Existing data is not deleted. SQLite and media default to `data/spike.sqlite` and `data/media`; override with `DATABASE_PATH` and `MEDIA_DIRECTORY`. Uploaded files live in `assets/` next to the database (`data/assets/<sha256>.<ext>`), one row each in the `assets` table.
 
 The app opens one SQLite connection per process (WAL, `busy_timeout` 5000 ms, foreign keys on). When the server first loads its database module, it applies each `src/server/migrations/NNN-name.sql` not yet recorded in the `migrations` table, each in its own transaction. Add a schema change as the next numbered file; never edit an applied one. The production image copies the directory next to `.output`.
 
-## Video routes
+## Uploads and video routes
 
-`POST /api/uploads` streams one multipart MP4 to disk through Busboy. The file limit is 128 MiB, with 64 KiB additional multipart overhead. Interrupted and rejected uploads remove partial files.
+`POST /api/uploads` streams one multipart video (field `file`) through Busboy to a hidden temporary file in the assets directory, hashing it with SHA-256 on the way. The file limit is 128 MiB, with 64 KiB additional multipart overhead; a request that declares more gets 413 before anything is written. Interrupted and rejected uploads remove partial files.
+
+`ffprobe` then decides what the file is; the filename and declared type are ignored. MP4, QuickTime and WebM files with a video stream are accepted; anything else is a 422 with `reason` `no_video`, and leaves no file and no row. An accepted file moves to `<sha256>.<ext>` and gets an `assets` row (`role: upload`, with width and height as displayed, duration, frame rate and `has_audio`). The same bytes uploaded again return the stored row with 200 instead of 201.
 
 On Node, uploads read the underlying HTTP stream directly with byte-based backpressure. This avoids the extra buffer copies from converting the incoming Node stream to a Web stream and back. Standard Web requests use the streaming fallback. HTTP tests cover both oversized chunked uploads returning 413 and disconnect cleanup.
 
