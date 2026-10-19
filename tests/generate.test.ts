@@ -98,7 +98,7 @@ test("the same inputs and seed return the generation on its way without a second
   );
 });
 
-test("a row a stopped server left preparing is settled on its next read, never resubmitted", () => {
+test("a row a stopped server left preparing is settled on its next read, never resubmitted", async () => {
   const recipe = (seed: number): Recipe => ({
     inputs: { driving_video_sha256: "a".repeat(64), reference_image_sha256: "b".repeat(64) },
     models: [],
@@ -110,10 +110,9 @@ test("a row a stopped server left preparing is settled on its next read, never r
   // Stopped while uploading: nothing was sent.
   const beforeSubmit = createGeneration({ recipe: recipe(1) });
 
-  assert.deepEqual(
-    [readGeneration(beforeSubmit.id)?.status, readGeneration(beforeSubmit.id)?.error_code],
-    ["failed", "interrupted"],
-  );
+  const interrupted = await readGeneration(beforeSubmit.id);
+
+  assert.deepEqual([interrupted?.status, interrupted?.error_code], ["failed", "interrupted"]);
 
   // Stopped after the uploads: the submit may have reached Comfy.
   const afterUploads = createGeneration({ recipe: recipe(2) });
@@ -122,7 +121,7 @@ test("a row a stopped server left preparing is settled on its next read, never r
     reference_image: { __type: "core/ASSET", info: { id: "image" } },
   });
 
-  assert.equal(readGeneration(afterUploads.id)?.status, "unknown");
+  assert.equal((await readGeneration(afterUploads.id))?.status, "unknown");
   assert.equal(findPending(afterUploads.recipe_hash)?.id, afterUploads.id);
   assert.equal(findGeneration(afterUploads.id)?.provider_job_id, null);
 });

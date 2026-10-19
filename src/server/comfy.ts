@@ -13,6 +13,9 @@ import type { generationErrorCodeSchema } from "../lib/contracts.ts";
 import type { WorkflowGraph } from "./workflows/build-graph.ts";
 import { type MotionTransferParams, motionTransferParamsSchema } from "./workflows/params.ts";
 
+/** The template's SaveVideo node; its MP4 (with the driving clip's audio) is the result. */
+export const OUTPUT_NODE = "246";
+
 export type ProviderOutput = Pick<Output, "contentType" | "name" | "sizeBytes" | "toFile">;
 
 export type ProviderJob = Pick<Job, "error" | "events" | "id" | "status"> & {

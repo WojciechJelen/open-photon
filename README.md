@@ -45,6 +45,8 @@ The portrait size is 480×848 (848×480 for a landscape clip), `fragment_length`
 
 `GET /api/generations/:id/events` streams the generation as server-sent events (`generationEventSchema`): a snapshot of the row, then one per change Comfy reports (`running`, progress), with a `: ping` comment every 15 s so proxies keep the connection open. Headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache, no-transform` (the access middleware leaves it on event streams) and `X-Accel-Buffering: no`. A `done`, `failed` or `unknown` generation gets one snapshot and the stream ends without a Comfy call. Closing the request aborts the SDK subscription; the job continues on Comfy. 400 for a malformed id, 404 for an unknown one.
 
+When the event stream ends, and on every `GET /api/generations/:id` of a `queued`, `running` or `finalizing` row, `finalize` (`src/server/finalize.ts`) asks Comfy for the job (`jobs.get` is the source of truth; elapsed time never completes a job). A job that is not complete leaves the row as it is; a failed, cancelled or expired one fails it. A succeeded one is downloaded (output `246`, which already carries the driving clip's audio, so nothing is muxed), probed, hashed and stored as a `provider_output` asset, a JPEG poster is cut at 0.5 s and stored as a `poster` asset, and the row becomes `done` with `final_asset_id`, `output_asset_id` and `poster_asset_id`. One finalize per generation runs at a time in the process; concurrent callers share it. A failed download leaves the row `finalizing`, counts `finalize_attempts` and is retried on the next read. Comfy's signed output URLs last about 6 hours, so a result is re-hosted the first time anyone looks after it finished.
+
 ## Generation state and recovery
 
 A generation goes `preparing → queued → running → finalizing → done | failed`. A failed row has an `error_code` (listed on `generationErrorCodeSchema`) and a readable `error_message`. A Comfy answer that refuses the request, or a connection that never reaches Comfy, fails the row; nothing was rendered.
@@ -71,7 +73,7 @@ A clip over 8 s is kept whole, and the response's `trimmed` field carries its fi
 
 On Node, uploads read the underlying HTTP stream directly with byte-based backpressure. This avoids the extra buffer copies from converting the incoming Node stream to a Web stream and back. Standard Web requests use the streaming fallback. HTTP tests cover both oversized chunked uploads returning 413 and disconnect cleanup.
 
-`GET` and `HEAD /media/<asset id>.<ext>` serve a stored asset (an upload, a cut, a sample image, a result or its poster) with its MIME type, single byte ranges, suffix ranges, 206, and unsatisfiable-range 416 responses. The extension must match the stored file; anything else is a 404.
+`GET` and `HEAD /media/<asset id>.<ext>` serve a stored asset (an upload, a cut, a sample image, a result or its poster) with its MIME type, single byte ranges, suffix ranges, 206, and unsatisfiable-range 416 responses. The extension must match the stored file; anything else is a 404. In `npm run dev`, Nitro would hand `<video>` and `<img>` requests to Vite's static files; a dev-only plugin in `vite.config.ts` keeps `/media/*` on the app.
 
 ## Verify
 

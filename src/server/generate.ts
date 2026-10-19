@@ -7,6 +7,7 @@ import { type generateInputSchema, generationSchema, MAX_CLIP_MS } from "../lib/
 import { findAsset, type StoredAsset } from "./assets.ts";
 import { findCharacter } from "./characters.server.ts";
 import { comfyProvider, type Provider, providerError, providerTarget } from "./comfy.ts";
+import { finalize } from "./finalize.ts";
 import {
   createGeneration,
   findGeneration,
@@ -215,9 +216,33 @@ export function settleAbandoned(row: Generation) {
     : markUnknown(row.id, { error_code: "unknown", error_message: UNKNOWN_MESSAGE });
 }
 
-/** `GET /api/generations/:id`: the generation as `generationSchema`, `null` when there is none. */
-export function readGeneration(id: string) {
+/**
+ * `GET /api/generations/:id`: the generation as `generationSchema`, `null` when there is none. A
+ * row Comfy may have finished is finalized first, so a result the event stream missed lands here.
+ */
+export async function readGeneration(id: string, provider: Provider = comfyProvider) {
   const row = findGeneration(id);
 
-  return row ? generationSchema.parse(settleAbandoned(row)) : null;
+  if (!row) {
+    return null;
+  }
+
+  const settled = settleAbandoned(row);
+
+  if (["queued", "running", "finalizing"].includes(settled.status)) {
+    try {
+      await finalize(id, provider);
+    } catch (error) {
+      // Comfy or the download failed; the stored row is still the truth, and the next read retries.
+      console.error(
+        JSON.stringify({
+          event: "finalize.error",
+          id,
+          message: error instanceof Error ? error.message : "unknown",
+        }),
+      );
+    }
+  }
+
+  return generationSchema.parse(findGeneration(id) ?? settled);
 }

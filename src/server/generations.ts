@@ -230,3 +230,10 @@ export function transition(
 export function markUnknown(id: string, outcome: Outcome = {}) {
   return transition(id, "preparing", "unknown", outcome);
 }
+
+/** Counts a finalize that failed (a download or FFmpeg error); the next read tries again. */
+export function countFinalizeAttempt(id: string) {
+  database
+    .prepare("UPDATE generations SET finalize_attempts = finalize_attempts + 1 WHERE id = ?")
+    .run(id);
+}
