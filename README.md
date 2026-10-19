@@ -62,6 +62,8 @@ Credits per 5 s 480×848 render (distilled: lightx2v LoRA, 6 steps, int8 model):
 
 The new `renders` table retains real-job state separately from historical fake rows. Existing data is not deleted. SQLite and media default to `data/spike.sqlite` and `data/media`; override with `DATABASE_PATH` and `MEDIA_DIRECTORY`.
 
+The app opens one SQLite connection per process (WAL, `busy_timeout` 5000 ms, foreign keys on). When the server first loads its database module, it applies each `src/server/migrations/NNN-name.sql` not yet recorded in the `migrations` table, each in its own transaction. Add a schema change as the next numbered file; never edit an applied one. The production image copies the directory next to `.output`.
+
 ## Video routes
 
 `POST /api/uploads` streams one multipart MP4 to disk through Busboy. The file limit is 128 MiB, with 64 KiB additional multipart overhead. Interrupted and rejected uploads remove partial files.

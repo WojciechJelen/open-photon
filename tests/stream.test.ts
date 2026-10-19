@@ -1,19 +1,11 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import test, { after } from "node:test";
+import test from "node:test";
 
+import "./temp-database.ts";
 import { jobEventSchema } from "../src/lib/contracts.ts";
 import { findJob, insertJob, updateJob } from "../src/server/db.server.ts";
 import { streamDiagnostics, streamJob } from "../src/server/job-stream.server.ts";
-
-const directory = mkdtempSync(join(tmpdir(), "comfy-stream-"));
-
-process.env.DATABASE_PATH = join(directory, "test.sqlite");
-
-after(() => rmSync(directory, { force: true, recursive: true }));
 
 function job() {
   return insertJob({
