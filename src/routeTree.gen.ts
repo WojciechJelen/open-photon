@@ -17,6 +17,7 @@ import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
 import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
 import { Route as ApiAssetsAssetIdTrimRouteImport } from './routes/api.assets.$assetId.trim'
 import { Route as ApiGenerationsGenerationIdEventsRouteImport } from './routes/api.generations.$generationId.events'
+import { Route as ApiGenerationsGenerationIdRetryRouteImport } from './routes/api.generations.$generationId.retry'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -60,6 +61,12 @@ const ApiGenerationsGenerationIdEventsRoute =
     path: '/events',
     getParentRoute: () => ApiGenerationsGenerationIdRoute,
   } as any)
+const ApiGenerationsGenerationIdRetryRoute =
+  ApiGenerationsGenerationIdRetryRouteImport.update({
+    id: '/retry',
+    path: '/retry',
+    getParentRoute: () => ApiGenerationsGenerationIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
+  '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -80,6 +88,7 @@ export interface FileRoutesByTo {
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
+  '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -91,6 +100,7 @@ export interface FileRoutesById {
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
+  '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -103,6 +113,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
     | '/api/generations/$generationId/events'
+    | '/api/generations/$generationId/retry'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -113,6 +124,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
     | '/api/generations/$generationId/events'
+    | '/api/generations/$generationId/retry'
   id:
     | '__root__'
     | '/'
@@ -123,6 +135,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
     | '/api/generations/$generationId/events'
+    | '/api/generations/$generationId/retry'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -193,17 +206,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerationsGenerationIdEventsRouteImport
       parentRoute: typeof ApiGenerationsGenerationIdRoute
     }
+    '/api/generations/$generationId/retry': {
+      id: '/api/generations/$generationId/retry'
+      path: '/retry'
+      fullPath: '/api/generations/$generationId/retry'
+      preLoaderRoute: typeof ApiGenerationsGenerationIdRetryRouteImport
+      parentRoute: typeof ApiGenerationsGenerationIdRoute
+    }
   }
 }
 
 interface ApiGenerationsGenerationIdRouteChildren {
   ApiGenerationsGenerationIdEventsRoute: typeof ApiGenerationsGenerationIdEventsRoute
+  ApiGenerationsGenerationIdRetryRoute: typeof ApiGenerationsGenerationIdRetryRoute
 }
 
 const ApiGenerationsGenerationIdRouteChildren: ApiGenerationsGenerationIdRouteChildren =
   {
     ApiGenerationsGenerationIdEventsRoute:
       ApiGenerationsGenerationIdEventsRoute,
+    ApiGenerationsGenerationIdRetryRoute: ApiGenerationsGenerationIdRetryRoute,
   }
 
 const ApiGenerationsGenerationIdRouteWithChildren =

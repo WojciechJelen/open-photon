@@ -106,3 +106,16 @@ test("a completed job is downloaded once, hashed, given a poster and marked done
   );
   assert.equal(poster?.sha256, await hashFile(resolve(assetsDirectory(), poster?.path ?? "")));
 });
+
+test("a job that failed or expired on Comfy fails the row with its reason", async () => {
+  for (const [status, code] of [
+    ["failed", "provider_failed"],
+    ["canceled", "provider_failed"],
+    ["expired", "timeout"],
+  ]) {
+    const row = await finalize(running().id, provider(status ?? ""));
+
+    assert.deepEqual([row?.status, row?.error_code], ["failed", code]);
+    assert.match(row?.error_message ?? "", new RegExp(`${status} on Comfy`));
+  }
+});

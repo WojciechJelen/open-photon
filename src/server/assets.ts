@@ -39,7 +39,7 @@ export async function hashFile(path: string, signal?: AbortSignal) {
   return hash.digest("hex");
 }
 
-function findBySha256(sha256: string) {
+export function findBySha256(sha256: string) {
   const row = database.prepare("SELECT * FROM assets WHERE sha256 = ?").get(sha256);
 
   return row ? storedAssetSchema.parse(row) : null;

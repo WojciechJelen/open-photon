@@ -1,19 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { z } from "zod";
 
-import { readGeneration } from "#/server/generate";
+import { readGeneration, generationIdParam } from "#/server/generate";
 
 export const Route = createFileRoute("/api/generations/$generationId")({
   server: {
     handlers: {
       GET: async ({ params }) => {
-        const id = z.uuid().safeParse(params.generationId);
+        const id = generationIdParam(params.generationId);
 
-        if (!id.success) {
-          return Response.json({ error: "Invalid generation ID" }, { status: 400 });
+        if (id instanceof Response) {
+          return id;
         }
 
-        const generation = await readGeneration(id.data);
+        const generation = await readGeneration(id);
 
         return generation
           ? Response.json(generation)

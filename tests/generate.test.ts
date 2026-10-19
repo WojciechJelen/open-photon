@@ -4,11 +4,12 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import test from "node:test";
 
+import { ComfyError, IdempotencyKeyReuse, InvalidWorkflow } from "@comfyorg/sdk";
 import { z } from "zod";
 
 import type { Provider } from "../src/server/comfy.ts";
 import { database } from "../src/server/db.server.ts";
-import { generate, readGeneration } from "../src/server/generate.ts";
+import { GenerateError, generate, readGeneration, retry } from "../src/server/generate.ts";
 import {
   createGeneration,
   findGeneration,
@@ -124,4 +125,107 @@ test("a row a stopped server left preparing is settled on its next read, never r
   assert.equal((await readGeneration(afterUploads.id))?.status, "unknown");
   assert.equal(findPending(afterUploads.recipe_hash)?.id, afterUploads.id);
   assert.equal(findGeneration(afterUploads.id)?.provider_job_id, null);
+});
+
+test("Comfy's errors map to error codes: a refusal fails the row, an uncertain submit makes it unknown", async () => {
+  const refused = Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:8188"), {
+    code: "ECONNREFUSED",
+  });
+
+  const cases = [
+    {
+      expected: ["failed", "provider_unreachable", 0],
+      upload: () => Promise.reject(new TypeError("fetch failed", { cause: refused })),
+    },
+    {
+      expected: ["failed", "provider_rejected", 1],
+      submit: () =>
+        Promise.reject(
+          new InvalidWorkflow("Node 1: class_type Nope does not exist", {
+            code: "invalid_workflow",
+            httpStatus: 400,
+          }),
+        ),
+    },
+    {
+      expected: ["unknown", "timeout", 1],
+      submit: () => Promise.reject(new DOMException("The operation timed out.", "TimeoutError")),
+    },
+    {
+      expected: ["unknown", "unknown", 1],
+      submit: () =>
+        Promise.reject(
+          new IdempotencyKeyReuse("Idempotency key already used", {
+            code: "idempotency_key_reuse",
+            httpStatus: 422,
+          }),
+        ),
+    },
+    {
+      expected: ["unknown", "unknown", 1],
+      submit: () =>
+        Promise.reject(new ComfyError("Service unavailable", { code: "error", httpStatus: 503 })),
+    },
+  ];
+
+  for (const { expected, submit, upload } of cases) {
+    const { double, submits } = provider(submit ?? (() => Promise.reject(new Error("unused"))));
+
+    if (upload) {
+      double.upload = upload;
+    }
+
+    const { id } = await generate(input(), double);
+    const row = findGeneration(id);
+
+    assert.deepEqual([row?.status, row?.error_code, submits.length], expected);
+    assert.equal(row?.provider_job_id, null);
+    assert.ok(row?.error_message);
+  }
+});
+
+test("retry submits a child with the same recipe and a new seed", async () => {
+  const failing = provider(() =>
+    Promise.reject(new InvalidWorkflow("Rejected", { code: "invalid_workflow", httpStatus: 400 })),
+  );
+
+  const parent = await generate(input(), failing.double);
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+  const child = await retry(parent.id, double);
+  const [before, after] = [findGeneration(parent.id), findGeneration(child.id)];
+
+  assert.equal(child.reused, false);
+  assert.equal(submits.length, 1);
+  assert.equal(after?.parent_id, parent.id);
+  assert.equal(after?.status, "queued");
+  assert.equal(after?.idempotency_key, submits[0]);
+  assert.notEqual(after?.recipe.params.seed, before?.recipe.params.seed);
+  assert.deepEqual(
+    { ...after?.recipe, params: { ...after?.recipe.params, seed: 0 } },
+    { ...before?.recipe, params: { ...before?.recipe.params, seed: 0 } },
+  );
+  assert.equal(after?.character_id, before?.character_id);
+});
+
+test("retry refuses an unknown generation with 409 and a pointer to the README", async () => {
+  const unknown = await generate(
+    input(),
+    provider(() => Promise.reject(new DOMException("The operation timed out.", "TimeoutError")))
+      .double,
+  );
+
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+
+  await assert.rejects(retry(unknown.id, double), (error) => {
+    assert.ok(error instanceof GenerateError);
+    assert.equal(error.status, 409);
+    assert.match(error.message, /README/);
+
+    return true;
+  });
+
+  const queued = await generate(input(), double);
+
+  await assert.rejects(retry(queued.id, double), { status: 409 });
+  assert.equal(submits.length, 1);
 });

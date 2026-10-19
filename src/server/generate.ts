@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { z } from "zod";
 
 import { type generateInputSchema, generationSchema, MAX_CLIP_MS } from "../lib/contracts.ts";
-import { findAsset, type StoredAsset } from "./assets.ts";
+import { findAsset, findBySha256, type StoredAsset } from "./assets.ts";
 import { findCharacter } from "./characters.server.ts";
 import { comfyProvider, type Provider, providerError, providerTarget } from "./comfy.ts";
 import { finalize } from "./finalize.ts";
@@ -25,7 +25,7 @@ import { buildGraph } from "./workflows/build-graph.ts";
 import { type LoadedWorkflow, loadWorkflow } from "./workflows/registry.ts";
 
 /** A request that cannot become a generation; `status` is the HTTP status that says why. */
-class GenerateError extends Error {
+export class GenerateError extends Error {
   status: 404 | 409 | 422;
   constructor(status: 404 | 409 | 422, message: string) {
     super(message);
@@ -199,6 +199,68 @@ export async function generate(
 }
 
 /**
+ * `POST /api/generations/:id/retry`: a child of a failed generation (`parent_id` = `id`) with the
+ * same recipe except a fresh seed, submitted like any generation. An `unknown` generation is
+ * never retried: Comfy may still be rendering it (409).
+ */
+export async function retry(id: string, provider: Provider = comfyProvider) {
+  const parent = findGeneration(id);
+
+  if (!parent) {
+    throw new GenerateError(404, "Generation not found.");
+  }
+
+  if (parent.status === "unknown") {
+    throw new GenerateError(
+      409,
+      "Comfy may still be rendering this generation, so it is not retried. See the README, “Generation state and recovery”, then start a new generation.",
+    );
+  }
+
+  if (parent.status !== "failed") {
+    throw new GenerateError(
+      409,
+      `Only a failed generation can be retried; this one is ${parent.status}.`,
+    );
+  }
+
+  const workflow = await loadWorkflow("motion-transfer", 1);
+  const { recipe } = parent;
+
+  if (
+    recipe.workflow.id !== "motion-transfer" ||
+    recipe.workflow.version !== 1 ||
+    recipe.workflow.sha256 !== workflow.sha256
+  ) {
+    throw new GenerateError(409, "The workflow has changed since; start a new generation.");
+  }
+
+  const drivingVideo = findBySha256(recipe.inputs.driving_video_sha256);
+  const referenceImage = findBySha256(recipe.inputs.reference_image_sha256);
+
+  if (!drivingVideo || !referenceImage) {
+    throw new Error(`Generation ${id} names input files that are not stored`);
+  }
+
+  let seed = randomInt(SEED_RANGE);
+
+  while (seed === recipe.params.seed) {
+    seed = randomInt(SEED_RANGE);
+  }
+
+  return submitRecipe(
+    {
+      characterId: parent.character_id,
+      files: { drivingVideo, referenceImage },
+      parentId: parent.id,
+      recipe: { ...recipe, params: { ...recipe.params, seed } },
+    },
+    workflow,
+    provider,
+  );
+}
+
+/**
  * Settles a `preparing` row no submit in this process owns: the server stopped mid-submit. With
  * no provider inputs recorded nothing was sent, so it failed; after that the job may exist on
  * Comfy, so it becomes `unknown` and is never resubmitted.
@@ -245,4 +307,11 @@ export async function readGeneration(id: string, provider: Provider = comfyProvi
   }
 
   return generationSchema.parse(findGeneration(id) ?? settled);
+}
+
+/** A route's `:generationId` as a UUID, or the 400 response for a malformed one. */
+export function generationIdParam(value: string) {
+  const id = z.uuid().safeParse(value);
+
+  return id.success ? id.data : Response.json({ error: "Invalid generation ID" }, { status: 400 });
 }
