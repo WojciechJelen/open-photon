@@ -21,9 +21,9 @@
 	"246": {
 		"inputs": {
 			"filename_prefix": "video/ComfyUI",
-			"format": "auto",
-			"format.codec": "auto",
-			"codec": "auto",
+			"format": "mp4",
+			"format.codec": "h264",
+			"codec": "h264",
 			"video": ["672:245", 0]
 		},
 		"class_type": "SaveVideo",

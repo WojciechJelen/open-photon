@@ -8,7 +8,10 @@ It derives from [`wan-animate-2/workflow-api.json`](wan-animate-2/workflow-api.j
 
 ## Changes from the export
 
-Node `292` and the 13 `291:*` nodes that only it reached are removed. Nothing else is edited: the file is the export with those nodes deleted, in ComfyUI's formatting.
+Two edits, nothing else; the file keeps ComfyUI's formatting.
+
+1. Node `292` and the 13 `291:*` nodes that only it reached are removed.
+2. SaveVideo `246` is pinned to `format: mp4`, `format.codec: h264` and `codec: h264` instead of `auto`. The app's player and the share page need H.264 in MP4; the spike set the same three values on every submission, and the Oct 18 render proved them. `filename_prefix` stays `video/ComfyUI`: the app collects the output by node id, not by file name.
 
 `292` is the template's comparison output. It is a second SaveVideo that stitches the frames saved by `246` beside the driving video from `240` (`ImageStitch`, direction right) and encodes the result. The app only downloads `246`, so `292` cost an extra encode and a second output per render for a video nobody receives.
 
@@ -36,4 +39,4 @@ Node `292` and the 13 `291:*` nodes that only it reached are removed. Nothing el
 
 | File | SHA-256 |
 | --- | --- |
-| `motion-transfer.v1.json` | `ddd20b89a0e2febd53fb7ff14496ee88794faadeb242453346bd72df85f922d0` |
+| `motion-transfer.v1.json` | `ef8b31e822968f27fd80409d7158a6d7c2ca46cf96b8814427ad15b180a3b1a9` |

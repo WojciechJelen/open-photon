@@ -9,13 +9,9 @@ Upstream template and sample inputs were retrieved from [Comfy-Org/workflow_temp
 - [Driving video](https://github.com/Comfy-Org/workflow_templates/blob/7d8ed32f0bf6b8d52129976535422d6f518fe463/input/street_dance_drive.mp4), stored as `fixtures/wan/driving.mp4`
 - [Open the template in Comfy Cloud](https://cloud.comfy.org/?template=video_wan_animate2)
 
-## Runtime bindings
+## Use
 
-`src/server/wan-workflow.server.ts` uploads the samples and sets input assets at nodes `189` and `240`, the appearance/background prompt at `672:582`, the seed at `672:597`, and dimensions at `672:600`. Portrait retains the official 482×854 dimensions. Cinematic swaps them. The take number increments the official seed.
-
-The official motion prompt, six sampling steps, fragment length, model selection, and loop remain in the exported graph. SaveVideo nodes `246` and `292` use MP4/H.264 with a per-render prefix. The application downloads the primary output from `246`; the provider also produces the template's comparison output.
-
-The exact submitted graph is stored alongside the local render in SQLite before submission. Input asset references and runtime overrides do not modify this checked-in export.
+The app does not submit this export. It submits [`../motion-transfer.v1.json`](../motion-transfer.v1.json), which is this export without the comparison branch, patched through [`../motion-transfer.v1.inputs.json`](../motion-transfer.v1.inputs.json). [`../README.md`](../README.md) records the differences and the input bindings. This file stays unmodified as the provenance of v1.
 
 ## SHA-256
 

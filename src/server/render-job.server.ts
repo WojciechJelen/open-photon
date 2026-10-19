@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { Comfy, ComfyError, type Job, type Progress } from "@comfyorg/sdk";
@@ -5,10 +6,33 @@ import { Comfy, ComfyError, type Job, type Progress } from "@comfyorg/sdk";
 import type { JobRow, NewJob } from "../lib/contracts.ts";
 import { findJob, insertJob, saveWorkflow, updateJob } from "./db.server.ts";
 import { saveVideoOutput } from "./video-output.server.ts";
-import { prepareWanWorkflow, workflowGraphSchema } from "./wan-workflow.server.ts";
+import { buildGraph } from "./workflows/build-graph.ts";
+import { loadWorkflow } from "./workflows/registry.ts";
 
 function client() {
   return new Comfy({ clientInfo: "open-photon", timeoutMs: 30_000 });
+}
+
+/** The sample inputs, at the template's seed for take 1 and its 482×854 size for portrait. */
+async function sampleGraph(comfy: Comfy, input: NewJob) {
+  const { graph, inputsMap } = await loadWorkflow("motion-transfer", 1);
+
+  const [reference_image, driving_video] = await Promise.all([
+    comfy.assets.fromFile(resolve("fixtures/wan/reference.png")).asReference(),
+    comfy.assets.fromFile(resolve("fixtures/wan/driving.mp4")).asReference(),
+  ]);
+
+  const portrait = input.preset === "portrait";
+
+  return buildGraph(graph, inputsMap, {
+    driving_video,
+    frames: 81,
+    height: portrait ? 854 : 482,
+    prompt: input.prompt,
+    reference_image,
+    seed: 582_699_151_003_550 + input.take - 1,
+    width: portrait ? 482 : 854,
+  });
 }
 
 const downloads = new Map<string, Promise<JobRow>>();
@@ -24,10 +48,13 @@ export async function submitJob(input: NewJob) {
 
   try {
     const comfy = client();
-    const workflow = await prepareWanWorkflow(comfy, input);
-    saveWorkflow(job.id, workflowGraphSchema.parse(workflow.json));
+    const graph = await sampleGraph(comfy, input);
+    saveWorkflow(job.id, graph);
     sending = true;
-    const accepted = await comfy.submit(workflow, { idempotencyKey: job.id });
+
+    const accepted = await comfy.submit(comfy.workflows.fromJson(graph), {
+      idempotencyKey: job.id,
+    });
 
     return updateJob(job.id, (current) => ({
       ...current,
