@@ -7,7 +7,6 @@ import { z } from "zod";
 import {
   assetSchema,
   MAX_CLIP_MS,
-  MIN_CLIP_MS,
   trimRequestSchema,
   uploadedVideoSchema,
   type VideoRejection,
@@ -15,7 +14,7 @@ import {
 import { findAsset, hashFile, incomingPath, type StoredAsset, storeAsset } from "./assets.ts";
 import { assetsDirectory } from "./media.server.ts";
 import { classifyVideo, probe } from "./media/probe.ts";
-import { trimVideo } from "./media/trim.ts";
+import { shortestCutMs, trimVideo } from "./media/trim.ts";
 import { handleUpload, UploadError } from "./upload.server.ts";
 
 const rejections: Record<VideoRejection, string> = {
@@ -23,12 +22,13 @@ const rejections: Record<VideoRejection, string> = {
   too_short: "This clip is shorter than 3 seconds.",
 };
 
-/** A range that comes out under 3 s once cut to whole frames (3000 ms at 30000/1001 fps is 2.97 s). */
+/** A range that comes out shorter than `shortestCutMs` once cut to whole frames. */
 class CutTooShortError extends Error {}
 
 /**
  * Cuts `durationMs` from `startMs` of a stored video into a `trimmed` asset (deduplicated by
- * hash). The stored cut lasts 3 s to `durationMs`; `CutTooShortError` when it would be shorter.
+ * hash). The stored cut lasts `shortestCutMs` (3 s less one source frame) to `durationMs`;
+ * `CutTooShortError` when it would be shorter.
  */
 async function cutClip(
   source: StoredAsset,
@@ -57,7 +57,7 @@ async function cutClip(
       throw new Error(`FFmpeg cut ${info.durationMs} ms for a ${durationMs} ms range`);
     }
 
-    if (info.durationMs < MIN_CLIP_MS) {
+    if (info.durationMs < shortestCutMs(source.fps)) {
       throw new CutTooShortError();
     }
 

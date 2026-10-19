@@ -117,7 +117,7 @@ test("a clip over 8 s is kept whole and comes back with its first 8 s trimmed, a
   assert.equal((await trim(cut.sha256, { duration_ms: 3000, start_ms: 0 })).status, 404);
 });
 
-test("cuts of a 30000/1001 fps clip are whole frames within the range and at least 3 s", async () => {
+test("cuts of a 30000/1001 fps clip are whole frames within the range, 3 s less a frame at least", async () => {
   // One keyframe, at 0 s: every other start re-encodes. 8 s is 239.76 frames, 3 s is 89.91.
   const directory = mkdtempSync(join(tmpdir(), "open-photon-ntsc-"));
   after(() => rmSync(directory, { force: true, recursive: true }));
@@ -136,7 +136,7 @@ test("cuts of a 30000/1001 fps clip are whole frames within the range and at lea
 
   for (const [startMs, durationMs] of [
     [1500, 8000],
-    [1234, 3100],
+    [1500, 3000],
   ] as const) {
     const cut = await trim(source.id, { duration_ms: durationMs, start_ms: startMs });
     assert.equal(cut.status, 201);
@@ -144,9 +144,7 @@ test("cuts of a 30000/1001 fps clip are whole frames within the range and at lea
     assert.ok(cutMs <= durationMs && cutMs >= durationMs - 34, `${durationMs}: ${cutMs} ms`);
   }
 
-  const short = await trim(source.id, { duration_ms: 3000, start_ms: 1500 });
-  assert.equal(short.status, 422);
-  assert.equal((await short.json()).reason, "too_short");
+  assert.equal((await trim(source.id, { duration_ms: 2999, start_ms: 1500 })).status, 400);
 });
 
 test("a declared body over 128 MiB is a 413 before anything is read", async () => {

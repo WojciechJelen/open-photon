@@ -3,6 +3,14 @@ import { z } from "zod";
 import { MIN_CLIP_MS } from "../../lib/contracts.ts";
 import { exitedNonzero, frameRate, probe, runTool } from "./probe.ts";
 
+/**
+ * The shortest cut that counts as 3 s: 3 s less one frame, because whole frames cannot always
+ * land on 3 s (89 frames at 30000/1001 fps last 2.97 s, 90 last 3.003 s).
+ */
+export function shortestCutMs(fps: number | null) {
+  return MIN_CLIP_MS - (fps ? 1000 / fps : 0);
+}
+
 const cutPointSchema = z.object({
   format: z.object({ start_time: z.coerce.number().optional() }),
   packets: z.array(z.object({ flags: z.string(), pts_time: z.coerce.number() })).default([]),
@@ -57,9 +65,9 @@ async function cutPoint(input: string, seconds: number, signal?: AbortSignal) {
  * Cuts `durationMs` from `startMs` of `input` into an MP4 at `output`, keeping the first video
  * and audio streams together so the passthrough audio stays in sync. A cut that starts on a
  * keyframe is a stream copy; any other cut, or a copy the MP4 muxer refuses or that does not
- * last 3 s to `durationMs`, is re-encoded to H.264 and AAC. The re-encode lasts a whole number
- * of frames at most `durationMs` long (3 s at 30000/1001 fps is 89 frames, 2.97 s), so the
- * caller still checks the result's length.
+ * last `shortestCutMs` to `durationMs`, is re-encoded to H.264 and AAC. The re-encode lasts a
+ * whole number of frames at most `durationMs` long, so the caller still checks the result's
+ * length.
  */
 export async function trimVideo(
   input: string,
@@ -113,7 +121,7 @@ export async function trimVideo(
       if (
         copied?.video &&
         copied.durationMs !== null &&
-        copied.durationMs >= MIN_CLIP_MS &&
+        copied.durationMs >= shortestCutMs(point.fps) &&
         copied.durationMs <= durationMs
       ) {
         return "copy";
