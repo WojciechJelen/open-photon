@@ -12,7 +12,7 @@ const path = resolve(process.env.DATABASE_PATH ?? "data/spike.sqlite");
 mkdirSync(dirname(path), { recursive: true });
 
 /** The process's one SQLite connection. */
-const database = new DatabaseSync(path);
+export const database = new DatabaseSync(path);
 
 database.exec(`PRAGMA busy_timeout = 5000;
 PRAGMA journal_mode = WAL;
