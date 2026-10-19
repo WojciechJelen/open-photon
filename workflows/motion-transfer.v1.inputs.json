@@ -1,0 +1,12 @@
+{
+  "workflow": "motion-transfer.v1.json",
+  "inputs": {
+    "driving_video": { "node": "240", "field": "file", "class_type": "LoadVideo" },
+    "reference_image": { "node": "189", "field": "image", "class_type": "LoadImage" },
+    "prompt": { "node": "672:582", "field": "text", "class_type": "CLIPTextEncode" },
+    "seed": { "node": "672:597", "field": "noise_seed", "class_type": "SamplerCustom" },
+    "width": { "node": "672:600", "field": "resize_type.width", "class_type": "ResizeImageMaskNode" },
+    "height": { "node": "672:600", "field": "resize_type.height", "class_type": "ResizeImageMaskNode" },
+    "frames": { "node": "672:635", "field": "value", "class_type": "PrimitiveInt" }
+  }
+}
