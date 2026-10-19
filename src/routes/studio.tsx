@@ -17,12 +17,18 @@ export const Route = createFileRoute("/studio")({
 
 type Submission = { kind: "idle" } | { kind: "saving" } | { kind: "error"; message: string };
 
+const samplePrompt =
+  "Character Description: Cartoon character lost. Background description: The background is an empty white room.";
+
 function Studio() {
   const { preset, take } = Route.useSearch();
   const row = Route.useLoaderData();
   const navigate = Route.useNavigate();
   const attempt = useRef<{ id: string; signature: string } | null>(null);
   const [submission, setSubmission] = useState<Submission>({ kind: "idle" });
+  // React resets the form to its default values after every action; defaulting to the prompt
+  // last sent keeps what the user wrote. Uncontrolled, so typing before hydration is kept too.
+  const [draft, setDraft] = useState(row?.prompt ?? samplePrompt);
 
   const submit = async (form: FormData) => {
     setSubmission({ kind: "saving" });
@@ -34,6 +40,8 @@ function Studio() {
       if (typeof prompt !== "string") {
         throw new Error("Write a prompt first.");
       }
+
+      setDraft(prompt);
 
       const signature = JSON.stringify({ prompt, preset, take });
 
@@ -91,7 +99,7 @@ function Studio() {
           Describe the character and background
         </label>
         <Input
-          defaultValue="Character Description: Cartoon character lost. Background description: The background is an empty white room."
+          defaultValue={draft}
           id="prompt"
           maxLength={500}
           name="prompt"

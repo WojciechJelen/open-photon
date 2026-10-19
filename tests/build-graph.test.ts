@@ -20,7 +20,7 @@ const spikeGraph = workflowGraphSchema.parse(
 
 const spikeParams = motionTransferParamsSchema.parse({
   driving_video: spikeGraph["240"]?.inputs.file,
-  frames: 81,
+  fragment_length: 81,
   height: 854,
   prompt:
     "Character Description: Cartoon character lost. Background description: The background is an empty white room.",
@@ -81,7 +81,17 @@ test("a map entry pointing at a missing node throws", () => {
   );
 });
 
-test("the params schema rejects zero frames and a fractional seed", () => {
-  assert.equal(motionTransferParamsSchema.safeParse({ ...spikeParams, frames: 0 }).success, false);
+test("the params schema rejects fragment lengths the template cannot window", () => {
+  // 1 makes 672:636 divide by zero; 6 is not 4n + 1; 85 is past the supported window.
+  for (const fragment_length of [1, 6, 85]) {
+    assert.equal(
+      motionTransferParamsSchema.safeParse({ ...spikeParams, fragment_length }).success,
+      false,
+      `fragment_length ${fragment_length}`,
+    );
+  }
+});
+
+test("the params schema rejects a fractional seed", () => {
   assert.equal(motionTransferParamsSchema.safeParse({ ...spikeParams, seed: 1.5 }).success, false);
 });

@@ -26,7 +26,7 @@ async function sampleGraph(comfy: Comfy, input: NewJob) {
 
   return buildGraph(graph, inputsMap, {
     driving_video,
-    frames: 81,
+    fragment_length: 81,
     height: portrait ? 854 : 482,
     prompt: input.prompt,
     reference_image,

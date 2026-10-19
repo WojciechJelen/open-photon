@@ -1,11 +1,13 @@
 // Renders one params file through the workflow registry on Comfy:
 //   node --env-file=.env scripts/render-once.mjs params/first-registry-render.json
 // The params file names the driving video and reference image by path. A record under
-// work/render-once/ keyed by the recipe (workflow hash, params, input file hashes) holds the
-// idempotency key before submit and the job id once Comfy accepts it, so running the same
-// params again resumes that job instead of creating another.
+// work/render-once/ keyed by the recipe (workflow hash, params, input file hashes) tracks the
+// render, so running the same params again resumes its job instead of creating another:
+//   claimed     one run owns the recipe and has sent nothing to Comfy yet
+//   submitting  a submit was sent and its job id never saved: Comfy may be rendering it
+//   submitted   jobId names the accepted job
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { link, mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { Comfy } from "@comfyorg/sdk";
@@ -44,17 +46,51 @@ const videoFile = `${directory}/${recipeHash}.mp4`;
 
 await mkdir(directory, { recursive: true });
 
-let record = { idempotencyKey: randomUUID(), jobId: null, output: null, recipe, recipeHash };
+let record = {
+  idempotencyKey: randomUUID(),
+  jobId: null,
+  output: null,
+  recipe,
+  recipeHash,
+  state: "claimed",
+};
+
+const temporary = `${recordFile}.${process.pid}.tmp`;
+const writeTemporary = () => writeFile(temporary, `${JSON.stringify(record, null, 2)}\n`);
+
+const save = async () => {
+  await writeTemporary();
+  await rename(temporary, recordFile);
+};
+
+// link() refuses to replace an existing record, so exactly one run claims a recipe, and other
+// runs never see a half-written file.
+let claimed = true;
+
+await writeTemporary();
 
 try {
-  record = JSON.parse(await readFile(recordFile, "utf8"));
+  await link(temporary, recordFile);
 } catch (error) {
-  if (error.code !== "ENOENT") {
+  if (error.code !== "EEXIST") {
     throw error;
   }
+
+  claimed = false;
+  record = JSON.parse(await readFile(recordFile, "utf8"));
+} finally {
+  await unlink(temporary);
 }
 
-const save = () => writeFile(recordFile, `${JSON.stringify(record, null, 2)}\n`);
+if (!record.jobId && !claimed) {
+  console.error(
+    record.state === "submitting"
+      ? `${recordFile}: a submit was sent at ${record.submittedAt} with idempotency key ${record.idempotencyKey} and its job id was never saved, so Comfy may be rendering it. This script will not submit it again: Comfy forgets idempotency keys after 24 hours, so a resubmit could start a second paid job. Find the job in Comfy Cloud, set "jobId" in the record and run again to resume it. Delete the record only once you are sure Comfy created no job.`
+      : `${recordFile}: another run is preparing this recipe, or one stopped before submitting. Nothing was submitted. If no other run is active, delete the record and run again.`,
+  );
+  process.exit(1);
+}
+
 const comfy = new Comfy({ clientInfo: "open-photon", timeoutMs: 30_000 });
 let job;
 
@@ -62,25 +98,36 @@ if (record.jobId) {
   job = await comfy.jobs.get(record.jobId);
   log("resume", { jobId: job.id, recipeHash, status: job.status });
 } else {
-  const [driving_video, reference_image] = await Promise.all([
-    comfy.assets.fromFile(resolve(params.driving_video)).asReference(),
-    comfy.assets.fromFile(resolve(params.reference_image)).asReference(),
-  ]);
+  let graph;
 
-  const graph = buildGraph(
-    workflow.graph,
-    workflow.inputsMap,
-    motionTransferParamsSchema.parse({ ...params, driving_video, reference_image }),
-  );
+  try {
+    const [driving_video, reference_image] = await Promise.all([
+      comfy.assets.fromFile(resolve(params.driving_video)).asReference(),
+      comfy.assets.fromFile(resolve(params.reference_image)).asReference(),
+    ]);
 
-  // A record without a job id means an earlier submit may have reached Comfy; reusing its key
-  // makes Comfy reject a duplicate (idempotency_key_reuse) instead of rendering twice.
+    graph = buildGraph(
+      workflow.graph,
+      workflow.inputsMap,
+      motionTransferParamsSchema.parse({ ...params, driving_video, reference_image }),
+    );
+  } catch (error) {
+    // Nothing was submitted, so the next run may claim the recipe again.
+    await unlink(recordFile);
+    throw error;
+  }
+
+  // From here until the job id is saved, a crash leaves the record unresolved, and later runs
+  // refuse to submit it again.
+  record.state = "submitting";
+  record.submittedAt = new Date().toISOString();
   await save();
   log("submit", { idempotencyKey: record.idempotencyKey, recipeHash });
   job = await comfy.submit(comfy.workflows.fromJson(graph), {
     idempotencyKey: record.idempotencyKey,
   });
   record.jobId = job.id;
+  record.state = "submitted";
   await save();
   log("submitted", { jobId: job.id, status: job.status });
 }
@@ -127,7 +174,7 @@ if (record.output) {
     throw new Error(`Job ${job.id} has no MP4 output on node 246`);
   }
 
-  const partial = `${videoFile}.part`;
+  const partial = `${videoFile}.${process.pid}.part`;
   await output.toFile(partial, { timeoutMs: 180_000 });
   const bytes = await readFile(partial);
   await rename(partial, videoFile);
