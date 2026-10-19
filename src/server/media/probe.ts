@@ -171,3 +171,18 @@ export function classifyVideo(
     },
   };
 }
+
+const imageFormats = [
+  { ext: "png", format: "png_pipe", mime: "image/png" },
+  { ext: "jpg", format: "jpeg_pipe", mime: "image/jpeg" },
+  { ext: "webp", format: "webp_pipe", mime: "image/webp" },
+] as const;
+
+/** A PNG, JPEG or WebP still, by its content; `null` for anything else. */
+export function classifyImage(info: MediaInfo | null) {
+  const image = imageFormats.find((candidate) => info?.formats.includes(candidate.format));
+
+  return image && info?.video
+    ? { ext: image.ext, height: info.video.height, mime: image.mime, width: info.video.width }
+    : null;
+}

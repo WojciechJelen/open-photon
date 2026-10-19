@@ -3,6 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { type JobRow, jobRowSchema, type NewJob } from "../lib/contracts.ts";
+import { seedSamples } from "./samples.ts";
 
 // Resolved from the working directory, like `workflows/`; the Dockerfile copies it next to `.output`.
 const MIGRATIONS_DIRECTORY = resolve("src/server/migrations");
@@ -75,6 +76,9 @@ function migrate() {
 }
 
 migrate();
+
+// Every database gets the sample characters before its first query: a fresh clone, test or volume.
+transaction(() => seedSamples(database));
 
 export function findJob(id: string) {
   const row = database.prepare("SELECT state_json FROM renders WHERE id = ?").get(id);

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudioRouteImport } from './routes/studio'
+import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiJobsRouteImport } from './routes/api.jobs'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
@@ -29,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
   path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCharactersRoute = ApiCharactersRouteImport.update({
+  id: '/api/characters',
+  path: '/api/characters',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiJobsRoute = ApiJobsRouteImport.update({
@@ -80,6 +86,7 @@ const ApiJobsJobIdEventsRoute = ApiJobsJobIdEventsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/studio': typeof StudioRoute
+  '/api/characters': typeof ApiCharactersRoute
   '/api/jobs': typeof ApiJobsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/media/$filename': typeof MediaFilenameRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/studio': typeof StudioRoute
+  '/api/characters': typeof ApiCharactersRoute
   '/api/jobs': typeof ApiJobsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/media/$filename': typeof MediaFilenameRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/studio': typeof StudioRoute
+  '/api/characters': typeof ApiCharactersRoute
   '/api/jobs': typeof ApiJobsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/media/$filename': typeof MediaFilenameRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/studio'
+    | '/api/characters'
     | '/api/jobs'
     | '/api/uploads'
     | '/media/$filename'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/studio'
+    | '/api/characters'
     | '/api/jobs'
     | '/api/uploads'
     | '/media/$filename'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/studio'
+    | '/api/characters'
     | '/api/jobs'
     | '/api/uploads'
     | '/media/$filename'
@@ -162,6 +174,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   StudioRoute: typeof StudioRoute
+  ApiCharactersRoute: typeof ApiCharactersRoute
   ApiJobsRoute: typeof ApiJobsRouteWithChildren
   ApiUploadsRoute: typeof ApiUploadsRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       path: '/studio'
       fullPath: '/studio'
       preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/characters': {
+      id: '/api/characters'
+      path: '/api/characters'
+      fullPath: '/api/characters'
+      preLoaderRoute: typeof ApiCharactersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/jobs': {
@@ -279,6 +299,7 @@ const ApiJobsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   StudioRoute: StudioRoute,
+  ApiCharactersRoute: ApiCharactersRoute,
   ApiJobsRoute: ApiJobsRouteWithChildren,
   ApiUploadsRoute: ApiUploadsRoute,
   MediaFilenameRoute: MediaFilenameRoute,

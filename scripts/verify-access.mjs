@@ -29,6 +29,7 @@ for (const [path, method] of [
   ["/api/jobs", "POST"],
   ["/api/uploads", "POST"],
   ["/api/assets/anonymous-probe/trim", "POST"],
+  ["/api/characters", "POST"],
   ["/_serverFn/anonymous-probe", "POST"],
   ["/api/jobs/anonymous-probe/events", "GET"],
   ["/media/x.mp4", "GET"],

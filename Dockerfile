@@ -15,6 +15,7 @@ ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000 DATABASE_PATH=/app/data/spike.sql
 COPY --from=build --chown=node:node /app/.output ./.output
 COPY --from=build --chown=node:node /app/fixtures ./fixtures
 COPY --from=build --chown=node:node /app/workflows ./workflows
+COPY --from=build --chown=node:node /app/samples ./samples
 COPY --from=build --chown=node:node /app/src/server/migrations ./src/server/migrations
 COPY --chmod=755 scripts/container-entrypoint.sh /usr/local/bin/open-photon-entrypoint
 RUN mkdir /app/data && chown node:node /app/data

@@ -1,0 +1,11 @@
+{
+  "characters": [
+    { "slug": "placeholder-blue", "title": "Placeholder blue", "image": "placeholder-blue.png" },
+    {
+      "slug": "placeholder-orange",
+      "title": "Placeholder orange",
+      "image": "placeholder-orange.png"
+    },
+    { "slug": "placeholder-green", "title": "Placeholder green", "image": "placeholder-green.png" }
+  ]
+}
