@@ -53,14 +53,21 @@ test("server validation rejects whitespace without creating a job", async ({ pag
   await page.goto("/studio");
   // The form posts through the createJob server function, which answers a
   // validation error with 200, so check the attempt ID never became a row.
+  // A POST /api/jobs would bypass that path and submit a paid job outright.
   const submissions: Array<string> = [];
+  const jobPosts: Array<string> = [];
   page.on("request", (sent) => {
     const { pathname } = new URL(sent.url());
 
-    if (
-      sent.method() === "POST" &&
-      (pathname === "/api/jobs" || pathname.startsWith("/_serverFn/"))
-    ) {
+    if (sent.method() !== "POST") {
+      return;
+    }
+
+    if (pathname === "/api/jobs") {
+      jobPosts.push(sent.url());
+    }
+
+    if (pathname === "/api/jobs" || pathname.startsWith("/_serverFn/")) {
       submissions.push(sent.postData() ?? "");
     }
   });
@@ -79,4 +86,6 @@ test("server validation rejects whitespace without creating a job", async ({ pag
   for (const id of ids) {
     expect((await request.get(`/api/jobs/${id}`)).status()).toBe(404);
   }
+
+  expect(jobPosts, "unexpected POST /api/jobs").toEqual([]);
 });

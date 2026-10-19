@@ -4,6 +4,8 @@ TanStack Start v1 with typed routes, SQLite, the official Wan Animate 2 workflow
 
 Start is pinned to `1.169.3`; the registry does not publish an exact `1.0.0`. The app uses Tailwind 4, shadcn components, and Node's built-in SQLite module. Node 24 and FFmpeg are included in the production image.
 
+Docs: <https://open-photon-docs.vercel.app> ([source](https://github.com/WojciechJelen/open-photon-docs)).
+
 ## Run
 
 Put `COMFY_API_KEY=...` in the ignored `.env` file. The account needs access to Comfy Cloud workflow generation and enough credits. Authentication alone does not establish this access. Supply the key only at runtime.
