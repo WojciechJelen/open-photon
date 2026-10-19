@@ -13,6 +13,12 @@ const storedCharacterSchema = characterSchema.extend({
   is_sample: z.union([z.literal(0), z.literal(1)]).transform((value) => value === 1),
 });
 
+export function findCharacter(id: string) {
+  const row = database.prepare("SELECT * FROM characters WHERE id = ?").get(id);
+
+  return row ? storedCharacterSchema.parse(row) : null;
+}
+
 /** `POST /api/characters`; the contract is documented on `characterSchema`. */
 export function uploadCharacter(request: ServerRequest) {
   return handleUpload(request, "image", ["consent"], async (upload) => {

@@ -5,7 +5,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { z } from "zod";
 
-import { assetsDirectory } from "./media.server.ts";
+import { assetsDirectory } from "./paths.ts";
 
 // Resolved from the working directory, like `workflows/`; the Dockerfile copies it.
 const SAMPLES_DIRECTORY = resolve("samples/characters");

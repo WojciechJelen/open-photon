@@ -57,7 +57,7 @@ jobs:
               test "$(awk "/^Uid:/ {print \$2}" /proc/$pid/status)" = 1000
             done
             test "$(stat -c %u /app/data)" = 1000
-            test "$(stat -c %u /app/data/media)" = 1000
+            test "$(stat -c %u /app/data/assets)" = 1000
           '
           docker exec --user node open-photon-memory node --input-type=module -e '
             import { DatabaseSync } from "node:sqlite";

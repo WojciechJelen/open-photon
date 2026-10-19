@@ -3,21 +3,12 @@ import type { SQLOutputValue } from "node:sqlite";
 
 import { z } from "zod";
 
+import { generationSchema, type generationStatusSchema } from "../lib/contracts.ts";
 import { database } from "./db.server.ts";
 import { type Recipe, recipeHash, recipeSchema } from "./recipe.ts";
 import { motionTransferParamsSchema } from "./workflows/params.ts";
 
-const statusSchema = z.enum([
-  "preparing",
-  "queued",
-  "running",
-  "finalizing",
-  "done",
-  "failed",
-  "unknown",
-]);
-
-type GenerationStatus = z.infer<typeof statusSchema>;
+type GenerationStatus = z.infer<typeof generationStatusSchema>;
 
 /**
  * `preparing → queued → running → finalizing → done | failed`. Comfy can finish a job without
@@ -43,56 +34,59 @@ function jsonColumn<T extends z.ZodType>(schema: T) {
 
 const recipeColumn = jsonColumn(recipeSchema);
 
-const generationRowSchema = z.object({
+const providerInputsColumn = jsonColumn(
+  motionTransferParamsSchema.pick({ driving_video: true, reference_image: true }),
+);
+
+type ProviderInputs = z.output<typeof providerInputsColumn>;
+
+const generationRowSchema = generationSchema.extend({
   access_code_id: z.string().nullable(),
-  character_id: z.string().nullable(),
   client_hash: z.string().nullable(),
-  created_at: z.iso.datetime(),
-  error_code: z.string().nullable(),
-  error_message: z.string().nullable(),
-  final_asset_id: z.string().nullable(),
   finalize_attempts: z.int().nonnegative(),
-  finished_at: z.iso.datetime().nullable(),
-  id: z.uuid(),
   idempotency_key: z.uuid(),
   is_prerendered: z.union([z.literal(0), z.literal(1)]).transform((value) => value === 1),
   kind: z.enum(["render", "character"]),
   motion_id: z.string().nullable(),
-  output_asset_id: z.string().nullable(),
-  parent_id: z.uuid().nullable(),
-  poster_asset_id: z.string().nullable(),
-  progress: z.int().min(0).max(100).nullable(),
+  output_asset_id: z.uuid().nullable(),
   // The `asReference()` values of the files uploaded to the provider, to rebuild the graph.
-  provider_inputs: jsonColumn(
-    motionTransferParamsSchema.pick({ driving_video: true, reference_image: true }),
-  ).nullable(),
+  provider_inputs: providerInputsColumn.nullable(),
   provider_job_id: z.string().min(1).nullable(),
   recipe: recipeColumn,
   recipe_hash: z.string().regex(/^[a-f0-9]{64}$/),
   share_slug: z.string().nullable(),
-  status: statusSchema,
-  submitted_at: z.iso.datetime().nullable(),
   target: recipeSchema.shape.target,
   workflow_id: z.string().min(1),
   workflow_version: z.int().positive(),
 });
+
+export type Generation = z.output<typeof generationRowSchema>;
 
 function parseRow(row: Record<string, SQLOutputValue> | undefined) {
   return row === undefined ? null : generationRowSchema.parse(row);
 }
 
 /** Inserts a `preparing` row whose idempotency key exists before anything reaches the provider. */
-export function createGeneration({ parentId, recipe }: { parentId?: string; recipe: Recipe }) {
+export function createGeneration({
+  characterId,
+  parentId,
+  recipe,
+}: {
+  characterId?: string;
+  parentId?: string;
+  recipe: Recipe;
+}) {
   const row = database
     .prepare(
-      `INSERT INTO generations (id, parent_id, kind, workflow_id, workflow_version, recipe,
-        recipe_hash, idempotency_key, target, status, created_at)
-      VALUES (?, ?, 'render', ?, ?, ?, ?, ?, ?, 'preparing', ?)
+      `INSERT INTO generations (id, parent_id, kind, character_id, workflow_id, workflow_version,
+        recipe, recipe_hash, idempotency_key, target, status, created_at)
+      VALUES (?, ?, 'render', ?, ?, ?, ?, ?, ?, ?, 'preparing', ?)
       RETURNING *`,
     )
     .get(
       randomUUID(),
       parentId ?? null,
+      characterId ?? null,
       recipe.workflow.id,
       recipe.workflow.version,
       z.encode(recipeColumn, recipe),
@@ -105,6 +99,10 @@ export function createGeneration({ parentId, recipe }: { parentId?: string; reci
   return generationRowSchema.parse(row);
 }
 
+export function findGeneration(id: string) {
+  return parseRow(database.prepare("SELECT * FROM generations WHERE id = ?").get(id));
+}
+
 /** A finished generation with this recipe, whose output can be shown instead of rendering again. */
 export function findReusable(hash: string) {
   return parseRow(
@@ -115,6 +113,29 @@ export function findReusable(hash: string) {
       )
       .get(hash),
   );
+}
+
+/**
+ * A generation with this recipe that may still produce its output: on its way, or `unknown`
+ * (Comfy may be rendering it). Submitting the recipe again would pay for a second job.
+ */
+export function findPending(hash: string) {
+  return parseRow(
+    database
+      .prepare(
+        `SELECT * FROM generations WHERE recipe_hash = ?
+          AND status IN ('preparing', 'queued', 'running', 'finalizing', 'unknown')
+        ORDER BY created_at DESC LIMIT 1`,
+      )
+      .get(hash),
+  );
+}
+
+/** Keeps the provider's references to the uploaded files, before the graph that uses them is sent. */
+export function recordProviderInputs(id: string, inputs: ProviderInputs) {
+  database
+    .prepare("UPDATE generations SET provider_inputs = ? WHERE id = ? AND status = 'preparing'")
+    .run(z.encode(providerInputsColumn, inputs), id);
 }
 
 /** Stores the provider job id the instant `submit()` returns. */
@@ -136,8 +157,23 @@ export function markQueued(id: string, providerJobId: string) {
   return row;
 }
 
-/** Moves a row from `from` to `to` if the state machine allows it and the row is still in `from`. */
-export function transition(id: string, from: GenerationStatus, to: GenerationStatus) {
+type Outcome = Partial<
+  Pick<
+    Generation,
+    "error_code" | "error_message" | "final_asset_id" | "output_asset_id" | "poster_asset_id"
+  >
+>;
+
+/**
+ * Moves a row from `from` to `to` if the state machine allows it and the row is still in `from`,
+ * storing the error or the output assets that come with the new status.
+ */
+export function transition(
+  id: string,
+  from: GenerationStatus,
+  to: GenerationStatus,
+  outcome: Outcome = {},
+) {
   if (!nextStatuses[from].includes(to)) {
     throw new Error(`A generation cannot go from ${from} to ${to}`);
   }
@@ -147,11 +183,27 @@ export function transition(id: string, from: GenerationStatus, to: GenerationSta
   const row = parseRow(
     database
       .prepare(
-        `UPDATE generations SET status = ?, finished_at = coalesce(?, finished_at)
+        `UPDATE generations SET status = ?, finished_at = coalesce(?, finished_at),
+          progress = CASE WHEN ? = 'done' THEN 100 ELSE progress END,
+          error_code = coalesce(?, error_code), error_message = coalesce(?, error_message),
+          output_asset_id = coalesce(?, output_asset_id),
+          final_asset_id = coalesce(?, final_asset_id),
+          poster_asset_id = coalesce(?, poster_asset_id)
         WHERE id = ? AND status = ?
         RETURNING *`,
       )
-      .get(to, finishedAt, id, from),
+      .get(
+        to,
+        finishedAt,
+        to,
+        outcome.error_code ?? null,
+        outcome.error_message ?? null,
+        outcome.output_asset_id ?? null,
+        outcome.final_asset_id ?? null,
+        outcome.poster_asset_id ?? null,
+        id,
+        from,
+      ),
   );
 
   if (!row) {
@@ -162,6 +214,6 @@ export function transition(id: string, from: GenerationStatus, to: GenerationSta
 }
 
 /** For a row left `preparing` by a crash after `submit()` may have reached the provider. */
-export function markUnknown(id: string) {
-  return transition(id, "preparing", "unknown");
+export function markUnknown(id: string, outcome: Outcome = {}) {
+  return transition(id, "preparing", "unknown", outcome);
 }

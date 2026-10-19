@@ -17,7 +17,10 @@ test("production fails closed without a strong code; development can stay open",
   for (const value of [undefined, "short"]) {
     const guard = createAccessGuard({ code: value, production: true });
     assert.equal((await guard(new Request(`${origin}/healthz`)))?.status, 503);
-    assert.equal((await guard(new Request(`${origin}/api/jobs`, { method: "POST" })))?.status, 503);
+    assert.equal(
+      (await guard(new Request(`${origin}/api/uploads`, { method: "POST" })))?.status,
+      503,
+    );
   }
 
   assert.equal(await createAccessGuard({ production: false })(new Request(origin)), undefined);
@@ -27,19 +30,19 @@ test("anonymous APIs, server functions, media, SSE and pages are protected", asy
   const guard = createAccessGuard({ code, production: true });
 
   for (const path of [
-    "/api/jobs",
     "/api/uploads",
     "/_serverFn/example",
-    "/media/x.mp4",
-    "/api/jobs/example/events",
-    "/r/example",
+    "/media/example.mp4",
+    "/api/generations/example",
+    "/api/generations/example/events",
+    "/api/generations/example/retry",
   ]) {
     for (const method of ["GET", "POST", "HEAD"]) {
       assert.equal((await guard(new Request(`${origin}${path}`, { method })))?.status, 401);
     }
   }
 
-  const page = await guard(new Request(`${origin}/studio`, { headers: { Accept: "text/html" } }));
+  const page = await guard(new Request(`${origin}/`, { headers: { Accept: "text/html" } }));
   assert.equal(page?.status, 303);
   assert.equal(page?.headers.get("Location"), "/access");
   assert.equal((await guard(new Request(`${origin}/healthz`)))?.status, 200);
@@ -60,7 +63,7 @@ test("signed sessions survive a restart but reject tampering, expiry and code ro
   const cookie = header.split(";")[0] ?? "";
 
   const request = () =>
-    new Request(`${origin}/api/jobs`, { method: "POST", headers: { Cookie: cookie } });
+    new Request(`${origin}/api/uploads`, { method: "POST", headers: { Cookie: cookie } });
 
   assert.equal(await guard(request()), undefined);
   assert.equal(await createAccessGuard({ code, production: true })(request()), undefined);

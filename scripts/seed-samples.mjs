@@ -1,5 +1,5 @@
 // Seeds the sample characters of samples/characters/manifest.json into DATABASE_PATH (default
-// data/spike.sqlite). Opening the database does it: db.server.ts applies the migrations, then
+// data/app.sqlite). Opening the database does it: db.server.ts applies the migrations, then
 // upserts the samples, as the server does on its first query. Running it again changes nothing.
 import { database } from "../src/server/db.server.ts";
 

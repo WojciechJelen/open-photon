@@ -11,9 +11,8 @@ RUN test ! -e docs/priv && test ! -e .env \
 FROM node:24.19.0-bookworm-slim AS runtime
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg curl gosu && rm -rf /var/lib/apt/lists/*
-ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000 DATABASE_PATH=/app/data/spike.sqlite
+ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000 DATABASE_PATH=/app/data/app.sqlite
 COPY --from=build --chown=node:node /app/.output ./.output
-COPY --from=build --chown=node:node /app/fixtures ./fixtures
 COPY --from=build --chown=node:node /app/workflows ./workflows
 COPY --from=build --chown=node:node /app/samples ./samples
 COPY --from=build --chown=node:node /app/src/server/migrations ./src/server/migrations

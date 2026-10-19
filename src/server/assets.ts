@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { assetSchema } from "../lib/contracts.ts";
 import { database } from "./db.server.ts";
-import { assetsDirectory } from "./media.server.ts";
+import { assetsDirectory } from "./paths.ts";
 
 const storedAssetSchema = assetSchema.extend({
   has_audio: z

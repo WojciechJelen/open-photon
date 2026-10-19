@@ -2,13 +2,13 @@ import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { type JobRow, jobRowSchema, type NewJob } from "../lib/contracts.ts";
+import { databasePath } from "./paths.ts";
 import { seedSamples } from "./samples.ts";
 
 // Resolved from the working directory, like `workflows/`; the Dockerfile copies it next to `.output`.
 const MIGRATIONS_DIRECTORY = resolve("src/server/migrations");
 
-const path = resolve(process.env.DATABASE_PATH ?? "data/spike.sqlite");
+const path = databasePath();
 
 mkdirSync(dirname(path), { recursive: true });
 
@@ -79,79 +79,3 @@ migrate();
 
 // Every database gets the sample characters before its first query: a fresh clone, test or volume.
 transaction(() => seedSamples(database));
-
-export function findJob(id: string) {
-  const row = database.prepare("SELECT state_json FROM renders WHERE id = ?").get(id);
-
-  if (!row) {
-    return null;
-  }
-
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- sqlite returns SQLOutputValue; jobRowSchema parses the payload on the next line.
-  if (typeof row.state_json !== "string") {
-    throw new Error("Invalid stored render");
-  }
-
-  return jobRowSchema.parse(JSON.parse(row.state_json));
-}
-
-export function insertJob(input: NewJob) {
-  const job: JobRow = {
-    ...input,
-    completedAt: null,
-    createdAt: new Date().toISOString(),
-    message: "Uploading the sample inputs and submitting to Comfy",
-    percent: null,
-    providerJobId: null,
-    startedAt: null,
-    status: "submitting",
-  };
-
-  const result = database
-    .prepare("INSERT OR IGNORE INTO renders(id, state_json) VALUES (?, ?)")
-    .run(job.id, JSON.stringify(job));
-
-  const stored = findJob(job.id);
-
-  if (!stored) {
-    throw new Error("Could not persist render");
-  }
-
-  if (
-    stored.prompt !== input.prompt ||
-    stored.preset !== input.preset ||
-    stored.take !== input.take
-  ) {
-    throw new Error("This request ID already belongs to different inputs");
-  }
-
-  return { created: result.changes === 1, job: stored };
-}
-
-export function updateJob(id: string, transition: (job: JobRow) => JobRow) {
-  return transaction(() => {
-    const current = findJob(id);
-
-    if (!current) {
-      throw new Error("Render not found");
-    }
-
-    const next =
-      current.status === "complete" || current.status === "failed"
-        ? current
-        : jobRowSchema.parse(transition(current));
-
-    database
-      .prepare("UPDATE renders SET provider_job_id = ?, state_json = ? WHERE id = ?")
-      .run(next.providerJobId, JSON.stringify(next), id);
-
-    return next;
-  });
-}
-
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- opaque ComfyUI workflow JSON, stored verbatim and never read as a domain type here.
-export function saveWorkflow(id: string, graph: unknown) {
-  database
-    .prepare("UPDATE renders SET workflow_json = ? WHERE id = ?")
-    .run(JSON.stringify(graph), id);
-}

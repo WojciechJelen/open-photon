@@ -1,18 +1,9 @@
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 
-export function mediaDirectory() {
-  return resolve(
-    process.env.MEDIA_DIRECTORY ??
-      resolve(dirname(process.env.DATABASE_PATH ?? "data/spike.sqlite"), "media"),
-  );
-}
-
-/** Content-addressed files (`<sha256>.<ext>`) of the `assets` table, next to the database. */
-export function assetsDirectory() {
-  return resolve(dirname(process.env.DATABASE_PATH ?? "data/spike.sqlite"), "assets");
-}
+import { findAsset } from "./assets.ts";
+import { assetsDirectory } from "./paths.ts";
 
 export function byteRange(header: string, size: number) {
   const match = /^bytes=(\d*)-(\d*)$/.exec(header);
@@ -37,15 +28,16 @@ export function byteRange(header: string, size: number) {
   return start >= size || start > end ? null : { end, start };
 }
 
+/** `GET`/`HEAD /media/<asset id>.<ext>`: a stored asset's file, with single byte ranges. */
 export async function serveMedia(request: Request, filename: string) {
-  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*\.(mp4|jpg)$/.test(filename)) {
-    return new Response("Invalid filename", { status: 400 });
+  const match = /^([0-9a-f-]{36})\.([a-z0-9]+)$/.exec(filename);
+  const asset = match?.[1] ? findAsset(match[1]) : null;
+
+  if (!asset || !asset.path.endsWith(`.${match?.[2]}`)) {
+    return new Response("Media not found", { status: 404 });
   }
 
-  const path = ["x.mp4", "x.jpg"].includes(filename)
-    ? resolve("fixtures", filename)
-    : resolve(mediaDirectory(), filename);
-
+  const path = resolve(assetsDirectory(), asset.path);
   const info = await stat(path).catch(() => null);
 
   if (!info?.isFile()) {
@@ -56,7 +48,7 @@ export async function serveMedia(request: Request, filename: string) {
     "Accept-Ranges": "bytes",
     "Cache-Control": "public, max-age=3600",
     "Content-Length": String(info.size),
-    "Content-Type": filename.endsWith(".mp4") ? "video/mp4" : "image/jpeg",
+    "Content-Type": asset.mime,
     "Last-Modified": info.mtime.toUTCString(),
   });
 

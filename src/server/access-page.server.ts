@@ -29,7 +29,7 @@ export function accessPage(message = "Enter the access code to use this private 
     <form method="post" action="/access">
       <label for="code">Access code</label>
       <input id="code" name="code" type="password" autocomplete="current-password" required maxlength="256">
-      <button type="submit">Continue to studio</button>
+      <button type="submit">Continue</button>
     </form>
     <small>Access lasts 12 hours. Ask the owner for a code.</small>
   </main>

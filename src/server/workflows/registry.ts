@@ -2,10 +2,17 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { inputsMapSchema, workflowGraphSchema } from "./build-graph.ts";
+import {
+  type InputsMap,
+  inputsMapSchema,
+  type WorkflowGraph,
+  workflowGraphSchema,
+} from "./build-graph.ts";
+
+export type LoadedWorkflow = { graph: WorkflowGraph; inputsMap: InputsMap; sha256: string };
 
 /** Reads `workflows/<id>.v<version>.json` and its inputs map. `sha256` is the workflow file's. */
-export async function loadWorkflow(id: "motion-transfer", version: 1) {
+export async function loadWorkflow(id: "motion-transfer", version: 1): Promise<LoadedWorkflow> {
   const file = `${id}.v${version}.json`;
 
   const [bytes, map] = await Promise.all([

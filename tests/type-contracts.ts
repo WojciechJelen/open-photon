@@ -1,24 +1,17 @@
 import { linkOptions } from "@tanstack/react-router";
-import type { z } from "zod";
 
-import type { jobRowSchema } from "../src/lib/contracts";
-import type { createJob } from "../src/lib/jobs.functions";
+import type { generate } from "../src/lib/generate.functions";
 
-export function verifyContracts(row: Awaited<ReturnType<typeof createJob>>) {
-  const savedRow: z.infer<typeof jobRowSchema> = row;
+export function verifyContracts(result: Awaited<ReturnType<typeof generate>>) {
+  const id: string = result.id;
+  const reused: boolean = result.reused;
 
-  const link = linkOptions({
-    search: { preset: "cinematic", take: 1 },
-    to: "/studio",
-  });
+  const link = linkOptions({ to: "/" });
 
-  linkOptions({
-    to: "/studio",
-    // @ts-expect-error A preset outside validateSearch's output must fail compilation.
-    search: { preset: "unsupported", take: 1 },
-  });
+  // @ts-expect-error A path outside the route tree must fail compilation.
+  linkOptions({ to: "/studio" });
   // @ts-expect-error The server function's return must not degrade to any.
-  const missing: string = row.nonexistentColumn;
+  const missing: string = result.nonexistentColumn;
 
-  return { link, missing, savedRow };
+  return { id, link, missing, reused };
 }

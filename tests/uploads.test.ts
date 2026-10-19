@@ -6,8 +6,8 @@ import { basename, join } from "node:path";
 import test, { after } from "node:test";
 
 import { database } from "../src/server/db.server.ts";
-import { assetsDirectory } from "../src/server/media.server.ts";
 import { runTool } from "../src/server/media/probe.ts";
+import { assetsDirectory } from "../src/server/paths.ts";
 import { MAX_UPLOAD_BYTES } from "../src/server/upload.server.ts";
 import { trimAsset, uploadVideo } from "../src/server/videos.server.ts";
 

@@ -1,9 +1,0 @@
-{
-  "driving_video": "fixtures/wan/driving.mp4",
-  "reference_image": "fixtures/wan/reference.png",
-  "prompt": "Character Description: A girl with pink hair and mechanical arms in a black jacket\nBackground description: A rainy neon-lit city street at night",
-  "seed": 20261019,
-  "width": 480,
-  "height": 848,
-  "fragment_length": 81
-}

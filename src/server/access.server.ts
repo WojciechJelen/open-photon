@@ -151,7 +151,7 @@ export function createAccessGuard(
       const secure = new URL(config.publicUrl ?? request.url).protocol === "https:";
 
       return respond("", 303, {
-        Location: "/studio",
+        Location: "/",
         "Set-Cookie": `${cookieName}=${expires}.${signature(expires)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${sessionSeconds}${secure ? "; Secure" : ""}`,
       });
     }

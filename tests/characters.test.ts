@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { uploadCharacter } from "../src/server/characters.server.ts";
 import { database } from "../src/server/db.server.ts";
-import { assetsDirectory } from "../src/server/media.server.ts";
+import { assetsDirectory } from "../src/server/paths.ts";
 import { seedSamples } from "../src/server/samples.ts";
 
 function upload(path: string, consent?: string) {

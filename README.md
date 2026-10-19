@@ -1,6 +1,6 @@
 # Open Photon
 
-TanStack Start v1 with typed routes, SQLite, the official Wan Animate 2 workflow, Comfy SDK progress over SSE, streamed uploads, video byte ranges, and server-rendered share metadata.
+Genjutsu: film yourself moving, pick a character, and get a video of the character doing the same, rendered with the open-weights Wan Animate 2 workflow on Comfy. TanStack Start v1 with typed routes, SQLite, the Comfy SDK, streamed uploads and video byte ranges.
 
 Start is pinned to `1.169.3`; the registry does not publish an exact `1.0.0`. The app uses Tailwind 4, shadcn components, and Node's built-in SQLite module. Node 24 and FFmpeg are included in the production image.
 
@@ -23,44 +23,35 @@ For Colima, add `--context colima` after `docker`. Stop the running app before b
 
 Build and run natively: ARM64 on Apple Silicon, AMD64 on x86 hosts. Compose follows the Docker host architecture. CI builds the AMD64 image on an x86 runner. For an explicit cross-platform compatibility check, add `--platform linux/amd64` to both build and run, using a separate image tag and container. Earlier emulated runs had a route-generator segmentation fault and inconsistent memory measurements; use native runs for memory checks.
 
-Open <http://localhost:3030>, follow the typed link to the studio, and submit a render. **This submits a real GPU job and uses Comfy credits.** The reference image and driving video are the official public samples. The prompt describes the character and background; motion comes from the driving video. See [the workflow, its provenance and its input map](workflows/README.md).
+Open <http://localhost:3030>. The screens arrive in Phase 5; until then the page says so, and generation runs through the `generate` server function (see below). The workflow, its provenance and its input map are described in [workflows/README.md](workflows/README.md).
 
 For local development, use Node 24+ and npm 11.6.2 (`npm install --global npm@11.6.2`), then `npm ci` and `npm run dev`. Docker and CI use the same npm version declared in `packageManager`. Install FFmpeg locally (with libx264): uploads are probed and trimmed with `ffprobe`/`ffmpeg`, the server tests run them, and generated outputs are verified with them.
 
-## One live run
+## Credits
 
-Against the running app:
+Credits per 5 s 480×848 render (distilled: lightx2v LoRA, 6 steps, int8 model): **≈17.5 credits** ($0.083 at 211 credits per dollar), for 64.9 s of GPU execution. Measured on 2026-10-19 from the workspace balance (`GET https://cloud.comfy.org/api/billing/usage/timeseries`, `summary.balance`) before and after one job, and again (≈17.7 credits) for the Step 4.1 generation; the base variant is not measured yet.
 
-```sh
-WAN_RESTART_AFTER_ACCEPT=1 node scripts/run-wan.mjs
-```
+## Generating
 
-The script saves its request ID before submitting, restarts the container after acceptance, recovers the same provider job, consumes SSE, and downloads the finished MP4 to `data/renders`. It checks the SHA-256, a 100-byte range response, raw SSR video metadata, and duplicate-request reuse. It saves evidence in `work/wan-run.json` and `work/wan-live-events.ndjson`.
+The `generate` server function (`src/lib/generate.functions.ts`, input `generateInputSchema` in `src/lib/contracts.ts`) takes a stored 3–8 s video asset (`upload_asset_id`), a character (`character_id`), and optionally a prompt and a seed. **It submits a real GPU job and uses Comfy credits.** It refuses a clip that is missing, unprobed or longer than 8 s, and an uploaded character without consent. Then, in this order (`src/server/generate.ts`):
 
-Re-running resumes that saved request; it does not intentionally create another render. Use `WAN_RUN_FILE` to choose a distinct request record only when you intend to start another job. A known rejected request stays failed. `WAN_OUTPUT_DIRECTORY`, `BASE_URL`, `SPIKE_CONTAINER`, and `SPIKE_DOCKER_CONTEXT` override local defaults.
+1. It builds the recipe (workflow id, version and SHA-256, the parameters, the SHA-256 of both input files, the target) and its `recipe_hash`. If a generation with that hash is done, or still on its way, it returns that generation's id with `reused: true` and submits nothing.
+2. It inserts a `preparing` row with a fresh idempotency key.
+3. It uploads both files to Comfy (content-addressed) and stores their references in `provider_inputs`.
+4. It builds the graph with `buildGraph` and submits it with the row's idempotency key.
+5. It stores the Comfy job id the moment `submit()` returns, and the row becomes `queued`.
 
-Verified on 2026-10-18 with one accepted real Comfy job. The app recovered its provider ID after a restart, streamed live progress, and saved a 480×848 H.264 MP4 with AAC audio, 121 frames, and a 5.017-second duration. Browser playback and seeking, output checksum, Range 206, raw SSR video tags, and duplicate-request reuse passed. This was one observed run, not a guarantee of provider availability or recovery in every failure mode. Detailed run records are kept privately.
+The portrait size is 480×848 (848×480 for a landscape clip), `fragment_length` 81, the seed random unless given, the prompt the workflow's own unless given. `GET /api/generations/:id` returns the generation (`generationSchema`; 400 for a malformed id, 404 for an unknown one).
 
-## Render once from a params file
+## Generation state and recovery
 
-```sh
-node --env-file=.env scripts/render-once.mjs params/first-registry-render.json
-```
+A generation goes `preparing → queued → running → finalizing → done | failed`. A failed row has an `error_code` (listed on `generationErrorCodeSchema`) and a readable `error_message`. A Comfy answer that refuses the request, or a connection that never reaches Comfy, fails the row; nothing was rendered.
 
-The script submits straight to Comfy, without the app: it loads `workflows/motion-transfer.v1.json` and its input map, uploads the two files the params name, builds the graph with `buildGraph`, submits it with an idempotency key, follows the job's events and downloads output `246` to `work/render-once/<recipe>.mp4`. **It submits a real GPU job.** Before uploading, a run claims the recipe by creating `work/render-once/<recipe>.json` exclusively, so overlapping runs of the same params cannot both submit. The record is marked `submitting` before the submit and gets the job ID right after it, so running the same params file again resumes that job (or reports the finished download) instead of creating another. A record left without a job ID is never submitted again automatically, because Comfy forgets idempotency keys after 24 hours: the script exits non-zero and says how to resolve it (set `jobId` from Comfy Cloud, or delete the record once you are sure no job was created).
+**`unknown`** is the crash window. If the server stops, or the submit request times out or breaks, after the graph may have reached Comfy but before the job id was stored, nobody knows whether Comfy is rendering it. Comfy's idempotency keys are single-use, without replay, and Comfy Cloud has no job list to look the key up in (`listJobs` returns 501). So the row becomes `unknown`, and the app never submits it again: not on the next read, not as a reuse of its recipe, not as a retry. What to do: look for a job created at the row's `created_at` in your Comfy Cloud account. If you find one, its output is in your Comfy history. Either way, start a new generation with another seed. A `preparing` row left by a stopped server is settled on its next read: `unknown` if its files were uploaded (the submit may have been sent), else `failed` with `interrupted` (nothing was sent).
 
-Credits per 5 s 480×848 render (distilled: lightx2v LoRA, 6 steps, int8 model): **≈17.5 credits** ($0.083 at 211 credits per dollar), for 64.9 s of GPU execution. Measured on 2026-10-19 from the workspace balance (`GET https://cloud.comfy.org/api/billing/usage/timeseries`, `summary.balance`) before and after one job; the base variant is not measured yet.
+Run one app instance against this SQLite volume: the row lock for a running submit lives in the process.
 
-## Render state and recovery
-
-- The server function `createJob` and `POST /api/jobs` share one submission path. Inputs include a client-generated UUID. SQLite inserts it once and repeated requests return the existing row. Reusing an ID with different inputs is rejected.
-- The app stores the exact API graph and accepted Comfy job ID. `GET /api/jobs/:id`, route loaders, and SSE reconcile actual provider status. Elapsed time never marks a render complete.
-- After provider success, the app streams output `246` to a temporary file, checks its byte size and FFprobe metadata, creates a poster, hashes the MP4, and renames the files into the media directory. Only then does SQLite record completion.
-- If the app restarts after storing the provider ID, the next read can recover provider state and download its output. A disconnected browser stops its SDK event subscription; the provider job continues remotely.
-- There is a remaining crash window between provider acceptance and saving its ID. Comfy's SDK describes idempotency keys as single-use, without replay, and the tested Cloud job-list endpoint returned 501. The app marks an interrupted submission `unknown` and refuses automatic resubmission. Check the Comfy queue before starting another render.
-- Output collection has an in-process lock. Run one app instance against this SQLite volume. Multi-instance submission and download coordination are outside this spike.
-
-The new `renders` table retains real-job state separately from historical fake rows. Existing data is not deleted. SQLite and media default to `data/spike.sqlite` and `data/media`; override with `DATABASE_PATH` and `MEDIA_DIRECTORY`. Uploaded, trimmed and sample files live in `assets/` next to the database (`data/assets/<sha256>.<ext>`), one row each in the `assets` table.
+The database defaults to `data/app.sqlite`; override with `DATABASE_PATH`. Uploaded, trimmed, sample and generated files live in `assets/` next to the database (`data/assets/<sha256>.<ext>`), one row each in the `assets` table.
 
 The app opens one SQLite connection per process (WAL, `busy_timeout` 5000 ms, foreign keys on). When the server first loads its database module, it applies each `src/server/migrations/NNN-name.sql` not yet recorded in the `migrations` table, each in its own transaction. Add a schema change as the next numbered file; never edit an applied one. The production image copies the directory next to `.output`.
 
@@ -78,9 +69,7 @@ A clip over 8 s is kept whole, and the response's `trimmed` field carries its fi
 
 On Node, uploads read the underlying HTTP stream directly with byte-based backpressure. This avoids the extra buffer copies from converting the incoming Node stream to a Web stream and back. Standard Web requests use the streaming fallback. HTTP tests cover both oversized chunked uploads returning 413 and disconnect cleanup.
 
-`GET` and `HEAD /media/:filename` support single byte ranges, suffix ranges, 206, and unsatisfiable-range 416 responses. `x.mp4` and `x.jpg` are playback test fixtures, not generated results.
-
-SSE includes `Cache-Control: no-cache, no-transform` and `X-Accel-Buffering: no`. `/r/:jobId` emits Open Graph tags in raw HTML; completed jobs reference their saved MP4. `/r/test` is explicitly a playback fixture. Set `PUBLIC_APP_URL` for absolute share URLs outside localhost.
+`GET` and `HEAD /media/<asset id>.<ext>` serve a stored asset (an upload, a cut, a sample image, a result or its poster) with its MIME type, single byte ranges, suffix ranges, 206, and unsatisfiable-range 416 responses. The extension must match the stored file; anything else is a 404.
 
 ## Verify
 
@@ -92,7 +81,7 @@ npm run build
 npm run check:client
 ```
 
-With the app running on port 3030, run the browser tests:
+With the app running on port 3030 (or set `BASE_URL`), run the browser tests (export `APP_ACCESS_CODE` when the app has one):
 
 ```sh
 npx playwright install chromium
@@ -111,15 +100,15 @@ docker rm --force --volumes open-photon-memory
 
 The upload-memory script requires an explicit container and HTTP address, restarts that container, and runs six transfers without Comfy credentials. It retains the 64 MiB limits for anonymous-memory growth, application RSS growth, and sampled array-buffer peaks; failures return a nonzero exit code. The report in `work/upload-memory.json` includes the image and Docker host architecture. Measurements depend on the container environment and sampling interval. Historical simulation and detailed measurement records are private; simulated jobs are not evidence of real generation.
 
-Browser cases in `tests/studio.spec.ts` consume `WAN_TEST_JOB_ID` instead of starting a paid job. They cover typed search, saved render reload, terminal state, and invalid input. The saved-live-render case is skipped when no existing render ID is supplied. Set `BASE_URL` to test an app on a different address.
+`tests/app.spec.ts` covers the access gate in a browser and the generation routes' answers to malformed and unknown ids. No browser test submits a paid job.
 
 ## Railway staging
 
 The deployment test app is private. Railway builds the repository's Dockerfile in the `open-photon` project, `staging` environment. It runs one replica in Europe with a 1 CPU / 1 GB RAM limit and a 5 GB volume mounted at `/app/data`. Keep one replica while SQLite and output collection use local storage.
 
-Runtime variables are `PORT=3000`, `HOST=0.0.0.0`, `DATABASE_PATH=/app/data/spike.sqlite`, `MEDIA_DIRECTORY=/app/data/media`, `COMFY_BASE_URL=https://cloud.comfy.org`, and `PUBLIC_APP_URL` (the deployment origin). Set `COMFY_API_KEY` as a service secret; leave spike diagnostics disabled.
+Runtime variables are `PORT=3000`, `HOST=0.0.0.0`, `DATABASE_PATH=/app/data/app.sqlite`, `COMFY_BASE_URL=https://cloud.comfy.org`, and `PUBLIC_APP_URL` (the deployment origin). Set `COMFY_API_KEY` as a service secret; leave spike diagnostics disabled.
 
-Railway mounts volumes as root. `RAILWAY_RUN_UID=0` starts the entrypoint as root so it can create and assign the database and media directories to `node`, then `gosu` replaces it with the app running as UID 1000. Ordinary Docker runs still default to `USER node`. Existing files must already be writable by `node`; startup does not recursively change ownership of stored media.
+Railway mounts volumes as root. `RAILWAY_RUN_UID=0` starts the entrypoint as root so it can create and assign the database directory to `node`, then `gosu` replaces it with the app running as UID 1000. Ordinary Docker runs still default to `USER node`. Existing files must already be writable by `node`; startup does not recursively change ownership of stored assets.
 
 Railway service settings select the Dockerfile builder, check `/healthz` with a 120-second health-check timeout, and restart on failure up to three times. The volume and runtime secrets also remain Railway configuration. We do not use the deprecated `railway.toml` format. The Dockerfile intentionally has no `VOLUME` instruction because Railway rejects it; local runs must explicitly mount storage as shown above.
 
@@ -134,8 +123,6 @@ Railway follows `main` with **Wait for CI** enabled. Each push must pass GitHub 
 ## SDK and secrets
 
 The SDK runs only in server modules. Vite externalizes it; Nitro traces the package into production output. `.env*` is excluded from Git and the Docker context. Every image build uses a dummy key and scans `.output/public` for credential configuration names and the canary value.
-
-`/api/spike/comfy` checks typed NotFound against a deliberately nonexistent job. `/api/spike/status` reports subscription and memory counters. These require `ENABLE_SPIKE_CHECKS=1`; leave it unset outside diagnostics. The old fake-job creation route has been removed.
 
 The Vite/Nitro build still emits upstream `use client` warnings.
 

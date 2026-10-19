@@ -1,82 +1,5 @@
 import { z } from "zod";
 
-const presetSchema = z.enum(["cinematic", "portrait"]);
-
-export const studioSearchSchema = z.object({
-  job: z.uuid().optional().catch(undefined),
-  preset: presetSchema.catch("cinematic"),
-  take: z.coerce.number().int().min(1).max(9).catch(1),
-});
-
-export const newJobSchema = z.object({
-  id: z.uuid(),
-  preset: presetSchema,
-  prompt: z.string().trim().min(1, "Write a prompt first.").max(500),
-  take: z.number().int().min(1).max(9),
-});
-
-const jobBaseSchema = newJobSchema.extend({
-  createdAt: z.iso.datetime(),
-  message: z.string(),
-  startedAt: z.number().int().nullable(),
-});
-
-export const videoOutputSchema = z.object({
-  assetId: z.string().min(1),
-  bytes: z.number().int().positive(),
-  durationSeconds: z.number().positive(),
-  filename: z.string().regex(/^[a-f0-9-]+\.mp4$/),
-  height: z.number().int().positive(),
-  posterFilename: z.string().regex(/^[a-f0-9-]+\.jpg$/),
-  sha256: z.string().regex(/^[a-f0-9]{64}$/),
-  width: z.number().int().positive(),
-});
-
-export const jobRowSchema = z.discriminatedUnion("status", [
-  jobBaseSchema.extend({
-    completedAt: z.null(),
-    percent: z.null(),
-    providerJobId: z.null(),
-    status: z.literal("submitting"),
-  }),
-  jobBaseSchema.extend({
-    completedAt: z.null(),
-    percent: z.number().int().min(0).max(99).nullable(),
-    providerJobId: z.string().min(1),
-    status: z.enum(["queued", "running", "downloading"]),
-  }),
-  jobBaseSchema.extend({
-    completedAt: z.number().int(),
-    output: videoOutputSchema,
-    percent: z.literal(100),
-    providerJobId: z.string().min(1),
-    status: z.literal("complete"),
-  }),
-  jobBaseSchema.extend({
-    completedAt: z.number().int(),
-    errorCode: z.string(),
-    percent: z.null(),
-    providerJobId: z.string().nullable(),
-    status: z.literal("failed"),
-  }),
-  jobBaseSchema.extend({
-    completedAt: z.null(),
-    errorCode: z.literal("submission_unknown"),
-    percent: z.null(),
-    providerJobId: z.null(),
-    status: z.literal("unknown"),
-  }),
-]);
-
-export type JobRow = z.infer<typeof jobRowSchema>;
-
-export const jobEventSchema = z.object({
-  job: jobRowSchema,
-  kind: z.literal("snapshot"),
-});
-
-export type NewJob = z.infer<typeof newJobSchema>;
-
 /** A driving clip is 3–8 s (docs/mvp-implementation-plan.md §3–4). */
 export const MIN_CLIP_MS = 3000;
 
@@ -148,4 +71,73 @@ export const characterSchema = z.object({
   prompt: z.string().nullable(),
   slug: z.string().nullable(),
   title: z.string().nullable(),
+});
+
+/**
+ * The input of the `generate` server function. The motion is a stored, probed video asset of
+ * 3–8 s: an upload or a trimmed cut of one (`upload_asset_id`); the motion library of Step 9.1
+ * adds `motion_id` as the other way to name it. The character must be a generated one or an
+ * upload with consent. `prompt` defaults to the workflow's own, `seed` to a random one. The
+ * result is `{ id, reused }`: `reused` when a generation with the same recipe is done or still
+ * on its way, in which case nothing is submitted.
+ */
+export const generateInputSchema = z.object({
+  character_id: z.uuid(),
+  prompt: z.string().trim().min(1).max(500).optional(),
+  seed: z.int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
+  upload_asset_id: z.uuid(),
+});
+
+/**
+ * `preparing → queued → running → finalizing → done | failed`. `unknown`: the server stopped
+ * between sending the job to Comfy and saving its id, so Comfy may be rendering it; such a row
+ * is never submitted again (README, "Generation state and recovery").
+ */
+export const generationStatusSchema = z.enum([
+  "preparing",
+  "queued",
+  "running",
+  "finalizing",
+  "done",
+  "failed",
+  "unknown",
+]);
+
+/**
+ * Why a generation is `failed` or `unknown`; `error_message` says it in words.
+ *
+ * - `provider_rejected`: Comfy refused an upload, the graph or the job (a 4xx answer).
+ * - `provider_failed`: the job failed or was cancelled on Comfy, or finished without its MP4.
+ * - `provider_unreachable`: the connection to Comfy failed, so nothing reached it.
+ * - `timeout`: a request to Comfy ran out of time, or the job expired there.
+ * - `interrupted`: the server stopped before sending the job; nothing was submitted.
+ * - `unknown`: anything else, including an `unknown` row (the job may exist on Comfy).
+ */
+export const generationErrorCodeSchema = z.enum([
+  "provider_rejected",
+  "provider_failed",
+  "provider_unreachable",
+  "timeout",
+  "interrupted",
+  "unknown",
+]);
+
+/**
+ * A generation as `GET /api/generations/:id` and its event stream return it. A `done` row has
+ * `final_asset_id` (the MP4) and `poster_asset_id` (a JPEG), both served at
+ * `/media/<asset id>.<mp4|jpg>`.
+ */
+export const generationSchema = z.object({
+  character_id: z.uuid().nullable(),
+  created_at: z.iso.datetime(),
+  error_code: generationErrorCodeSchema.nullable(),
+  error_message: z.string().nullable(),
+  final_asset_id: z.uuid().nullable(),
+  finished_at: z.iso.datetime().nullable(),
+  id: z.uuid(),
+  parent_id: z.uuid().nullable(),
+  poster_asset_id: z.uuid().nullable(),
+  progress: z.int().min(0).max(100).nullable(),
+  status: generationStatusSchema,
+  submitted_at: z.iso.datetime().nullable(),
 });

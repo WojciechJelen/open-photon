@@ -10,36 +10,20 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as StudioRouteImport } from './routes/studio'
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
-import { Route as ApiJobsRouteImport } from './routes/api.jobs'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
-import { Route as RJobIdRouteImport } from './routes/r.$jobId'
-import { Route as ApiJobsJobIdRouteImport } from './routes/api.jobs.$jobId'
-import { Route as ApiSpikeComfyRouteImport } from './routes/api.spike.comfy'
-import { Route as ApiSpikeStatusRouteImport } from './routes/api.spike.status'
+import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
 import { Route as ApiAssetsAssetIdTrimRouteImport } from './routes/api.assets.$assetId.trim'
-import { Route as ApiJobsJobIdEventsRouteImport } from './routes/api.jobs.$jobId.events'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StudioRoute = StudioRouteImport.update({
-  id: '/studio',
-  path: '/studio',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiCharactersRoute = ApiCharactersRouteImport.update({
   id: '/api/characters',
   path: '/api/characters',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiJobsRoute = ApiJobsRouteImport.update({
-  id: '/api/jobs',
-  path: '/api/jobs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiUploadsRoute = ApiUploadsRouteImport.update({
@@ -52,135 +36,76 @@ const MediaFilenameRoute = MediaFilenameRouteImport.update({
   path: '/media/$filename',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RJobIdRoute = RJobIdRouteImport.update({
-  id: '/r/$jobId',
-  path: '/r/$jobId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiJobsJobIdRoute = ApiJobsJobIdRouteImport.update({
-  id: '/$jobId',
-  path: '/$jobId',
-  getParentRoute: () => ApiJobsRoute,
-} as any)
-const ApiSpikeComfyRoute = ApiSpikeComfyRouteImport.update({
-  id: '/api/spike/comfy',
-  path: '/api/spike/comfy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSpikeStatusRoute = ApiSpikeStatusRouteImport.update({
-  id: '/api/spike/status',
-  path: '/api/spike/status',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const ApiGenerationsGenerationIdRoute =
+  ApiGenerationsGenerationIdRouteImport.update({
+    id: '/api/generations/$generationId',
+    path: '/api/generations/$generationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAssetsAssetIdTrimRoute = ApiAssetsAssetIdTrimRouteImport.update({
   id: '/api/assets/$assetId/trim',
   path: '/api/assets/$assetId/trim',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiJobsJobIdEventsRoute = ApiJobsJobIdEventsRouteImport.update({
-  id: '/events',
-  path: '/events',
-  getParentRoute: () => ApiJobsJobIdRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/studio': typeof StudioRoute
   '/api/characters': typeof ApiCharactersRoute
-  '/api/jobs': typeof ApiJobsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/media/$filename': typeof MediaFilenameRoute
-  '/r/$jobId': typeof RJobIdRoute
-  '/api/jobs/$jobId': typeof ApiJobsJobIdRouteWithChildren
-  '/api/spike/comfy': typeof ApiSpikeComfyRoute
-  '/api/spike/status': typeof ApiSpikeStatusRoute
+  '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRoute
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
-  '/api/jobs/$jobId/events': typeof ApiJobsJobIdEventsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/studio': typeof StudioRoute
   '/api/characters': typeof ApiCharactersRoute
-  '/api/jobs': typeof ApiJobsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/media/$filename': typeof MediaFilenameRoute
-  '/r/$jobId': typeof RJobIdRoute
-  '/api/jobs/$jobId': typeof ApiJobsJobIdRouteWithChildren
-  '/api/spike/comfy': typeof ApiSpikeComfyRoute
-  '/api/spike/status': typeof ApiSpikeStatusRoute
+  '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRoute
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
-  '/api/jobs/$jobId/events': typeof ApiJobsJobIdEventsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/studio': typeof StudioRoute
   '/api/characters': typeof ApiCharactersRoute
-  '/api/jobs': typeof ApiJobsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/media/$filename': typeof MediaFilenameRoute
-  '/r/$jobId': typeof RJobIdRoute
-  '/api/jobs/$jobId': typeof ApiJobsJobIdRouteWithChildren
-  '/api/spike/comfy': typeof ApiSpikeComfyRoute
-  '/api/spike/status': typeof ApiSpikeStatusRoute
+  '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRoute
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
-  '/api/jobs/$jobId/events': typeof ApiJobsJobIdEventsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/studio'
     | '/api/characters'
-    | '/api/jobs'
     | '/api/uploads'
     | '/media/$filename'
-    | '/r/$jobId'
-    | '/api/jobs/$jobId'
-    | '/api/spike/comfy'
-    | '/api/spike/status'
+    | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
-    | '/api/jobs/$jobId/events'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/studio'
     | '/api/characters'
-    | '/api/jobs'
     | '/api/uploads'
     | '/media/$filename'
-    | '/r/$jobId'
-    | '/api/jobs/$jobId'
-    | '/api/spike/comfy'
-    | '/api/spike/status'
+    | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
-    | '/api/jobs/$jobId/events'
   id:
     | '__root__'
     | '/'
-    | '/studio'
     | '/api/characters'
-    | '/api/jobs'
     | '/api/uploads'
     | '/media/$filename'
-    | '/r/$jobId'
-    | '/api/jobs/$jobId'
-    | '/api/spike/comfy'
-    | '/api/spike/status'
+    | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
-    | '/api/jobs/$jobId/events'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  StudioRoute: typeof StudioRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
-  ApiJobsRoute: typeof ApiJobsRouteWithChildren
   ApiUploadsRoute: typeof ApiUploadsRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
-  RJobIdRoute: typeof RJobIdRoute
-  ApiSpikeComfyRoute: typeof ApiSpikeComfyRoute
-  ApiSpikeStatusRoute: typeof ApiSpikeStatusRoute
+  ApiGenerationsGenerationIdRoute: typeof ApiGenerationsGenerationIdRoute
   ApiAssetsAssetIdTrimRoute: typeof ApiAssetsAssetIdTrimRoute
 }
 
@@ -193,25 +118,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/studio': {
-      id: '/studio'
-      path: '/studio'
-      fullPath: '/studio'
-      preLoaderRoute: typeof StudioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/characters': {
       id: '/api/characters'
       path: '/api/characters'
       fullPath: '/api/characters'
       preLoaderRoute: typeof ApiCharactersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/jobs': {
-      id: '/api/jobs'
-      path: '/api/jobs'
-      fullPath: '/api/jobs'
-      preLoaderRoute: typeof ApiJobsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/uploads': {
@@ -228,32 +139,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MediaFilenameRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/r/$jobId': {
-      id: '/r/$jobId'
-      path: '/r/$jobId'
-      fullPath: '/r/$jobId'
-      preLoaderRoute: typeof RJobIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/jobs/$jobId': {
-      id: '/api/jobs/$jobId'
-      path: '/$jobId'
-      fullPath: '/api/jobs/$jobId'
-      preLoaderRoute: typeof ApiJobsJobIdRouteImport
-      parentRoute: typeof ApiJobsRoute
-    }
-    '/api/spike/comfy': {
-      id: '/api/spike/comfy'
-      path: '/api/spike/comfy'
-      fullPath: '/api/spike/comfy'
-      preLoaderRoute: typeof ApiSpikeComfyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/spike/status': {
-      id: '/api/spike/status'
-      path: '/api/spike/status'
-      fullPath: '/api/spike/status'
-      preLoaderRoute: typeof ApiSpikeStatusRouteImport
+    '/api/generations/$generationId': {
+      id: '/api/generations/$generationId'
+      path: '/api/generations/$generationId'
+      fullPath: '/api/generations/$generationId'
+      preLoaderRoute: typeof ApiGenerationsGenerationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/assets/$assetId/trim': {
@@ -263,49 +153,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAssetsAssetIdTrimRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/jobs/$jobId/events': {
-      id: '/api/jobs/$jobId/events'
-      path: '/events'
-      fullPath: '/api/jobs/$jobId/events'
-      preLoaderRoute: typeof ApiJobsJobIdEventsRouteImport
-      parentRoute: typeof ApiJobsJobIdRoute
-    }
   }
 }
 
-interface ApiJobsJobIdRouteChildren {
-  ApiJobsJobIdEventsRoute: typeof ApiJobsJobIdEventsRoute
-}
-
-const ApiJobsJobIdRouteChildren: ApiJobsJobIdRouteChildren = {
-  ApiJobsJobIdEventsRoute: ApiJobsJobIdEventsRoute,
-}
-
-const ApiJobsJobIdRouteWithChildren = ApiJobsJobIdRoute._addFileChildren(
-  ApiJobsJobIdRouteChildren,
-)
-
-interface ApiJobsRouteChildren {
-  ApiJobsJobIdRoute: typeof ApiJobsJobIdRouteWithChildren
-}
-
-const ApiJobsRouteChildren: ApiJobsRouteChildren = {
-  ApiJobsJobIdRoute: ApiJobsJobIdRouteWithChildren,
-}
-
-const ApiJobsRouteWithChildren =
-  ApiJobsRoute._addFileChildren(ApiJobsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  StudioRoute: StudioRoute,
   ApiCharactersRoute: ApiCharactersRoute,
-  ApiJobsRoute: ApiJobsRouteWithChildren,
   ApiUploadsRoute: ApiUploadsRoute,
   MediaFilenameRoute: MediaFilenameRoute,
-  RJobIdRoute: RJobIdRoute,
-  ApiSpikeComfyRoute: ApiSpikeComfyRoute,
-  ApiSpikeStatusRoute: ApiSpikeStatusRoute,
+  ApiGenerationsGenerationIdRoute: ApiGenerationsGenerationIdRoute,
   ApiAssetsAssetIdTrimRoute: ApiAssetsAssetIdTrimRoute,
 }
 export const routeTree = rootRouteImport

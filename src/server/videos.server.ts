@@ -12,9 +12,9 @@ import {
   type VideoRejection,
 } from "../lib/contracts.ts";
 import { findAsset, hashFile, incomingPath, type StoredAsset, storeAsset } from "./assets.ts";
-import { assetsDirectory } from "./media.server.ts";
 import { classifyVideo, probe } from "./media/probe.ts";
 import { shortestCutMs, trimVideo } from "./media/trim.ts";
+import { assetsDirectory } from "./paths.ts";
 import { handleUpload, UploadError } from "./upload.server.ts";
 
 const rejections: Record<VideoRejection, string> = {
