@@ -3,11 +3,15 @@ import { z } from "zod";
 import {
   type Asset,
   assetSchema,
+  type characterSchema,
   MAX_CLIP_MS,
+  type PickableCharacter,
+  pickableCharacterSchema,
   type SampleMotion,
   sampleMotionSchema,
 } from "../lib/contracts.ts";
 import { findAsset } from "./assets.ts";
+import { findCharacter, listSampleCharacters } from "./characters.server.ts";
 import { database } from "./db.server.ts";
 
 const motionRowSchema = z.object({
@@ -57,11 +61,27 @@ function listSampleMotions(): SampleMotion[] {
     });
 }
 
+function pickable(character: z.output<typeof characterSchema>): PickableCharacter {
+  return pickableCharacterSchema.parse({
+    ...character,
+    image: publicAsset(character.image_asset_id),
+  });
+}
+
 /**
- * What the picker on `/` shows: the sample motions, and the motion clip the URL names. An id
+ * What the picker on `/` shows: the sample motions and characters, and the motion clip and
+ * character the URL names. A character in the URL may be an upload (every upload has consent);
+ * there are no accounts, so an uploaded character is listed only while the URL names it. An id
  * that names nothing usable (unknown, not a video, a clip over 8 s) resolves to `null`, so the
  * picker falls back to no choice.
  */
-export function readSelection({ motion }: { motion?: string }) {
-  return { motion: motion ? findMotionClip(motion) : null, motions: listSampleMotions() };
+export function readSelection({ character, motion }: { character?: string; motion?: string }) {
+  const chosen = character ? findCharacter(character) : null;
+
+  return {
+    character: chosen ? pickable(chosen) : null,
+    characters: listSampleCharacters().map(pickable),
+    motion: motion ? findMotionClip(motion) : null,
+    motions: listSampleMotions(),
+  };
 }

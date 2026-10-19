@@ -92,6 +92,11 @@ export const characterSchema = z.object({
   title: z.string().nullable(),
 });
 
+/** A character with its reference image's asset, as the picker shows it. */
+export const pickableCharacterSchema = characterSchema.extend({ image: assetSchema });
+
+export type PickableCharacter = z.infer<typeof pickableCharacterSchema>;
+
 /**
  * The input of the `generate` server function. The motion is a stored, probed video asset of
  * 3–8 s (`motion_asset_id`): a sample motion's clip, an upload, or a trimmed cut of one. The

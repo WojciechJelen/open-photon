@@ -1,14 +1,11 @@
+import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import type { Page } from "@playwright/test";
 
-/** Signs the page's browser context in when the server has an access code. */
-export async function signIn(page: Page) {
-  const code = process.env.APP_ACCESS_CODE;
-
-  if (code) {
-    await page.request.post("/access", { form: { code }, maxRedirects: 0 });
-  }
+/** The browser state `sign-in.setup.ts` saves once per run: the access session, if any. */
+export function storageStatePath() {
+  return join(dirname(process.env.E2E_DATABASE_PATH ?? ""), "storage-state.json");
 }
 
 /** Opens `path` and waits until React has hydrated it (`__root.tsx`), so clicks take effect. */

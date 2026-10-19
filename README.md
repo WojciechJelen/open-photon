@@ -23,7 +23,7 @@ For Colima, add `--context colima` after `docker`. Stop the running app before b
 
 Build and run natively: ARM64 on Apple Silicon, AMD64 on x86 hosts. Compose follows the Docker host architecture. CI builds the AMD64 image on an x86 runner. For an explicit cross-platform compatibility check, add `--platform linux/amd64` to both build and run, using a separate image tag and container. Earlier emulated runs had a route-generator segmentation fault and inconsistent memory measurements; use native runs for memory checks.
 
-Open <http://localhost:3030>. The first screen picks the motion: a grid of looping, muted sample clips, or an upload of your own (3–8 s; a longer clip opens a trim dialog). The chosen clip is in the URL (`/?motion=<asset id>`), so a reload keeps it. The workflow, its provenance and its input map are described in [workflows/README.md](workflows/README.md).
+Open <http://localhost:3030>. The first step picks the motion: a grid of looping, muted sample clips, or an upload of your own (3–8 s; a longer clip opens a trim dialog). The second picks the character: a sample, or a photo you upload after ticking the likeness-consent box. Both choices are in the URL (`/?motion=<asset id>&character=<character id>`), so a reload keeps them; there are no accounts, so an uploaded character is listed only while the URL names it. The workflow, its provenance and its input map are described in [workflows/README.md](workflows/README.md).
 
 For local development, use Node 24+ and npm 11.6.2 (`npm install --global npm@11.6.2`), then `npm ci` and `npm run dev`. Docker and CI use the same npm version declared in `packageManager`. Install FFmpeg locally (with libx264): uploads are probed and trimmed with `ffprobe`/`ffmpeg`, the server tests run them, and generated outputs are verified with them.
 
@@ -108,7 +108,7 @@ docker rm --force --volumes open-photon-memory
 
 The upload-memory script requires an explicit container and HTTP address, restarts that container, and runs six transfers without Comfy credentials. It retains the 64 MiB limits for anonymous-memory growth, application RSS growth, and sampled array-buffer peaks; failures return a nonzero exit code. The report in `work/upload-memory.json` includes the image and Docker host architecture. Measurements depend on the container environment and sampling interval. Historical simulation and detailed measurement records are private; simulated jobs are not evidence of real generation.
 
-`tests/app.spec.ts` covers the access gate in a browser and the generation routes' answers to malformed and unknown ids; `tests/motion.spec.ts` the motion step (sample previews, the trim dialog for a 12 s clip, too short and no video, an unknown id in the URL). No browser test submits a paid job.
+`tests/app.spec.ts` covers the access gate in a browser and the generation routes' answers to malformed and unknown ids; `tests/motion.spec.ts` the motion step (sample previews, the trim dialog for a 12 s clip, too short and no video, an unknown id in the URL); `tests/character.spec.ts` the character step (both ids in the URL across a reload, the consent checkbox gating an upload, a non-image refused inline, an unknown id). `tests/e2e/sign-in.setup.ts` signs in once per run and shares the session (`/access` allows 10 attempts a minute). No browser test submits a paid job.
 
 ## Railway staging
 

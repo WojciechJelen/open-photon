@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
+import { CharacterGrid } from "#/components/character-grid";
+import { CharacterUpload } from "#/components/character-upload";
 import { LoopingVideo } from "#/components/looping-video";
 import { MotionGrid } from "#/components/motion-grid";
 import { UploadZone } from "#/components/upload-zone";
@@ -10,21 +12,25 @@ import { loadSelection } from "#/lib/selection.functions";
 // An id that is not a UUID is dropped, so a mangled link falls back to no choice.
 const searchSchema = z.object({
   motion: z.uuid().optional().catch(undefined),
+  character: z.uuid().optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/")({
   validateSearch: searchSchema,
-  loaderDeps: ({ search }) => ({ motion: search.motion }),
+  loaderDeps: ({ search }) => ({ character: search.character, motion: search.motion }),
   loader: ({ deps }) => loadSelection({ data: deps }),
   component: Home,
 });
 
 function Home() {
-  const { motion, motions } = Route.useLoaderData();
+  const { character, characters, motion, motions } = Route.useLoaderData();
   const navigate = Route.useNavigate();
 
   const pickMotion = (assetId: string) =>
     navigate({ search: (previous) => ({ ...previous, motion: assetId }) });
+
+  const pickCharacter = (characterId: string) =>
+    navigate({ search: (previous) => ({ ...previous, character: characterId }) });
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-10">
@@ -50,6 +56,26 @@ function Home() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">No motion chosen yet.</p>
+        )}
+      </section>
+
+      <section aria-labelledby="character-heading" className="flex flex-col gap-4">
+        <h2 className="text-xl font-semibold" id="character-heading">
+          2. Character
+        </h2>
+        <CharacterGrid characters={characters} onPick={pickCharacter} selectedId={character?.id} />
+        <CharacterUpload onReady={pickCharacter} />
+        {character ? (
+          <div aria-label="Chosen character" className="flex max-w-40 flex-col gap-2" role="group">
+            <img
+              alt=""
+              className="aspect-3/4 w-full rounded-md bg-muted object-cover"
+              src={mediaUrl(character.image)}
+            />
+            <p className="text-sm">Chosen character: {character.title ?? "your photo"}</p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No character chosen yet.</p>
         )}
       </section>
     </main>

@@ -4,6 +4,8 @@ import { join } from "node:path";
 
 import { defineConfig } from "@playwright/test";
 
+import { storageStatePath } from "./tests/e2e/session.ts";
+
 // The browser tests start their own dev server, never reuse one: on a fresh database seeded by
 // `tests/e2e/seed.ts`, with Comfy at a dead port so no click can submit a paid job.
 const baseURL = process.env.BASE_URL ?? "http://127.0.0.1:3032";
@@ -17,8 +19,16 @@ process.env.E2E_DATABASE_PATH ??= join(
 
 export default defineConfig({
   fullyParallel: false,
+  projects: [
+    { name: "sign-in", testMatch: "e2e/sign-in.setup.ts" },
+    {
+      dependencies: ["sign-in"],
+      name: "chromium",
+      testMatch: "**/*.spec.ts",
+      use: { storageState: storageStatePath() },
+    },
+  ],
   testDir: "./tests",
-  testMatch: "**/*.spec.ts",
   timeout: 60_000,
   use: {
     baseURL,

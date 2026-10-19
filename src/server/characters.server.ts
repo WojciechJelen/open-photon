@@ -19,6 +19,13 @@ export function findCharacter(id: string) {
   return row ? storedCharacterSchema.parse(row) : null;
 }
 
+export function listSampleCharacters() {
+  return database
+    .prepare("SELECT * FROM characters WHERE is_sample = 1 ORDER BY title")
+    .all()
+    .map((row) => storedCharacterSchema.parse(row));
+}
+
 /** `POST /api/characters`; the contract is documented on `characterSchema`. */
 export function uploadCharacter(request: ServerRequest) {
   return handleUpload(request, "image", ["consent"], async (upload) => {

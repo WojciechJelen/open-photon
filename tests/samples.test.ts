@@ -45,13 +45,17 @@ test("a sample motion's clip is stored as ffprobe reads it", async () => {
   );
 });
 
-test("the picker resolves a motion clip and falls back to none for anything else", () => {
-  const [motion] = readSelection({}).motions;
-  const image = database.prepare("SELECT image_asset_id AS id FROM characters LIMIT 1").get();
+test("the picker resolves a motion clip and a character, and falls back to none for anything else", () => {
+  const { characters, motions } = readSelection({});
+  const [motion] = motions;
+  const [character] = characters;
 
   assert.equal(readSelection({ motion: motion?.clip.id }).motion?.id, motion?.clip.id);
+  assert.equal(readSelection({ character: character?.id }).character?.id, character?.id);
 
-  for (const id of [crypto.randomUUID(), String(image?.id)]) {
+  for (const id of [crypto.randomUUID(), character?.image.id ?? ""]) {
     assert.equal(readSelection({ motion: id }).motion, null, id);
   }
+
+  assert.equal(readSelection({ character: motion?.clip.id }).character, null);
 });

@@ -1,8 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import { count, open, signIn } from "./e2e/session.ts";
-
-test.beforeEach(({ page }) => signIn(page));
+import { count, open } from "./e2e/session.ts";
 
 const upload = (page: Page) => page.getByLabel("Or upload your own clip");
 
