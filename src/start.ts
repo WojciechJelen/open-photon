@@ -9,7 +9,13 @@ const access = createMiddleware().server(async ({ request, next }) => {
   }
 
   const result = await next();
-  result.response.headers.set("Cache-Control", "private, no-store, no-transform");
+
+  // An event stream keeps its own `no-cache, no-transform`, the header proxies key on to stream
+  // it unbuffered; everything else behind the access code is private.
+  if (!result.response.headers.get("Content-Type")?.startsWith("text/event-stream")) {
+    result.response.headers.set("Cache-Control", "private, no-store, no-transform");
+  }
+
   result.response.headers.set("X-Robots-Tag", "noindex, nofollow");
 
   return result;

@@ -43,6 +43,8 @@ The `generate` server function (`src/lib/generate.functions.ts`, input `generate
 
 The portrait size is 480×848 (848×480 for a landscape clip), `fragment_length` 81, the seed random unless given, the prompt the workflow's own unless given. `GET /api/generations/:id` returns the generation (`generationSchema`; 400 for a malformed id, 404 for an unknown one).
 
+`GET /api/generations/:id/events` streams the generation as server-sent events (`generationEventSchema`): a snapshot of the row, then one per change Comfy reports (`running`, progress), with a `: ping` comment every 15 s so proxies keep the connection open. Headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache, no-transform` (the access middleware leaves it on event streams) and `X-Accel-Buffering: no`. A `done`, `failed` or `unknown` generation gets one snapshot and the stream ends without a Comfy call. Closing the request aborts the SDK subscription; the job continues on Comfy. 400 for a malformed id, 404 for an unknown one.
+
 ## Generation state and recovery
 
 A generation goes `preparing → queued → running → finalizing → done | failed`. A failed row has an `error_code` (listed on `generationErrorCodeSchema`) and a readable `error_message`. A Comfy answer that refuses the request, or a connection that never reaches Comfy, fails the row; nothing was rendered.
@@ -92,7 +94,7 @@ Check upload memory in a dedicated container, using the native image built above
 
 ```sh
 docker run -d --name open-photon-memory --init \
-  -e ENABLE_SPIKE_CHECKS=1 -p 127.0.0.1:3031:3000 open-photon:latest
+  -e ENABLE_DEBUG=1 -p 127.0.0.1:3031:3000 open-photon:latest
 SPIKE_DOCKER_CONTEXT=default SPIKE_CONTAINER=open-photon-memory \
   BASE_URL=http://127.0.0.1:3031 node scripts/verify-upload-memory.mjs
 docker rm --force --volumes open-photon-memory
@@ -106,7 +108,7 @@ The upload-memory script requires an explicit container and HTTP address, restar
 
 The deployment test app is private. Railway builds the repository's Dockerfile in the `open-photon` project, `staging` environment. It runs one replica in Europe with a 1 CPU / 1 GB RAM limit and a 5 GB volume mounted at `/app/data`. Keep one replica while SQLite and output collection use local storage.
 
-Runtime variables are `PORT=3000`, `HOST=0.0.0.0`, `DATABASE_PATH=/app/data/app.sqlite`, `COMFY_BASE_URL=https://cloud.comfy.org`, and `PUBLIC_APP_URL` (the deployment origin). Set `COMFY_API_KEY` as a service secret; leave spike diagnostics disabled.
+Runtime variables are `PORT=3000`, `HOST=0.0.0.0`, `DATABASE_PATH=/app/data/app.sqlite`, `COMFY_BASE_URL=https://cloud.comfy.org`, and `PUBLIC_APP_URL` (the deployment origin). Set `COMFY_API_KEY` as a service secret; leave `ENABLE_DEBUG` unset.
 
 Railway mounts volumes as root. `RAILWAY_RUN_UID=0` starts the entrypoint as root so it can create and assign the database directory to `node`, then `gosu` replaces it with the app running as UID 1000. Ordinary Docker runs still default to `USER node`. Existing files must already be writable by `node`; startup does not recursively change ownership of stored assets.
 
@@ -123,6 +125,8 @@ Railway follows `main` with **Wait for CI** enabled. Each push must pass GitHub 
 ## SDK and secrets
 
 The SDK runs only in server modules. Vite externalizes it; Nitro traces the package into production output. `.env*` is excluded from Git and the Docker context. Every image build uses a dummy key and scans `.output/public` for credential configuration names and the canary value.
+
+With `ENABLE_DEBUG=1`, `GET /api/debug/streams` reports the event-stream counters (`active`, opened, completed, request aborts, cancellations) and the process memory; without it the route is a 404. Leave it unset outside diagnostics.
 
 The Vite/Nitro build still emits upstream `use client` warnings.
 

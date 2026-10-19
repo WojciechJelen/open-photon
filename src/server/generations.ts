@@ -157,6 +157,19 @@ export function markQueued(id: string, providerJobId: string) {
   return row;
 }
 
+/** Comfy reports the job running, with `progress` (0–99) when it says how far it is. */
+export function markRunning(id: string, progress: number | null) {
+  return parseRow(
+    database
+      .prepare(
+        `UPDATE generations SET status = 'running', progress = coalesce(?, progress)
+        WHERE id = ? AND status IN ('queued', 'running')
+        RETURNING *`,
+      )
+      .get(progress, id),
+  );
+}
+
 type Outcome = Partial<
   Pick<
     Generation,

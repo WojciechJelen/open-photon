@@ -141,3 +141,13 @@ export const generationSchema = z.object({
   status: generationStatusSchema,
   submitted_at: z.iso.datetime().nullable(),
 });
+
+/**
+ * `GET /api/generations/:id/events` (`text/event-stream`): one `data:` line per snapshot of the
+ * generation, a `: ping` comment every 15 s, and the stream ends once the generation is `done`,
+ * `failed` or `unknown`. A finished generation gets one snapshot and no call to Comfy.
+ */
+export const generationEventSchema = z.object({
+  generation: generationSchema,
+  kind: z.literal("snapshot"),
+});

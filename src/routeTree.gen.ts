@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
+import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
 import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
 import { Route as ApiAssetsAssetIdTrimRouteImport } from './routes/api.assets.$assetId.trim'
+import { Route as ApiGenerationsGenerationIdEventsRouteImport } from './routes/api.generations.$generationId.events'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -36,6 +38,11 @@ const MediaFilenameRoute = MediaFilenameRouteImport.update({
   path: '/media/$filename',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDebugStreamsRoute = ApiDebugStreamsRouteImport.update({
+  id: '/api/debug/streams',
+  path: '/api/debug/streams',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGenerationsGenerationIdRoute =
   ApiGenerationsGenerationIdRouteImport.update({
     id: '/api/generations/$generationId',
@@ -47,22 +54,32 @@ const ApiAssetsAssetIdTrimRoute = ApiAssetsAssetIdTrimRouteImport.update({
   path: '/api/assets/$assetId/trim',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGenerationsGenerationIdEventsRoute =
+  ApiGenerationsGenerationIdEventsRouteImport.update({
+    id: '/events',
+    path: '/events',
+    getParentRoute: () => ApiGenerationsGenerationIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/media/$filename': typeof MediaFilenameRoute
-  '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRoute
+  '/api/debug/streams': typeof ApiDebugStreamsRoute
+  '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
+  '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/media/$filename': typeof MediaFilenameRoute
-  '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRoute
+  '/api/debug/streams': typeof ApiDebugStreamsRoute
+  '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
+  '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -70,8 +87,10 @@ export interface FileRoutesById {
   '/api/characters': typeof ApiCharactersRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/media/$filename': typeof MediaFilenameRoute
-  '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRoute
+  '/api/debug/streams': typeof ApiDebugStreamsRoute
+  '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
+  '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -80,24 +99,30 @@ export interface FileRouteTypes {
     | '/api/characters'
     | '/api/uploads'
     | '/media/$filename'
+    | '/api/debug/streams'
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
+    | '/api/generations/$generationId/events'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/api/characters'
     | '/api/uploads'
     | '/media/$filename'
+    | '/api/debug/streams'
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
+    | '/api/generations/$generationId/events'
   id:
     | '__root__'
     | '/'
     | '/api/characters'
     | '/api/uploads'
     | '/media/$filename'
+    | '/api/debug/streams'
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
+    | '/api/generations/$generationId/events'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -105,7 +130,8 @@ export interface RootRouteChildren {
   ApiCharactersRoute: typeof ApiCharactersRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
-  ApiGenerationsGenerationIdRoute: typeof ApiGenerationsGenerationIdRoute
+  ApiDebugStreamsRoute: typeof ApiDebugStreamsRoute
+  ApiGenerationsGenerationIdRoute: typeof ApiGenerationsGenerationIdRouteWithChildren
   ApiAssetsAssetIdTrimRoute: typeof ApiAssetsAssetIdTrimRoute
 }
 
@@ -139,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MediaFilenameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/debug/streams': {
+      id: '/api/debug/streams'
+      path: '/api/debug/streams'
+      fullPath: '/api/debug/streams'
+      preLoaderRoute: typeof ApiDebugStreamsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/generations/$generationId': {
       id: '/api/generations/$generationId'
       path: '/api/generations/$generationId'
@@ -153,15 +186,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAssetsAssetIdTrimRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/generations/$generationId/events': {
+      id: '/api/generations/$generationId/events'
+      path: '/events'
+      fullPath: '/api/generations/$generationId/events'
+      preLoaderRoute: typeof ApiGenerationsGenerationIdEventsRouteImport
+      parentRoute: typeof ApiGenerationsGenerationIdRoute
+    }
   }
 }
+
+interface ApiGenerationsGenerationIdRouteChildren {
+  ApiGenerationsGenerationIdEventsRoute: typeof ApiGenerationsGenerationIdEventsRoute
+}
+
+const ApiGenerationsGenerationIdRouteChildren: ApiGenerationsGenerationIdRouteChildren =
+  {
+    ApiGenerationsGenerationIdEventsRoute:
+      ApiGenerationsGenerationIdEventsRoute,
+  }
+
+const ApiGenerationsGenerationIdRouteWithChildren =
+  ApiGenerationsGenerationIdRoute._addFileChildren(
+    ApiGenerationsGenerationIdRouteChildren,
+  )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiCharactersRoute: ApiCharactersRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   MediaFilenameRoute: MediaFilenameRoute,
-  ApiGenerationsGenerationIdRoute: ApiGenerationsGenerationIdRoute,
+  ApiDebugStreamsRoute: ApiDebugStreamsRoute,
+  ApiGenerationsGenerationIdRoute: ApiGenerationsGenerationIdRouteWithChildren,
   ApiAssetsAssetIdTrimRoute: ApiAssetsAssetIdTrimRoute,
 }
 export const routeTree = rootRouteImport

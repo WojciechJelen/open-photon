@@ -24,5 +24,7 @@ test("generation reads reject invalid and missing ids", async ({ request }) => {
   const missing = crypto.randomUUID();
 
   expect((await request.get("/api/generations/not-a-uuid")).status()).toBe(400);
+  expect((await request.get("/api/generations/not-a-uuid/events")).status()).toBe(400);
   expect((await request.get(`/api/generations/${missing}`)).status()).toBe(404);
+  expect((await request.get(`/api/generations/${missing}/events`)).status()).toBe(404);
 });

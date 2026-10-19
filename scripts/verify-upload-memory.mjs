@@ -81,7 +81,7 @@ function snapshot() {
 }
 
 async function status() {
-  const response = await fetch(`${base}/api/spike/status`, {
+  const response = await fetch(`${base}/api/debug/streams`, {
     headers: { Cookie: cookie },
     signal: AbortSignal.timeout(5000),
   });

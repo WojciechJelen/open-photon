@@ -202,7 +202,7 @@ export async function generate(
  * no provider inputs recorded nothing was sent, so it failed; after that the job may exist on
  * Comfy, so it becomes `unknown` and is never resubmitted.
  */
-function settleAbandoned(row: Generation) {
+export function settleAbandoned(row: Generation) {
   if (row.status !== "preparing" || submitting.has(row.id)) {
     return row;
   }
