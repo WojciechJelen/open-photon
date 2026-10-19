@@ -16,7 +16,7 @@ npm run check        # typecheck + lint + format check + fallow, in parallel
 npm run fix          # autofix lint findings, format, then typecheck
 npm run typecheck    # tsgo --noEmit against the committed route tree
 npm run test:server  # node:test suite
-npm run test:e2e     # Playwright (needs `npm run dev` on :3030)
+npm run test:e2e     # Playwright; starts its own dev server on :3032 with a fresh database
 ```
 
 - **tsgo** (`@typescript/native-preview`) type checks; `typescript` stays installed

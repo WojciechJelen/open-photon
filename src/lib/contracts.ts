@@ -22,6 +22,23 @@ export const assetSchema = z.object({
   width: z.int().nullable(),
 });
 
+export type Asset = z.infer<typeof assetSchema>;
+
+/**
+ * A motion of the library (`samples/motions/manifest.json`, the `motions` table): a 3–8 s
+ * `sample` clip, used as stored, with its license and attribution.
+ */
+export const sampleMotionSchema = z.object({
+  attribution: z.string(),
+  clip: assetSchema,
+  id: z.uuid(),
+  license: z.string(),
+  slug: z.string(),
+  title: z.string(),
+});
+
+export type SampleMotion = z.infer<typeof sampleMotionSchema>;
+
 /**
  * `POST /api/uploads`: multipart, one MP4, QuickTime or WebM video in the field `file`, at most
  * 128 MiB. ffprobe decides what the file is, not its name.
@@ -37,6 +54,8 @@ export const assetSchema = z.object({
  * - Other errors are `{ error }` with 400 or 415.
  */
 export const uploadedVideoSchema = assetSchema.extend({ trimmed: assetSchema.nullable() });
+
+export type UploadedVideo = z.infer<typeof uploadedVideoSchema>;
 
 export type VideoRejection = "no_video" | "too_short";
 
@@ -75,17 +94,17 @@ export const characterSchema = z.object({
 
 /**
  * The input of the `generate` server function. The motion is a stored, probed video asset of
- * 3–8 s: an upload or a trimmed cut of one (`upload_asset_id`); the motion library of Step 9.1
- * adds `motion_id` as the other way to name it. The character must be a generated one or an
- * upload with consent. `prompt` defaults to the workflow's own, `seed` to a random one. The
- * result is `{ id, reused }`: `reused` when a generation with the same recipe is done or still
- * on its way, in which case nothing is submitted.
+ * 3–8 s (`motion_asset_id`): a sample motion's clip, an upload, or a trimmed cut of one. The
+ * character must be a generated one or an upload with consent. `prompt` defaults to the
+ * workflow's own, `seed` to a random one. The result is `{ id, reused }`: `reused` when a
+ * generation with the same recipe is done or still on its way, in which case nothing is
+ * submitted.
  */
 export const generateInputSchema = z.object({
   character_id: z.uuid(),
+  motion_asset_id: z.uuid(),
   prompt: z.string().trim().min(1).max(500).optional(),
   seed: z.int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
-  upload_asset_id: z.uuid(),
 });
 
 /**

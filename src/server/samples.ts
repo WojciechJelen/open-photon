@@ -5,12 +5,13 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { z } from "zod";
 
+import { MAX_CLIP_MS, MIN_CLIP_MS } from "../lib/contracts.ts";
 import { assetsDirectory } from "./paths.ts";
 
 // Resolved from the working directory, like `workflows/`; the Dockerfile copies it.
-const SAMPLES_DIRECTORY = resolve("samples/characters");
+const SAMPLES_DIRECTORY = resolve("samples");
 
-const manifestSchema = z.object({
+const charactersManifestSchema = z.object({
   characters: z
     .array(
       z.object({
@@ -22,24 +23,64 @@ const manifestSchema = z.object({
     .min(1),
 });
 
+const motionsManifestSchema = z.object({
+  motions: z
+    .array(
+      z.object({
+        attribution: z.string().min(1),
+        license: z.string().min(1),
+        // What ffprobe reads from the file (`tests/samples.test.ts` checks it), so seeding stays
+        // synchronous and needs no FFmpeg.
+        probe: z.object({
+          duration_ms: z.int().min(MIN_CLIP_MS).max(MAX_CLIP_MS),
+          fps: z.number().positive(),
+          has_audio: z.boolean(),
+          height: z.int().positive(),
+          width: z.int().positive(),
+        }),
+        slug: z.string().regex(/^[a-z0-9-]+$/),
+        title: z.string().min(1),
+        video: z.string().regex(/^[a-z0-9-]+\.mp4$/),
+      }),
+    )
+    .min(1),
+});
+
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
-/**
- * Upserts the sample characters of `samples/characters/manifest.json` (by slug), each with its
- * PNG as a `sample` asset. `db.server.ts` runs it in one transaction every time it opens the
- * database, right after the migrations, so every database has the samples before its first
- * query; running it again changes nothing.
- */
-export function seedSamples(database: DatabaseSync) {
-  const manifest = manifestSchema.parse(
-    JSON.parse(readFileSync(resolve(SAMPLES_DIRECTORY, "manifest.json"), "utf8")),
+function readManifest<T extends z.ZodType>(kind: "characters" | "motions", schema: T) {
+  return schema.parse(
+    JSON.parse(readFileSync(resolve(SAMPLES_DIRECTORY, kind, "manifest.json"), "utf8")),
   );
+}
 
+/** Writes a sample's bytes to `<sha256>.<ext>` in the assets directory once; returns the hash. */
+function storeSampleFile(bytes: Buffer, ext: "mp4" | "png") {
   const directory = assetsDirectory();
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+  const target = resolve(directory, `${sha256}.${ext}`);
+
   mkdirSync(directory, { recursive: true });
 
-  for (const sample of manifest.characters) {
-    const bytes = readFileSync(resolve(SAMPLES_DIRECTORY, sample.image));
+  if (!existsSync(target)) {
+    const temporary = resolve(directory, `.incoming-${randomUUID()}.part`);
+    writeFileSync(temporary, bytes);
+    renameSync(temporary, target);
+  }
+
+  return sha256;
+}
+
+/** The id of the asset with this hash; a sample's bytes may already be stored as an upload. */
+function assetId(database: DatabaseSync, sha256: string) {
+  return z
+    .object({ id: z.string() })
+    .parse(database.prepare("SELECT id FROM assets WHERE sha256 = ?").get(sha256)).id;
+}
+
+function seedCharacters(database: DatabaseSync, now: string) {
+  for (const sample of readManifest("characters", charactersManifestSchema).characters) {
+    const bytes = readFileSync(resolve(SAMPLES_DIRECTORY, "characters", sample.image));
 
     // The IHDR chunk comes first and holds the width and height.
     if (
@@ -49,17 +90,7 @@ export function seedSamples(database: DatabaseSync) {
       throw new Error(`samples/characters/${sample.image} is not a PNG`);
     }
 
-    const sha256 = createHash("sha256").update(bytes).digest("hex");
-    const path = `${sha256}.png`;
-    const target = resolve(directory, path);
-
-    if (!existsSync(target)) {
-      const temporary = resolve(directory, `.incoming-${randomUUID()}.part`);
-      writeFileSync(temporary, bytes);
-      renameSync(temporary, target);
-    }
-
-    const now = new Date().toISOString();
+    const sha256 = storeSampleFile(bytes, "png");
 
     database
       .prepare(
@@ -70,16 +101,12 @@ ON CONFLICT (sha256) DO NOTHING`,
       .run(
         randomUUID(),
         sha256,
-        path,
+        `${sha256}.png`,
         bytes.length,
         bytes.readUInt32BE(16),
         bytes.readUInt32BE(20),
         now,
       );
-
-    const { id } = z
-      .object({ id: z.string() })
-      .parse(database.prepare("SELECT id FROM assets WHERE sha256 = ?").get(sha256));
 
     database
       .prepare(
@@ -88,6 +115,66 @@ VALUES (?, ?, ?, ?, 'generated', 1, ?)
 ON CONFLICT (slug) DO UPDATE SET title = excluded.title, image_asset_id = excluded.image_asset_id
 WHERE is_sample = 1`,
       )
-      .run(randomUUID(), sample.slug, sample.title, id, now);
+      .run(randomUUID(), sample.slug, sample.title, assetId(database, sha256), now);
   }
+}
+
+function seedMotions(database: DatabaseSync, now: string) {
+  for (const sample of readManifest("motions", motionsManifestSchema).motions) {
+    const bytes = readFileSync(resolve(SAMPLES_DIRECTORY, "motions", sample.video));
+    const sha256 = storeSampleFile(bytes, "mp4");
+    const { probe } = sample;
+
+    database
+      .prepare(
+        `INSERT INTO assets (id, sha256, kind, role, path, mime, bytes, width, height, duration_ms,
+  fps, has_audio, created_at)
+VALUES (?, ?, 'video', 'sample', ?, 'video/mp4', ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT (sha256) DO NOTHING`,
+      )
+      .run(
+        randomUUID(),
+        sha256,
+        `${sha256}.mp4`,
+        bytes.length,
+        probe.width,
+        probe.height,
+        probe.duration_ms,
+        probe.fps,
+        Number(probe.has_audio),
+        now,
+      );
+
+    database
+      .prepare(
+        `INSERT INTO motions (id, slug, title, source_asset_id, license, attribution, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT (slug) DO UPDATE SET title = excluded.title,
+  source_asset_id = excluded.source_asset_id, license = excluded.license,
+  attribution = excluded.attribution`,
+      )
+      .run(
+        randomUUID(),
+        sample.slug,
+        sample.title,
+        assetId(database, sha256),
+        sample.license,
+        sample.attribution,
+        now,
+      );
+  }
+}
+
+/**
+ * Upserts the samples by slug: the characters of `samples/characters/manifest.json`, each with
+ * its PNG as a `sample` asset, and the motions of `samples/motions/manifest.json`, each with its
+ * clip as a `sample` video asset. `db.server.ts` runs it in one transaction every time it opens
+ * the database, right after the migrations, so every database has the samples before its first
+ * query; running it again changes nothing.
+ */
+export function seedSamples(database: DatabaseSync) {
+  const now = new Date().toISOString();
+
+  seedCharacters(database, now);
+  seedMotions(database, now);
 }

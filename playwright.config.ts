@@ -1,13 +1,41 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { defineConfig } from "@playwright/test";
+
+// The browser tests start their own dev server, never reuse one: on a fresh database seeded by
+// `tests/e2e/seed.ts`, with Comfy at a dead port so no click can submit a paid job.
+const baseURL = process.env.BASE_URL ?? "http://127.0.0.1:3032";
+const { hostname, port } = new URL(baseURL);
+
+// Workers load this file again; the variable they inherit keeps them on the server's database.
+process.env.E2E_DATABASE_PATH ??= join(
+  mkdtempSync(join(tmpdir(), "open-photon-e2e-")),
+  "app.sqlite",
+);
 
 export default defineConfig({
   fullyParallel: false,
   testDir: "./tests",
   testMatch: "**/*.spec.ts",
+  timeout: 60_000,
   use: {
-    baseURL: process.env.BASE_URL ?? "http://127.0.0.1:3030",
+    baseURL,
     browserName: "chromium",
     trace: "retain-on-failure",
+  },
+  webServer: {
+    command: `node --experimental-strip-types tests/e2e/seed.ts && npx vite dev --host ${hostname} --port ${port} --strictPort`,
+    env: {
+      COMFY_API_KEY: "e2e-placeholder-not-a-key",
+      COMFY_BASE_URL: "http://127.0.0.1:1",
+      DATABASE_PATH: process.env.E2E_DATABASE_PATH,
+    },
+    reuseExistingServer: false,
+    stdout: "pipe",
+    timeout: 120_000,
+    url: `${baseURL}/healthz`,
   },
   workers: 1,
 });

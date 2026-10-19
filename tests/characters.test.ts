@@ -7,7 +7,6 @@ import test from "node:test";
 import { uploadCharacter } from "../src/server/characters.server.ts";
 import { database } from "../src/server/db.server.ts";
 import { assetsDirectory } from "../src/server/paths.ts";
-import { seedSamples } from "../src/server/samples.ts";
 
 function upload(path: string, consent?: string) {
   const form = new FormData();
@@ -56,11 +55,4 @@ test("a consented image becomes one upload character, however often it is sent",
   const second = await upload("fixtures/wan/reference.png", "true");
   assert.equal(second.status, 200);
   assert.equal((await second.json()).id, character.id);
-});
-
-test("seeding the samples again leaves the same three", () => {
-  assert.equal(count("characters WHERE is_sample = 1 AND origin = 'generated'"), 3);
-  seedSamples(database);
-  assert.equal(count("characters WHERE is_sample = 1 AND origin = 'generated'"), 3);
-  assert.equal(count("assets WHERE role = 'sample'"), 3);
 });

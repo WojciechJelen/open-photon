@@ -144,7 +144,7 @@ export async function generate(
   input: z.output<typeof generateInputSchema>,
   provider: Provider = comfyProvider,
 ) {
-  const motion = findAsset(input.upload_asset_id);
+  const motion = findAsset(input.motion_asset_id);
 
   if (motion?.kind !== "video") {
     throw new GenerateError(404, "Motion clip not found.");

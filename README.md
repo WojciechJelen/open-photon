@@ -23,7 +23,7 @@ For Colima, add `--context colima` after `docker`. Stop the running app before b
 
 Build and run natively: ARM64 on Apple Silicon, AMD64 on x86 hosts. Compose follows the Docker host architecture. CI builds the AMD64 image on an x86 runner. For an explicit cross-platform compatibility check, add `--platform linux/amd64` to both build and run, using a separate image tag and container. Earlier emulated runs had a route-generator segmentation fault and inconsistent memory measurements; use native runs for memory checks.
 
-Open <http://localhost:3030>. The screens arrive in Phase 5; until then the page says so, and generation runs through the `generate` server function (see below). The workflow, its provenance and its input map are described in [workflows/README.md](workflows/README.md).
+Open <http://localhost:3030>. The first screen picks the motion: a grid of looping, muted sample clips, or an upload of your own (3–8 s; a longer clip opens a trim dialog). The chosen clip is in the URL (`/?motion=<asset id>`), so a reload keeps it. The workflow, its provenance and its input map are described in [workflows/README.md](workflows/README.md).
 
 For local development, use Node 24+ and npm 11.6.2 (`npm install --global npm@11.6.2`), then `npm ci` and `npm run dev`. Docker and CI use the same npm version declared in `packageManager`. Install FFmpeg locally (with libx264): uploads are probed and trimmed with `ffprobe`/`ffmpeg`, the server tests run them, and generated outputs are verified with them.
 
@@ -33,7 +33,7 @@ Credits per 5 s 480×848 render (distilled: lightx2v LoRA, 6 steps, int8 model):
 
 ## Generating
 
-The `generate` server function (`src/lib/generate.functions.ts`, input `generateInputSchema` in `src/lib/contracts.ts`) takes a stored 3–8 s video asset (`upload_asset_id`), a character (`character_id`), and optionally a prompt and a seed. **It submits a real GPU job and uses Comfy credits.** It refuses a clip that is missing, unprobed or longer than 8 s, and an uploaded character without consent. Then, in this order (`src/server/generate.ts`):
+The `generate` server function (`src/lib/generate.functions.ts`, input `generateInputSchema` in `src/lib/contracts.ts`) takes a stored 3–8 s video asset (`motion_asset_id`: a sample motion's clip, an upload or a cut), a character (`character_id`), and optionally a prompt and a seed. **It submits a real GPU job and uses Comfy credits.** It refuses a clip that is missing, unprobed or longer than 8 s, and an uploaded character without consent. Then, in this order (`src/server/generate.ts`):
 
 1. It builds the recipe (workflow id, version and SHA-256, the parameters, the SHA-256 of both input files, the target) and its `recipe_hash`. If a generation with that hash is done, or still on its way, it returns that generation's id with `reused: true` and submits nothing.
 2. It inserts a `preparing` row with a fresh idempotency key.
@@ -61,7 +61,7 @@ The database defaults to `data/app.sqlite`; override with `DATABASE_PATH`. Uploa
 
 The app opens one SQLite connection per process (WAL, `busy_timeout` 5000 ms, foreign keys on). When the server first loads its database module, it applies each `src/server/migrations/NNN-name.sql` not yet recorded in the `migrations` table, each in its own transaction. Add a schema change as the next numbered file; never edit an applied one. The production image copies the directory next to `.output`.
 
-Right after the migrations, in one transaction, it seeds the sample characters: each entry of `samples/characters/manifest.json` is upserted by slug (`is_sample = 1`, `origin = 'generated'`) with its PNG stored as a `sample` asset. So a fresh clone, a test database or a new Railway volume has the samples before its first query, and a changed manifest reaches existing databases on the next start; seeding again changes nothing. `node scripts/seed-samples.mjs` opens the database the same way and prints the count. The production image copies `samples/`. The three PNGs are placeholder gradients made with FFmpeg's `gradients` source; Klein-generated samples replace them later.
+Right after the migrations, in one transaction, it seeds the samples, each upserted by slug: the characters of `samples/characters/manifest.json` (`is_sample = 1`, `origin = 'generated'`) with their PNGs stored as `sample` assets, and the motions of `samples/motions/manifest.json` (the `motions` table, with license and attribution) with their clips stored as `sample` video assets. A motion's manifest entry carries what ffprobe reads from its clip (`tests/samples.test.ts` checks it), so seeding needs no FFmpeg. So a fresh clone, a test database or a new Railway volume has the samples before its first query, and a changed manifest reaches existing databases on the next start; seeding again changes nothing. `node scripts/seed-samples.mjs` opens the database the same way and prints the counts. The production image copies `samples/`. The three character PNGs are placeholder gradients made with FFmpeg's `gradients` source; Klein-generated samples replace them later. The one sample motion, `street-dance.mp4`, is the template's driving clip (`fixtures/wan/driving.mp4`, `street_dance_drive.mp4` from the MIT-licensed [Comfy-Org/workflow_templates](https://github.com/Comfy-Org/workflow_templates/tree/7d8ed32f0bf6b8d52129976535422d6f518fe463)); the licensed motion library replaces it in Step 9.1.
 
 ## Uploads and video routes
 
@@ -87,12 +87,14 @@ npm run build
 npm run check:client
 ```
 
-With the app running on port 3030 (or set `BASE_URL`), run the browser tests (export `APP_ACCESS_CODE` when the app has one):
+Run the browser tests (export `APP_ACCESS_CODE` to test with the access gate on):
 
 ```sh
 npx playwright install chromium
 npm run test:e2e
 ```
+
+Playwright starts its own dev server and never reuses a running one. It listens on `BASE_URL` (default `http://127.0.0.1:3032`; the port must be free), points Comfy at a dead port (`COMFY_BASE_URL=http://127.0.0.1:1`), so no test can submit a paid job, and uses a new database: `E2E_DATABASE_PATH`, by default a fresh temporary directory. `tests/e2e/seed.ts` refuses a database file that already exists, so the tests never read or change `data/app.sqlite`.
 
 Check upload memory in a dedicated container, using the native image built above (for Colima, use `--context colima` and set `SPIKE_DOCKER_CONTEXT=colima`):
 
@@ -106,7 +108,7 @@ docker rm --force --volumes open-photon-memory
 
 The upload-memory script requires an explicit container and HTTP address, restarts that container, and runs six transfers without Comfy credentials. It retains the 64 MiB limits for anonymous-memory growth, application RSS growth, and sampled array-buffer peaks; failures return a nonzero exit code. The report in `work/upload-memory.json` includes the image and Docker host architecture. Measurements depend on the container environment and sampling interval. Historical simulation and detailed measurement records are private; simulated jobs are not evidence of real generation.
 
-`tests/app.spec.ts` covers the access gate in a browser and the generation routes' answers to malformed and unknown ids. No browser test submits a paid job.
+`tests/app.spec.ts` covers the access gate in a browser and the generation routes' answers to malformed and unknown ids; `tests/motion.spec.ts` the motion step (sample previews, the trim dialog for a 12 s clip, too short and no video, an unknown id in the URL). No browser test submits a paid job.
 
 ## Railway staging
 
@@ -122,7 +124,7 @@ Railway service settings select the Dockerfile builder, check `/healthz` with a 
 
 ## Continuous integration and deployment
 
-[CI](.github/workflows/ci.yml) runs on every `main` push and pull request, and can be started manually. It installs from the lockfile, checks types, lint, formatting, unused code and duplication, checks private paths across Git history, runs server tests, builds the Linux AMD64 image (including its client-secret scan), and runs the six-upload memory check on the native x86 runner. The container starts with a fresh root-owned volume, and CI checks that the app runs as UID 1000 and can write SQLite on that volume. Browser tests are run separately against a running app. CI uses no Comfy secrets and submits no paid jobs.
+[CI](.github/workflows/ci.yml) runs on every `main` push and pull request, and can be started manually. It installs from the lockfile, checks types, lint, formatting, unused code and duplication, checks private paths across Git history, runs server tests and the browser tests (with an access code), builds the Linux AMD64 image (including its client-secret scan), and runs the six-upload memory check on the native x86 runner. The container starts with a fresh root-owned volume, and CI checks that the app runs as UID 1000 and can write SQLite on that volume. CI uses no Comfy secrets and submits no paid jobs.
 
 Railway follows `main` with **Wait for CI** enabled. Each push must pass GitHub Actions before Railway builds and deploys the Dockerfile; failed checks block that deployment. Main-branch CI runs are not canceled by newer pushes. Pull-request checks do not deploy to staging. A successful Railway deployment must pass the HTTP health check before becoming active.
 

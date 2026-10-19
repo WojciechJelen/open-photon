@@ -7,9 +7,13 @@
     "scripts/*.mjs",
     // Compile-time route inference tripwire; only tsgo reads it.
     "tests/type-contracts.ts",
+    // Run by the Playwright web server command before the dev server starts.
+    "tests/e2e/seed.ts",
   ],
   // The vendored plugin is upstream source, as in oxlint.config.ts.
   "ignorePatterns": ["tools/oxlint/anti-slop/**"],
   // Imported only by that vendored plugin.
   "ignoreDependencies": ["@oxlint/plugins"],
+  // shadcn components are added whole by `npx shadcn add`; an unused component file still fails.
+  "ignoreExports": [{ "file": "src/components/ui/**", "exports": ["*"] }],
 }

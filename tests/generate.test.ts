@@ -41,7 +41,7 @@ let seed = 0;
 function input() {
   seed += 1;
 
-  return { character_id: character.id, seed, upload_asset_id: motion.id };
+  return { character_id: character.id, motion_asset_id: motion.id, seed };
 }
 
 /** A provider double that records each submit and answers with `respond`. */

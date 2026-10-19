@@ -33,6 +33,12 @@ jobs:
       - name: Install FFmpeg for the probe and trim tests
         run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends ffmpeg
       - run: npm run test:server
+      - name: Install Chromium for the browser tests
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests (own dev server and database, Comfy at a dead port)
+        env:
+          APP_ACCESS_CODE: ci-only-access-code-not-a-secret
+        run: npm run test:e2e
       - name: Build production image and scan client output
         run: docker build --platform linux/amd64 --tag open-photon:ci .
       - name: Check upload memory on native AMD64
