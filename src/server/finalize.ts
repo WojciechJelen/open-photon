@@ -10,6 +10,24 @@ import {
 } from "./generations.ts";
 import { probe, runTool } from "./media/probe.ts";
 
+/** The output's frame at 0.5 s as a JPEG, or its first frame when it ends before then. */
+async function cutPoster(video: string, poster: string) {
+  const cut = ["-i", video, "-frames:v", "1", "-f", "mjpeg", poster];
+
+  const seeked = await runTool("ffmpeg", ["-ss", "0.5", ...cut]).then(
+    () => probe(poster),
+    () => null,
+  );
+
+  const frame = seeked?.video ? seeked : await runTool("ffmpeg", cut).then(() => probe(poster));
+
+  if (!frame?.video) {
+    throw new Error("FFmpeg wrote a poster ffprobe cannot read");
+  }
+
+  return frame.video;
+}
+
 /** Downloads the output MP4 and cuts its poster; stores both as content-addressed assets. */
 async function rehost(output: ProviderOutput) {
   const video = await incomingPath();
@@ -29,12 +47,7 @@ async function rehost(output: ProviderOutput) {
       throw new Error("The output has no video stream ffprobe can read");
     }
 
-    await runTool("ffmpeg", ["-ss", "0.5", "-i", video, "-frames:v", "1", "-f", "mjpeg", poster]);
-    const frame = await probe(poster);
-
-    if (!frame?.video) {
-      throw new Error("FFmpeg wrote a poster ffprobe cannot read");
-    }
+    const frame = await cutPoster(video, poster);
 
     const stored = await storeAsset(video, {
       bytes,
@@ -57,13 +70,13 @@ async function rehost(output: ProviderOutput) {
       ext: "jpg",
       fps: null,
       has_audio: null,
-      height: frame.video.height,
+      height: frame.height,
       kind: "poster",
       mime: "image/jpeg",
       role: "poster",
       sha256: await hashFile(poster),
       source_asset_id: stored.asset.id,
-      width: frame.video.width,
+      width: frame.width,
     });
 
     return { poster: still.asset, video: stored.asset };

@@ -127,6 +127,53 @@ test("a row a stopped server left preparing is settled on its next read, never r
   assert.equal(findGeneration(afterUploads.id)?.provider_job_id, null);
 });
 
+test("after a restart, generating the same recipe again settles the row the stopped server left preparing", async () => {
+  const refusing = provider(() =>
+    Promise.reject(new InvalidWorkflow("Rejected", { code: "invalid_workflow", httpStatus: 400 })),
+  );
+
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+
+  /** Fresh inputs, plus the row a stopped server left `preparing` with the recipe they build. */
+  const abandon = async (uploaded: boolean) => {
+    const inputs = input();
+    const failed = findGeneration((await generate(inputs, refusing.double)).id);
+
+    assert.ok(failed);
+
+    const { id } = createGeneration({ characterId: character.id, recipe: failed.recipe });
+
+    if (uploaded) {
+      recordProviderInputs(id, {
+        driving_video: { __type: "core/ASSET", info: { id: "video" } },
+        reference_image: { __type: "core/ASSET", info: { id: "image" } },
+      });
+    }
+
+    return { id, inputs };
+  };
+
+  // Stopped while uploading: nothing reached Comfy, so a fresh generation is submitted.
+  const interrupted = await abandon(false);
+  const fresh = await generate(interrupted.inputs, double);
+
+  assert.equal(fresh.reused, false);
+  assert.notEqual(fresh.id, interrupted.id);
+  assert.equal(submits.length, 1);
+  assert.equal(findGeneration(fresh.id)?.status, "queued");
+  assert.deepEqual(
+    [findGeneration(interrupted.id)?.status, findGeneration(interrupted.id)?.error_code],
+    ["failed", "interrupted"],
+  );
+
+  // Stopped after the uploads: Comfy may be rendering it, so it is returned, never resubmitted.
+  const uncertain = await abandon(true);
+
+  assert.deepEqual(await generate(uncertain.inputs, double), { id: uncertain.id, reused: true });
+  assert.equal(findGeneration(uncertain.id)?.status, "unknown");
+  assert.equal(submits.length, 1);
+});
+
 test("Comfy's errors map to error codes: a refusal fails the row, an uncertain submit makes it unknown", async () => {
   const refused = Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:8188"), {
     code: "ECONNREFUSED",

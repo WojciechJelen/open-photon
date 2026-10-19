@@ -15,6 +15,7 @@ import {
   markQueued,
   transition,
 } from "../src/server/generations.ts";
+import { runTool } from "../src/server/media/probe.ts";
 import { assetsDirectory } from "../src/server/paths.ts";
 import type { Recipe } from "../src/server/recipe.ts";
 
@@ -105,6 +106,38 @@ test("a completed job is downloaded once, hashed, given a poster and marked done
     ["poster", "poster", "image/jpeg", video?.width, video?.height],
   );
   assert.equal(poster?.sha256, await hashFile(resolve(assetsDirectory(), poster?.path ?? "")));
+});
+
+test("an output shorter than half a second gets its first frame as the poster", async () => {
+  const output: ProviderOutput = {
+    contentType: "video/mp4",
+    name: "short.mp4",
+    sizeBytes: 0,
+    toFile: async (path) => {
+      // Three frames: 0.3 s, nothing at 0.5 s.
+      await runTool("ffmpeg", [
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=size=64x48:rate=10",
+        "-t",
+        "0.3",
+        "-pix_fmt",
+        "yuv420p",
+        "-f",
+        "mp4",
+        path,
+      ]);
+
+      return path;
+    },
+  };
+
+  const row = await finalize(running().id, provider("succeeded", [output]));
+  const poster = findAsset(row?.poster_asset_id ?? "");
+
+  assert.equal(row?.status, "done");
+  assert.deepEqual([poster?.kind, poster?.width, poster?.height], ["poster", 64, 48]);
 });
 
 test("a job that failed or expired on Comfy fails the row with its reason", async () => {

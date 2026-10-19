@@ -97,7 +97,8 @@ async function send(row: Generation, workflow: LoadedWorkflow, files: Files, pro
  * Pipeline steps 3–6 for a recipe: a generation with the same recipe that is done or still on
  * its way is returned as is; otherwise a `preparing` row (with its idempotency key) is stored,
  * both files go to Comfy, the graph is submitted under that key, and the job id is saved the
- * moment it returns.
+ * moment it returns. A `preparing` row a stopped server left behind is settled first: one that
+ * never reached Comfy fails and is not reused; one that may have is `unknown` and is.
  */
 async function submitRecipe(
   {
@@ -116,7 +117,11 @@ async function submitRecipe(
 ) {
   const hash = recipeHash(recipe);
   // No await between the lookup and the insert: one process cannot create the row twice.
-  const existing = findReusable(hash) ?? findPending(hash);
+  let existing = findReusable(hash) ?? findPending(hash);
+
+  while (existing && settleAbandoned(existing).status === "failed") {
+    existing = findPending(hash);
+  }
 
   if (existing) {
     return { id: existing.id, reused: true };
