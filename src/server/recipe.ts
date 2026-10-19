@@ -11,6 +11,12 @@ const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
  * Strict objects, so a stray field fails instead of silently changing (or not changing) the hash.
  */
 export const recipeSchema = z.strictObject({
+  // The reshoot-angle preset (`workflows/angles.json`) whose phrasing `params.prompt` ends with.
+  // Absent without one, so a recipe that has no angle hashes as it did before angles existed.
+  angle: z
+    .string()
+    .regex(/^[a-z][a-z-]*$/)
+    .optional(),
   inputs: z.strictObject({
     driving_video_sha256: sha256Schema,
     reference_image_sha256: sha256Schema,
@@ -33,7 +39,8 @@ export const recipeSchema = z.strictObject({
 
 export type Recipe = z.infer<typeof recipeSchema>;
 
-type Json = boolean | number | string | null | Json[] | { [key: string]: Json };
+// An `undefined` member is absent, as in `JSON.stringify`: an optional field left unset.
+type Json = boolean | number | string | null | Json[] | { [key: string]: Json | undefined };
 
 function canonicalJson(value: Json): string {
   if (Array.isArray(value)) {
@@ -46,6 +53,7 @@ function canonicalJson(value: Json): string {
   }
 
   const members = Object.entries(value)
+    .flatMap(([key, member]) => (member === undefined ? [] : [[key, member] as const]))
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .map(([key, member]) => `${JSON.stringify(key)}:${canonicalJson(member)}`);
 

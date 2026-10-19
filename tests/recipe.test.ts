@@ -37,4 +37,8 @@ test("recipe_hash follows the params, not their key order", () => {
   for (const change of changes) {
     assert.notEqual(recipeHash({ ...recipe, params: { ...recipe.params, ...change } }), hash);
   }
+
+  // An angle changes the hash; no angle hashes as a recipe from before angles existed.
+  assert.notEqual(recipeHash({ ...recipe, angle: "profile" }), hash);
+  assert.equal(recipeHash({ ...recipe, angle: undefined }), hash);
 });

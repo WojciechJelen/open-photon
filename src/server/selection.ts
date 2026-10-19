@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  type AngleChoice,
   type Asset,
   assetSchema,
   type characterSchema,
@@ -10,6 +11,7 @@ import {
   type SampleMotion,
   sampleMotionSchema,
 } from "../lib/contracts.ts";
+import { loadAngles } from "./angles.ts";
 import { findAsset } from "./assets.ts";
 import { findCharacter, listSampleCharacters } from "./characters.server.ts";
 import { database } from "./db.server.ts";
@@ -69,19 +71,29 @@ function pickable(character: z.output<typeof characterSchema>): PickableCharacte
 }
 
 /**
- * What the picker on `/` shows: the sample motions and characters, and the motion clip and
- * character the URL names. A character in the URL may be an upload (every upload has consent);
- * there are no accounts, so an uploaded character is listed only while the URL names it. An id
- * that names nothing usable (unknown, not a video, a clip over 8 s) resolves to `null`, so the
+ * What `/` shows: the sample motions and characters, the motion clip and character the URL
+ * names, and the reshoot-angle presets (`placeholderAngles` while their phrasing is not the
+ * benchmarked one). A character in the URL may be an upload (every upload has consent); there
+ * are no accounts, so an uploaded character is listed only while the URL names it. An id that
+ * names nothing usable (unknown, not a video, a clip over 8 s) resolves to `null`, so the
  * picker falls back to no choice.
  */
-export function readSelection({ character, motion }: { character?: string; motion?: string }) {
+export async function readSelection({
+  character,
+  motion,
+}: {
+  character?: string;
+  motion?: string;
+}) {
   const chosen = character ? findCharacter(character) : null;
+  const angles = await loadAngles();
 
   return {
+    angles: angles.angles.map(({ id, label }): AngleChoice => ({ id, label })),
     character: chosen ? pickable(chosen) : null,
     characters: listSampleCharacters().map(pickable),
     motion: motion ? findMotionClip(motion) : null,
     motions: listSampleMotions(),
+    placeholderAngles: angles.placeholder,
   };
 }

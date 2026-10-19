@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { CharacterGrid } from "#/components/character-grid";
 import { CharacterUpload } from "#/components/character-upload";
+import { GenerateForm } from "#/components/generate-form";
 import { LoopingVideo } from "#/components/looping-video";
 import { MotionGrid } from "#/components/motion-grid";
 import { UploadZone } from "#/components/upload-zone";
@@ -23,7 +24,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { character, characters, motion, motions } = Route.useLoaderData();
+  const { angles, character, characters, motion, motions, placeholderAngles } =
+    Route.useLoaderData();
+
   const navigate = Route.useNavigate();
 
   const pickMotion = (assetId: string) =>
@@ -77,6 +80,18 @@ function Home() {
         ) : (
           <p className="text-sm text-muted-foreground">No character chosen yet.</p>
         )}
+      </section>
+
+      <section aria-labelledby="generate-heading" className="flex flex-col gap-4">
+        <h2 className="text-xl font-semibold" id="generate-heading">
+          3. Generate
+        </h2>
+        <GenerateForm
+          angles={angles}
+          characterId={character?.id}
+          motionAssetId={motion?.id}
+          placeholderAngles={placeholderAngles}
+        />
       </section>
     </main>
   );

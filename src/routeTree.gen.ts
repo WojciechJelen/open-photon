@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
+import { Route as GGenerationIdRouteImport } from './routes/g.$generationId'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
 import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
 import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
@@ -32,6 +33,11 @@ const ApiCharactersRoute = ApiCharactersRouteImport.update({
 const ApiUploadsRoute = ApiUploadsRouteImport.update({
   id: '/api/uploads',
   path: '/api/uploads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GGenerationIdRoute = GGenerationIdRouteImport.update({
+  id: '/g/$generationId',
+  path: '/g/$generationId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MediaFilenameRoute = MediaFilenameRouteImport.update({
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/characters'
     | '/api/uploads'
+    | '/g/$generationId'
     | '/media/$filename'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/characters'
     | '/api/uploads'
+    | '/g/$generationId'
     | '/media/$filename'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/characters'
     | '/api/uploads'
+    | '/g/$generationId'
     | '/media/$filename'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
+  GGenerationIdRoute: typeof GGenerationIdRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
   ApiDebugStreamsRoute: typeof ApiDebugStreamsRoute
   ApiGenerationsGenerationIdRoute: typeof ApiGenerationsGenerationIdRouteWithChildren
@@ -169,6 +182,13 @@ declare module '@tanstack/react-router' {
       path: '/api/uploads'
       fullPath: '/api/uploads'
       preLoaderRoute: typeof ApiUploadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/g/$generationId': {
+      id: '/g/$generationId'
+      path: '/g/$generationId'
+      fullPath: '/g/$generationId'
+      preLoaderRoute: typeof GGenerationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/media/$filename': {
@@ -237,6 +257,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiCharactersRoute: ApiCharactersRoute,
   ApiUploadsRoute: ApiUploadsRoute,
+  GGenerationIdRoute: GGenerationIdRoute,
   MediaFilenameRoute: MediaFilenameRoute,
   ApiDebugStreamsRoute: ApiDebugStreamsRoute,
   ApiGenerationsGenerationIdRoute: ApiGenerationsGenerationIdRouteWithChildren,

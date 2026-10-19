@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { z } from "zod";
 
 import { type generateInputSchema, generationSchema, MAX_CLIP_MS } from "../lib/contracts.ts";
+import { loadAngles } from "./angles.ts";
 import { findAsset, findBySha256, type StoredAsset } from "./assets.ts";
 import { findCharacter } from "./characters.server.ts";
 import { comfyProvider, type Provider, providerError, providerTarget } from "./comfy.ts";
@@ -174,23 +175,35 @@ export async function generate(
     throw new Error(`Character ${character.id} has no image asset`);
   }
 
+  const angle =
+    input.angle === undefined
+      ? undefined
+      : (await loadAngles()).angles.find((preset) => preset.id === input.angle);
+
+  if (input.angle !== undefined && !angle) {
+    throw new GenerateError(422, `There is no reshoot angle “${input.angle}”.`);
+  }
+
   const workflow = await loadWorkflow("motion-transfer", 1);
   const promptField = workflow.inputsMap.inputs.prompt;
   const portrait = motion.height >= motion.width;
+
+  const prompt =
+    input.prompt ?? z.string().parse(workflow.graph[promptField.node]?.inputs[promptField.field]);
 
   return submitRecipe(
     {
       characterId: character.id,
       files: { drivingVideo: motion, referenceImage: image },
       recipe: {
+        angle: angle?.id,
         inputs: { driving_video_sha256: motion.sha256, reference_image_sha256: image.sha256 },
         models: [],
         params: {
           fragment_length: 81,
           height: portrait ? 848 : 480,
-          prompt:
-            input.prompt ??
-            z.string().parse(workflow.graph[promptField.node]?.inputs[promptField.field]),
+          // The angle is a prompt fragment, not a node field (workflows/README.md).
+          prompt: angle ? `${prompt.trimEnd()} ${angle.fragment}` : prompt,
           seed: input.seed ?? randomInt(SEED_RANGE),
           width: portrait ? 480 : 848,
         },
@@ -312,6 +325,17 @@ export async function readGeneration(id: string, provider: Provider = comfyProvi
   }
 
   return generationSchema.parse(findGeneration(id) ?? settled);
+}
+
+/**
+ * What `/g/:id` shows: the generation as `GET /api/generations/:id` reads it, or `null` for a
+ * malformed or unknown id (the page is then a 404).
+ */
+export async function readResult(id: string) {
+  const parsed = z.uuid().safeParse(id);
+  const generation = parsed.success ? await readGeneration(parsed.data) : null;
+
+  return generation ? { generation } : null;
 }
 
 /** A route's `:generationId` as a UUID, or the 400 response for a malformed one. */

@@ -276,3 +276,19 @@ test("retry refuses an unknown generation with 409 and a pointer to the README",
   await assert.rejects(retry(queued.id, double), { status: 409 });
   assert.equal(submits.length, 1);
 });
+
+test("an angle appends its phrasing to the prompt and is part of the recipe; an unknown one is refused", async () => {
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+  const same = { ...input(), prompt: "A dancer" };
+  const angled = findGeneration((await generate({ ...same, angle: "profile" }, double)).id);
+  const plain = findGeneration((await generate(same, double)).id);
+
+  assert.equal(angled?.recipe.angle, "profile");
+  assert.match(angled?.recipe.params.prompt ?? "", /^A dancer Profile view: /);
+  assert.equal(plain?.recipe.angle, undefined);
+  assert.equal(plain?.recipe.params.prompt, "A dancer");
+  assert.notEqual(plain?.recipe_hash, angled?.recipe_hash);
+
+  await assert.rejects(generate({ ...input(), angle: "upside-down" }, double), { status: 422 });
+  assert.equal(submits.length, 2);
+});

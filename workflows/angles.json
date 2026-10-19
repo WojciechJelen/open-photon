@@ -1,0 +1,21 @@
+{
+  "placeholder": true,
+  "note": "Placeholder phrasings. The Oct 19 benchmark of three angle phrasings (docs/mvp-implementation-plan.md, schedule) has not run; replace these with its results and set placeholder to false.",
+  "angles": [
+    {
+      "id": "front",
+      "label": "Front",
+      "fragment": "Front view: the camera faces the character straight on."
+    },
+    {
+      "id": "three-quarter",
+      "label": "Three-quarter",
+      "fragment": "Three-quarter view: the camera is turned 45 degrees to the character's side."
+    },
+    {
+      "id": "profile",
+      "label": "Profile",
+      "fragment": "Profile view: the camera sees the character from the side."
+    }
+  ]
+}

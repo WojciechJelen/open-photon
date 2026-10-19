@@ -100,17 +100,25 @@ export type PickableCharacter = z.infer<typeof pickableCharacterSchema>;
 /**
  * The input of the `generate` server function. The motion is a stored, probed video asset of
  * 3–8 s (`motion_asset_id`): a sample motion's clip, an upload, or a trimmed cut of one. The
- * character must be a generated one or an upload with consent. `prompt` defaults to the
- * workflow's own, `seed` to a random one. The result is `{ id, reused }`: `reused` when a
- * generation with the same recipe is done or still on its way, in which case nothing is
- * submitted.
+ * character must be a generated one or an upload with consent. `prompt` (appearance and
+ * background) defaults to the workflow's own, `seed` to a random one. `angle` is the id of a
+ * reshoot-angle preset of `workflows/angles.json`; its phrasing is appended to the prompt, and
+ * an unknown id is refused. The result is `{ id, reused }`: `reused` when a generation with the
+ * same recipe is done or still on its way, in which case nothing is submitted.
  */
 export const generateInputSchema = z.object({
+  angle: z
+    .string()
+    .regex(/^[a-z][a-z-]*$/)
+    .optional(),
   character_id: z.uuid(),
   motion_asset_id: z.uuid(),
   prompt: z.string().trim().min(1).max(500).optional(),
   seed: z.int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
 });
+
+/** A reshoot-angle preset as the generate form offers it. */
+export type AngleChoice = { id: string; label: string };
 
 /**
  * `preparing → queued → running → finalizing → done | failed`. `unknown`: the server stopped
@@ -165,6 +173,8 @@ export const generationSchema = z.object({
   status: generationStatusSchema,
   submitted_at: z.iso.datetime().nullable(),
 });
+
+export type GenerationSnapshot = z.infer<typeof generationSchema>;
 
 /**
  * `GET /api/generations/:id/events` (`text/event-stream`): one `data:` line per snapshot of the
