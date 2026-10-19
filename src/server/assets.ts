@@ -45,6 +45,12 @@ function findBySha256(sha256: string) {
   return row ? storedAssetSchema.parse(row) : null;
 }
 
+export function findAsset(id: string) {
+  const row = database.prepare("SELECT * FROM assets WHERE id = ?").get(id);
+
+  return row ? storedAssetSchema.parse(row) : null;
+}
+
 /**
  * Moves a finished `incomingPath()` file to `<sha256>.<ext>` and records it. Assets are
  * content-addressed: when the hash is already stored, the new file is deleted and the stored row

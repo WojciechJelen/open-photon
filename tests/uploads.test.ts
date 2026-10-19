@@ -7,13 +7,23 @@ import test from "node:test";
 import { database } from "../src/server/db.server.ts";
 import { assetsDirectory } from "../src/server/media.server.ts";
 import { MAX_UPLOAD_BYTES } from "../src/server/upload.server.ts";
-import { uploadVideo } from "../src/server/videos.server.ts";
+import { trimAsset, uploadVideo } from "../src/server/videos.server.ts";
 
 function upload(path: string) {
   const form = new FormData();
   form.append("file", new Blob([readFileSync(path)]), basename(path));
 
   return uploadVideo(new Request("http://localhost/api/uploads", { body: form, method: "POST" }));
+}
+
+function trim(id: string, body: { duration_ms: number; start_ms: number }) {
+  return trimAsset(
+    new Request(`http://localhost/api/assets/${id}/trim`, {
+      body: JSON.stringify(body),
+      method: "POST",
+    }),
+    id,
+  );
 }
 
 function assetRows() {
@@ -34,6 +44,7 @@ test("an upload is stored once by content hash, with its probed metadata", async
       kind: asset.kind,
       mime: asset.mime,
       role: asset.role,
+      trimmed: asset.trimmed,
       width: asset.width,
     },
     {
@@ -44,6 +55,7 @@ test("an upload is stored once by content hash, with its probed metadata", async
       kind: "video",
       mime: "video/mp4",
       role: "upload",
+      trimmed: null,
       width: 320,
     },
   );
@@ -59,18 +71,48 @@ test("an upload is stored once by content hash, with its probed metadata", async
   );
 });
 
-test("a file with no video is rejected and leaves nothing behind", async () => {
+test("a clip with no video or under 3 s is rejected and leaves nothing behind", async () => {
   const files = readdirSync(assetsDirectory());
   const rows = assetRows().length;
 
-  for (const path of ["fixtures/wan/reference.png", "package.json"]) {
-    const response = await upload(path);
+  for (const [path, reason] of [
+    ["tests/fixtures/audio-only.m4a", "no_video"],
+    ["tests/fixtures/short-2s.mp4", "too_short"],
+    ["fixtures/wan/reference.png", "no_video"],
+  ]) {
+    const response = await upload(path ?? "");
     assert.equal(response.status, 422, path);
-    assert.equal((await response.json()).reason, "no_video", path);
+    assert.equal((await response.json()).reason, reason, path);
   }
 
   assert.deepEqual(readdirSync(assetsDirectory()), files);
   assert.equal(assetRows().length, rows);
+});
+
+test("a clip over 8 s is kept whole and comes back with its first 8 s trimmed, audio included", async () => {
+  const response = await upload("tests/fixtures/long-12s.mp4");
+  assert.equal(response.status, 201);
+  const source = await response.json();
+  assert.equal(source.duration_ms, 12_000);
+  assert.equal(source.trimmed.role, "trimmed");
+  assert.equal(source.trimmed.source_asset_id, source.id);
+  assert.ok(source.trimmed.duration_ms >= 7900 && source.trimmed.duration_ms <= 8000);
+  assert.equal(source.trimmed.has_audio, true);
+
+  const custom = await trim(source.id, { duration_ms: 4000, start_ms: 1500 });
+  assert.equal(custom.status, 201);
+  const cut = await custom.json();
+  assert.equal(cut.source_asset_id, source.id);
+  assert.ok(cut.duration_ms >= 3900 && cut.duration_ms <= 4000);
+  assert.equal(cut.has_audio, true);
+
+  const again = await trim(source.id, { duration_ms: 4000, start_ms: 1500 });
+  assert.equal(again.status, 200);
+  assert.equal((await again.json()).id, cut.id);
+
+  assert.equal((await trim(source.id, { duration_ms: 8000, start_ms: 5000 })).status, 422);
+  assert.equal((await trim(source.id, { duration_ms: 9000, start_ms: 0 })).status, 400);
+  assert.equal((await trim(cut.sha256, { duration_ms: 3000, start_ms: 0 })).status, 404);
 });
 
 test("a declared body over 128 MiB is a 413 before anything is read", async () => {

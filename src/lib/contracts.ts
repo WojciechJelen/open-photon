@@ -77,6 +77,11 @@ export const jobEventSchema = z.object({
 
 export type NewJob = z.infer<typeof newJobSchema>;
 
+/** A driving clip is 3–8 s (docs/mvp-implementation-plan.md §3–4). */
+export const MIN_CLIP_MS = 3000;
+
+export const MAX_CLIP_MS = 8000;
+
 /** An `assets` row as the API returns it (no server path). */
 export const assetSchema = z.object({
   bytes: z.int().nonnegative(),
@@ -100,9 +105,25 @@ export const assetSchema = z.object({
  *
  * - 201 with the new upload asset; 200 with the stored one when the same bytes were uploaded
  *   before (assets are content-addressed).
+ * - `trimmed` is `null` for a 3–8 s clip. A longer clip is kept whole and comes back with
+ *   `trimmed` = its first 8 s (video and audio), usable as is; the trim UI shows the whole clip
+ *   and, for another range, calls `POST /api/assets/:id/trim` (`trimRequestSchema`).
  * - 413 over 128 MiB (before anything is stored). 422 `{ error, reason }` with a
- *   `VideoRejection` reason: `no_video` (no readable video stream in a supported container).
- *   A rejected file leaves no asset row and no file.
+ *   `VideoRejection` reason: `no_video` (no readable video stream in a supported container) or
+ *   `too_short` (under 3 s). A rejected file leaves no asset row and no file.
  * - Other errors are `{ error }` with 400 or 415.
  */
-export type VideoRejection = "no_video";
+export const uploadedVideoSchema = assetSchema.extend({ trimmed: assetSchema.nullable() });
+
+export type VideoRejection = "no_video" | "too_short";
+
+/**
+ * `POST /api/assets/:id/trim` JSON body: cut `duration_ms` (3–8 s) of a stored video from
+ * `start_ms`. 201 with the new `trimmed` asset (`source_asset_id` = `:id`), 200 when the same cut
+ * already exists. 404 for an unknown or non-video asset, 422 when the range ends after the clip,
+ * 400 for a malformed body.
+ */
+export const trimRequestSchema = z.object({
+  duration_ms: z.int().min(MIN_CLIP_MS).max(MAX_CLIP_MS),
+  start_ms: z.int().nonnegative(),
+});

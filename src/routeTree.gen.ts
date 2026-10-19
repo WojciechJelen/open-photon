@@ -18,6 +18,7 @@ import { Route as RJobIdRouteImport } from './routes/r.$jobId'
 import { Route as ApiJobsJobIdRouteImport } from './routes/api.jobs.$jobId'
 import { Route as ApiSpikeComfyRouteImport } from './routes/api.spike.comfy'
 import { Route as ApiSpikeStatusRouteImport } from './routes/api.spike.status'
+import { Route as ApiAssetsAssetIdTrimRouteImport } from './routes/api.assets.$assetId.trim'
 import { Route as ApiJobsJobIdEventsRouteImport } from './routes/api.jobs.$jobId.events'
 
 const IndexRoute = IndexRouteImport.update({
@@ -65,6 +66,11 @@ const ApiSpikeStatusRoute = ApiSpikeStatusRouteImport.update({
   path: '/api/spike/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAssetsAssetIdTrimRoute = ApiAssetsAssetIdTrimRouteImport.update({
+  id: '/api/assets/$assetId/trim',
+  path: '/api/assets/$assetId/trim',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiJobsJobIdEventsRoute = ApiJobsJobIdEventsRouteImport.update({
   id: '/events',
   path: '/events',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/api/jobs/$jobId': typeof ApiJobsJobIdRouteWithChildren
   '/api/spike/comfy': typeof ApiSpikeComfyRoute
   '/api/spike/status': typeof ApiSpikeStatusRoute
+  '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/jobs/$jobId/events': typeof ApiJobsJobIdEventsRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/api/jobs/$jobId': typeof ApiJobsJobIdRouteWithChildren
   '/api/spike/comfy': typeof ApiSpikeComfyRoute
   '/api/spike/status': typeof ApiSpikeStatusRoute
+  '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/jobs/$jobId/events': typeof ApiJobsJobIdEventsRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/api/jobs/$jobId': typeof ApiJobsJobIdRouteWithChildren
   '/api/spike/comfy': typeof ApiSpikeComfyRoute
   '/api/spike/status': typeof ApiSpikeStatusRoute
+  '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/jobs/$jobId/events': typeof ApiJobsJobIdEventsRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/api/jobs/$jobId'
     | '/api/spike/comfy'
     | '/api/spike/status'
+    | '/api/assets/$assetId/trim'
     | '/api/jobs/$jobId/events'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/api/jobs/$jobId'
     | '/api/spike/comfy'
     | '/api/spike/status'
+    | '/api/assets/$assetId/trim'
     | '/api/jobs/$jobId/events'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/api/jobs/$jobId'
     | '/api/spike/comfy'
     | '/api/spike/status'
+    | '/api/assets/$assetId/trim'
     | '/api/jobs/$jobId/events'
   fileRoutesById: FileRoutesById
 }
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   RJobIdRoute: typeof RJobIdRoute
   ApiSpikeComfyRoute: typeof ApiSpikeComfyRoute
   ApiSpikeStatusRoute: typeof ApiSpikeStatusRoute
+  ApiAssetsAssetIdTrimRoute: typeof ApiAssetsAssetIdTrimRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -223,6 +236,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSpikeStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/assets/$assetId/trim': {
+      id: '/api/assets/$assetId/trim'
+      path: '/api/assets/$assetId/trim'
+      fullPath: '/api/assets/$assetId/trim'
+      preLoaderRoute: typeof ApiAssetsAssetIdTrimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/jobs/$jobId/events': {
       id: '/api/jobs/$jobId/events'
       path: '/events'
@@ -265,6 +285,7 @@ const rootRouteChildren: RootRouteChildren = {
   RJobIdRoute: RJobIdRoute,
   ApiSpikeComfyRoute: ApiSpikeComfyRoute,
   ApiSpikeStatusRoute: ApiSpikeStatusRoute,
+  ApiAssetsAssetIdTrimRoute: ApiAssetsAssetIdTrimRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

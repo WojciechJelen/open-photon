@@ -3,7 +3,7 @@ import { promisify } from "node:util";
 
 import { z } from "zod";
 
-import type { VideoRejection } from "../../lib/contracts.ts";
+import { MIN_CLIP_MS, type VideoRejection } from "../../lib/contracts.ts";
 
 const execute = promisify(execFile);
 
@@ -17,7 +17,7 @@ export function runTool(tool: "ffmpeg" | "ffprobe", args: string[], signal?: Abo
 }
 
 /** True when the tool ran and exited nonzero (it rejected its input), not when it failed to start, timed out or was aborted. */
-function exitedNonzero(error: Error) {
+export function exitedNonzero(error: Error) {
   return z.object({ code: z.int() }).safeParse(error).success;
 }
 
@@ -60,7 +60,7 @@ export type MediaInfo = {
 };
 
 /** `"30000/1001"` → 29.97; `null` for ffprobe's `0/0` (unknown). */
-function frameRate(rate: string | undefined) {
+export function frameRate(rate: string | undefined) {
   const [numerator, denominator] = (rate ?? "").split("/").map(Number);
 
   return numerator && denominator ? numerator / denominator : null;
@@ -144,7 +144,8 @@ function videoContainer(info: MediaInfo) {
 }
 
 /**
- * The upload rule: an MP4, QuickTime or WebM file with a video stream; `no_video` otherwise.
+ * The upload rules: an MP4, QuickTime or WebM file with a video stream (`no_video` otherwise)
+ * of at least 3 s (`too_short`). Longer than 8 s is accepted; the caller trims it.
  */
 export function classifyVideo(
   info: MediaInfo | null,
@@ -153,6 +154,10 @@ export function classifyVideo(
 
   if (!info?.video || !container || info.durationMs === null) {
     return { reason: "no_video" };
+  }
+
+  if (info.durationMs < MIN_CLIP_MS) {
+    return { reason: "too_short" };
   }
 
   return {
