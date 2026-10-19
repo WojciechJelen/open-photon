@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { MIN_CLIP_MS } from "../../lib/contracts.ts";
 import { exitedNonzero, frameRate, probe, runTool } from "./probe.ts";
 
 const cutPointSchema = z.object({
@@ -38,12 +39,16 @@ async function cutPoint(input: string, seconds: number, signal?: AbortSignal) {
   const packet = packets[0];
   const start = format.start_time ?? 0;
 
+  const fps = frameRate(stream?.avg_frame_rate);
+
   return {
     codec: stream?.codec_name,
-    fps: frameRate(stream?.avg_frame_rate),
+    fps,
     keyframe:
       packet?.flags.startsWith("K") === true &&
       Math.abs(packet.pts_time - start - seconds) <= 0.001,
+    /** The exact rational (`"30000/1001"`) behind `fps`, for FFmpeg's `-r`. */
+    rate: fps ? stream?.avg_frame_rate : undefined,
     reorderFrames: stream?.has_b_frames ?? 0,
   };
 }
@@ -51,8 +56,10 @@ async function cutPoint(input: string, seconds: number, signal?: AbortSignal) {
 /**
  * Cuts `durationMs` from `startMs` of `input` into an MP4 at `output`, keeping the first video
  * and audio streams together so the passthrough audio stays in sync. A cut that starts on a
- * keyframe is a stream copy; any other cut, or a copy the MP4 muxer refuses or that runs past
- * `durationMs`, is re-encoded to H.264 and AAC.
+ * keyframe is a stream copy; any other cut, or a copy the MP4 muxer refuses or that does not
+ * last 3 s to `durationMs`, is re-encoded to H.264 and AAC. The re-encode lasts a whole number
+ * of frames at most `durationMs` long (3 s at 30000/1001 fps is 89 frames, 2.97 s), so the
+ * caller still checks the result's length.
  */
 export async function trimVideo(
   input: string,
@@ -103,7 +110,12 @@ export async function trimVideo(
 
       const copied = await probe(output, signal);
 
-      if (copied?.video && copied.durationMs !== null && copied.durationMs <= durationMs) {
+      if (
+        copied?.video &&
+        copied.durationMs !== null &&
+        copied.durationMs >= MIN_CLIP_MS &&
+        copied.durationMs <= durationMs
+      ) {
         return "copy";
       }
     } catch (error) {
@@ -113,10 +125,21 @@ export async function trimVideo(
     }
   }
 
+  // Every frame lasts its whole duration, so a plain `-t 8` of a 30000/1001 fps clip keeps the
+  // 240 frames that start before 8 s and lasts 8.008 s. Constant-rate output capped at the frames
+  // that fit makes the cut exactly `frames / fps` long.
+  const frames = point.fps ? Math.floor((durationMs / 1000) * point.fps + 1e-6) : null;
+
   await runTool(
     "ffmpeg",
     [
-      ...read(durationMs / 1000),
+      ...read(frames && point.fps ? frames / point.fps : durationMs / 1000),
+      ...(frames && point.rate
+        ? ["-fps_mode", "cfr", "-r", point.rate, "-frames:v", String(frames)]
+        : []),
+      // 4:2:0 needs even dimensions; pad an odd edge by one pixel rather than rescale the picture.
+      "-vf",
+      "pad=ceil(iw/2)*2:ceil(ih/2)*2",
       "-c:v",
       "libx264",
       "-preset",

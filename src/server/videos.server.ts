@@ -7,6 +7,7 @@ import { z } from "zod";
 import {
   assetSchema,
   MAX_CLIP_MS,
+  MIN_CLIP_MS,
   trimRequestSchema,
   uploadedVideoSchema,
   type VideoRejection,
@@ -22,7 +23,13 @@ const rejections: Record<VideoRejection, string> = {
   too_short: "This clip is shorter than 3 seconds.",
 };
 
-/** Cuts `durationMs` from `startMs` of a stored video into a `trimmed` asset (deduplicated by hash). */
+/** A range that comes out under 3 s once cut to whole frames (3000 ms at 30000/1001 fps is 2.97 s). */
+class CutTooShortError extends Error {}
+
+/**
+ * Cuts `durationMs` from `startMs` of a stored video into a `trimmed` asset (deduplicated by
+ * hash). The stored cut lasts 3 s to `durationMs`; `CutTooShortError` when it would be shorter.
+ */
 async function cutClip(
   source: StoredAsset,
   startMs: number,
@@ -44,6 +51,14 @@ async function cutClip(
 
     if (!info?.video || info.durationMs === null) {
       throw new Error("FFmpeg wrote a trimmed clip that ffprobe cannot read");
+    }
+
+    if (info.durationMs > durationMs) {
+      throw new Error(`FFmpeg cut ${info.durationMs} ms for a ${durationMs} ms range`);
+    }
+
+    if (info.durationMs < MIN_CLIP_MS) {
+      throw new CutTooShortError();
     }
 
     return await storeAsset(temporary, {
@@ -122,7 +137,21 @@ export async function trimAsset(request: Request, assetId: string) {
     return Response.json({ error: "The range ends after the clip" }, { status: 422 });
   }
 
-  const { asset, created } = await cutClip(source, startMs, durationMs, request.signal);
+  try {
+    const { asset, created } = await cutClip(source, startMs, durationMs, request.signal);
 
-  return Response.json(assetSchema.parse(asset), { status: created ? 201 : 200 });
+    return Response.json(assetSchema.parse(asset), { status: created ? 201 : 200 });
+  } catch (error) {
+    if (error instanceof CutTooShortError) {
+      return Response.json(
+        {
+          error: "This range is under 3 seconds once cut to whole frames. Choose a longer range.",
+          reason: "too_short",
+        },
+        { status: 422 },
+      );
+    }
+
+    throw error;
+  }
 }

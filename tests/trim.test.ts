@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { after } from "node:test";
 
-import { runTool } from "../src/server/media/probe.ts";
+import { probe, runTool } from "../src/server/media/probe.ts";
 import { trimVideo } from "../src/server/media/trim.ts";
 
 const directory = mkdtempSync(join(tmpdir(), "open-photon-trim-"));
@@ -36,4 +36,24 @@ test("an 8 s cut keeps AAC audio and lasts 7.9–8.0 s, copied on a keyframe and
       ["h264", "aac"],
     );
   }
+});
+
+test("an off-keyframe cut of an odd-sized clip pads it to even dimensions", async () => {
+  // H.264 4:4:4 allows odd sizes; the 4:2:0 re-encode does not.
+  const input = join(directory, "odd.mp4");
+  // prettier-ignore
+  await runTool("ffmpeg", [
+    "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=24", "-t", "5",
+    "-vf", "format=yuv444p,scale=321:241", "-c:v", "libx264", "-g", "600", input,
+  ]);
+
+  const output = join(directory, "odd-cut.mp4");
+  assert.equal(await trimVideo(input, output, 500, 3000), "encode");
+
+  const info = await probe(output);
+  assert.deepEqual(info?.video && { height: info.video.height, width: info.video.width }, {
+    height: 242,
+    width: 322,
+  });
+  assert.equal(info?.durationMs, 3000);
 });

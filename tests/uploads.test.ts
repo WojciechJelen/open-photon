@@ -1,11 +1,13 @@
 import "./temp-database.ts";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
-import { basename } from "node:path";
-import test from "node:test";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, join } from "node:path";
+import test, { after } from "node:test";
 
 import { database } from "../src/server/db.server.ts";
 import { assetsDirectory } from "../src/server/media.server.ts";
+import { runTool } from "../src/server/media/probe.ts";
 import { MAX_UPLOAD_BYTES } from "../src/server/upload.server.ts";
 import { trimAsset, uploadVideo } from "../src/server/videos.server.ts";
 
@@ -113,6 +115,38 @@ test("a clip over 8 s is kept whole and comes back with its first 8 s trimmed, a
   assert.equal((await trim(source.id, { duration_ms: 8000, start_ms: 5000 })).status, 422);
   assert.equal((await trim(source.id, { duration_ms: 9000, start_ms: 0 })).status, 400);
   assert.equal((await trim(cut.sha256, { duration_ms: 3000, start_ms: 0 })).status, 404);
+});
+
+test("cuts of a 30000/1001 fps clip are whole frames within the range and at least 3 s", async () => {
+  // One keyframe, at 0 s: every other start re-encodes. 8 s is 239.76 frames, 3 s is 89.91.
+  const directory = mkdtempSync(join(tmpdir(), "open-photon-ntsc-"));
+  after(() => rmSync(directory, { force: true, recursive: true }));
+  const path = join(directory, "ntsc-12s.mp4");
+  // prettier-ignore
+  await runTool("ffmpeg", [
+    "-f", "lavfi", "-i", "testsrc2=size=64x48:rate=30000/1001",
+    "-f", "lavfi", "-i", "sine=sample_rate=48000", "-t", "12",
+    "-c:v", "libx264", "-g", "600", "-pix_fmt", "yuv420p", "-c:a", "aac", path,
+  ]);
+
+  const response = await upload(path);
+  assert.equal(response.status, 201);
+  const source = await response.json();
+  assert.ok(source.trimmed.duration_ms >= 7900 && source.trimmed.duration_ms <= 8000);
+
+  for (const [startMs, durationMs] of [
+    [1500, 8000],
+    [1234, 3100],
+  ] as const) {
+    const cut = await trim(source.id, { duration_ms: durationMs, start_ms: startMs });
+    assert.equal(cut.status, 201);
+    const { duration_ms: cutMs } = await cut.json();
+    assert.ok(cutMs <= durationMs && cutMs >= durationMs - 34, `${durationMs}: ${cutMs} ms`);
+  }
+
+  const short = await trim(source.id, { duration_ms: 3000, start_ms: 1500 });
+  assert.equal(short.status, 422);
+  assert.equal((await short.json()).reason, "too_short");
 });
 
 test("a declared body over 128 MiB is a 413 before anything is read", async () => {

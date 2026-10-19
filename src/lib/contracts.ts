@@ -120,8 +120,10 @@ export type VideoRejection = "no_video" | "too_short";
 /**
  * `POST /api/assets/:id/trim` JSON body: cut `duration_ms` (3–8 s) of a stored video from
  * `start_ms`. 201 with the new `trimmed` asset (`source_asset_id` = `:id`), 200 when the same cut
- * already exists. 404 for an unknown or non-video asset, 422 when the range ends after the clip,
- * 400 for a malformed body.
+ * already exists; the cut is whole frames, at most `duration_ms` long. 404 for an unknown or
+ * non-video asset, 422 when the range ends after the clip, 422 `{ error, reason: "too_short" }`
+ * when whole frames make it under 3 s (3000 ms at 30000/1001 fps is 2.97 s), 400 for a
+ * malformed body.
  */
 export const trimRequestSchema = z.object({
   duration_ms: z.int().min(MIN_CLIP_MS).max(MAX_CLIP_MS),
