@@ -23,7 +23,7 @@ For Colima, add `--context colima` after `docker`. Stop the running app before b
 
 Build and run natively: ARM64 on Apple Silicon, AMD64 on x86 hosts. Compose follows the Docker host architecture. CI builds the AMD64 image on an x86 runner. For an explicit cross-platform compatibility check, add `--platform linux/amd64` to both build and run, using a separate image tag and container. Earlier emulated runs had a route-generator segmentation fault and inconsistent memory measurements; use native runs for memory checks.
 
-Open <http://localhost:3030>, follow the typed link to the studio, and submit a render. **This submits a real GPU job and uses Comfy credits.** The reference image and driving video are the official public samples. The prompt describes the character and background; motion comes from the driving video. See [workflow provenance and bindings](workflows/wan-animate-2/README.md).
+Open <http://localhost:3030>, follow the typed link to the studio, and submit a render. **This submits a real GPU job and uses Comfy credits.** The reference image and driving video are the official public samples. The prompt describes the character and background; motion comes from the driving video. See [the workflow, its provenance and its input map](workflows/README.md).
 
 For local development, use Node 24+ and npm 11.6.2 (`npm install --global npm@11.6.2`), then `npm ci` and `npm run dev`. Docker and CI use the same npm version declared in `packageManager`. Install FFmpeg locally to save and verify generated outputs.
 
@@ -40,6 +40,16 @@ The script saves its request ID before submitting, restarts the container after 
 Re-running resumes that saved request; it does not intentionally create another render. Use `WAN_RUN_FILE` to choose a distinct request record only when you intend to start another job. A known rejected request stays failed. `WAN_OUTPUT_DIRECTORY`, `BASE_URL`, `SPIKE_CONTAINER`, and `SPIKE_DOCKER_CONTEXT` override local defaults.
 
 Verified on 2026-10-18 with one accepted real Comfy job. The app recovered its provider ID after a restart, streamed live progress, and saved a 480×848 H.264 MP4 with AAC audio, 121 frames, and a 5.017-second duration. Browser playback and seeking, output checksum, Range 206, raw SSR video tags, and duplicate-request reuse passed. This was one observed run, not a guarantee of provider availability or recovery in every failure mode. Detailed run records are kept privately.
+
+## Render once from a params file
+
+```sh
+node --env-file=.env scripts/render-once.mjs params/first-registry-render.json
+```
+
+The script submits straight to Comfy, without the app: it loads `workflows/motion-transfer.v1.json` and its input map, uploads the two files the params name, builds the graph with `buildGraph`, submits it with an idempotency key, follows the job's events and downloads output `246` to `work/render-once/<recipe>.mp4`. **It submits a real GPU job.** The record next to the MP4 holds the idempotency key before the submit and the job ID right after it, so running the same params file again resumes that job (or reports the finished download) instead of creating another.
+
+Credits per 5 s 480×848 render (distilled: lightx2v LoRA, 6 steps, int8 model): **≈17.5 credits** ($0.083 at 211 credits per dollar), for 64.9 s of GPU execution. Measured on 2026-10-19 from the workspace balance (`GET https://cloud.comfy.org/api/billing/usage/timeseries`, `summary.balance`) before and after one job; the base variant is not measured yet.
 
 ## Render state and recovery
 
