@@ -141,8 +141,15 @@ test("a running generation follows its event stream, and opens it again after a 
   const progress = page.getByRole("progressbar", { name: "Progress" });
   let reported = 40;
 
+  const notice = page.getByRole("status", { name: "Comfy connection" });
+
+  // The real stream with Comfy at the dead port: the stored status, marked as the last known.
+  await open(page, `/g/${id}`);
+  await expect(notice).toBeVisible();
+  await expect(status(page)).toHaveAttribute("data-status", "queued");
+  expect(await streams()).toBe(1);
+
   // The stream as Comfy would drive it: the stored generation, running at `reported` percent.
-  // (Comfy at the dead port gives the real stream nothing to report.)
   await page.route(`**/api/generations/${id}/events`, (route) =>
     route.fulfill({
       body: `data: ${JSON.stringify({
@@ -153,9 +160,10 @@ test("a running generation follows its event stream, and opens it again after a 
     }),
   );
 
-  await open(page, `/g/${id}`);
+  await page.reload();
   await expect(status(page)).toHaveAttribute("data-status", "running");
   await expect(progress).toHaveAttribute("aria-valuenow", "40");
+  await expect(notice).toHaveCount(0);
   expect(await streams()).toBe(1);
 
   // The page loads the stored (queued) generation again, then its new stream reports.

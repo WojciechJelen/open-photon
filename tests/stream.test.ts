@@ -72,6 +72,35 @@ const unreachable: Provider = {
   upload: () => Promise.reject(new Error("The stream never uploads")),
 };
 
+/** Comfy at a dead port: every call fails the way Node's fetch does. */
+const dead: Provider = {
+  job: () => Promise.reject(new TypeError("fetch failed")),
+  submit: () => Promise.reject(new TypeError("fetch failed")),
+  upload: () => Promise.reject(new TypeError("fetch failed")),
+};
+
+/** The events of a whole stream body: each event's `id` and `retry` fields and its parsed data. */
+function parseEvents(body: string) {
+  return body
+    .split("\n\n")
+    .filter(Boolean)
+    .map((block) => {
+      const fields = new Map(
+        block.split("\n").map((line) => {
+          const [name = "", ...value] = line.split(":");
+
+          return [name, value.join(":").trimStart()];
+        }),
+      );
+
+      return {
+        data: generationEventSchema.parse(JSON.parse(fields.get("data") ?? "")),
+        id: fields.get("id"),
+        retry: fields.get("retry"),
+      };
+    });
+}
+
 test("a done generation produces one terminal snapshot without calling Comfy", async () => {
   const { id } = queued();
   transition(id, "queued", "finalizing");
@@ -82,14 +111,53 @@ test("a done generation produces one terminal snapshot without calling Comfy", a
   assert.equal(response.headers.get("x-accel-buffering"), "no");
   assert.equal(response.headers.get("cache-control"), "no-cache, no-transform");
 
-  const events = (await response.text())
-    .split("\n\n")
-    .filter(Boolean)
-    .map((line) => generationEventSchema.parse(JSON.parse(line.slice(6))));
+  const events = parseEvents(await response.text());
 
   assert.equal(events.length, 1);
-  assert.equal(events[0]?.generation.id, row.id);
-  assert.equal(events[0]?.generation.status, "done");
+  assert.equal(events[0]?.data.generation.id, row.id);
+  assert.equal(events[0]?.data.generation.status, "done");
+  assert.equal(streamDiagnostics().active, 0);
+});
+
+test("with Comfy unreachable the stored snapshot still comes first, then a notice and a clean end with a growing retry delay", async () => {
+  const row = queued();
+
+  for (const [lastEventId, id, retry] of [
+    [null, "provider-unavailable:1", "5000"],
+    ["provider-unavailable:2", "provider-unavailable:3", "20000"],
+    ["provider-unavailable:9", "provider-unavailable:10", "60000"],
+  ]) {
+    const headers = lastEventId ? { "Last-Event-ID": lastEventId } : undefined;
+
+    const response = streamGeneration(
+      new Request("http://localhost/events", { headers }),
+      row.id,
+      dead,
+    );
+
+    assert.equal(response.status, 200);
+
+    // `text()` rejects if the stream ends in an error rather than closing.
+    const events = parseEvents(await response.text());
+
+    assert.deepEqual(
+      events.map(({ data }) => [data.kind, data.generation.status]),
+      [
+        ["snapshot", "queued"],
+        ["provider_unavailable", "queued"],
+      ],
+    );
+    // The snapshot clears the browser's last event id; the notice counts the failure.
+    assert.deepEqual(
+      events.map((event) => [event.id, event.retry]),
+      [
+        ["", undefined],
+        [id, retry],
+      ],
+    );
+  }
+
+  assert.equal(findGeneration(row.id)?.status, "queued");
   assert.equal(streamDiagnostics().active, 0);
 });
 

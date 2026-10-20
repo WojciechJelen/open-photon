@@ -13,7 +13,9 @@ type UploadState =
   | { kind: "uploading"; percent: number }
   | { kind: "probing" }
   | { kind: "too-long"; trimmed: Asset; video: UploadedVideo }
-  | { kind: "rejected"; refusal: Refusal }
+  // `selectedAssetId`: the motion chosen when the clip was refused. Choosing another one (a
+  // sample, or another entry in the history) clears the refusal.
+  | { kind: "rejected"; refusal: Refusal; selectedAssetId: string | undefined }
   | { assetId: string; kind: "ready" };
 
 // Keyed by the API's runtime `reason` string.
@@ -55,6 +57,11 @@ export function UploadZone({
   const nextSignal = useRequestSignal();
   const busy = state.kind === "uploading" || state.kind === "probing";
 
+  const shown: UploadState =
+    state.kind === "rejected" && state.selectedAssetId !== selectedAssetId
+      ? { kind: "idle" }
+      : state;
+
   function ready(clip: Asset) {
     setState({ assetId: clip.id, kind: "ready" });
     onReady(clip.id);
@@ -77,7 +84,7 @@ export function UploadZone({
     }
 
     if ("refusal" in result) {
-      setState({ kind: "rejected", refusal: result.refusal });
+      setState({ kind: "rejected", refusal: result.refusal, selectedAssetId });
     } else if (result.video.trimmed) {
       setState({ kind: "too-long", trimmed: result.video.trimmed, video: result.video });
     } else {
@@ -125,11 +132,11 @@ export function UploadZone({
       <p
         aria-live="polite"
         className="text-sm"
-        data-reason={state.kind === "rejected" ? state.refusal.reason : undefined}
-        data-state={state.kind}
+        data-reason={shown.kind === "rejected" ? shown.refusal.reason : undefined}
+        data-state={shown.kind}
         role="status"
       >
-        {describe(state, selectedAssetId)}
+        {describe(shown, selectedAssetId)}
       </p>
       {state.kind === "too-long" && (
         <TrimDialog

@@ -138,7 +138,9 @@ test("leaving the page during an upload cancels it, and its answer never navigat
   await expect(page).toHaveURL(`/g/${id}`);
 });
 
-test("a 2 s clip is too short and stores nothing; an audio file has no video", async ({ page }) => {
+test("a 2 s clip is too short and stores nothing; an audio file has no video; picking a sample clears the refusal", async ({
+  page,
+}) => {
   await open(page, "/");
 
   const assets = count("assets");
@@ -151,6 +153,10 @@ test("a 2 s clip is too short and stores nothing; an audio file has no video", a
   await expect(uploadStatus(page)).toHaveAttribute("data-reason", "no_video");
   expect(count("assets")).toBe(assets);
   await expect(page).toHaveURL(/\/$/);
+
+  await page.getByRole("button", { name: "Street dance" }).click();
+  await expect(uploadStatus(page)).toHaveAttribute("data-state", "idle");
+  await expect(uploadStatus(page)).toBeEmpty();
 });
 
 test("a motion id that names no clip falls back to none", async ({ page }) => {

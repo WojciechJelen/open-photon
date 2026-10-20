@@ -10,13 +10,21 @@ import { useRequestSignal } from "#/lib/use-request-signal";
 
 /**
  * Upload a photo of a person as the character. The consent checkbox gates the button; a refusal
- * (`consent_required`, `not_image`) shows inline.
+ * (`consent_required`, `not_image`) shows inline until another character is chosen.
  */
-export function CharacterUpload({ onReady }: { onReady: (characterId: string) => void }) {
+export function CharacterUpload({
+  onReady,
+  selectedId,
+}: {
+  onReady: (characterId: string) => void;
+  selectedId: string | undefined;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [consent, setConsent] = useState(false);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // With the character chosen when it came: choosing another one clears it.
+  const [refusal, setRefusal] = useState<{ message: string; selectedId: string | undefined }>();
+  const error = refusal && refusal.selectedId === selectedId ? refusal.message : null;
   const nextSignal = useRequestSignal();
 
   async function submit() {
@@ -30,7 +38,7 @@ export function CharacterUpload({ onReady }: { onReady: (characterId: string) =>
     form.append("consent", "true");
     form.append("image", file);
     setPending(true);
-    setError(null);
+    setRefusal(undefined);
 
     const result = await callApi(characterSchema, "/api/characters", {
       body: form,
@@ -46,7 +54,7 @@ export function CharacterUpload({ onReady }: { onReady: (characterId: string) =>
     setPending(false);
 
     if ("refusal" in result) {
-      setError(result.refusal.message);
+      setRefusal({ message: result.refusal.message, selectedId });
     } else {
       onReady(result.data.id);
     }
@@ -66,7 +74,7 @@ export function CharacterUpload({ onReady }: { onReady: (characterId: string) =>
         id="character-file"
         onChange={(event) => {
           setFile(event.target.files?.[0] ?? null);
-          setError(null);
+          setRefusal(undefined);
         }}
         type="file"
       />

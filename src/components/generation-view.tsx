@@ -12,9 +12,14 @@ import { useRequestSignal } from "#/lib/use-request-signal";
 
 const finished = new Set(["done", "failed", "unknown"]);
 
-/** The generation as its event stream reports it, until it is done, failed or unknown. */
+/**
+ * The generation as its event stream reports it, until it is done, failed or unknown, and
+ * whether the stream last said Comfy could not be asked (`provider_unavailable`; the browser
+ * reconnects on its own after the server's `retry:` delay).
+ */
 function useLiveGeneration(initial: GenerationSnapshot) {
   const [generation, setGeneration] = useState(initial);
+  const [providerUnavailable, setProviderUnavailable] = useState(false);
 
   useEffect(() => {
     if (finished.has(initial.status)) {
@@ -24,12 +29,13 @@ function useLiveGeneration(initial: GenerationSnapshot) {
     const events = new EventSource(`/api/generations/${initial.id}/events`);
 
     events.addEventListener("message", (event) => {
-      const snapshot = generationEventSchema.parse(JSON.parse(z.string().parse(event.data)));
+      const update = generationEventSchema.parse(JSON.parse(z.string().parse(event.data)));
 
-      setGeneration(snapshot.generation);
+      setGeneration(update.generation);
+      setProviderUnavailable(update.kind === "provider_unavailable");
 
       // The server ends the stream after a final snapshot; closing stops EventSource reconnecting.
-      if (finished.has(snapshot.generation.status)) {
+      if (finished.has(update.generation.status)) {
         events.close();
       }
     });
@@ -37,7 +43,7 @@ function useLiveGeneration(initial: GenerationSnapshot) {
     return () => events.close();
   }, [initial.id, initial.status]);
 
-  return generation;
+  return { generation, providerUnavailable };
 }
 
 /**
@@ -52,7 +58,7 @@ export function GenerationView({
   initial: GenerationSnapshot;
   source: Asset;
 }) {
-  const generation = useLiveGeneration(initial);
+  const { generation, providerUnavailable } = useLiveGeneration(initial);
   const navigate = useNavigate();
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState<string | null>(null);
@@ -102,6 +108,11 @@ export function GenerationView({
         {running ? `${generation.status} · ${percent}%` : generation.status}
       </p>
       {running && <Progress aria-label="Progress" value={percent} />}
+      {running && providerUnavailable && (
+        <p aria-label="Comfy connection" className="text-sm text-muted-foreground" role="status">
+          Comfy cannot be reached right now, so this is the last known status. Trying again…
+        </p>
+      )}
       {generation.parent_id && (
         <p className="text-sm">
           A retry of{" "}

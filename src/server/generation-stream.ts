@@ -1,10 +1,17 @@
 import { setTimeout as delay } from "node:timers/promises";
 
-import { generationSchema } from "../lib/contracts.ts";
+import { type GenerationEvent, generationSchema } from "../lib/contracts.ts";
 import { comfyProvider, type Provider } from "./comfy.ts";
 import { finalize } from "./finalize.ts";
 import { settleAbandoned } from "./generate.ts";
 import { findGeneration, type Generation, markRunning } from "./generations.ts";
+
+type Update = { generation: Generation; kind: GenerationEvent["kind"] };
+
+// After `provider_unavailable` the browser waits `retry:` before it reconnects: 5 s, doubling on
+// each failure in a row (the `Last-Event-ID` it sends back counts them), up to a minute.
+const FIRST_RETRY_MS = 5000;
+const MAX_RETRY_MS = 60_000;
 
 const diagnostics = {
   active: 0,
@@ -31,58 +38,88 @@ function current(id: string) {
 }
 
 /**
- * The generation's snapshots: the stored row first, then each change Comfy reports. A row that
- * is `done`, `failed` or `unknown` yields once and never reaches Comfy. `signal` ends the Comfy
- * subscription.
+ * The generation's events: the stored row first, then each change Comfy reports. A row that is
+ * `done`, `failed` or `unknown` yields once and never reaches Comfy. When Comfy cannot be asked
+ * (unreachable, or an error answer), the last event is `provider_unavailable` with the stored row:
+ * the row stays as it is. `signal` ends the Comfy subscription.
  */
 async function* generationUpdates(
   id: string,
   signal: AbortSignal,
   provider: Provider,
-): AsyncGenerator<Generation> {
+): AsyncGenerator<Update> {
   signal.throwIfAborted();
   let row = current(id);
-  yield row;
+  yield { generation: row, kind: "snapshot" };
 
   // This process is still submitting it: wait until the job id is saved or the submit failed.
   while (row.status === "preparing") {
     await delay(1000, undefined, { signal });
     row = current(id);
-    yield row;
+    yield { generation: row, kind: "snapshot" };
   }
 
   if (row.provider_job_id === null || !["queued", "running", "finalizing"].includes(row.status)) {
     return;
   }
 
-  const job = await provider.job(row.provider_job_id);
-  signal.throwIfAborted();
+  try {
+    const job = await provider.job(row.provider_job_id);
+    signal.throwIfAborted();
 
-  for await (const event of job.events(signal)) {
-    const running =
-      event.kind === "progress"
-        ? markRunning(id, Math.min(99, Math.max(0, Math.floor(event.value * 100))))
-        : event.kind === "statusChange" && event.status === "running"
-          ? markRunning(id, null)
-          : null;
+    for await (const event of job.events(signal)) {
+      const running =
+        event.kind === "progress"
+          ? markRunning(id, Math.min(99, Math.max(0, Math.floor(event.value * 100))))
+          : event.kind === "statusChange" && event.status === "running"
+            ? markRunning(id, null)
+            : null;
 
-    if (running) {
-      yield running;
+      if (running) {
+        yield { generation: running, kind: "snapshot" };
+      }
     }
-  }
 
-  // The events end when the job does; `finalize` asks Comfy whether it completed.
-  yield (await finalize(id, provider)) ?? current(id);
+    // The events end when the job does; `finalize` asks Comfy whether it completed.
+    yield { generation: (await finalize(id, provider)) ?? current(id), kind: "snapshot" };
+  } catch (error) {
+    if (signal.aborted) {
+      throw error;
+    }
+
+    console.error(
+      JSON.stringify({
+        event: "sse.provider-unavailable",
+        id,
+        message: error instanceof Error ? error.message : "unknown",
+      }),
+    );
+
+    yield { generation: current(id), kind: "provider_unavailable" };
+  }
+}
+
+/** The `retry:` delay after `provider_unavailable`, from the failures in a row `Last-Event-ID` counts. */
+function retryAfter(request: Request) {
+  const failures = Number(
+    request.headers.get("Last-Event-ID")?.match(/^provider-unavailable:(\d+)$/)?.[1] ?? 0,
+  );
+
+  return { failures: failures + 1, ms: Math.min(MAX_RETRY_MS, FIRST_RETRY_MS * 2 ** failures) };
 }
 
 /**
- * `GET /api/generations/:id/events`: the snapshots as server-sent events (`generationEventSchema`),
+ * `GET /api/generations/:id/events`: the events as server-sent events (`generationEventSchema`),
  * with a `: ping` comment every 15 s so proxies keep the connection open. A closed request or
- * cancelled body aborts the Comfy subscription; the job itself continues on Comfy.
+ * cancelled body aborts the Comfy subscription; the job itself continues on Comfy. Each snapshot
+ * clears the event id; `provider_unavailable` sets it to `provider-unavailable:<failures in a
+ * row>` with a `retry:` delay that doubles with them, then the stream ends cleanly (a 200, never
+ * an error) and the browser reconnects after that delay.
  */
 export function streamGeneration(request: Request, id: string, provider: Provider = comfyProvider) {
   const abort = new AbortController();
   const iterator = generationUpdates(id, abort.signal, provider);
+  const retry = retryAfter(request);
   const encoder = new TextEncoder();
   let stopped = false;
   let heartbeat: ReturnType<typeof setInterval> | undefined;
@@ -142,9 +179,17 @@ export function streamGeneration(request: Request, id: string, provider: Provide
           return;
         }
 
-        const generation = generationSchema.parse(next.value);
+        const { generation, kind } = next.value;
+
+        const fields =
+          kind === "provider_unavailable"
+            ? `retry: ${retry.ms}\nid: provider-unavailable:${retry.failures}`
+            : "id:";
+
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ generation, kind: "snapshot" })}\n\n`),
+          encoder.encode(
+            `${fields}\ndata: ${JSON.stringify({ generation: generationSchema.parse(generation), kind })}\n\n`,
+          ),
         );
       } catch (error) {
         if (!stopped) {
@@ -157,7 +202,7 @@ export function streamGeneration(request: Request, id: string, provider: Provide
           );
           cleanup("error");
           controller.error(
-            new Error("Comfy progress disconnected. Reconnect to recover the saved generation."),
+            new Error("The event stream failed. Reconnect to recover the saved generation."),
           );
         }
       }

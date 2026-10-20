@@ -67,7 +67,7 @@ function Home() {
           2. Character
         </h2>
         <CharacterGrid characters={characters} onPick={pickCharacter} selectedId={character?.id} />
-        <CharacterUpload onReady={pickCharacter} />
+        <CharacterUpload onReady={pickCharacter} selectedId={character?.id} />
         {character ? (
           <div aria-label="Chosen character" className="flex max-w-40 flex-col gap-2" role="group">
             <img

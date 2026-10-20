@@ -57,7 +57,9 @@ test("an uploaded photo needs the consent checkbox; with it the character is cre
   expect(count("characters WHERE origin = 'upload'")).toBe(uploads + 1);
 });
 
-test("a file that is not an image is refused inline and creates nothing", async ({ page }) => {
+test("a file that is not an image is refused inline and creates nothing; picking a sample clears the refusal", async ({
+  page,
+}) => {
   const characters = count("characters");
 
   await open(page, "/");
@@ -67,6 +69,10 @@ test("a file that is not an image is refused inline and creates nothing", async 
   await expect(page.getByRole("alert")).not.toBeEmpty();
   expect(count("characters")).toBe(characters);
   await expect(page).toHaveURL(/\/$/);
+
+  await page.getByRole("button", { name: "Placeholder blue" }).click();
+  await expect(page).toHaveURL(/\?character=/);
+  await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
 test("a character id that names no character falls back to none", async ({ page }) => {
