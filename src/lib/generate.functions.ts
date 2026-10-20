@@ -24,7 +24,7 @@ export const loadResult = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { readResult } = await import("#/server/generate");
     const { publicOrigin } = await import("#/server/share");
-    const result = await readResult(data);
+    const result = readResult(data);
 
     return result && { ...result, origin: publicOrigin() };
   });

@@ -51,6 +51,8 @@ A done generation shows the source clip and the result on one clock: the result 
 
 When the event stream ends, and on every `GET /api/generations/:id` of a `queued`, `running` or `finalizing` row, `finalize` (`src/server/finalize.ts`) asks Comfy for the job (`jobs.get` is the source of truth; elapsed time never completes a job). A job that is not complete leaves the row as it is; a failed, cancelled or expired one fails it. A succeeded one is downloaded (output `246`, which already carries the driving clip's audio, so nothing is muxed), probed, hashed and stored as a `provider_output` asset, a JPEG poster is cut at 0.5 s (the first frame for a shorter output) and stored as a `poster` asset, and the row becomes `done` with `final_asset_id`, `output_asset_id` and `poster_asset_id`. One finalize per generation runs at a time in the process; concurrent callers share it. A failed download leaves the row `finalizing`, counts `finalize_attempts` and is retried on the next read. Comfy's signed output URLs last about 6 hours, so a result is re-hosted the first time anyone looks after it finished.
 
+Opening `/g/:id` never waits for Comfy: the page renders the stored row at once, and its event stream (which ends in `finalize`) brings in a result Comfy finished while nobody was watching.
+
 `POST /api/generations/:id/retry` retries a `failed` generation: it creates a child (`parent_id` = `:id`) with the same recipe except a fresh random seed and submits it through the same path as `generate` (201 `{ id, reused }`). **It submits a real GPU job.** It answers 409 for a generation that is not `failed` (including `unknown`: see below), 404 for an unknown id, 400 for a malformed one.
 
 ## Recipes and re-runs

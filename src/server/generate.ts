@@ -359,20 +359,22 @@ export async function readGeneration(id: string, provider: Provider = comfyProvi
 }
 
 /**
- * What `/g/:id` shows: the generation as `GET /api/generations/:id` reads it, its recipe, the
- * motion clip it was made from (`source`, the asset `?motion=` names on `/`) and, for a child,
- * whether it kept its parent's seed (a re-run) or not (a retry); `null` for a malformed or
- * unknown id (the page is then a 404).
+ * What `/g/:id` shows: the generation as stored (a `preparing` row a stopped server left is
+ * settled first), its recipe, the motion clip it was made from (`source`, the asset `?motion=`
+ * names on `/`) and, for a child, whether it kept its parent's seed (a re-run) or not (a retry);
+ * `null` for a malformed or unknown id (the page is then a 404). It never asks Comfy, so the page
+ * renders at once even when Comfy does not answer: the page's event stream finalizes a row Comfy
+ * has finished, as `GET /api/generations/:id` does.
  */
-export async function readResult(id: string) {
+export function readResult(id: string) {
   const parsed = z.uuid().safeParse(id);
-  const generation = parsed.success ? await readGeneration(parsed.data) : null;
-  const row = generation ? findGeneration(generation.id) : null;
+  const stored = parsed.success ? findGeneration(parsed.data) : null;
 
-  if (!generation || !row) {
+  if (!stored) {
     return null;
   }
 
+  const row = settleAbandoned(stored);
   const source = findBySha256(row.recipe.inputs.driving_video_sha256);
 
   if (!source) {
@@ -382,7 +384,7 @@ export async function readResult(id: string) {
   const parent = row.parent_id ? findGeneration(row.parent_id) : null;
 
   return {
-    generation,
+    generation: generationSchema.parse(row),
     recipe: row.recipe,
     rerunOfParent: parent?.recipe.params.seed === row.recipe.params.seed,
     source: assetSchema.parse(source),
