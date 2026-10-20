@@ -159,6 +159,31 @@ test("a 2 s clip is too short and stores nothing; an audio file has no video; pi
   await expect(uploadStatus(page)).toBeEmpty();
 });
 
+test("an upload over the rate limit says to wait and keeps the page as it was", async ({
+  page,
+}) => {
+  await open(page, "/");
+
+  // The guard's answer over the limit (`src/server/access.server.ts`): the e2e server's limit is
+  // high enough for the whole run, so the page gets it here.
+  await page.route("**/api/uploads", (route) =>
+    route.fulfill({
+      headers: { "Retry-After": "42" },
+      json: {
+        error: "Too many uploads. Try again in 42 s.",
+        reason: "rate_limited",
+        retry_after: 42,
+      },
+      status: 429,
+    }),
+  );
+
+  await upload(page).setInputFiles("tests/fixtures/result-5s.mp4");
+  await expect(uploadStatus(page)).toHaveAttribute("data-reason", "rate_limited");
+  await expect(uploadStatus(page)).not.toBeEmpty();
+  await expect(page).toHaveURL(/\/$/);
+});
+
 test("a motion id that names no clip falls back to none", async ({ page }) => {
   for (const motion of ["xyz", crypto.randomUUID()]) {
     await open(page, `/?motion=${motion}`);

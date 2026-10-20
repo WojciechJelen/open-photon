@@ -24,6 +24,7 @@ type UploadState =
 // Keyed by the API's runtime `reason` string.
 const rejectionLabels = new Map([
   ["no_video", "No video"],
+  ["rate_limited", "Slow down"],
   ["too_large", "Too large"],
   ["too_short", "Too short"],
 ]);

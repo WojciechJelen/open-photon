@@ -10,7 +10,7 @@ import { Label } from "#/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Textarea } from "#/components/ui/textarea";
 import { type AngleChoice, type GenerateInput, generateInputSchema } from "#/lib/contracts";
-import { callApi } from "#/lib/requests";
+import { callApi, type Refusal } from "#/lib/requests";
 import { useRequestSignal } from "#/lib/use-request-signal";
 
 type Field = "angle" | "character_id" | "motion_asset_id" | "prompt" | "seed";
@@ -52,7 +52,7 @@ export function GenerateForm({
   const [prompt, setPrompt] = useState("");
   const [seed, setSeed] = useState("");
   const [errors, setErrors] = useState<Field[]>([]);
-  const [failure, setFailure] = useState<string | null>(null);
+  const [failure, setFailure] = useState<Refusal | null>(null);
   const [pending, setPending] = useState(false);
   // A generation that waits for the access code.
   const [held, setHeld] = useState<GenerateInput | null>(null);
@@ -106,7 +106,7 @@ export function GenerateForm({
       if (answer.refusal.reason === "access_required") {
         setHeld(input);
       } else {
-        setFailure(answer.refusal.message);
+        setFailure(answer.refusal);
       }
 
       setPending(false);
@@ -191,8 +191,13 @@ export function GenerateForm({
           </ul>
         )}
         {failure && (
-          <p aria-label="Not started" className="text-sm text-destructive" role="alert">
-            {failure}
+          <p
+            aria-label="Not started"
+            className="text-sm text-destructive"
+            data-reason={failure.reason}
+            role="alert"
+          >
+            {failure.message}
           </p>
         )}
         <div>

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -31,12 +32,12 @@ export const SEEDED_JOB_ID = "e2e-seeded-job";
 /** The provider job id of the `queued` generation `seed.ts` adds; no provider ever saw it. */
 export const QUEUED_JOB_ID = "e2e-queued-job";
 
-/** Runs `read` on the e2e server's database (`playwright.config.ts`), opened read-only. */
-function query<T>(read: (database: DatabaseSync) => T) {
-  const database = new DatabaseSync(process.env.E2E_DATABASE_PATH ?? "", { readOnly: true });
+/** Runs `use` on the e2e server's database (`playwright.config.ts`), read-only unless `write`. */
+function query<T>(use: (database: DatabaseSync) => T, write = false) {
+  const database = new DatabaseSync(process.env.E2E_DATABASE_PATH ?? "", { readOnly: !write });
 
   try {
-    return read(database);
+    return use(database);
   } finally {
     database.close();
   }
@@ -57,6 +58,32 @@ export function queuedGenerationId() {
         ?.id,
     ),
   );
+}
+
+/**
+ * Adds a `queued` generation like the seeded one (its own id, key and job id), so both places
+ * the e2e server allows in flight (`IN_FLIGHT_MAX` in `playwright.config.ts`) are taken; the
+ * returned function removes it. Comfy at the dead port never moves either on.
+ */
+export function takeLastInFlightPlace() {
+  const id = randomUUID();
+
+  query(
+    (database) =>
+      database
+        .prepare(
+          `INSERT INTO generations (id, kind, character_id, workflow_id, workflow_version, recipe,
+            recipe_hash, idempotency_key, provider_job_id, target, status, created_at)
+          SELECT ?, kind, character_id, workflow_id, workflow_version, recipe, recipe_hash, ?, ?,
+            target, 'queued', created_at
+          FROM generations WHERE provider_job_id = ?`,
+        )
+        .run(id, randomUUID(), `e2e-in-flight-${id}`, QUEUED_JOB_ID),
+    true,
+  );
+
+  return () =>
+    query((database) => database.prepare("DELETE FROM generations WHERE id = ?").run(id), true);
 }
 
 /**

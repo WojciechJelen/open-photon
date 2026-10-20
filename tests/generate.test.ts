@@ -8,7 +8,8 @@ import { ComfyError, IdempotencyKeyReuse, InvalidWorkflow } from "@comfyorg/sdk"
 import { z } from "zod";
 
 import { findAccessCode } from "../src/server/access-codes.ts";
-import { type Provider, providerTarget } from "../src/server/comfy.ts";
+import { createAccessGuard } from "../src/server/access.server.ts";
+import { type Provider, type ProviderJob, providerTarget } from "../src/server/comfy.ts";
 import { database } from "../src/server/db.server.ts";
 import {
   GenerateError,
@@ -17,8 +18,10 @@ import {
   readGeneration,
   rerun,
   retry,
+  startChild,
 } from "../src/server/generate.ts";
 import {
+  countInFlight,
   createGeneration,
   findGeneration,
   findPending,
@@ -29,6 +32,13 @@ import {
 import type { Recipe } from "../src/server/recipe.ts";
 import { uploadVideo } from "../src/server/videos.server.ts";
 import { mintCode } from "./temp-database.ts";
+
+// The jobs these tests submit stay queued (nothing finishes them), so the in-flight cap is lifted
+// except where a test sets it.
+process.env.IN_FLIGHT_MAX = "1000";
+
+// Requests name their client in `X-Client`.
+process.env.CLIENT_IP_HEADER = "X-Client";
 
 const form = new FormData();
 
@@ -485,4 +495,187 @@ test("a code counts each generation Comfy may have accepted, once, and refuses p
   assert.equal(rows(), before);
   assert.equal(submits.length, 1);
   assert.equal(used(), 2);
+});
+
+/** The `name=value` part of a session cookie for `code`, from `POST /api/session`. */
+async function sessionCookie(code: string) {
+  const response = await createAccessGuard({ production: true })(
+    new Request("http://localhost/api/session", {
+      body: JSON.stringify({ code }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    }),
+  );
+
+  return response?.headers.get("Set-Cookie")?.split(";")[0] ?? "";
+}
+
+/** A `POST` to `path` from `client`, with the session `cookie` if any. */
+function post(path: string, client: string, cookie = "", body = "{}") {
+  return new Request(`http://localhost${path}`, {
+    body,
+    headers: { Cookie: cookie, "X-Client": client },
+    method: "POST",
+  });
+}
+
+/** Comfy's answer for a job that is `status`, without outputs. */
+function comfyJob(status: string): ProviderJob {
+  return {
+    error: null,
+    events: () => {
+      throw new Error("This test never follows a job's events");
+    },
+    getOutputs: () => [],
+    id: "job",
+    status,
+  };
+}
+
+test("generate, retry and re-run are limited to 3 a minute per code and per client, then 429 with Retry-After and no row; an existing result is free", async () => {
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+  const sample = input();
+  const done = await doneGeneration(double, sample);
+  const spent = await sessionCookie(mintCode(10));
+  const busy = await sessionCookie(mintCode(10));
+  const fresh = await sessionCookie(mintCode(10));
+  const before = rows();
+
+  // One code from three clients: every answer but an existing result costs a token.
+  assert.equal((await handleGenerate(post("/api/generate", "a1", spent), double)).status, 400);
+  assert.equal(
+    (await startChild(post("/api/generations/nope/retry", "a2", spent), "nope", retry, double))
+      .status,
+    400,
+  );
+
+  const unknown = crypto.randomUUID();
+
+  assert.equal(
+    (
+      await startChild(
+        post(`/api/generations/${unknown}/rerun`, "a3", spent),
+        unknown,
+        rerun,
+        double,
+      )
+    ).status,
+    404,
+  );
+
+  const limited = await handleGenerate(
+    post("/api/generate", "a4", spent, JSON.stringify(input())),
+    double,
+  );
+
+  const body = await limited.json();
+
+  assert.equal(limited.status, 429);
+  assert.equal(body.reason, "rate_limited");
+  assert.equal(limited.headers.get("Retry-After"), String(body.retry_after));
+  assert.ok(body.retry_after > 0);
+
+  // An existing result costs nothing and is not refused: the same recipe for the spent code, and
+  // a re-run of a done generation five times from a client that then still has its tokens.
+  const same = await handleGenerate(
+    post("/api/generate", "a4", spent, JSON.stringify(sample)),
+    double,
+  );
+
+  assert.deepEqual([same.status, await same.json()], [200, { id: done.id, reused: true }]);
+
+  for (let index = 0; index < 5; index++) {
+    const rerunOfDone = post(`/api/generations/${done.id}/rerun`, "a5");
+
+    assert.equal((await startChild(rerunOfDone, done.id, rerun, double)).status, 200);
+  }
+
+  assert.equal((await handleGenerate(post("/api/generate", "a5"), double)).status, 400);
+
+  // One client with one code three times: that client is refused with another code, or none.
+  for (let index = 0; index < 3; index++) {
+    assert.equal((await handleGenerate(post("/api/generate", "b1", busy), double)).status, 400);
+  }
+
+  assert.equal(
+    (await handleGenerate(post("/api/generate", "b1", fresh, JSON.stringify(input())), double))
+      .status,
+    429,
+  );
+  assert.equal((await handleGenerate(post("/api/generate", "b1"), double)).status, 429);
+  assert.equal(rows(), before);
+  assert.equal(submits.length, 1);
+});
+
+test("with the in-flight cap full, a new generation is a 503 queue_full with Retry-After and no row; an existing result still comes back", async () => {
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+
+  double.job = () => Promise.resolve(comfyJob("running"));
+
+  const sample = input();
+  const done = await doneGeneration(double, sample);
+  const cookie = await sessionCookie(mintCode(10));
+  const before = rows();
+
+  process.env.IN_FLIGHT_MAX = "0";
+
+  try {
+    const full = await handleGenerate(
+      post("/api/generate", "c1", cookie, JSON.stringify(input())),
+      double,
+    );
+
+    const body = await full.json();
+
+    assert.equal(full.status, 503);
+    assert.equal(body.reason, "queue_full");
+    assert.equal(full.headers.get("Retry-After"), String(body.retry_after));
+    assert.ok(body.retry_after > 0);
+    assert.deepEqual(await generate(sample, session, double), { id: done.id, reused: true });
+    assert.deepEqual(await rerun(done.id, null, double), { id: done.id, reused: true });
+    assert.equal(rows(), before);
+    assert.equal(submits.length, 1);
+  } finally {
+    process.env.IN_FLIGHT_MAX = "1000";
+  }
+});
+
+test("a full cap is refreshed first: generations that ended while nobody watched give their places back", async () => {
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+  const abandoned = findGeneration((await generate(input(), session, double)).id);
+
+  assert.ok(abandoned);
+
+  // Left `preparing` by a stopped server, and queued on Comfy where the job then failed; both the
+  // oldest in flight, so the refresh reaches them.
+  const stopped = createGeneration({
+    characterId: character.id,
+    recipe: {
+      ...abandoned.recipe,
+      params: { ...abandoned.recipe.params, seed: abandoned.recipe.params.seed + 1_000_000 },
+    },
+  });
+
+  database
+    .prepare("UPDATE generations SET created_at = ? WHERE id IN (?, ?)")
+    .run("2000-01-01T00:00:00.000Z", abandoned.id, stopped.id);
+
+  double.job = (jobId) =>
+    Promise.resolve(comfyJob(jobId === abandoned.provider_job_id ? "failed" : "running"));
+
+  process.env.IN_FLIGHT_MAX = String(countInFlight());
+
+  try {
+    const fresh = await generate(input(), session, double);
+
+    assert.equal(fresh.reused, false);
+    assert.equal(findGeneration(fresh.id)?.status, "queued");
+    assert.equal(submits.length, 2);
+    assert.deepEqual(
+      [findGeneration(abandoned.id)?.error_code, findGeneration(stopped.id)?.error_code],
+      ["provider_failed", "interrupted"],
+    );
+  } finally {
+    process.env.IN_FLIGHT_MAX = "1000";
+  }
 });

@@ -1,7 +1,13 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import { generationSchema } from "../src/lib/contracts.ts";
-import { count, open, queuedGenerationId, seededResult } from "./e2e/session.ts";
+import {
+  count,
+  open,
+  queuedGenerationId,
+  seededResult,
+  takeLastInFlightPlace,
+} from "./e2e/session.ts";
 
 /** Records every `POST /api/generate`, the request that submits to Comfy. */
 function generatePosts(page: Page) {
@@ -129,6 +135,35 @@ test("with Comfy at a dead port, Generate opens a failed generation with the rea
   await expect(page).toHaveURL(`/${choices}`);
   await expect(page.getByRole("group", { name: "Chosen motion" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Chosen character" })).toBeVisible();
+});
+
+test("with every place in flight taken, Generate says the queue is full and starts nothing", async ({
+  page,
+}) => {
+  const release = takeLastInFlightPlace();
+
+  try {
+    await open(page, "/");
+    await page.getByRole("button", { name: "Street dance" }).click();
+    await page.getByRole("button", { name: "Placeholder blue" }).click();
+    await expect(page).toHaveURL(/character=/);
+
+    const choices = page.url();
+    const rows = count("generations");
+    const generate = page.getByRole("button", { name: "Generate" });
+
+    await generate.click();
+
+    const refusal = page.getByRole("alert", { name: "Not started" });
+
+    await expect(refusal).toHaveAttribute("data-reason", "queue_full");
+    await expect(refusal).not.toBeEmpty();
+    await expect(generate).toBeEnabled();
+    expect(page.url()).toBe(choices);
+    expect(count("generations")).toBe(rows);
+  } finally {
+    release();
+  }
 });
 
 test("a running generation follows its event stream, and opens it again after a reload", async ({

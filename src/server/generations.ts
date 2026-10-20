@@ -145,6 +145,27 @@ export function findPending(hash: string) {
   );
 }
 
+const IN_FLIGHT = "status IN ('preparing', 'queued', 'running', 'finalizing')";
+
+/**
+ * How many generations are in flight: being submitted, or on Comfy and not finished yet. The
+ * in-flight cap (`IN_FLIGHT_MAX`) counts them; `unknown` ones are not counted, as nothing ever
+ * moves them on.
+ */
+export function countInFlight() {
+  return Number(
+    database.prepare(`SELECT count(*) AS count FROM generations WHERE ${IN_FLIGHT}`).get()?.count,
+  );
+}
+
+/** The ids of the `limit` oldest generations in flight. */
+export function findInFlight(limit: number) {
+  return database
+    .prepare(`SELECT id FROM generations WHERE ${IN_FLIGHT} ORDER BY created_at LIMIT ?`)
+    .all(limit)
+    .map((row) => String(row.id));
+}
+
 /** Keeps the provider's references to the uploaded files, before the graph that uses them is sent. */
 export function recordProviderInputs(id: string, inputs: ProviderInputs) {
   database

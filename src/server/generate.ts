@@ -1,5 +1,6 @@
 import { randomInt } from "node:crypto";
 import { resolve } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { z } from "zod";
 
@@ -17,8 +18,10 @@ import { findCharacter } from "./characters.server.ts";
 import { comfyProvider, type Provider, providerError, providerTarget } from "./comfy.ts";
 import { finalize } from "./finalize.ts";
 import {
+  countInFlight,
   createGeneration,
   findGeneration,
+  findInFlight,
   findPending,
   findReusable,
   type Generation,
@@ -27,6 +30,7 @@ import {
   recordProviderInputs,
   transition,
 } from "./generations.ts";
+import { inFlightMax, requesterKeys, takeToken } from "./limits.ts";
 import { assetsDirectory } from "./paths.ts";
 import { type Recipe, recipeHash } from "./recipe.ts";
 import { buildGraph } from "./workflows/build-graph.ts";
@@ -34,15 +38,23 @@ import { type LoadedWorkflow, loadWorkflow } from "./workflows/registry.ts";
 
 /**
  * A request that cannot become a generation: `status` is the HTTP status that says why, `reason`
- * a code the UI acts on (`access_required` asks for the access code).
+ * a code the UI acts on (`access_required` asks for the access code), `retryAfter` the seconds to
+ * wait before asking again (`rate_limited`, `queue_full`).
  */
 export class GenerateError extends Error {
-  status: 401 | 403 | 404 | 409 | 422;
+  status: 400 | 401 | 403 | 404 | 409 | 422 | 429 | 503;
   reason: string | undefined;
-  constructor(status: 401 | 403 | 404 | 409 | 422, message: string, reason?: string) {
+  retryAfter: number | undefined;
+  constructor(
+    status: 400 | 401 | 403 | 404 | 409 | 422 | 429 | 503,
+    message: string,
+    reason?: string,
+    retryAfter?: number,
+  ) {
     super(message);
     this.status = status;
     this.reason = reason;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -56,6 +68,58 @@ const SEED_RANGE = 2 ** 48 - 1;
 const submitting = new Set<string>();
 
 type Files = { drivingVideo: StoredAsset; referenceImage: StoredAsset };
+
+/**
+ * Called once a request would create a row; it throws to refuse it. The HTTP routes pass the
+ * rate limit (`answer`); a direct call (a script, a test) admits every row.
+ */
+type Admit = () => void;
+
+const admitAll: Admit = () => undefined;
+
+// What a full queue says to wait, in seconds: about the time one render takes to get going.
+const QUEUE_RETRY_AFTER = 30;
+
+// A refresh of the rows that hold the in-flight cap asks Comfy about this many, oldest first, and
+// a request waits this long for it.
+const REFRESH_ROWS = 5;
+const REFRESH_WAIT_MS = 5000;
+
+let refreshing: Promise<unknown> | null = null;
+
+/**
+ * Brings the generations that hold the in-flight cap up to date (`readGeneration`): a `preparing`
+ * row a stopped server left is settled, a job Comfy has finished or failed is finalized. Without
+ * it, a generation nobody watches any more would hold the cap until someone opened its page.
+ * Concurrent requests share one refresh, which waits for Comfy at most `REFRESH_WAIT_MS`; a
+ * finalize still running then carries on.
+ */
+function refreshInFlight(provider: Provider) {
+  refreshing ??= Promise.race([
+    Promise.all(
+      findInFlight(REFRESH_ROWS).map(async (id) => {
+        try {
+          await readGeneration(id, provider);
+        } catch (error) {
+          // `readGeneration` logs a finalize that failed itself; anything else is logged here,
+          // and the row keeps its place.
+          console.error(
+            JSON.stringify({
+              event: "in-flight.refresh-error",
+              id,
+              message: error instanceof Error ? error.message : "unknown",
+            }),
+          );
+        }
+      }),
+    ),
+    delay(REFRESH_WAIT_MS, undefined, { ref: false }),
+  ]).finally(() => {
+    refreshing = null;
+  });
+
+  return refreshing;
+}
 
 async function send(row: Generation, workflow: LoadedWorkflow, files: Files, provider: Provider) {
   let graph;
@@ -115,7 +179,10 @@ async function send(row: Generation, workflow: LoadedWorkflow, files: Files, pro
  *
  * A new row needs a session whose access code has generations left; the row records the code,
  * which counts it (`006-access-codes.sql`). Without a session, only an existing generation that
- * `free` allows comes back; anything else is a 401 asking for the code.
+ * `free` allows comes back; anything else is a 401 asking for the code. A new row is `admit`ted
+ * first, and only while fewer than `IN_FLIGHT_MAX` generations are in flight: when that looks
+ * full, the rows holding it are refreshed, and if it still is, the answer is a 503 `queue_full`
+ * and no row is created. An existing generation is returned whatever the cap.
  */
 async function submitRecipe(
   {
@@ -135,35 +202,71 @@ async function submitRecipe(
   },
   workflow: LoadedWorkflow,
   provider: Provider,
+  admit: Admit,
 ) {
   const hash = recipeHash(recipe);
-  // No await between the lookup and the insert: one process cannot create the row twice.
-  let existing = findReusable(hash) ?? findPending(hash);
 
-  while (existing && settleAbandoned(existing).status === "failed") {
-    existing = findPending(hash);
+  /**
+   * What the recipe gets now: an existing generation (`reused`), or the code that pays for a new
+   * row and whether the cap is full. There is no await from it to the insert: one process cannot
+   * create the row twice, nor start more generations than the cap.
+   */
+  const claim = () => {
+    let existing = findReusable(hash) ?? findPending(hash);
+
+    while (existing && settleAbandoned(existing).status === "failed") {
+      existing = findPending(hash);
+    }
+
+    if (existing && (session || free(existing))) {
+      return { id: existing.id, reused: true as const };
+    }
+
+    const code = session ? findAccessCodeById(session.codeId) : null;
+
+    if (!code) {
+      throw new GenerateError(401, "Enter an access code to do this.", "access_required");
+    }
+
+    if (code.used >= code.max_generations) {
+      throw new GenerateError(
+        403,
+        `This access code has used all ${code.max_generations} of its generations. Ask the owner for another code.`,
+        "code_exhausted",
+      );
+    }
+
+    return { code, full: countInFlight() >= inFlightMax(), reused: false as const };
+  };
+
+  let claimed = claim();
+
+  if (claimed.reused) {
+    return { id: claimed.id, reused: true };
   }
 
-  if (existing && (session || free(existing))) {
-    return { id: existing.id, reused: true };
-  }
+  admit();
 
-  const code = session ? findAccessCodeById(session.codeId) : null;
+  if (claimed.full) {
+    await refreshInFlight(provider);
+    claimed = claim();
 
-  if (!code) {
-    throw new GenerateError(401, "Enter an access code to do this.", "access_required");
-  }
+    if (claimed.reused) {
+      return { id: claimed.id, reused: true };
+    }
 
-  if (code.used >= code.max_generations) {
-    throw new GenerateError(
-      403,
-      `This access code has used all ${code.max_generations} of its generations. Ask the owner for another code.`,
-      "code_exhausted",
-    );
+    if (claimed.full) {
+      throw new GenerateError(
+        503,
+        `Queue full: every rendering slot is taken. Try again in ${QUEUE_RETRY_AFTER} s.`,
+        "queue_full",
+        QUEUE_RETRY_AFTER,
+      );
+    }
   }
 
   const row = createGeneration({
-    accessCodeId: code.id,
+    accessCodeId: claimed.code.id,
     characterId: characterId ?? undefined,
     parentId,
     recipe,
@@ -189,6 +292,7 @@ export async function generate(
   input: z.output<typeof generateInputSchema>,
   session: Session | null,
   provider: Provider = comfyProvider,
+  admit: Admit = admitAll,
 ) {
   const motion = findAsset(input.motion_asset_id);
 
@@ -260,6 +364,7 @@ export async function generate(
     },
     workflow,
     provider,
+    admit,
   );
 }
 
@@ -272,6 +377,7 @@ export async function retry(
   id: string,
   session: Session | null,
   provider: Provider = comfyProvider,
+  admit: Admit = admitAll,
 ) {
   const parent = findGeneration(id);
 
@@ -302,7 +408,7 @@ export async function retry(
   return submitChild(
     parent,
     { ...parent.recipe, params: { ...parent.recipe.params, seed } },
-    { free: () => false, session },
+    { admit, free: () => false, session },
     provider,
   );
 }
@@ -319,6 +425,7 @@ export async function rerun(
   id: string,
   session: Session | null,
   provider: Provider = comfyProvider,
+  admit: Admit = admitAll,
 ) {
   const parent = findGeneration(id);
 
@@ -329,7 +436,7 @@ export async function rerun(
   return submitChild(
     parent,
     { ...parent.recipe, target: providerTarget() },
-    { free: (existing) => existing.status === "done", session },
+    { admit, free: (existing) => existing.status === "done", session },
     provider,
   );
 }
@@ -341,7 +448,7 @@ export async function rerun(
 async function submitChild(
   parent: Generation,
   recipe: Recipe,
-  access: { free: (existing: Generation) => boolean; session: Session | null },
+  access: { admit: Admit; free: (existing: Generation) => boolean; session: Session | null },
   provider: Provider,
 ) {
   const workflow = await loadWorkflow("motion-transfer", 1);
@@ -372,6 +479,7 @@ async function submitChild(
     },
     workflow,
     provider,
+    access.admit,
   );
 }
 
@@ -461,22 +569,59 @@ export function readResult(id: string) {
 /**
  * The answer to a request that starts a generation: 201 `{ id, reused: false }` for a submitted
  * one, 200 with `reused: true` for an existing one returned instead, or the `GenerateError`'s
- * status with `{ error, reason? }`.
+ * status with `{ error, reason?, retry_after? }` (and `Retry-After`).
+ *
+ * Every answer but an existing result takes a token from the request's client and access code
+ * (`takeToken`, `GENERATE_RATE_LIMIT` a minute): a new row before it is created (`admit`), a
+ * refusal (a malformed body, a missing clip, no code…) as it is answered. Without a token the
+ * answer is a 429 `rate_limited` instead, and no row is created; an existing result stays free.
  */
-async function answer(start: () => Promise<{ id: string; reused: boolean }>) {
+async function answer(
+  request: Request,
+  start: (session: Session | null, admit: Admit) => Promise<{ id: string; reused: boolean }>,
+) {
+  const session = readSession(request);
+  let charged = false;
+
+  const charge = () => {
+    charged = true;
+    const wait = takeToken("generate", requesterKeys(request, session), Date.now());
+
+    return wait === undefined
+      ? undefined
+      : new GenerateError(
+          429,
+          `Too many generation requests. Try again in ${wait} s.`,
+          "rate_limited",
+          wait,
+        );
+  };
+
   try {
-    const result = await start();
+    const result = await start(session, () => {
+      const limited = charge();
+
+      if (limited) {
+        throw limited;
+      }
+    });
 
     return Response.json(result, { status: result.reused ? 200 : 201 });
   } catch (error) {
-    if (error instanceof GenerateError) {
-      return Response.json(
-        { error: error.message, reason: error.reason },
-        { status: error.status },
-      );
+    if (!(error instanceof GenerateError)) {
+      throw error;
     }
 
-    throw error;
+    const refused = (charged ? undefined : charge()) ?? error;
+
+    return Response.json(
+      { error: refused.message, reason: refused.reason, retry_after: refused.retryAfter },
+      {
+        headers:
+          refused.retryAfter === undefined ? {} : { "Retry-After": String(refused.retryAfter) },
+        status: refused.status,
+      },
+    );
   }
 }
 
@@ -484,21 +629,20 @@ async function answer(start: () => Promise<{ id: string; reused: boolean }>) {
  * `POST /api/generate` with a JSON `generateInputSchema` body: `generate`, answered by `answer`;
  * 400 for a body that is too large, not JSON, or not the schema.
  */
-export async function handleGenerate(request: Request, provider: Provider = comfyProvider) {
-  const body = await readLimitedBody(request, 16_384);
+export function handleGenerate(request: Request, provider: Provider = comfyProvider) {
+  return answer(request, async (session, admit) => {
+    const body = await readLimitedBody(request, 16_384);
 
-  const input = generateInputSchema.safeParse(
-    await new Response(body ?? "").json().catch(() => null),
-  );
-
-  if (!input.success) {
-    return Response.json(
-      { error: z.prettifyError(input.error), reason: "invalid_input" },
-      { status: 400 },
+    const input = generateInputSchema.safeParse(
+      await new Response(body ?? "").json().catch(() => null),
     );
-  }
 
-  return answer(() => generate(input.data, readSession(request), provider));
+    if (!input.success) {
+      throw new GenerateError(400, z.prettifyError(input.error), "invalid_input");
+    }
+
+    return generate(input.data, session, provider, admit);
+  });
 }
 
 /**
@@ -508,11 +652,23 @@ export async function handleGenerate(request: Request, provider: Provider = comf
 export function startChild(
   request: Request,
   value: string,
-  start: (id: string, session: Session | null) => Promise<{ id: string; reused: boolean }>,
+  start: (
+    id: string,
+    session: Session | null,
+    provider: Provider,
+    admit: Admit,
+  ) => Promise<{ id: string; reused: boolean }>,
+  provider: Provider = comfyProvider,
 ) {
-  const id = generationIdParam(value);
+  return answer(request, (session, admit) => {
+    const id = z.uuid().safeParse(value);
 
-  return id instanceof Response ? id : answer(() => start(id, readSession(request)));
+    if (!id.success) {
+      throw new GenerateError(400, "Invalid generation ID");
+    }
+
+    return start(id.data, session, provider, admit);
+  });
 }
 
 /** A route's `:generationId` as a UUID, or the 400 response for a malformed one. */

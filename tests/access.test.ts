@@ -170,6 +170,56 @@ test("logins are limited to 10 a minute, without trusting client IP headers", as
   assert.equal((await guard(exchange(code)))?.status, 204);
 });
 
+test("uploads, cuts and character photos are limited to 10 a minute per code and per client, then 429 with Retry-After", async () => {
+  process.env.CLIENT_IP_HEADER = "X-Real-IP";
+
+  try {
+    const spent = await sessionCookie(mintCode(5));
+    const busy = await sessionCookie(mintCode(5));
+    const fresh = await sessionCookie(mintCode(5));
+    // From after the logins: a session that expires more than 12 hours ahead is no session.
+    let time = Date.now();
+    const guard = createAccessGuard({ production: true }, () => time);
+    const paths = ["/api/uploads", "/api/characters", `/api/assets/${crypto.randomUUID()}/trim`];
+
+    const post = (path: string, cookie: string, client: string) =>
+      guard(
+        new Request(`${origin}${path}`, {
+          headers: { Cookie: cookie, "X-Real-IP": client },
+          method: "POST",
+        }),
+      );
+
+    // One code from ten clients: its eleventh, from yet another client, is refused.
+    for (let index = 0; index < 10; index++) {
+      assert.equal(await post(paths[index % 3] ?? "", spent, `10.0.0.${index}`), undefined);
+    }
+
+    const limited = await post("/api/uploads", spent, "10.0.0.99");
+    const body = await limited?.json();
+
+    assert.equal(limited?.status, 429);
+    assert.equal(body?.reason, "rate_limited");
+    assert.equal(limited?.headers.get("Retry-After"), String(body?.retry_after));
+    // Reading the session is not an upload: the code's other requests go on.
+    assert.equal(await guard(new Request(`${origin}/`, { headers: { Cookie: spent } })), undefined);
+
+    // One client with one code ten times: another code from that client is refused too.
+    for (let index = 0; index < 10; index++) {
+      assert.equal(await post(paths[index % 3] ?? "", busy, "10.0.1.1"), undefined);
+    }
+
+    assert.equal((await post("/api/characters", fresh, "10.0.1.1"))?.status, 429);
+    assert.equal(await post("/api/characters", fresh, "10.0.1.2"), undefined);
+
+    // A token is back once `Retry-After` has passed.
+    time += Number(body?.retry_after) * 1000;
+    assert.equal(await post("/api/uploads", spent, "10.0.0.99"), undefined);
+  } finally {
+    delete process.env.CLIENT_IP_HEADER;
+  }
+});
+
 test("without a session: the picker, samples, share pages and pre-rendered samples are open; uploads, generations and other media are not", async () => {
   const guard = createAccessGuard({ production: true });
   const cookie = await sessionCookie(mintCode(5));

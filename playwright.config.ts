@@ -7,7 +7,9 @@ import { defineConfig } from "@playwright/test";
 import { storageStatePath } from "./tests/e2e/session.ts";
 
 // The browser tests start their own dev server, never reuse one: on a fresh database seeded by
-// `tests/e2e/seed.ts`, with Comfy at a dead port so no click can submit a paid job.
+// `tests/e2e/seed.ts`, with Comfy at a dead port so no click can submit a paid job. The seeded
+// `queued` generation takes one place in flight, so two are allowed; the rate limits are high
+// enough for the whole run, which comes from one client with one code.
 const baseURL = process.env.BASE_URL ?? "http://127.0.0.1:3032";
 const { hostname, port } = new URL(baseURL);
 
@@ -41,6 +43,9 @@ export default defineConfig({
       COMFY_API_KEY: "e2e-placeholder-not-a-key",
       COMFY_BASE_URL: "http://127.0.0.1:1",
       DATABASE_PATH: process.env.E2E_DATABASE_PATH,
+      GENERATE_RATE_LIMIT: "1000",
+      IN_FLIGHT_MAX: "2",
+      UPLOAD_RATE_LIMIT: "1000",
     },
     reuseExistingServer: false,
     stdout: "pipe",
