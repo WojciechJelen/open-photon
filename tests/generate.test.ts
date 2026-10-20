@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { ComfyError, IdempotencyKeyReuse, InvalidWorkflow } from "@comfyorg/sdk";
 import { z } from "zod";
@@ -675,6 +676,51 @@ test("a full cap is refreshed first: generations that ended while nobody watched
       [findGeneration(abandoned.id)?.error_code, findGeneration(stopped.id)?.error_code],
       ["provider_failed", "interrupted"],
     );
+  } finally {
+    process.env.IN_FLIGHT_MAX = "1000";
+  }
+});
+
+test("two requests for one new recipe while a full cap is refreshed: one starts it, the other gets it back and its token too", async () => {
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+  const abandoned = findGeneration((await generate(input(), session, double)).id);
+
+  assert.ok(abandoned);
+  database
+    .prepare("UPDATE generations SET created_at = ? WHERE id = ?")
+    .run("2000-01-01T00:00:00.000Z", abandoned.id);
+
+  // The refresh takes a while, so both requests are admitted before it frees the place.
+  double.job = async (jobId) => {
+    await delay(50);
+
+    return comfyJob(jobId === abandoned.provider_job_id ? "failed" : "running");
+  };
+
+  const cookie = await sessionCookie(mintCode(10));
+  const body = JSON.stringify(input());
+
+  process.env.IN_FLIGHT_MAX = String(countInFlight());
+
+  try {
+    const answers = await Promise.all([
+      handleGenerate(post("/api/generate", "e1", cookie, body), double),
+      handleGenerate(post("/api/generate", "e1", cookie, body), double),
+    ]);
+
+    assert.deepEqual(
+      answers.map(({ status }) => status).sort((a, b) => a - b),
+      [200, 201],
+    );
+    assert.equal(submits.length, 2);
+
+    // Only the started one cost a token (3 a minute): two more answers, then a 429.
+    for (const status of [400, 400, 429]) {
+      assert.equal(
+        (await handleGenerate(post("/api/generate", "e1", cookie), double)).status,
+        status,
+      );
+    }
   } finally {
     process.env.IN_FLIGHT_MAX = "1000";
   }

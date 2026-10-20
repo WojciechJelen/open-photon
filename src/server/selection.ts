@@ -77,8 +77,10 @@ function pickable(character: z.output<typeof characterSchema>): PickableCharacte
  * benchmarked one). A character in the URL may be an upload (every upload has consent); there
  * are no accounts, so an uploaded character is listed only while the URL names it. An id that
  * names nothing usable (unknown, not a video, a clip over 8 s) resolves to `null`, so the
- * picker falls back to no choice. So does, without a session (`signedIn` false), a choice whose
- * file is not public (`isPublicAsset`: an upload rather than a sample or a shared clip).
+ * picker falls back to no choice. Without a session (`signedIn` false), a usable choice whose
+ * file is not public (`isPublicAsset`: an upload rather than a sample or a shared clip) keeps
+ * its id (`motionId`, `characterId`) but not its details (`motion`, `character` are `null`): the
+ * picker asks for the code to show it, and Generate can still send it and ask for the code then.
  */
 export async function readSelection(
   {
@@ -98,8 +100,10 @@ export async function readSelection(
     angles: angles.angles.map(({ id, label }): AngleChoice => ({ id, label })),
     character:
       chosen && (signedIn || isPublicAsset(chosen.image_asset_id)) ? pickable(chosen) : null,
+    characterId: chosen?.id ?? null,
     characters: listSampleCharacters().map(pickable),
     motion: clip && (signedIn || isPublicAsset(clip.id)) ? clip : null,
+    motionId: clip?.id ?? null,
     motions: listSampleMotions(),
     placeholderAngles: angles.placeholder,
     signedIn,

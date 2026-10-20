@@ -8,12 +8,13 @@ import { Label } from "#/components/ui/label";
 import { callApi } from "#/lib/requests";
 
 /**
- * The inline "Enter access code" step of an action that needs one (an upload, a generation): the
- * code goes to `POST /api/session`, which sets the session cookie; then the page's data is loaded
- * again (it says whether the visitor has a session) and `onSignedIn` carries on with the action,
- * on the same page with every choice as it was.
+ * The inline "Enter access code" step of an action that needs one (an upload, a generation), or
+ * of a page that shows the visitor's own uploads: the code goes to `POST /api/session`, which
+ * sets the session cookie; then the page's data is loaded again (it says whether the visitor has
+ * a session, and shows those uploads) and `onSignedIn`, if given, carries on with the action, on
+ * the same page with every choice as it was.
  */
-export function AccessCodeForm({ onSignedIn }: { onSignedIn: () => void }) {
+export function AccessCodeForm({ onSignedIn }: { onSignedIn?: () => void }) {
   const router = useRouter();
   const id = useId();
   const [code, setCode] = useState("");
@@ -39,7 +40,7 @@ export function AccessCodeForm({ onSignedIn }: { onSignedIn: () => void }) {
     }
 
     void router.invalidate();
-    onSignedIn();
+    onSignedIn?.();
   }
 
   return (

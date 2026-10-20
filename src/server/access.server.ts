@@ -156,13 +156,26 @@ export function readSession(request: Request, now = Date.now): Session | null {
 }
 
 /**
+ * The upload limit (`takeToken`, `UPLOAD_RATE_LIMIT` a minute per client and per code): `undefined`
+ * while the request's client and code have a token (it takes one), else a 429 `rate_limited`.
+ * The handlers of uploads, cuts and character photos call it first, before the body is read, so
+ * it holds for every URL the router sends to them (any letter case, a trailing slash).
+ */
+export function uploadRefusal(request: Request, now = Date.now) {
+  const wait = takeToken("upload", requesterKeys(request, readSession(request, now)), now());
+
+  return wait === undefined
+    ? undefined
+    : refusal(429, `Too many uploads. Try again in ${wait} s.`, "rate_limited", wait);
+}
+
+/**
  * The access guard, the global request middleware (`src/start.ts`). `/access` (the code form, for
  * a page opened without a session) and `POST /api/session` (`{ code }` → 204, for the app's own
  * inline form) exchange a code for the session cookie; both share one limit of 10 attempts a
- * minute. A request with a session goes on, except an upload, a cut or a character photo over
- * its limit (`takeToken`, `UPLOAD_RATE_LIMIT` a minute per client and per code): that is a 429
- * `rate_limited` before the body is read. One without a session goes on only if
- * `isPublicRequest` lets it; otherwise a page asked for redirects to `/access?next=<it>` and
+ * minute. A request with a session goes on. One without a session goes on only if
+ * `isPublicRequest` lets it (an allowlist: a URL it does not know, an alias of a public one
+ * included, needs the code); otherwise a page asked for redirects to `/access?next=<it>` and
  * anything else is a 401.
  */
 export function createAccessGuard(
@@ -256,21 +269,7 @@ export function createAccessGuard(
         : respond(null, 204, { "Set-Cookie": result.cookie });
     }
 
-    const session = readSession(request, now);
-
-    if (session) {
-      const wait =
-        request.method === "POST" &&
-        /^\/api\/(?:uploads|characters|assets\/[^/]+\/trim)$/.test(url.pathname)
-          ? takeToken("upload", requesterKeys(request, session), now())
-          : undefined;
-
-      return wait === undefined
-        ? undefined
-        : refusal(429, `Too many uploads. Try again in ${wait} s.`, "rate_limited", wait);
-    }
-
-    if (isPublicRequest(request.method, url.pathname)) {
+    if (readSession(request, now) || isPublicRequest(request.method, url.pathname)) {
       return undefined;
     }
 

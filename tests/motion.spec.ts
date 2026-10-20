@@ -164,8 +164,8 @@ test("an upload over the rate limit says to wait and keeps the page as it was", 
 }) => {
   await open(page, "/");
 
-  // The guard's answer over the limit (`src/server/access.server.ts`): the e2e server's limit is
-  // high enough for the whole run, so the page gets it here.
+  // The upload handler's answer over the limit (`uploadRefusal`): the e2e server's limit is high
+  // enough for the whole run, so the page gets it here.
   await page.route("**/api/uploads", (route) =>
     route.fulfill({
       headers: { "Retry-After": "42" },

@@ -30,7 +30,7 @@ import {
   recordProviderInputs,
   transition,
 } from "./generations.ts";
-import { inFlightMax, requesterKeys, takeToken } from "./limits.ts";
+import { inFlightMax, requesterKeys, returnToken, takeToken } from "./limits.ts";
 import { assetsDirectory } from "./paths.ts";
 import { type Recipe, recipeHash } from "./recipe.ts";
 import { buildGraph } from "./workflows/build-graph.ts";
@@ -574,7 +574,9 @@ export function readResult(id: string) {
  * Every answer but an existing result takes a token from the request's client and access code
  * (`takeToken`, `GENERATE_RATE_LIMIT` a minute): a new row before it is created (`admit`), a
  * refusal (a malformed body, a missing clip, no code…) as it is answered. Without a token the
- * answer is a 429 `rate_limited` instead, and no row is created; an existing result stays free.
+ * answer is a 429 `rate_limited` instead, and no row is created; an existing result stays free,
+ * even one found only after `admit` (another request made it while the full cap was refreshed):
+ * its token is given back.
  */
 async function answer(
   request: Request,
@@ -605,6 +607,10 @@ async function answer(
         throw limited;
       }
     });
+
+    if (charged && result.reused) {
+      returnToken("generate", requesterKeys(request, session));
+    }
 
     return Response.json(result, { status: result.reused ? 200 : 201 });
   } catch (error) {

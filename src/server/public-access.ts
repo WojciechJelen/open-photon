@@ -19,33 +19,39 @@ export function isPublicAsset(assetId: string) {
  * result that already exists, for free: `POST /api/generate` (a pre-rendered sample × sample
  * result) and `POST /api/generations/:id/rerun` (a done generation's own result); they refuse
  * anything that would submit a job (`src/server/generate.ts`).
+ *
+ * The paths are matched the way the router matches them, so an alias reaches the same answer:
+ * fixed parts in any letter case, and one trailing slash or none. Ids are matched as given (the
+ * router passes them on unchanged); one in other letters names nothing, so it is not public.
  */
 export function isPublicRequest(method: string, pathname: string) {
   if (pathname.startsWith("/_serverFn/")) {
     return true;
   }
 
+  const path = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+
   if (method === "POST") {
-    return pathname === "/api/generate" || /^\/api\/generations\/[^/]+\/rerun$/.test(pathname);
+    return /^\/api\/(?:generate|generations\/[^/]+\/rerun)$/i.test(path);
   }
 
   if (method !== "GET" && method !== "HEAD") {
     return false;
   }
 
-  if (pathname === "/" || /^\/r\/[^/]+$/.test(pathname)) {
+  if (path === "/" || /^\/r\/[^/]+$/i.test(path)) {
     return true;
   }
 
-  const assetId = /^\/media\/([0-9a-f-]{36})\.[a-z0-9]+$/.exec(pathname)?.[1];
+  const assetId = /^\/media\/([0-9a-f-]{36})\.[a-z0-9]+$/i.exec(path)?.[1];
 
   if (assetId !== undefined) {
     return isPublicAsset(assetId);
   }
 
   const generationId =
-    /^\/(?:g|api\/generations)\/([0-9a-f-]{36})$/.exec(pathname)?.[1] ??
-    /^\/api\/generations\/([0-9a-f-]{36})\/(?:events|recipe\.json)$/.exec(pathname)?.[1];
+    /^\/(?:g|api\/generations)\/([0-9a-f-]{36})$/i.exec(path)?.[1] ??
+    /^\/api\/generations\/([0-9a-f-]{36})\/(?:events|recipe\.json)$/i.exec(path)?.[1];
 
   return (
     generationId !== undefined &&

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
+import { AccessCodeForm } from "#/components/access-code-form";
 import { CharacterGrid } from "#/components/character-grid";
 import { CharacterUpload } from "#/components/character-upload";
 import { GenerateForm } from "#/components/generate-form";
@@ -24,8 +25,24 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { angles, character, characters, motion, motions, placeholderAngles, signedIn } =
-    Route.useLoaderData();
+  const {
+    angles,
+    character,
+    characterId,
+    characters,
+    motion,
+    motionId,
+    motions,
+    placeholderAngles,
+    signedIn,
+  } = Route.useLoaderData();
+
+  // The URL's choices, whether or not their details show: an upload needs the code to show, and
+  // keeps its id through that (a refusal shown for a choice stays shown when its details appear).
+  const motionChoice = motionId ?? undefined;
+  const characterChoice = characterId ?? undefined;
+  const privateMotion = motionChoice !== undefined && !motion;
+  const privateCharacter = characterChoice !== undefined && !character;
 
   const navigate = Route.useNavigate();
 
@@ -44,18 +61,33 @@ function Home() {
         </p>
       </header>
 
+      {(privateMotion || privateCharacter) && (
+        <section aria-label="Private choices" className="flex flex-col gap-2">
+          <p className="text-sm">
+            This link names your own {privateMotion ? "clip" : "photo"}
+            {privateMotion && privateCharacter ? " and photo" : ""}: enter the access code to see it
+            here. Generate keeps it and asks for the code too.
+          </p>
+          <AccessCodeForm />
+        </section>
+      )}
+
       <section aria-labelledby="motion-heading" className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold" id="motion-heading">
           1. Motion
         </h2>
-        <MotionGrid motions={motions} onPick={pickMotion} selectedAssetId={motion?.id} />
-        <UploadZone onReady={pickMotion} selectedAssetId={motion?.id} signedIn={signedIn} />
+        <MotionGrid motions={motions} onPick={pickMotion} selectedAssetId={motionChoice} />
+        <UploadZone onReady={pickMotion} selectedAssetId={motionChoice} signedIn={signedIn} />
         {motion ? (
           <div aria-label="Chosen motion" className="flex max-w-40 flex-col gap-2" role="group">
             <LoopingVideo label="Chosen motion" src={mediaUrl(motion)} />
             <p className="text-sm">
               Chosen motion, {((motion.duration_ms ?? 0) / 1000).toFixed(1)} s
             </p>
+          </div>
+        ) : privateMotion ? (
+          <div aria-label="Chosen motion" role="group">
+            <p className="text-sm">Chosen motion: your own clip, shown after the access code.</p>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">No motion chosen yet.</p>
@@ -66,8 +98,12 @@ function Home() {
         <h2 className="text-xl font-semibold" id="character-heading">
           2. Character
         </h2>
-        <CharacterGrid characters={characters} onPick={pickCharacter} selectedId={character?.id} />
-        <CharacterUpload onReady={pickCharacter} selectedId={character?.id} signedIn={signedIn} />
+        <CharacterGrid
+          characters={characters}
+          onPick={pickCharacter}
+          selectedId={characterChoice}
+        />
+        <CharacterUpload onReady={pickCharacter} selectedId={characterChoice} signedIn={signedIn} />
         {character ? (
           <div aria-label="Chosen character" className="flex max-w-40 flex-col gap-2" role="group">
             <img
@@ -76,6 +112,12 @@ function Home() {
               src={mediaUrl(character.image)}
             />
             <p className="text-sm">Chosen character: {character.title ?? "your photo"}</p>
+          </div>
+        ) : privateCharacter ? (
+          <div aria-label="Chosen character" role="group">
+            <p className="text-sm">
+              Chosen character: your own photo, shown after the access code.
+            </p>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">No character chosen yet.</p>
@@ -88,8 +130,8 @@ function Home() {
         </h2>
         <GenerateForm
           angles={angles}
-          characterId={character?.id}
-          motionAssetId={motion?.id}
+          characterId={characterChoice}
+          motionAssetId={motionChoice}
           placeholderAngles={placeholderAngles}
         />
       </section>

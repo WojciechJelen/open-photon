@@ -114,3 +114,19 @@ export function takeToken(action: Action, keys: string[], now: number) {
 
   return undefined;
 }
+
+/**
+ * Gives back the token `takeToken` took from each of `keys` for `action`, for a request that
+ * turned out to be free after all (it got an existing result).
+ */
+export function returnToken(action: Action, keys: string[]) {
+  const limit = setting(limits[action].name, limits[action].fallback, 1);
+
+  for (const key of keys) {
+    const bucket = buckets.get(`${action}:${key}`);
+
+    if (bucket) {
+      bucket.tokens = Math.min(limit, bucket.tokens + 1);
+    }
+  }
+}

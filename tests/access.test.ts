@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { copyFile, stat } from "node:fs/promises";
 import { test } from "node:test";
 
-import { createAccessGuard, readSession } from "../src/server/access.server.ts";
+import { createAccessGuard, readSession, uploadRefusal } from "../src/server/access.server.ts";
 import { hashFile, incomingPath, storeAsset } from "../src/server/assets.ts";
 import { database } from "../src/server/db.server.ts";
 import { createGeneration, markQueued } from "../src/server/generations.ts";
@@ -179,42 +179,40 @@ test("uploads, cuts and character photos are limited to 10 a minute per code and
     const fresh = await sessionCookie(mintCode(5));
     // From after the logins: a session that expires more than 12 hours ahead is no session.
     let time = Date.now();
-    const guard = createAccessGuard({ production: true }, () => time);
-    const paths = ["/api/uploads", "/api/characters", `/api/assets/${crypto.randomUUID()}/trim`];
 
-    const post = (path: string, cookie: string, client: string) =>
-      guard(
-        new Request(`${origin}${path}`, {
+    // The handlers call it whatever URL brought the request (`tests/access.spec.ts` sends some).
+    const post = (cookie: string, client: string) =>
+      uploadRefusal(
+        new Request(`${origin}/api/uploads`, {
           headers: { Cookie: cookie, "X-Real-IP": client },
           method: "POST",
         }),
+        () => time,
       );
 
     // One code from ten clients: its eleventh, from yet another client, is refused.
     for (let index = 0; index < 10; index++) {
-      assert.equal(await post(paths[index % 3] ?? "", spent, `10.0.0.${index}`), undefined);
+      assert.equal(post(spent, `10.0.0.${index}`), undefined);
     }
 
-    const limited = await post("/api/uploads", spent, "10.0.0.99");
+    const limited = post(spent, "10.0.0.99");
     const body = await limited?.json();
 
     assert.equal(limited?.status, 429);
     assert.equal(body?.reason, "rate_limited");
     assert.equal(limited?.headers.get("Retry-After"), String(body?.retry_after));
-    // Reading the session is not an upload: the code's other requests go on.
-    assert.equal(await guard(new Request(`${origin}/`, { headers: { Cookie: spent } })), undefined);
 
     // One client with one code ten times: another code from that client is refused too.
     for (let index = 0; index < 10; index++) {
-      assert.equal(await post(paths[index % 3] ?? "", busy, "10.0.1.1"), undefined);
+      assert.equal(post(busy, "10.0.1.1"), undefined);
     }
 
-    assert.equal((await post("/api/characters", fresh, "10.0.1.1"))?.status, 429);
-    assert.equal(await post("/api/characters", fresh, "10.0.1.2"), undefined);
+    assert.equal(post(fresh, "10.0.1.1")?.status, 429);
+    assert.equal(post(fresh, "10.0.1.2"), undefined);
 
     // A token is back once `Retry-After` has passed.
     time += Number(body?.retry_after) * 1000;
-    assert.equal(await post("/api/uploads", spent, "10.0.0.99"), undefined);
+    assert.equal(post(spent, "10.0.0.99"), undefined);
   } finally {
     delete process.env.CLIENT_IP_HEADER;
   }
@@ -287,6 +285,10 @@ test("without a session: the picker, samples, share pages and pre-rendered sampl
     ["POST", "/api/generate"],
     ["POST", `/api/generations/${private_}/rerun`],
     ["POST", "/_serverFn/example"],
+    // Aliases the router sends to the same routes: any letter case, a trailing slash.
+    ["GET", "/R/0123456789abcdef/"],
+    ["GET", `/Media/${sampleImage}.png/`],
+    ["GET", `/API/Generations/${sample}/Events/`],
   ];
 
   const closed = [
@@ -302,6 +304,10 @@ test("without a session: the picker, samples, share pages and pre-rendered sampl
     ["GET", `/api/generations/${private_}/events`],
     ["GET", `/api/generations/${private_}/recipe.json`],
     ["GET", "/api/debug/streams"],
+    // Aliases of the closed ones, and an id in other letters (the router passes ids on as given).
+    ["POST", "/API/Uploads/"],
+    ["GET", `/Api/Generations/${private_}/Events/`],
+    ["GET", `/g/${sample.toUpperCase()}`],
   ];
 
   for (const [method = "", path = ""] of open) {
