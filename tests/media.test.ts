@@ -16,7 +16,7 @@ test("range parser covers bounded, open, suffix and unsatisfiable ranges", () =>
   assert.equal(byteRange("bytes=0-1,4-5", 1000), null);
 });
 
-test("GET and HEAD serve a stored asset by id with accurate range headers", async () => {
+async function storeVideo() {
   const temporary = await incomingPath();
   await copyFile("fixtures/x.mp4", temporary);
 
@@ -34,6 +34,12 @@ test("GET and HEAD serve a stored asset by id with accurate range headers", asyn
     source_asset_id: null,
     width: null,
   });
+
+  return asset;
+}
+
+test("GET and HEAD serve a stored asset by id with accurate range headers", async () => {
+  const asset = await storeVideo();
 
   for (const method of ["GET", "HEAD"]) {
     const response = await serveMedia(
@@ -64,4 +70,29 @@ test("GET and HEAD serve a stored asset by id with accurate range headers", asyn
     const missing = await serveMedia(new Request(`http://localhost/media/${filename}`), filename);
     assert.equal(missing.status, 404, filename);
   }
+});
+
+test("?download=1 serves the file as an attachment with a file name, and only then", async () => {
+  const asset = await storeVideo();
+  const filename = `${asset.id}.mp4`;
+
+  const download = await serveMedia(
+    new Request(`http://localhost/media/${filename}?download=1`),
+    filename,
+  );
+
+  assert.equal(download.status, 200);
+  assert.equal(
+    download.headers.get("content-disposition"),
+    `attachment; filename="open-photon-${asset.id.slice(0, 8)}.mp4"`,
+  );
+  assert.equal(
+    (await download.arrayBuffer()).byteLength,
+    Number(download.headers.get("content-length")),
+  );
+
+  const inline = await serveMedia(new Request(`http://localhost/media/${filename}`), filename);
+
+  assert.equal(inline.headers.get("content-disposition"), null);
+  await inline.body?.cancel();
 });

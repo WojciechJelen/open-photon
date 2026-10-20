@@ -28,7 +28,10 @@ export function byteRange(header: string, size: number) {
   return start >= size || start > end ? null : { end, start };
 }
 
-/** `GET`/`HEAD /media/<asset id>.<ext>`: a stored asset's file, with single byte ranges. */
+/**
+ * `GET`/`HEAD /media/<asset id>.<ext>`: a stored asset's file, with single byte ranges.
+ * `?download=1` asks the browser to save it, as `open-photon-<first 8 of the id>.<ext>`.
+ */
 export async function serveMedia(request: Request, filename: string) {
   const match = /^([0-9a-f-]{36})\.([a-z0-9]+)$/.exec(filename);
   const asset = match?.[1] ? findAsset(match[1]) : null;
@@ -51,6 +54,13 @@ export async function serveMedia(request: Request, filename: string) {
     "Content-Type": asset.mime,
     "Last-Modified": info.mtime.toUTCString(),
   });
+
+  if (new URL(request.url).searchParams.get("download") === "1") {
+    headers.set(
+      "Content-Disposition",
+      `attachment; filename="open-photon-${asset.id.slice(0, 8)}.${match?.[2]}"`,
+    );
+  }
 
   const rangeHeader = request.headers.get("range");
   const ifRange = request.headers.get("if-range");

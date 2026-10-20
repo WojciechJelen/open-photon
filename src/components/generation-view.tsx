@@ -58,6 +58,11 @@ export function GenerationView({
   const percent = generation.progress ?? 0;
   const running = !finished.has(generation.status);
 
+  const result =
+    generation.status === "done" && generation.final_asset_id
+      ? mediaUrl({ id: generation.final_asset_id, mime: "video/mp4" })
+      : null;
+
   async function retry() {
     setRetrying(true);
     setRetryError(null);
@@ -88,18 +93,40 @@ export function GenerationView({
       </p>
       {running && <Progress aria-label="Progress" value={percent} />}
 
-      {generation.status === "done" && generation.final_asset_id && (
-        <ComparePlayer
-          // `generate` renders a portrait clip as 480×848 and any other as 848×480.
-          portrait={(source.height ?? 0) >= (source.width ?? 0)}
-          poster={
-            generation.poster_asset_id
-              ? mediaUrl({ id: generation.poster_asset_id, mime: "image/jpeg" })
-              : undefined
-          }
-          result={mediaUrl({ id: generation.final_asset_id, mime: "video/mp4" })}
-          source={mediaUrl(source)}
-        />
+      {result && (
+        <div className="flex flex-col gap-4">
+          <ComparePlayer
+            // `generate` renders a portrait clip as 480×848 and any other as 848×480.
+            portrait={(source.height ?? 0) >= (source.width ?? 0)}
+            poster={
+              generation.poster_asset_id
+                ? mediaUrl({ id: generation.poster_asset_id, mime: "image/jpeg" })
+                : undefined
+            }
+            result={result}
+            source={mediaUrl(source)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button asChild>
+              <a download href={`${result}?download=1`}>
+                Download MP4
+              </a>
+            </Button>
+            {/* A remix opens `/` with one choice kept and the other left to make. */}
+            <Button asChild variant="outline">
+              <Link search={{ motion: source.id }} to="/">
+                Same motion, another character
+              </Link>
+            </Button>
+            {generation.character_id && (
+              <Button asChild variant="outline">
+                <Link search={{ character: generation.character_id }} to="/">
+                  Same character, another motion
+                </Link>
+              </Button>
+            )}
+          </div>
+        </div>
       )}
 
       {generation.status === "failed" && (
