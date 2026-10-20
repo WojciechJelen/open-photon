@@ -3,7 +3,12 @@ import { resolve } from "node:path";
 
 import { z } from "zod";
 
-import { type generateInputSchema, generationSchema, MAX_CLIP_MS } from "../lib/contracts.ts";
+import {
+  assetSchema,
+  type generateInputSchema,
+  generationSchema,
+  MAX_CLIP_MS,
+} from "../lib/contracts.ts";
 import { loadAngles } from "./angles.ts";
 import { findAsset, findBySha256, type StoredAsset } from "./assets.ts";
 import { findCharacter } from "./characters.server.ts";
@@ -328,14 +333,26 @@ export async function readGeneration(id: string, provider: Provider = comfyProvi
 }
 
 /**
- * What `/g/:id` shows: the generation as `GET /api/generations/:id` reads it, or `null` for a
- * malformed or unknown id (the page is then a 404).
+ * What `/g/:id` shows: the generation as `GET /api/generations/:id` reads it and the motion clip
+ * it was made from (`source`, the asset `?motion=` names on `/`), or `null` for a malformed or
+ * unknown id (the page is then a 404).
  */
 export async function readResult(id: string) {
   const parsed = z.uuid().safeParse(id);
   const generation = parsed.success ? await readGeneration(parsed.data) : null;
+  const row = generation ? findGeneration(generation.id) : null;
 
-  return generation ? { generation } : null;
+  if (!generation || !row) {
+    return null;
+  }
+
+  const source = findBySha256(row.recipe.inputs.driving_video_sha256);
+
+  if (!source) {
+    throw new Error(`Generation ${row.id} has no stored motion clip`);
+  }
+
+  return { generation, source: assetSchema.parse(source) };
 }
 
 /** A route's `:generationId` as a UUID, or the 400 response for a malformed one. */

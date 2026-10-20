@@ -2,9 +2,10 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
+import { ComparePlayer } from "#/components/compare-player";
 import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
-import { generationEventSchema, type GenerationSnapshot } from "#/lib/contracts";
+import { type Asset, generationEventSchema, type GenerationSnapshot } from "#/lib/contracts";
 import { mediaUrl } from "#/lib/media";
 import { callApi } from "#/lib/requests";
 
@@ -40,10 +41,16 @@ function useLiveGeneration(initial: GenerationSnapshot) {
 
 /**
  * One generation: its status word and percent while it runs (never a time estimate, which
- * Comfy does not give), the result when done, the reason and Retry when failed, and why an
- * `unknown` one is not retried.
+ * Comfy does not give), the result next to its source clip when done, the reason and Retry when
+ * failed, and why an `unknown` one is not retried.
  */
-export function GenerationView({ initial }: { initial: GenerationSnapshot }) {
+export function GenerationView({
+  initial,
+  source,
+}: {
+  initial: GenerationSnapshot;
+  source: Asset;
+}) {
   const generation = useLiveGeneration(initial);
   const navigate = useNavigate();
   const [retrying, setRetrying] = useState(false);
@@ -82,16 +89,16 @@ export function GenerationView({ initial }: { initial: GenerationSnapshot }) {
       {running && <Progress aria-label="Progress" value={percent} />}
 
       {generation.status === "done" && generation.final_asset_id && (
-        <video
-          className="max-h-screen w-full rounded-md bg-muted object-contain"
-          controls
-          playsInline
+        <ComparePlayer
+          // `generate` renders a portrait clip as 480×848 and any other as 848×480.
+          portrait={(source.height ?? 0) >= (source.width ?? 0)}
           poster={
             generation.poster_asset_id
               ? mediaUrl({ id: generation.poster_asset_id, mime: "image/jpeg" })
               : undefined
           }
-          src={mediaUrl({ id: generation.final_asset_id, mime: "video/mp4" })}
+          result={mediaUrl({ id: generation.final_asset_id, mime: "video/mp4" })}
+          source={mediaUrl(source)}
         />
       )}
 

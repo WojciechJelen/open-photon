@@ -85,3 +85,13 @@
     @apply m-0 bg-background text-foreground antialiased;
   }
 }
+
+/* The compare player's swipe slider (`src/components/compare-player.tsx`): the result, laid over
+   the source, shows right of `--split`. */
+@utility clip-split {
+  clip-path: inset(0 0 0 var(--split, 50%));
+}
+
+@utility clip-none {
+  clip-path: none;
+}

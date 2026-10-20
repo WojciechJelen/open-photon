@@ -25,13 +25,13 @@ export const Route = createFileRoute("/g/$generationId")({
 });
 
 function GenerationPage() {
-  const { generation } = Route.useLoaderData();
+  const { generation, source } = Route.useLoaderData();
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-10">
       <h1 className="text-2xl font-semibold">Your generation</h1>
       {/* Keyed by id: a retry opens its child here, with a stream of its own. */}
-      <GenerationView initial={generation} key={generation.id} />
+      <GenerationView initial={generation} key={generation.id} source={source} />
     </main>
   );
 }
