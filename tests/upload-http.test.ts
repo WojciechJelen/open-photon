@@ -1,8 +1,10 @@
 import "./temp-database.ts";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { once } from "node:events";
 import { readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
+import { join } from "node:path";
 import test, { after } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 
@@ -74,12 +76,21 @@ async function upload(bytes: number) {
   return fetch(url, options);
 }
 
-test("the Node HTTP adapter streams uploads and reports the saved byte count", async () => {
+test("the Node HTTP adapter streams uploads and stores exactly the bytes sent", async () => {
   const response = await upload(1024 * 1024);
   assert.equal(response.status, 201);
   const result = await response.json();
   assert.equal(result.bytes, 1024 * 1024);
-  assert.ok(readdirSync(directory).includes(`${result.sha256}.mp4`));
+
+  // The sink frees each chunk's memory once written; the stored file must still be the payload.
+  const sent = createHash("sha256")
+    .update(clip)
+    .update(Buffer.alloc(1024 * 1024 - clip.length))
+    .digest("hex");
+
+  assert.equal(result.sha256, sent);
+  const stored = readFileSync(join(directory, `${result.sha256}.mp4`));
+  assert.equal(createHash("sha256").update(stored).digest("hex"), sent);
 });
 
 test("a chunked oversized HTTP upload returns 413 and removes its partial file", async () => {

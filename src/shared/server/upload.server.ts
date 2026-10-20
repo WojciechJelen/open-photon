@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { createWriteStream } from "node:fs";
+import { close, open, write } from "node:fs";
 import { rm } from "node:fs/promises";
-import { Readable, Transform } from "node:stream";
+import { Readable, Transform, Writable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 import Busboy from "@fastify/busboy";
@@ -31,6 +31,101 @@ type Upload = {
   /** The received file, in the assets directory; `handleUpload` deletes it unless it was moved. */
   temporary: string;
 };
+
+/**
+ * Writes the file part to a new file and frees each chunk's memory as soon as it is on disk.
+ *
+ * Node's HTTP parser copies every socket read into a fresh Buffer that only garbage collection
+ * frees, and V8 defers collecting such buffers until about 64 MiB of them are dead (its
+ * external-memory soft limit). A 100 MiB upload therefore held tens of MiB of consumed chunks.
+ * Detaching a chunk's ArrayBuffer (`transfer(0)`) frees it immediately, so the upload's memory
+ * is bounded by the streams' high-water marks instead of by collection timing. Only buffers in
+ * `owned` (the request's own body chunks) whose whole content this chunk is are detached: any
+ * other view, such as the part before a multipart boundary, is left to garbage collection.
+ */
+class IncomingFile extends Writable {
+  #fd = -1;
+  /** Set while a write is on the thread pool; `_destroy` must not close the fd under it. */
+  #writing = false;
+  #closeAfterWrite: (() => void) | undefined;
+  readonly #path: string;
+  readonly #owned: WeakSet<ArrayBuffer>;
+  readonly #digest: (chunk: Buffer) => void;
+
+  constructor(path: string, owned: WeakSet<ArrayBuffer>, digest: (chunk: Buffer) => void) {
+    super({ highWaterMark: 65_536 });
+    this.#path = path;
+    this.#owned = owned;
+    this.#digest = digest;
+  }
+
+  override _construct(callback: (error?: Error | null) => void) {
+    open(this.#path, "wx", (error, fd) => {
+      if (!error) {
+        this.#fd = fd;
+      }
+
+      callback(error);
+    });
+  }
+
+  override _write(
+    chunk: Buffer,
+    _encoding: BufferEncoding,
+    callback: (error?: Error | null) => void,
+  ) {
+    this.#digest(chunk);
+    this.#writing = true;
+
+    const put = (offset: number) =>
+      write(this.#fd, chunk, offset, chunk.length - offset, null, (error, written) => {
+        if (!error && offset + written < chunk.length) {
+          put(offset + written);
+
+          return;
+        }
+
+        this.#writing = false;
+        const { buffer } = chunk;
+
+        if (
+          !error &&
+          buffer instanceof ArrayBuffer &&
+          chunk.byteOffset === 0 &&
+          chunk.byteLength === buffer.byteLength &&
+          this.#owned.has(buffer) &&
+          !buffer.detached
+        ) {
+          buffer.transfer(0);
+        }
+
+        callback(error);
+        this.#closeAfterWrite?.();
+      });
+
+    put(0);
+  }
+
+  override _destroy(error: Error | null, callback: (error?: Error | null) => void) {
+    const finish = () => {
+      if (this.#fd < 0) {
+        callback(error);
+
+        return;
+      }
+
+      const fd = this.#fd;
+      this.#fd = -1;
+      close(fd, (closeError) => callback(error ?? closeError));
+    };
+
+    if (this.#writing) {
+      this.#closeAfterWrite = finish;
+    } else {
+      finish();
+    }
+  }
+}
 
 /**
  * Streams the one file of a multipart request (in `fileField`, alongside only `fieldNames`) to a
@@ -71,6 +166,10 @@ async function receiveUpload(
 
   const hash = createHash("sha256");
   const fields = new Map<string, string>();
+  // Node's HTTP parser hands this request its own copy of every socket read; `IncomingFile`
+  // frees those copies once written. A web-stream body's chunks may be views of shared memory.
+  const owned = new WeakSet<ArrayBuffer>();
+  const ownsChunks = body instanceof Readable;
   let fileSeen = false;
   let bytes = 0;
   let failure: Error | undefined;
@@ -118,18 +217,12 @@ async function receiveUpload(
         failure = new UploadError(413, "Maximum file size is 128 MiB");
       });
 
-      const digest = new Transform({
-        transform(chunk: Buffer, _encoding, callback) {
-          bytes += chunk.length;
-          hash.update(chunk);
-          callback(null, chunk);
-        },
-      });
-
       saving = pipeline(
         file,
-        digest,
-        createWriteStream(temporary, { flags: "wx", highWaterMark: 65_536 }),
+        new IncomingFile(temporary, owned, (chunk) => {
+          bytes += chunk.length;
+          hash.update(chunk);
+        }),
         { signal: abort.signal },
       ).catch((error) => {
         failure = error instanceof Error ? error : new Error("Upload write failed");
@@ -140,6 +233,11 @@ async function receiveUpload(
     const limit = new Transform({
       transform(chunk: Buffer, _encoding, callback) {
         received += chunk.length;
+
+        if (ownsChunks && chunk.buffer instanceof ArrayBuffer) {
+          owned.add(chunk.buffer);
+        }
+
         callback(
           received > MAX_REQUEST_BYTES
             ? new UploadError(413, "Maximum file size is 128 MiB")
@@ -149,15 +247,17 @@ async function receiveUpload(
       },
     });
 
-    const chunks =
-      body instanceof Readable ? body.iterator({ destroyOnReturn: false }) : readBody(body);
-
-    await pipeline(
-      Readable.from(chunks, { highWaterMark: 65_536, objectMode: false }),
-      limit,
-      parser,
-      { signal: abort.signal },
-    );
+    // The Node request pipes in flowing mode, which hands over each parser Buffer as is (a paused
+    // `read()` merges queued chunks into a copy that is garbage twice over). Unlike a pipeline
+    // from the request, a refused upload leaves the request open for its response.
+    await (body instanceof Readable
+      ? pipeline(body.pipe(limit), parser, { signal: abort.signal })
+      : pipeline(
+          Readable.from(readBody(body), { highWaterMark: 65_536, objectMode: false }),
+          limit,
+          parser,
+          { signal: abort.signal },
+        ));
     await saving;
 
     if (failure) {
