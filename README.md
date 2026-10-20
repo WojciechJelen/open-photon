@@ -153,6 +153,10 @@ Railway mounts volumes as root. `RAILWAY_RUN_UID=0` starts the entrypoint as roo
 
 Railway service settings select the Dockerfile builder, check `/healthz` with a 120-second health-check timeout, and restart on failure up to three times. The volume and runtime secrets also remain Railway configuration. We do not use the deprecated `railway.toml` format. The Dockerfile intentionally has no `VOLUME` instruction because Railway rejects it; local runs must explicitly mount storage as shown above.
 
+Railway's edge has no request-timeout setting to change. A response may run for up to 15 minutes while data keeps flowing and is closed after 5 minutes without any; a request body must finish uploading within 5 minutes ([Railway's limits](https://docs.railway.com/networking/public-networking/specs-and-limits)). The event streams' `: ping` every 15 s keeps them open; a generation still running when its stream reaches 15 minutes gets a new stream from the browser's `EventSource` reconnect. A changed variable takes effect only with a new deployment (`railway redeploy`): `railway restart` keeps the variables the deployment started with.
+
+Proof on the staging deployment (Step 7.3, deployed with `railway up` from local `main`; the GitHub source stays connected): with `ENABLE_DEBUG=1` for the test only and a session cookie, `curl -sN --max-time 320 <host>/api/debug/heartbeat` stayed open until curl's own limit (exit 28) with `200`, `text/event-stream`, `no-cache, no-transform` and `X-Accel-Buffering: no`, the opening comment at 0 s and 21 `: ping` lines at 15, 30, …, 315 s. A `Range: bytes=1000-1999` request for an uploaded clip answered `206` `bytes 1000-1999/86526`, and one for a sample clip without a session `206`.
+
 ## Continuous integration and deployment
 
 [CI](.github/workflows/ci.yml) runs on every `main` push and pull request, and can be started manually. It installs from the lockfile, checks types, lint, formatting, unused code and duplication, checks private paths across Git history, runs server tests and the browser tests (each with codes minted into its own scratch database), builds the Linux AMD64 image (including its client-secret scan), mints a code in the container and runs the access check (`scripts/verify-access.mjs`) and the six-upload memory check on the native x86 runner. The container starts with a fresh root-owned volume, and CI checks that the app runs as UID 1000 and can write SQLite on that volume. CI uses no Comfy secrets and submits no paid jobs.
@@ -165,7 +169,7 @@ Railway follows `main` with **Wait for CI** enabled. Each push must pass GitHub 
 
 The SDK runs only in server modules. Vite externalizes it; Nitro traces the package into production output. `.env*` is excluded from Git and the Docker context. Every image build uses a dummy key and scans `.output/public` for credential configuration names and the canary value.
 
-With `ENABLE_DEBUG=1`, `GET /api/debug/streams` reports the event-stream counters (`active`, opened, completed, request aborts, cancellations) and the process memory; without it the route is a 404. Leave it unset outside diagnostics.
+With `ENABLE_DEBUG=1`, `GET /api/debug/streams` reports the event-stream counters (`active`, opened, completed, request aborts, cancellations) and the process memory, and `GET /api/debug/heartbeat` opens an event stream that sends nothing but the heartbeat until the client closes it (through the same writer, headers and `: ping` as a generation's stream), to check that a proxy keeps a long stream open; without it both routes are a 404. Both need a session. Leave it unset outside diagnostics.
 
 The Vite/Nitro build still emits upstream `use client` warnings.
 

@@ -108,26 +108,28 @@ function retryAfter(request: Request) {
   return { failures: failures + 1, ms: Math.min(MAX_RETRY_MS, FIRST_RETRY_MS * 2 ** failures) };
 }
 
+/** Why an event stream ended. */
+type CloseReason = "request-abort" | "consumer-cancel" | "complete" | "error";
+
 /**
- * `GET /api/generations/:id/events`: the events as server-sent events (`generationEventSchema`),
- * with a `: ping` comment every 15 s so proxies keep the connection open. A closed request or
- * cancelled body aborts the Comfy subscription; the job itself continues on Comfy. Each snapshot
- * clears the event id; `provider_unavailable` sets it to `provider-unavailable:<failures in a
- * row>` with a `retry:` delay that doubles with them, then the stream ends cleanly (a 200, never
- * an error) and the browser reconnects after that delay.
+ * A server-sent event stream of the events `events` yields (each a whole event, ending in a blank
+ * line), with a `: ping` comment every 15 s so proxies keep the connection open, and the headers
+ * that keep them from buffering it. A closed request or a cancelled body aborts `events`' signal;
+ * `onClose` hears once why the stream ended, with the error message when it failed.
  */
-export function streamGeneration(request: Request, id: string, provider: Provider = comfyProvider) {
+export function eventStream(
+  request: Request,
+  events: (signal: AbortSignal) => AsyncGenerator<string>,
+  onClose?: (reason: CloseReason, message?: string) => void,
+) {
   const abort = new AbortController();
-  const iterator = generationUpdates(id, abort.signal, provider);
-  const retry = retryAfter(request);
+  const iterator = events(abort.signal);
   const encoder = new TextEncoder();
   let stopped = false;
   let heartbeat: ReturnType<typeof setInterval> | undefined;
   let onAbort: () => void;
-  diagnostics.active++;
-  diagnostics.opened++;
 
-  const cleanup = (reason: "request-abort" | "consumer-cancel" | "complete" | "error") => {
+  const cleanup = (reason: CloseReason, message?: string) => {
     if (stopped) {
       return;
     }
@@ -135,23 +137,7 @@ export function streamGeneration(request: Request, id: string, provider: Provide
     stopped = true;
     clearInterval(heartbeat);
     request.signal.removeEventListener("abort", onAbort);
-    diagnostics.active--;
-    diagnostics.lastReason = reason;
-    diagnostics.lastGenerationId = id;
-
-    if (reason === "request-abort") {
-      diagnostics.requestAborts++;
-    }
-
-    if (reason === "consumer-cancel") {
-      diagnostics.cancellations++;
-    }
-
-    if (reason === "complete") {
-      diagnostics.completed++;
-    }
-
-    console.info(JSON.stringify({ active: diagnostics.active, event: "sse.closed", id, reason }));
+    onClose?.(reason, message);
   };
 
   const body = new ReadableStream<Uint8Array>({
@@ -179,31 +165,11 @@ export function streamGeneration(request: Request, id: string, provider: Provide
           return;
         }
 
-        const { generation, kind } = next.value;
-
-        const fields =
-          kind === "provider_unavailable"
-            ? `retry: ${retry.ms}\nid: provider-unavailable:${retry.failures}`
-            : "id:";
-
-        controller.enqueue(
-          encoder.encode(
-            `${fields}\ndata: ${JSON.stringify({ generation: generationSchema.parse(generation), kind })}\n\n`,
-          ),
-        );
+        controller.enqueue(encoder.encode(next.value));
       } catch (error) {
         if (!stopped) {
-          console.error(
-            JSON.stringify({
-              event: "sse.error",
-              id,
-              message: error instanceof Error ? error.message : "unknown",
-            }),
-          );
-          cleanup("error");
-          controller.error(
-            new Error("The event stream failed. Reconnect to recover the saved generation."),
-          );
+          cleanup("error", error instanceof Error ? error.message : "unknown");
+          controller.error(new Error("The event stream failed. Reconnect to recover."));
         }
       }
     },
@@ -237,4 +203,54 @@ export function streamGeneration(request: Request, id: string, provider: Provide
       "X-Accel-Buffering": "no",
     },
   });
+}
+
+/**
+ * `GET /api/generations/:id/events`: the events as server-sent events (`generationEventSchema`)
+ * through `eventStream`. A closed request or cancelled body aborts the Comfy subscription; the
+ * job itself continues on Comfy. Each snapshot clears the event id; `provider_unavailable` sets it
+ * to `provider-unavailable:<failures in a row>` with a `retry:` delay that doubles with them, then
+ * the stream ends cleanly (a 200, never an error) and the browser reconnects after that delay.
+ */
+export function streamGeneration(request: Request, id: string, provider: Provider = comfyProvider) {
+  const retry = retryAfter(request);
+  diagnostics.active++;
+  diagnostics.opened++;
+
+  return eventStream(
+    request,
+    async function* (signal) {
+      for await (const { generation, kind } of generationUpdates(id, signal, provider)) {
+        const fields =
+          kind === "provider_unavailable"
+            ? `retry: ${retry.ms}\nid: provider-unavailable:${retry.failures}`
+            : "id:";
+
+        yield `${fields}\ndata: ${JSON.stringify({ generation: generationSchema.parse(generation), kind })}\n\n`;
+      }
+    },
+    (reason, message) => {
+      diagnostics.active--;
+      diagnostics.lastReason = reason;
+      diagnostics.lastGenerationId = id;
+
+      if (reason === "request-abort") {
+        diagnostics.requestAborts++;
+      }
+
+      if (reason === "consumer-cancel") {
+        diagnostics.cancellations++;
+      }
+
+      if (reason === "complete") {
+        diagnostics.completed++;
+      }
+
+      if (reason === "error") {
+        console.error(JSON.stringify({ event: "sse.error", id, message }));
+      }
+
+      console.info(JSON.stringify({ active: diagnostics.active, event: "sse.closed", id, reason }));
+    },
+  );
 }

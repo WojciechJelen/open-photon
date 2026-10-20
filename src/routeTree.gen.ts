@@ -16,6 +16,7 @@ import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as GGenerationIdRouteImport } from './routes/g.$generationId'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
+import { Route as ApiDebugHeartbeatRouteImport } from './routes/api.debug.heartbeat'
 import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
 import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
 import { Route as ApiAssetsAssetIdTrimRouteImport } from './routes/api.assets.$assetId.trim'
@@ -57,6 +58,11 @@ const MediaFilenameRoute = MediaFilenameRouteImport.update({
 const RSlugRoute = RSlugRouteImport.update({
   id: '/r/$slug',
   path: '/r/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDebugHeartbeatRoute = ApiDebugHeartbeatRouteImport.update({
+  id: '/api/debug/heartbeat',
+  path: '/api/debug/heartbeat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiDebugStreamsRoute = ApiDebugStreamsRouteImport.update({
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
+  '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
+  '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
+  '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
+    | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
+    | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
+    | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
@@ -208,6 +220,7 @@ export interface RootRouteChildren {
   GGenerationIdRoute: typeof GGenerationIdRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
   RSlugRoute: typeof RSlugRoute
+  ApiDebugHeartbeatRoute: typeof ApiDebugHeartbeatRoute
   ApiDebugStreamsRoute: typeof ApiDebugStreamsRoute
   ApiGenerationsGenerationIdRoute: typeof ApiGenerationsGenerationIdRouteWithChildren
   ApiAssetsAssetIdTrimRoute: typeof ApiAssetsAssetIdTrimRoute
@@ -262,6 +275,13 @@ declare module '@tanstack/react-router' {
       path: '/r/$slug'
       fullPath: '/r/$slug'
       preLoaderRoute: typeof RSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/debug/heartbeat': {
+      id: '/api/debug/heartbeat'
+      path: '/api/debug/heartbeat'
+      fullPath: '/api/debug/heartbeat'
+      preLoaderRoute: typeof ApiDebugHeartbeatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/debug/streams': {
@@ -346,6 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   GGenerationIdRoute: GGenerationIdRoute,
   MediaFilenameRoute: MediaFilenameRoute,
   RSlugRoute: RSlugRoute,
+  ApiDebugHeartbeatRoute: ApiDebugHeartbeatRoute,
   ApiDebugStreamsRoute: ApiDebugStreamsRoute,
   ApiGenerationsGenerationIdRoute: ApiGenerationsGenerationIdRouteWithChildren,
   ApiAssetsAssetIdTrimRoute: ApiAssetsAssetIdTrimRoute,
