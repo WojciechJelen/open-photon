@@ -5,10 +5,16 @@ import { resolve } from "node:path";
 import { findAsset } from "./assets.ts";
 import { assetsDirectory } from "./paths.ts";
 
+/**
+ * A `Range` header against a file of `size` bytes, one range only: the inclusive span to send,
+ * `"unsatisfiable"` (416) when it starts past the end or asks for an empty suffix, or `null` for
+ * a header to ignore — malformed, several ranges, or last before first — which serves the whole
+ * file, as RFC 9110 §14.2 allows.
+ */
 export function byteRange(header: string, size: number) {
   const match = /^bytes=(\d*)-(\d*)$/.exec(header);
 
-  if (!match || (!match[1] && !match[2]) || size === 0) {
+  if (!match || (!match[1] && !match[2])) {
     return null;
   }
 
@@ -17,20 +23,30 @@ export function byteRange(header: string, size: number) {
 
   if (
     (first !== undefined && !Number.isSafeInteger(first)) ||
-    (last !== undefined && !Number.isSafeInteger(last))
+    (last !== undefined && !Number.isSafeInteger(last)) ||
+    (first !== undefined && last !== undefined && last < first)
   ) {
     return null;
   }
 
-  const start = first ?? Math.max(0, size - (last ?? 0));
-  const end = first === undefined ? size - 1 : Math.min(last ?? size - 1, size - 1);
+  if (first === undefined) {
+    // A suffix: the last `last` bytes.
+    return last === 0 || size === 0
+      ? "unsatisfiable"
+      : { end: size - 1, start: Math.max(0, size - (last ?? 0)) };
+  }
 
-  return start >= size || start > end ? null : { end, start };
+  return first >= size
+    ? "unsatisfiable"
+    : { end: Math.min(last ?? size - 1, size - 1), start: first };
 }
 
 /**
- * `GET`/`HEAD /media/<asset id>.<ext>`: a stored asset's file, with single byte ranges.
- * `?download=1` asks the browser to save it, as `open-photon-<first 8 of the id>.<ext>`.
+ * `GET`/`HEAD /media/<asset id>.<ext>`: a stored asset's file, found by its id in the `assets`
+ * table (the request never names a path), with single byte ranges. Assets never change, so the
+ * answer is cacheable for a year (`immutable`) and its `ETag` is the file's SHA-256; a matching
+ * `If-None-Match` gets 304. `?download=1` asks the browser to save it, as
+ * `open-photon-<first 8 of the id>.<ext>`.
  */
 export async function serveMedia(request: Request, filename: string) {
   const match = /^([0-9a-f-]{36})\.([a-z0-9]+)$/.exec(filename);
@@ -47,13 +63,29 @@ export async function serveMedia(request: Request, filename: string) {
     return new Response("Media not found", { status: 404 });
   }
 
+  const etag = `"${asset.sha256}"`;
+  const lastModified = info.mtime.toUTCString();
+
+  // Behind the access code: browsers may keep the file, shared caches may not.
   const headers = new Headers({
     "Accept-Ranges": "bytes",
-    "Cache-Control": "public, max-age=3600",
-    "Content-Length": String(info.size),
-    "Content-Type": asset.mime,
-    "Last-Modified": info.mtime.toUTCString(),
+    "Cache-Control": "private, max-age=31536000, immutable",
+    ETag: etag,
+    "Last-Modified": lastModified,
   });
+
+  // Weak comparison (RFC 9110 §13.1.2): `W/"…"` names the same file, `*` any.
+  const ifNoneMatch = request.headers
+    .get("if-none-match")
+    ?.split(",")
+    .map((tag) => tag.trim().replace(/^W\//, ""));
+
+  if (ifNoneMatch?.some((tag) => tag === "*" || tag === etag)) {
+    return new Response(null, { headers, status: 304 });
+  }
+
+  headers.set("Content-Length", String(info.size));
+  headers.set("Content-Type", asset.mime);
 
   if (new URL(request.url).searchParams.get("download") === "1") {
     headers.set(
@@ -62,12 +94,14 @@ export async function serveMedia(request: Request, filename: string) {
     );
   }
 
+  // `If-Range` keeps a resumed download on the same bytes: a range only while it still names
+  // this file, by its ETag or its date.
   const rangeHeader = request.headers.get("range");
   const ifRange = request.headers.get("if-range");
-  const honorRange = rangeHeader && (!ifRange || ifRange === info.mtime.toUTCString());
-  const range = honorRange ? byteRange(rangeHeader, info.size) : undefined;
+  const honorRange = rangeHeader && (!ifRange || ifRange === etag || ifRange === lastModified);
+  const range = honorRange ? byteRange(rangeHeader, info.size) : null;
 
-  if (range === null) {
+  if (range === "unsatisfiable") {
     headers.set("Content-Range", `bytes */${info.size}`);
     headers.set("Content-Length", "0");
 

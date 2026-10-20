@@ -6,14 +6,17 @@ import test from "node:test";
 import { hashFile, incomingPath, storeAsset } from "../src/server/assets.ts";
 import { byteRange, serveMedia } from "../src/server/media.server.ts";
 
-test("range parser covers bounded, open, suffix and unsatisfiable ranges", () => {
+test("range parser: bounded, open and suffix ranges; past the end is unsatisfiable; the rest is ignored", () => {
   assert.deepEqual(byteRange("bytes=0-99", 1000), { end: 99, start: 0 });
   assert.deepEqual(byteRange("bytes=900-", 1000), { end: 999, start: 900 });
   assert.deepEqual(byteRange("bytes=-100", 1000), { end: 999, start: 900 });
-  assert.equal(byteRange("bytes=1000-", 1000), null);
+  assert.deepEqual(byteRange("bytes=-5000", 1000), { end: 999, start: 0 });
+  assert.deepEqual(byteRange("bytes=990-5000", 1000), { end: 999, start: 990 });
+  assert.equal(byteRange("bytes=1000-", 1000), "unsatisfiable");
+  assert.equal(byteRange("bytes=-0", 1000), "unsatisfiable");
   assert.equal(byteRange("bytes=10-1", 1000), null);
-  assert.equal(byteRange("bytes=-0", 1000), null);
   assert.equal(byteRange("bytes=0-1,4-5", 1000), null);
+  assert.equal(byteRange("items=0-1", 1000), null);
 });
 
 async function storeVideo() {
@@ -38,37 +41,100 @@ async function storeVideo() {
   return asset;
 }
 
-test("GET and HEAD serve a stored asset by id with accurate range headers", async () => {
+/** `serveMedia` for `/media/<filename>`, as the route calls it. */
+function get(filename: string, init?: RequestInit) {
+  return serveMedia(new Request(`http://localhost/media/${filename}`, init), filename);
+}
+
+test("GET and HEAD serve a stored asset by id: 200, 206 for a range or suffix, 416 past the end", async () => {
   const asset = await storeVideo();
+  const filename = `${asset.id}.mp4`;
 
   for (const method of ["GET", "HEAD"]) {
-    const response = await serveMedia(
-      new Request(`http://localhost/media/${asset.id}.mp4`, {
-        headers: { Range: "bytes=0-99" },
-        method,
-      }),
-      `${asset.id}.mp4`,
-    );
+    const whole = await get(filename, { method });
 
-    assert.equal(response.status, 206);
-    assert.equal(response.headers.get("content-type"), "video/mp4");
-    assert.match(response.headers.get("content-range") ?? "", /^bytes 0-99\/[0-9]+$/);
-    assert.equal(response.headers.get("content-length"), "100");
-    assert.equal((await response.arrayBuffer()).byteLength, method === "HEAD" ? 0 : 100);
+    assert.equal(whole.status, 200);
+    assert.equal(whole.headers.get("content-type"), "video/mp4");
+    assert.equal(whole.headers.get("content-length"), String(asset.bytes));
+    assert.equal(whole.headers.get("accept-ranges"), "bytes");
+    assert.equal(whole.headers.get("etag"), `"${asset.sha256}"`);
+    assert.equal(whole.headers.get("cache-control"), "private, max-age=31536000, immutable");
+    assert.equal((await whole.arrayBuffer()).byteLength, method === "HEAD" ? 0 : asset.bytes);
+
+    const range = await get(filename, { headers: { Range: "bytes=0-99" }, method });
+
+    assert.equal(range.status, 206);
+    assert.equal(range.headers.get("content-range"), `bytes 0-99/${asset.bytes}`);
+    assert.equal(range.headers.get("content-length"), "100");
+    assert.equal((await range.arrayBuffer()).byteLength, method === "HEAD" ? 0 : 100);
+
+    const suffix = await get(filename, { headers: { Range: "bytes=-10" }, method });
+
+    assert.equal(suffix.status, 206);
+    assert.equal(
+      suffix.headers.get("content-range"),
+      `bytes ${asset.bytes - 10}-${asset.bytes - 1}/${asset.bytes}`,
+    );
+    assert.equal(suffix.headers.get("content-length"), "10");
+    assert.equal((await suffix.arrayBuffer()).byteLength, method === "HEAD" ? 0 : 10);
+
+    const past = await get(filename, { headers: { Range: "bytes=99999999-" }, method });
+
+    assert.equal(past.status, 416);
+    assert.equal(past.headers.get("content-range"), `bytes */${asset.bytes}`);
+    assert.equal((await past.arrayBuffer()).byteLength, 0);
   }
 
-  const invalid = await serveMedia(
-    new Request(`http://localhost/media/${asset.id}.mp4`, {
-      headers: { Range: "bytes=999999999-" },
-    }),
-    `${asset.id}.mp4`,
-  );
+  // Several ranges are not served: the whole file instead.
+  const multiple = await get(filename, { headers: { Range: "bytes=0-1,4-5" } });
 
-  assert.equal(invalid.status, 416);
+  assert.equal(multiple.status, 200);
+  assert.equal((await multiple.arrayBuffer()).byteLength, asset.bytes);
+});
 
-  for (const filename of [`${asset.id}.jpg`, `${crypto.randomUUID()}.mp4`, "x.mp4"]) {
-    const missing = await serveMedia(new Request(`http://localhost/media/${filename}`), filename);
-    assert.equal(missing.status, 404, filename);
+test("a matching If-None-Match is 304; If-Range keeps a range only for the same file", async () => {
+  const asset = await storeVideo();
+  const filename = `${asset.id}.mp4`;
+
+  for (const tag of [`"${asset.sha256}"`, `W/"${asset.sha256}"`, `"other", "${asset.sha256}"`]) {
+    const cached = await get(filename, { headers: { "If-None-Match": tag } });
+
+    assert.equal(cached.status, 304, tag);
+    assert.equal(cached.headers.get("etag"), `"${asset.sha256}"`);
+    assert.equal(cached.body, null);
+  }
+
+  const changed = await get(filename, { headers: { "If-None-Match": `"${"0".repeat(64)}"` } });
+
+  assert.equal(changed.status, 200);
+  await changed.body?.cancel();
+
+  const same = await get(filename, {
+    headers: { "If-Range": `"${asset.sha256}"`, Range: "bytes=0-9" },
+  });
+
+  assert.equal(same.status, 206);
+  await same.body?.cancel();
+
+  const other = await get(filename, { headers: { "If-Range": '"other"', Range: "bytes=0-9" } });
+
+  assert.equal(other.status, 200);
+  await other.body?.cancel();
+});
+
+test("only an asset id with its own extension names a file: anything else is a 404", async () => {
+  const asset = await storeVideo();
+
+  for (const filename of [
+    `${asset.id}.jpg`,
+    `${crypto.randomUUID()}.mp4`,
+    "x.mp4",
+    asset.path,
+    "../../etc/passwd",
+    `../${asset.id}.mp4`,
+    `${asset.id}.mp4/../../app.sqlite`,
+  ]) {
+    assert.equal((await get(filename)).status, 404, filename);
   }
 });
 
