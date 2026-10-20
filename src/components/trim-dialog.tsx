@@ -19,6 +19,7 @@ import {
 } from "#/lib/contracts";
 import { mediaUrl } from "#/lib/media";
 import { callApi } from "#/lib/requests";
+import { useRequestSignal } from "#/lib/use-request-signal";
 
 const STEP_MS = 100;
 
@@ -42,7 +43,8 @@ function seconds(milliseconds: number) {
 /**
  * For a clip over 8 s: the whole clip with a range of 3–8 s on it, the chosen range playing on
  * a loop. Confirming the default (the first 8 s) uses the cut the upload already made; any other
- * range is cut by `POST /api/assets/:id/trim`.
+ * range is cut by `POST /api/assets/:id/trim`. Every way of closing the dialog cancels a cut in
+ * progress: the dialog unmounts, which aborts the request, and its result is dropped.
  */
 export function TrimDialog({
   onCancel,
@@ -60,6 +62,7 @@ export function TrimDialog({
   const [range, setRange] = useState<Range>(initial);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const nextSignal = useRequestSignal();
   // State, not a ref: the dialog mounts its content in a portal after the first render, so the
   // effect has to run again once the element exists.
   const [preview, setPreview] = useState<HTMLVideoElement | null>(null);
@@ -93,6 +96,8 @@ export function TrimDialog({
       return;
     }
 
+    const signal = nextSignal();
+
     setPending(true);
     setError(null);
 
@@ -100,7 +105,12 @@ export function TrimDialog({
       body: JSON.stringify({ duration_ms: end - start, start_ms: start }),
       headers: { "Content-Type": "application/json" },
       method: "POST",
+      signal,
     });
+
+    if (signal.aborted) {
+      return;
+    }
 
     setPending(false);
 
@@ -136,12 +146,13 @@ export function TrimDialog({
           src={mediaUrl(video)}
         />
         <Slider
-          aria-label="Part of the clip to use"
+          disabled={pending}
           max={duration}
           min={0}
           minStepsBetweenThumbs={MIN_CLIP_MS / STEP_MS}
           onValueChange={(next) => setRange(constrain(next, range))}
           step={STEP_MS}
+          thumbLabels={["Trim start", "Trim end"]}
           value={range}
         />
         <p className="text-sm text-muted-foreground">
@@ -153,7 +164,7 @@ export function TrimDialog({
           </p>
         )}
         <DialogFooter>
-          <Button disabled={pending} onClick={onCancel} variant="outline">
+          <Button onClick={onCancel} variant="outline">
             Cancel
           </Button>
           <Button disabled={pending} onClick={confirm}>

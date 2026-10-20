@@ -1,4 +1,14 @@
-export function accessPage(message = "Enter the access code to use this private preview.") {
+/** `/access`, with `next` naming the page to return to after the code unless that is `/`. */
+export function accessUrl(next: string) {
+  // `encodeURIComponent` escapes every character that could end an HTML attribute.
+  return next === "/" ? "/access" : `/access?next=${encodeURIComponent(next)}`;
+}
+
+/** The code form; it posts back to `/access`, keeping `next`. */
+export function accessPage(
+  next: string,
+  message = "Enter the access code to use this private preview.",
+) {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -26,7 +36,7 @@ export function accessPage(message = "Enter the access code to use this private 
     <div class="brand">Open Photon</div>
     <h1>Private preview</h1>
     <p role="status">${message}</p>
-    <form method="post" action="/access">
+    <form method="post" action="${accessUrl(next)}">
       <label for="code">Access code</label>
       <input id="code" name="code" type="password" autocomplete="current-password" required maxlength="256">
       <button type="submit">Continue</button>

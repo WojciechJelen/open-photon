@@ -17,6 +17,9 @@ export async function open(page: Page, path: string) {
 /** The provider job id `seed.ts` stores on its `done` generation; no provider ever saw it. */
 export const SEEDED_JOB_ID = "e2e-seeded-job";
 
+/** The provider job id of the `queued` generation `seed.ts` adds; no provider ever saw it. */
+export const QUEUED_JOB_ID = "e2e-queued-job";
+
 /** Runs `read` on the e2e server's database (`playwright.config.ts`), opened read-only. */
 function query<T>(read: (database: DatabaseSync) => T) {
   const database = new DatabaseSync(process.env.E2E_DATABASE_PATH ?? "", { readOnly: true });
@@ -32,6 +35,16 @@ function query<T>(read: (database: DatabaseSync) => T) {
 export function count(sql: string) {
   return query((database) =>
     Number(database.prepare(`SELECT count(*) AS count FROM ${sql}`).get()?.count),
+  );
+}
+
+/** The id of the `queued` generation `seed.ts` adds. */
+export function queuedGenerationId() {
+  return query((database) =>
+    String(
+      database.prepare("SELECT id FROM generations WHERE provider_job_id = ?").get(QUEUED_JOB_ID)
+        ?.id,
+    ),
   );
 }
 

@@ -30,7 +30,9 @@ test("the result drives its source on one clock, both served in byte ranges", as
   expect(await read(source, "muted")).toBe(true);
   expect(await read(result, "muted")).toBe(false);
   // The scrubber spans the result, whose metadata may load before React hydrates.
-  await expect(page.getByText("0.0 / 5.0 s")).toBeVisible();
+  const seek = page.getByRole("slider", { name: "Seek" });
+
+  await expect.poll(async () => Number(await seek.getAttribute("aria-valuemax"))).toBeCloseTo(5, 0);
 
   await page.getByRole("button", { name: "Play" }).click();
   await expect
@@ -50,7 +52,7 @@ test("the result drives its source on one clock, both served in byte ranges", as
     .toBeLessThan(0.1);
 
   // The one scrubber moves the result, and the source with it.
-  await page.locator('[data-slot="slider-thumb"]').press("Home");
+  await seek.press("Home");
   await expect.poll(() => read(result, "currentTime")).toBe(0);
   await expect.poll(() => read(source, "currentTime")).toBe(0);
 

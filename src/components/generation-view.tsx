@@ -8,6 +8,7 @@ import { Progress } from "#/components/ui/progress";
 import { type Asset, generationEventSchema, type GenerationSnapshot } from "#/lib/contracts";
 import { mediaUrl } from "#/lib/media";
 import { callApi } from "#/lib/requests";
+import { useRequestSignal } from "#/lib/use-request-signal";
 
 const finished = new Set(["done", "failed", "unknown"]);
 
@@ -55,6 +56,7 @@ export function GenerationView({
   const navigate = useNavigate();
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState<string | null>(null);
+  const nextSignal = useRequestSignal();
   const percent = generation.progress ?? 0;
   const running = !finished.has(generation.status);
 
@@ -64,6 +66,10 @@ export function GenerationView({
       : null;
 
   async function retry() {
+    // Not passed to the request: a retry that reached the server finishes there. Leaving the page
+    // only drops the navigation to the child.
+    const signal = nextSignal();
+
     setRetrying(true);
     setRetryError(null);
 
@@ -72,6 +78,10 @@ export function GenerationView({
       `/api/generations/${generation.id}/retry`,
       { method: "POST" },
     );
+
+    if (signal.aborted) {
+      return;
+    }
 
     if ("refusal" in result) {
       setRetryError(result.refusal.message);
@@ -92,6 +102,19 @@ export function GenerationView({
         {running ? `${generation.status} · ${percent}%` : generation.status}
       </p>
       {running && <Progress aria-label="Progress" value={percent} />}
+      {generation.parent_id && (
+        <p className="text-sm">
+          A retry of{" "}
+          <Link
+            className="underline"
+            params={{ generationId: generation.parent_id }}
+            to="/g/$generationId"
+          >
+            the earlier generation
+          </Link>
+          , with a new seed.
+        </p>
+      )}
 
       {result && (
         <div className="flex flex-col gap-4">
@@ -153,7 +176,17 @@ export function GenerationView({
         </p>
       )}
 
-      <div>
+      <div className="flex flex-wrap gap-4">
+        {/* After a failure the choices may be what to change: back to them, both still picked. */}
+        {(generation.status === "failed" || generation.status === "unknown") && (
+          <Link
+            className="text-sm underline"
+            search={{ motion: source.id, character: generation.character_id ?? undefined }}
+            to="/"
+          >
+            Change the motion or character
+          </Link>
+        )}
         <Link className="text-sm underline" to="/">
           Start a new generation
         </Link>

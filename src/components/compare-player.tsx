@@ -220,7 +220,6 @@ export function ComparePlayer({
           {{ ended: "Replay", paused: "Play", playing: "Pause" }[playback]}
         </Button>
         <Slider
-          aria-label="Seek"
           disabled={!duration}
           max={duration || 1}
           min={0}
@@ -230,6 +229,7 @@ export function ComparePlayer({
             }
           }}
           step={0.01}
+          thumbLabels={["Seek"]}
           value={[Math.min(time, duration || 1)]}
         />
         <span className="shrink-0 text-sm text-muted-foreground tabular-nums">

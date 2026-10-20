@@ -6,8 +6,8 @@ import { createAccessGuard } from "../src/server/access.server.ts";
 const code = "test-only-long-random-access-code";
 const origin = "https://preview.example";
 
-function login(value = code) {
-  return new Request(`${origin}/access`, {
+function login(value = code, path = "/access") {
+  return new Request(`${origin}${path}`, {
     method: "POST",
     body: new URLSearchParams({ code: value }),
   });
@@ -46,6 +46,24 @@ test("anonymous APIs, server functions, media, SSE and pages are protected", asy
   assert.equal(page?.status, 303);
   assert.equal(page?.headers.get("Location"), "/access");
   assert.equal((await guard(new Request(`${origin}/healthz`)))?.status, 200);
+});
+
+test("a page asked for without a session opens after the code; any other target opens /", async () => {
+  const guard = createAccessGuard({ code, production: true });
+
+  const redirect = await guard(
+    new Request(`${origin}/g/example?x=1`, { headers: { Accept: "text/html" } }),
+  );
+
+  const access = redirect?.headers.get("Location") ?? "";
+  assert.equal(access, "/access?next=%2Fg%2Fexample%3Fx%3D1");
+  assert.ok((await (await guard(new Request(`${origin}${access}`)))?.text())?.includes(access));
+  assert.equal((await guard(login(code, access)))?.headers.get("Location"), "/g/example?x=1");
+
+  for (const next of ["//evil.example/", "/\\evil.example", "https://evil.example/", "x"]) {
+    const path = `/access?next=${encodeURIComponent(next)}`;
+    assert.equal((await guard(login(code, path)))?.headers.get("Location"), "/");
+  }
 });
 
 test("signed sessions survive a restart but reject tampering, expiry and code rotation", async () => {

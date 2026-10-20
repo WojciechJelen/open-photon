@@ -6,6 +6,7 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { characterSchema } from "#/lib/contracts";
 import { callApi } from "#/lib/requests";
+import { useRequestSignal } from "#/lib/use-request-signal";
 
 /**
  * Upload a photo of a person as the character. The consent checkbox gates the button; a refusal
@@ -16,12 +17,14 @@ export function CharacterUpload({ onReady }: { onReady: (characterId: string) =>
   const [consent, setConsent] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const nextSignal = useRequestSignal();
 
   async function submit() {
     if (!file || !consent) {
       return;
     }
 
+    const signal = nextSignal();
     const form = new FormData();
 
     form.append("consent", "true");
@@ -32,7 +35,13 @@ export function CharacterUpload({ onReady }: { onReady: (characterId: string) =>
     const result = await callApi(characterSchema, "/api/characters", {
       body: form,
       method: "POST",
+      signal,
     });
+
+    // The page moved on (unmounted): the upload was cancelled, and nothing is selected.
+    if (signal.aborted) {
+      return;
+    }
 
     setPending(false);
 

@@ -6,7 +6,7 @@ import { copyFile, stat } from "node:fs/promises";
 
 import { probe } from "../../src/server/media/probe.ts";
 import { loadWorkflow } from "../../src/server/workflows/registry.ts";
-import { SEEDED_JOB_ID } from "./session.ts";
+import { QUEUED_JOB_ID, SEEDED_JOB_ID } from "./session.ts";
 
 const path = process.env.DATABASE_PATH;
 
@@ -79,25 +79,36 @@ const poster = await storeFixture("tests/fixtures/result-poster.jpg", {
 
 const workflow = await loadWorkflow("motion-transfer", 1);
 
-const generation = createGeneration({
-  characterId: character.id,
-  recipe: {
-    inputs: { driving_video_sha256: clip.sha256, reference_image_sha256: character.image.sha256 },
-    models: [],
-    params: { fragment_length: 81, height: 848, prompt: "e2e seeded result", seed: 1, width: 480 },
-    target: "cloud",
-    workflow: { id: "motion-transfer", sha256: workflow.sha256, version: 1 },
-  },
-});
+/** A generation of the sample motion and first character, as `generate` records one. */
+const seedGeneration = (seed: number, providerJobId: string) => {
+  const { id } = createGeneration({
+    characterId: character.id,
+    recipe: {
+      inputs: { driving_video_sha256: clip.sha256, reference_image_sha256: character.image.sha256 },
+      models: [],
+      params: { fragment_length: 81, height: 848, prompt: "e2e seeded result", seed, width: 480 },
+      target: "cloud",
+      workflow: { id: "motion-transfer", sha256: workflow.sha256, version: 1 },
+    },
+  });
 
-markQueued(generation.id, SEEDED_JOB_ID);
+  markQueued(id, providerJobId);
 
-transition(generation.id, "queued", "finalizing");
+  return id;
+};
 
-transition(generation.id, "finalizing", "done", {
+const done = seedGeneration(1, SEEDED_JOB_ID);
+
+transition(done, "queued", "finalizing");
+
+transition(done, "finalizing", "done", {
   final_asset_id: video.id,
   output_asset_id: video.id,
   poster_asset_id: poster.id,
 });
 
-console.log(`e2e database ${path}, done generation ${generation.id}`);
+// One generation still `queued`, for a page that follows its event stream. Comfy at the dead
+// port never moves it on.
+const queued = seedGeneration(2, QUEUED_JOB_ID);
+
+console.log(`e2e database ${path}, done generation ${done}, queued generation ${queued}`);

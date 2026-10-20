@@ -1,22 +1,29 @@
 import { expect, test } from "@playwright/test";
 
+import { seededResult } from "./e2e/session.ts";
+
 const code = process.env.APP_ACCESS_CODE;
 
 test.describe("without a session", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("the access gate admits the right code and nothing else", async ({ page }) => {
+  test("the access gate admits the right code and nothing else, then opens the page asked for", async ({
+    page,
+  }) => {
     test.skip(!code, "Set APP_ACCESS_CODE: without it the dev server has no gate.");
 
-    await page.goto("/");
-    await expect(page).toHaveURL(/\/access$/);
+    const asked = `/g/${seededResult().id}`;
+
+    await page.goto(asked);
+    await expect(page).toHaveURL(/\/access\?next=/);
     await page.getByLabel("Access code").fill("not-the-code");
     await page.getByRole("button", { name: "Continue" }).click();
-    await expect(page.getByRole("status")).toHaveText("Incorrect access code. Please try again.");
+    await expect(page).toHaveURL(/\/access\?next=/);
+    expect(await page.context().cookies()).toEqual([]);
     await page.getByLabel("Access code").fill(code ?? "");
     await page.getByRole("button", { name: "Continue" }).click();
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole("heading", { name: "Open Photon" })).toBeVisible();
+    await expect(page).toHaveURL(asked);
+    await expect(page.getByRole("status", { name: "Generation status" })).toBeVisible();
   });
 });
 

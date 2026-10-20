@@ -51,8 +51,16 @@ export async function callApi<T extends z.ZodType>(
 /**
  * `POST /api/uploads` through `XMLHttpRequest`, the browser API that reports upload progress:
  * `onProgress` with the percent sent, `onSent` once the whole file is up and the server probes it.
+ * `signal` cancels the upload.
  */
-export function sendVideo(file: File, onProgress: (percent: number) => void, onSent: () => void) {
+export function sendVideo(
+  file: File,
+  {
+    onProgress,
+    onSent,
+    signal,
+  }: { onProgress: (percent: number) => void; onSent: () => void; signal: AbortSignal },
+) {
   // The executor form, not `Promise.withResolvers` (ES2024): the client targets ES2022 so older
   // phone browsers can upload.
   return new Promise<{ video: UploadedVideo } | { refusal: Refusal }>((resolve) => {
@@ -86,6 +94,11 @@ export function sendVideo(file: File, onProgress: (percent: number) => void, onS
       }),
     );
 
+    request.addEventListener("abort", () =>
+      resolve({ refusal: { message: "The upload was cancelled." } }),
+    );
+
+    signal.addEventListener("abort", () => request.abort(), { once: true });
     request.open("POST", "/api/uploads");
     request.send(form);
   });

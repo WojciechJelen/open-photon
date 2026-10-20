@@ -6,6 +6,7 @@ import { Label } from "#/components/ui/label";
 import { Progress } from "#/components/ui/progress";
 import type { Asset, UploadedVideo } from "#/lib/contracts";
 import { type Refusal, sendVideo } from "#/lib/requests";
+import { useRequestSignal } from "#/lib/use-request-signal";
 
 type UploadState =
   | { kind: "idle" }
@@ -51,6 +52,7 @@ export function UploadZone({
   selectedAssetId: string | undefined;
 }) {
   const [state, setState] = useState<UploadState>({ kind: "idle" });
+  const nextSignal = useRequestSignal();
   const busy = state.kind === "uploading" || state.kind === "probing";
 
   function ready(clip: Asset) {
@@ -59,13 +61,20 @@ export function UploadZone({
   }
 
   async function upload(file: File) {
+    const signal = nextSignal();
+
     setState({ kind: "uploading", percent: 0 });
 
-    const result = await sendVideo(
-      file,
-      (percent) => setState({ kind: "uploading", percent }),
-      () => setState({ kind: "probing" }),
-    );
+    const result = await sendVideo(file, {
+      onProgress: (percent) => setState({ kind: "uploading", percent }),
+      onSent: () => setState({ kind: "probing" }),
+      signal,
+    });
+
+    // The page moved on (unmounted): the upload was cancelled, and nothing is selected.
+    if (signal.aborted) {
+      return;
+    }
 
     if ("refusal" in result) {
       setState({ kind: "rejected", refusal: result.refusal });
@@ -113,7 +122,13 @@ export function UploadZone({
       {state.kind === "uploading" && (
         <Progress aria-label="Upload progress" value={state.percent} />
       )}
-      <p aria-live="polite" className="text-sm" data-state={state.kind} role="status">
+      <p
+        aria-live="polite"
+        className="text-sm"
+        data-reason={state.kind === "rejected" ? state.refusal.reason : undefined}
+        data-state={state.kind}
+        role="status"
+      >
         {describe(state, selectedAssetId)}
       </p>
       {state.kind === "too-long" && (

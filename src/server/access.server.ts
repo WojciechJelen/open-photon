@@ -1,6 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
-import { accessPage } from "./access-page.server.ts";
+import { accessPage, accessUrl } from "./access-page.server.ts";
 
 const cookieName = "photon_access";
 const sessionSeconds = 12 * 60 * 60;
@@ -24,8 +24,18 @@ function respond(body: string, status: number, headers?: HeadersInit) {
   return response;
 }
 
-function page(message?: string, status = 200) {
-  return respond(accessPage(message), status, { "Content-Type": "text/html; charset=utf-8" });
+function page(next: string, message?: string, status = 200) {
+  return respond(accessPage(next, message), status, { "Content-Type": "text/html; charset=utf-8" });
+}
+
+/**
+ * Where `/access` returns to after the code: its `next` parameter when that is a path on this
+ * site (one leading `/`, printable ASCII, no backslash), else `/`.
+ */
+function nextPath(url: URL) {
+  const next = url.searchParams.get("next");
+
+  return next && /^\/(?![/\\])[\x21-\x5b\x5d-\x7e]*$/.test(next) ? next : "/";
 }
 
 async function readCode(request: Request) {
@@ -124,8 +134,10 @@ export function createAccessGuard(
     }
 
     if (url.pathname === "/access") {
+      const next = nextPath(url);
+
       if (request.method === "GET") {
-        return page();
+        return page(next);
       }
 
       if (request.method !== "POST") {
@@ -144,14 +156,14 @@ export function createAccessGuard(
       const supplied = await readCode(request);
 
       if (supplied === null || !timingSafeEqual(hash(supplied), key)) {
-        return page("Incorrect access code. Please try again.", 401);
+        return page(next, "Incorrect access code. Please try again.", 401);
       }
 
       const expires = String(now() + sessionSeconds * 1000);
       const secure = new URL(config.publicUrl ?? request.url).protocol === "https:";
 
       return respond("", 303, {
-        Location: "/",
+        Location: next,
         "Set-Cookie": `${cookieName}=${expires}.${signature(expires)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${sessionSeconds}${secure ? "; Secure" : ""}`,
       });
     }
@@ -160,8 +172,9 @@ export function createAccessGuard(
       return undefined;
     }
 
+    // A page asked for without a session: the code first, then back to that page.
     if (request.method === "GET" && request.headers.get("Accept")?.includes("text/html")) {
-      return respond("", 303, { Location: "/access" });
+      return respond("", 303, { Location: accessUrl(url.pathname + url.search) });
     }
 
     return respond("Access code required", 401);

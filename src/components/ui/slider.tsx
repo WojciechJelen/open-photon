@@ -4,14 +4,16 @@ import * as React from "react"
 import { cn } from "cn"
 import { Slider as SliderPrimitive } from "radix-ui"
 
+/** `thumbLabels` names each thumb, the element with `role="slider"` (the root has no role). */
 function Slider({
   className,
   defaultValue,
   value,
   min = 0,
   max = 100,
+  thumbLabels,
   ...props
-}: React.ComponentProps<typeof SliderPrimitive.Root>) {
+}: React.ComponentProps<typeof SliderPrimitive.Root> & { thumbLabels: readonly string[] }) {
   const _values = React.useMemo(
     () =>
       Array.isArray(value)
@@ -50,6 +52,7 @@ function Slider({
       </SliderPrimitive.Track>
       {Array.from({ length: _values.length }, (_, index) => (
         <SliderPrimitive.Thumb
+          aria-label={thumbLabels[index]}
           data-slot="slider-thumb"
           key={index}
           className="block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm ring-ring/50 transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"

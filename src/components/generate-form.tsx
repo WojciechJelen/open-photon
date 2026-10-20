@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Textarea } from "#/components/ui/textarea";
 import { type AngleChoice, generateInputSchema } from "#/lib/contracts";
 import { generate } from "#/lib/generate.functions";
+import { useRequestSignal } from "#/lib/use-request-signal";
 
 type Field = "angle" | "character_id" | "motion_asset_id" | "prompt" | "seed";
 
@@ -49,6 +50,7 @@ export function GenerateForm({
   const [errors, setErrors] = useState<Field[]>([]);
   const [failure, setFailure] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const nextSignal = useRequestSignal();
 
   async function submit() {
     const parsed = generateInputSchema.safeParse({
@@ -75,10 +77,16 @@ export function GenerateForm({
     setErrors([]);
     setPending(true);
 
+    // Not passed to `generate`: a submit that reached the server finishes there. Leaving the page
+    // only drops the navigation to its result.
+    const signal = nextSignal();
+
     try {
       const { id } = await generate({ data: parsed.data });
 
-      await navigate({ params: { generationId: id }, to: "/g/$generationId" });
+      if (!signal.aborted) {
+        await navigate({ params: { generationId: id }, to: "/g/$generationId" });
+      }
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "The generation could not start.");
       setPending(false);
