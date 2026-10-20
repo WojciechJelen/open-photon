@@ -57,7 +57,7 @@ export function AccessCodeForm({ onSignedIn }: { onSignedIn?: () => void }) {
         Uploads and new generations need an access code. Ask the owner for one.
       </p>
       <Input
-        autoComplete="current-password"
+        autoComplete="one-time-code"
         id={id}
         onChange={(event) => setCode(event.target.value)}
         type="password"

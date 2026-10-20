@@ -5,7 +5,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 RUN test ! -e docs/priv && test ! -e .env \
-  && COMFY_API_KEY=spike-build-canary-not-a-real-key npm run build \
+  && COMFY_API_KEY=build-canary-not-a-real-key npm run build \
   && npm run check:client
 
 FROM node:24.19.0-bookworm-slim AS runtime

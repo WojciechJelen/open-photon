@@ -17,7 +17,7 @@ function isPrivate(path) {
   return (
     path === "docs/priv" ||
     path.startsWith("docs/priv/") ||
-    /(^|\/)\.env(?:\.|$)/.test(path) ||
+    (/(^|\/)\.env(?:\.|$)/.test(path) && path !== ".env.example") ||
     historicalDocuments.has(path)
   );
 }
@@ -42,7 +42,12 @@ assert.deepEqual(
   "Private files are tracked or reachable in Git history. Remove them before publishing.",
 );
 
-for (const path of ["docs/priv/privacy-check.md", "docs/priv/nested/privacy-check.md", ".env"]) {
+for (const path of [
+  "docs/priv/privacy-check.md",
+  "docs/priv/nested/privacy-check.md",
+  ".env",
+  ".env.local",
+]) {
   assert.equal(git("check-ignore", path), path, `Missing Git ignore rule for ${path}`);
 }
 

@@ -7,7 +7,8 @@ import { Label } from "#/components/ui/label";
 
 /**
  * A done generation's public share link, `/r/<slug>` on `origin`, to copy or open. The page needs
- * no access code; it shows the result, the source clip and the recipe.
+ * no access code; it shows the result, the source clip and the recipe, which the line under the
+ * link says.
  */
 export function ShareLink({ origin, slug }: { origin: string; slug: string }) {
   const url = `${origin}/r/${slug}`;
@@ -48,6 +49,9 @@ export function ShareLink({ origin, slug }: { origin: string; slug: string }) {
           </Link>
         </Button>
       </div>
+      <p className="text-sm text-muted-foreground">
+        Anyone with this link can see the result and the motion clip it was made from.
+      </p>
       {copy === "failed" && (
         <p className="text-sm" role="status">
           Copying is not allowed here; the link is selected, copy it by hand.

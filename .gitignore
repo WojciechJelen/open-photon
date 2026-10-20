@@ -17,5 +17,6 @@ test-results/
 
 work/
 .env.*
+!.env.example
 docs/priv/
 .fallow/

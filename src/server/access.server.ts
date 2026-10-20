@@ -4,8 +4,8 @@ import { z } from "zod";
 
 import { findAccessCode, findAccessCodeById } from "./access-codes.ts";
 import { accessPage, accessUrl } from "./access-page.server.ts";
-import { requesterKeys, takeToken } from "./limits.ts";
-import { isPublicRequest } from "./public-access.ts";
+import { requesterKeys, returnToken, takeToken } from "./limits.ts";
+import { isPublicRequest, publicServerFns } from "./public-access.ts";
 
 const cookieName = "photon_access";
 const sessionSeconds = 12 * 60 * 60;
@@ -170,13 +170,24 @@ export function uploadRefusal(request: Request, now = Date.now) {
 }
 
 /**
+ * The server-function guard, `src/start.ts`'s global function middleware, which knows the
+ * function being called (`serverFnMeta`): `undefined` for one in `publicServerFns` or a request
+ * with a session, else a 401 `access_required`. So a new server function needs a session unless
+ * it is added to that list on purpose.
+ */
+export function serverFnRefusal(request: Request, meta: { filename: string; name: string }) {
+  return Object.hasOwn(publicServerFns, `${meta.filename}#${meta.name}`) || readSession(request)
+    ? undefined
+    : refusal(401, "Enter an access code to do this.", "access_required");
+}
+
+/**
  * The access guard, the global request middleware (`src/start.ts`). `/access` (the code form, for
  * a page opened without a session) and `POST /api/session` (`{ code }` → 204, for the app's own
- * inline form) exchange a code for the session cookie; both share one limit of 10 attempts a
- * minute. A request with a session goes on. One without a session goes on only if
- * `isPublicRequest` lets it (an allowlist: a URL it does not know, an alias of a public one
- * included, needs the code); otherwise a page asked for redirects to `/access?next=<it>` and
- * anything else is a 401.
+ * inline form) exchange a code for the session cookie; both pay into the same login limits. A
+ * request with a session goes on. One without a session goes on only if `isPublicRequest` lets
+ * it (an allowlist: a URL it does not know, an alias of a public one included, needs the code);
+ * otherwise a page asked for redirects to `/access?next=<it>` and anything else is a 401.
  */
 export function createAccessGuard(
   config: {
@@ -185,18 +196,27 @@ export function createAccessGuard(
   },
   now = Date.now,
 ) {
-  let attempts = 0;
-  let resetAt = 0;
-
-  /** Checks a login's code; the answer is the session cookie, or the refusal's status. */
+  /**
+   * Checks a login's code; the answer is the session cookie, or the refusal's status. Every
+   * attempt takes a token from its client's bucket (`LOGIN_RATE_LIMIT` a minute, default 10) and
+   * then from the instance's (`LOGIN_TOTAL_RATE_LIMIT`, default 300); a right code gives both
+   * back, so only wrong codes count, and one client guessing cannot lock out anyone else.
+   */
   async function login(request: Request, form: boolean) {
-    if (now() >= resetAt) {
-      resetAt = now() + 60_000;
-      attempts = 0;
+    const client = requesterKeys(request, null);
+    const instance = ["instance"];
+    const wait = takeToken("login", client, now());
+
+    if (wait !== undefined) {
+      return { status: 429 as const, retryAfter: wait };
     }
 
-    if (++attempts > 10) {
-      return { status: 429 as const, retryAfter: Math.ceil((resetAt - now()) / 1000) };
+    const busy = takeToken("loginTotal", instance, now());
+
+    if (busy !== undefined) {
+      returnToken("login", client);
+
+      return { status: 429 as const, retryAfter: busy };
     }
 
     const supplied = await readCode(request, form);
@@ -205,6 +225,9 @@ export function createAccessGuard(
     if (!code) {
       return { status: 401 as const };
     }
+
+    returnToken("login", client);
+    returnToken("loginTotal", instance);
 
     const expires = String(now() + sessionSeconds * 1000);
 
@@ -238,7 +261,7 @@ export function createAccessGuard(
       const result = await login(request, true);
 
       if (result.status === 429) {
-        return respond("Too many attempts. Try again in a minute.", 429, {
+        return respond(`Too many attempts. Try again in ${result.retryAfter} s.`, 429, {
           "Retry-After": String(result.retryAfter),
         });
       }

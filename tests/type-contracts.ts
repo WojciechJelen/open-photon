@@ -21,7 +21,7 @@ export function verifyContracts(
   const picked = linkOptions({ search: { motion: id }, to: "/" });
 
   // @ts-expect-error A path outside the route tree must fail compilation.
-  linkOptions({ to: "/studio" });
+  linkOptions({ to: "/nope" });
   // @ts-expect-error A search param outside the schema must fail compilation.
   linkOptions({ search: { nope: id }, to: "/" });
   // @ts-expect-error The loader data of `/g/:id` must not degrade to any.

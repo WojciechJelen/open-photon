@@ -7,14 +7,14 @@ import { accessCookie } from "./access-session.mjs";
 
 let cookie = "";
 
-const context = process.env.SPIKE_DOCKER_CONTEXT ?? "colima";
-const container = process.env.SPIKE_CONTAINER;
+const context = process.env.MEMORY_DOCKER_CONTEXT ?? "colima";
+const container = process.env.MEMORY_CONTAINER;
 const base = process.env.BASE_URL;
 const output = process.env.MEMORY_REPORT ?? "work/upload-memory.json";
 const fixture = "work/memory-upload-100MiB.mp4";
 const limit = 64 * 1024 * 1024;
 
-assert.ok(container, "Set SPIKE_CONTAINER to a dedicated test container; it will be restarted");
+assert.ok(container, "Set MEMORY_CONTAINER to a dedicated test container; it will be restarted");
 
 assert.ok(base, "Set BASE_URL to the dedicated test container's HTTP address");
 

@@ -41,8 +41,8 @@ jobs:
         run: docker build --platform linux/amd64 --tag open-photon:ci .
       - name: Check access and upload memory on native AMD64
         env:
-          SPIKE_DOCKER_CONTEXT: default
-          SPIKE_CONTAINER: open-photon-memory
+          MEMORY_DOCKER_CONTEXT: default
+          MEMORY_CONTAINER: open-photon-memory
           BASE_URL: http://127.0.0.1:3031
         run: |
           test "$(uname -m)" = x86_64

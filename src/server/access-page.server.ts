@@ -7,7 +7,7 @@ export function accessUrl(next: string) {
 /** The code form; it posts back to `/access`, keeping `next`. */
 export function accessPage(
   next: string,
-  message = "Enter the access code to use this private preview.",
+  message = "Browsing the samples is open to anyone. Enter an access code to upload your own clips and generate.",
 ) {
   return `<!doctype html>
 <html lang="en">
@@ -34,14 +34,14 @@ export function accessPage(
 <body>
   <main>
     <div class="brand">Open Photon</div>
-    <h1>Private preview</h1>
+    <h1>Access code</h1>
     <p role="status">${message}</p>
     <form method="post" action="${accessUrl(next)}">
       <label for="code">Access code</label>
-      <input id="code" name="code" type="password" autocomplete="current-password" required maxlength="256">
+      <input id="code" name="code" type="password" autocomplete="one-time-code" required maxlength="256">
       <button type="submit">Continue</button>
     </form>
-    <small>Access lasts 12 hours. Ask the owner for a code.</small>
+    <small>Access lasts 12 hours. Ask the owner for a code. <a href="/">Browse the samples</a></small>
   </main>
 </body>
 </html>`;

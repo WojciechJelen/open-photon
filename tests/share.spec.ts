@@ -19,6 +19,8 @@ test("the share page opens without the code, its Open Graph tags in the server-r
   const page = await visitor.get(`/r/${shareSlug}`, { maxRedirects: 0 });
 
   expect(page.status()).toBe(200);
+  // Search engines may index share pages and the files they show, nothing else.
+  expect(page.headers()["x-robots-tag"]).toBeUndefined();
 
   const html = await page.text();
 
@@ -42,6 +44,8 @@ test("the share page opens without the code, its Open Graph tags in the server-r
 
   expect(video.status()).toBe(206);
   expect(video.headers()["cache-control"]).toBe("public, max-age=31536000, immutable");
+  expect(video.headers()["x-robots-tag"]).toBeUndefined();
+  expect((await visitor.get("/")).headers()["x-robots-tag"]).toBe("noindex, nofollow");
   expect((await visitor.get(tags["og:image"] ?? "")).status()).toBe(200);
 
   expect((await visitor.get("/r/does-not-exist")).status()).toBe(404);
@@ -68,6 +72,10 @@ test("everything else stays behind the access code", async ({ baseURL, playwrigh
   const visitor = await playwright.request.newContext({ baseURL, storageState: anonymous });
 
   expect((await visitor.get(`/media/${image_asset_id}.png`)).status()).toBe(401);
+  expect((await request.get(`/media/${image_asset_id}.png`)).headers()["x-robots-tag"]).toBe(
+    "noindex, nofollow",
+  );
+  expect((await request.get(`/g/${id}`)).headers()["x-robots-tag"]).toBe("noindex, nofollow");
   expect((await visitor.get(`/api/generations/${id}`)).status()).toBe(401);
 
   const result = await visitor.get(`/g/${id}`, {

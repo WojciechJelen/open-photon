@@ -18,7 +18,7 @@ async function scan(path) {
 
       if (
         bytes.includes(Buffer.from("COMFY")) ||
-        bytes.includes(Buffer.from("spike-build-canary"))
+        bytes.includes(Buffer.from("build-canary-not-a-real-key"))
       ) {
         hits.push(file);
       }

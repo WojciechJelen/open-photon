@@ -5,7 +5,12 @@ import { createHash } from "node:crypto";
 import { copyFile, stat } from "node:fs/promises";
 import { test } from "node:test";
 
-import { createAccessGuard, readSession, uploadRefusal } from "../src/server/access.server.ts";
+import {
+  createAccessGuard,
+  readSession,
+  serverFnRefusal,
+  uploadRefusal,
+} from "../src/server/access.server.ts";
 import { hashFile, incomingPath, storeAsset } from "../src/server/assets.ts";
 import { database } from "../src/server/db.server.ts";
 import { createGeneration, markQueued } from "../src/server/generations.ts";
@@ -150,24 +155,81 @@ test("the /access form signs in and returns to the page asked for, on this site 
   }
 });
 
-test("logins are limited to 10 a minute, without trusting client IP headers", async () => {
-  const code = mintCode(5);
-  let time = Date.now();
-  const guard = createAccessGuard({ production: true }, () => time);
+test("wrong codes are limited per client and across the instance; one client cannot lock out another", async () => {
+  process.env.CLIENT_IP_HEADER = "X-Real-IP";
 
-  assert.equal((await guard(login("x".repeat(5000))))?.status, 401);
+  try {
+    const code = mintCode(5);
+    let time = Date.now();
+    const guard = createAccessGuard({ production: true }, () => time);
 
-  for (let attempt = 0; attempt < 9; attempt++) {
-    assert.equal((await guard(exchange("wrong")))?.status, 401);
+    const from = (client: string, request: Request) => {
+      request.headers.set("X-Real-IP", client);
+
+      return guard(request);
+    };
+
+    // Ten wrong codes from one client, both kinds of login: its next attempt is refused.
+    assert.equal((await from("10.2.0.1", login("x".repeat(5000))))?.status, 401);
+
+    for (let attempt = 0; attempt < 9; attempt++) {
+      assert.equal((await from("10.2.0.1", exchange("wrong")))?.status, 401);
+    }
+
+    const limited = await from("10.2.0.1", exchange(code));
+
+    assert.equal(limited?.status, 429);
+    assert.equal((await limited?.json())?.reason, "rate_limited");
+    assert.equal((await from("10.2.0.1", login(code)))?.status, 429);
+
+    // Another client still signs in, and a right code costs nothing.
+    for (let attempt = 0; attempt < 12; attempt++) {
+      assert.equal((await from("10.2.0.2", exchange(code)))?.status, 204);
+    }
+
+    // The exhausted client again once its `Retry-After` has passed.
+    time += Number(limited?.headers.get("Retry-After")) * 1000;
+    assert.equal((await from("10.2.0.1", exchange(code)))?.status, 204);
+
+    // 300 wrong codes a minute from many clients: then every login waits, a right code included.
+    time += 60_000;
+
+    for (let client = 0; client < 300; client++) {
+      assert.equal(
+        (await from(`10.3.${client >> 8}.${client & 255}`, exchange("wrong")))?.status,
+        401,
+      );
+    }
+
+    assert.equal((await from("10.4.0.1", exchange(code)))?.status, 429);
+    time += 60_000;
+    assert.equal((await from("10.4.0.1", exchange(code)))?.status, 204);
+  } finally {
+    delete process.env.CLIENT_IP_HEADER;
   }
+});
 
-  const limited = await guard(exchange(code));
+test("server functions need a session unless they are on the public list", async () => {
+  const cookie = await sessionCookie(mintCode(5));
 
-  assert.equal(limited?.status, 429);
-  assert.equal(limited?.headers.get("Retry-After"), "60");
-  assert.equal((await guard(login(code)))?.status, 429);
-  time += 60_000;
-  assert.equal((await guard(exchange(code)))?.status, 204);
+  const call = (filename: string, name: string, headers?: HeadersInit) =>
+    serverFnRefusal(new Request(`${origin}/_serverFn/any`, { headers }), { filename, name });
+
+  const unlisted = call("src/lib/admin.functions.ts", "loadEverything");
+
+  assert.equal(unlisted?.status, 401);
+  assert.equal((await unlisted?.json())?.reason, "access_required");
+  // A public name in another file is another function.
+  assert.equal(call("src/lib/selection.functions.ts", "loadShare")?.status, 401);
+  assert.equal(call("src/lib/admin.functions.ts", "loadEverything", { Cookie: cookie }), undefined);
+
+  for (const [filename, name] of [
+    ["src/lib/selection.functions.ts", "loadSelection"],
+    ["src/lib/generate.functions.ts", "loadShare"],
+    ["src/lib/generate.functions.ts", "loadResult"],
+  ] as const) {
+    assert.equal(call(filename, name), undefined);
+  }
 });
 
 test("uploads, cuts and character photos are limited to 10 a minute per code and per client, then 429 with Retry-After", async () => {

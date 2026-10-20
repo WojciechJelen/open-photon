@@ -12,10 +12,43 @@ export function isPublicAsset(assetId: string) {
 }
 
 /**
+ * The server functions anyone may call, keyed `<source file>#<export name>` (`serverFnMeta`, the
+ * same in development and in a build): the picker's data, the share page's, and `/g/:id`'s, which
+ * checks access itself (a pre-rendered sample's page is public, any other needs a session). Any
+ * other server function needs a session (`serverFnRefusal`).
+ */
+export const publicServerFns = {
+  "src/lib/generate.functions.ts#loadResult": true,
+  "src/lib/generate.functions.ts#loadShare": true,
+  "src/lib/selection.functions.ts#loadSelection": true,
+} satisfies Record<string, true>;
+
+// A share page and a stored file, as the router matches them (see `isPublicRequest`).
+const sharePage = /^\/r\/[^/]+$/i;
+const mediaFile = /^\/media\/([0-9a-f-]{36})\.[a-z0-9]+$/i;
+
+/** The path as the router matches it: one trailing slash or none. */
+function routePath(pathname: string) {
+  return pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+}
+
+/**
+ * Whether search engines may index this URL: a share page (`/r/<slug>`) or a file a share page
+ * shows (`isSharedAsset`). Every other response says `X-Robots-Tag: noindex, nofollow`
+ * (`src/start.ts`).
+ */
+export function isIndexable(pathname: string) {
+  const path = routePath(pathname);
+  const assetId = mediaFile.exec(path)?.[1];
+
+  return sharePage.test(path) || (assetId !== undefined && isSharedAsset(assetId));
+}
+
+/**
  * Whether a request without a session may go on to its route: pages, media and reads anyone may
  * `GET`/`HEAD` (the picker `/`, share pages, public media, and the page and API of a pre-rendered
- * sample generation), server functions (each checks access itself: the picker's and the share
- * page's loaders are public, `loadResult` is not), and the two actions that may answer with a
+ * sample generation), server function calls (`/_serverFn/*`: the function middleware decides
+ * once it knows which function, `serverFnRefusal`), and the two actions that may answer with a
  * result that already exists, for free: `POST /api/generate` (a pre-rendered sample × sample
  * result) and `POST /api/generations/:id/rerun` (a done generation's own result); they refuse
  * anything that would submit a job (`src/server/generate.ts`).
@@ -29,7 +62,7 @@ export function isPublicRequest(method: string, pathname: string) {
     return true;
   }
 
-  const path = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  const path = routePath(pathname);
 
   if (method === "POST") {
     return /^\/api\/(?:generate|generations\/[^/]+\/rerun)$/i.test(path);
@@ -39,11 +72,11 @@ export function isPublicRequest(method: string, pathname: string) {
     return false;
   }
 
-  if (path === "/" || /^\/r\/[^/]+$/i.test(path)) {
+  if (path === "/" || sharePage.test(path)) {
     return true;
   }
 
-  const assetId = /^\/media\/([0-9a-f-]{36})\.[a-z0-9]+$/i.exec(path)?.[1];
+  const assetId = mediaFile.exec(path)?.[1];
 
   if (assetId !== undefined) {
     return isPublicAsset(assetId);

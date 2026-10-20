@@ -2,6 +2,10 @@ services:
   app:
     build: .
     platform: linux/amd64
+    # The optional settings in `.env` (see `.env.example`) reach the app too.
+    env_file:
+      - path: .env
+        required: false
     environment:
       COMFY_API_KEY: ${COMFY_API_KEY:?Set COMFY_API_KEY in .env}
       COMFY_BASE_URL: https://cloud.comfy.org

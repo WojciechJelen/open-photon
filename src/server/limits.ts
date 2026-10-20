@@ -6,13 +6,17 @@ import type { Session } from "./access.server.ts";
 
 /**
  * What a token pays for: `upload` an upload, a cut or a character photo; `generate` a request to
- * `POST /api/generate`, `…/retry` or `…/rerun` that is not answered with an existing result.
+ * `POST /api/generate`, `…/retry` or `…/rerun` that is not answered with an existing result;
+ * `login` a wrong code at `/access` or `POST /api/session` (per client), and `loginTotal` the
+ * same across the instance (one key), a backstop against many clients at once.
  */
-type Action = "generate" | "upload";
+type Action = "generate" | "login" | "loginTotal" | "upload";
 
 /** Each action's limit per minute, and the variable that changes it. */
 const limits: Record<Action, { fallback: number; name: string }> = {
   generate: { fallback: 3, name: "GENERATE_RATE_LIMIT" },
+  login: { fallback: 10, name: "LOGIN_RATE_LIMIT" },
+  loginTotal: { fallback: 300, name: "LOGIN_TOTAL_RATE_LIMIT" },
   upload: { fallback: 10, name: "UPLOAD_RATE_LIMIT" },
 };
 
