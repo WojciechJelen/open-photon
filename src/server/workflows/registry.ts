@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { z } from "zod";
+
 import {
   type InputsMap,
   inputsMapSchema,
@@ -33,4 +35,25 @@ export async function loadWorkflow(id: "motion-transfer", version: 1): Promise<L
     inputsMap,
     sha256: createHash("sha256").update(bytes).digest("hex"),
   };
+}
+
+/**
+ * The model files a graph loads: every loader field (`unet_name`, `lora_name`, `clip_name`,
+ * `vae_name`, …) that names a weights file, in graph order, each once. Until `models.lock` pins
+ * them with hashes and licenses (Step 8.1), these names are all a recipe can say about its models.
+ */
+export function workflowModelFiles(graph: WorkflowGraph) {
+  const files = Object.values(graph).flatMap(({ inputs }) =>
+    Object.entries(inputs).flatMap(([field, value]) => {
+      const file = z.string().safeParse(value);
+
+      return field.endsWith("_name") &&
+        file.success &&
+        /\.(safetensors|ckpt|pt|pth|bin|gguf)$/.test(file.data)
+        ? [file.data]
+        : [];
+    }),
+  );
+
+  return [...new Set(files)];
 }

@@ -110,3 +110,27 @@ test("login rejects oversized bodies and throttles attempts without trusting cli
   time += 60_000;
   assert.equal((await guard(login()))?.status, 303);
 });
+
+test("a public path (a share page and its media) opens without a session, for GET and HEAD only", async () => {
+  const guard = createAccessGuard({
+    code,
+    isPublic: (pathname) => pathname === "/r/shared" || pathname === "/media/shared.mp4",
+    production: true,
+  });
+
+  for (const path of ["/r/shared", "/media/shared.mp4"]) {
+    for (const method of ["GET", "HEAD"]) {
+      assert.equal(await guard(new Request(`${origin}${path}`, { method })), undefined);
+    }
+
+    assert.equal((await guard(new Request(`${origin}${path}`, { method: "POST" })))?.status, 401);
+  }
+
+  assert.equal((await guard(new Request(`${origin}/media/private.mp4`)))?.status, 401);
+
+  const page = await guard(
+    new Request(`${origin}/g/example`, { headers: { Accept: "text/html" } }),
+  );
+
+  assert.equal(page?.status, 303);
+});

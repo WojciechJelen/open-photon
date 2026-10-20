@@ -1,7 +1,18 @@
+import { cn } from "cn";
 import { useEffect, useRef } from "react";
 
-/** A muted, looping, inline preview that starts by itself. */
-export function LoopingVideo({ label, src }: { label: string; src: string }) {
+/** A muted, looping, inline preview that starts by itself; 3:4 and cropped unless `className` says otherwise. */
+export function LoopingVideo({
+  className,
+  label,
+  poster,
+  src,
+}: {
+  className?: string;
+  label: string;
+  poster?: string;
+  src: string;
+}) {
   const video = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -23,10 +34,11 @@ export function LoopingVideo({ label, src }: { label: string; src: string }) {
     <video
       aria-label={label}
       autoPlay
-      className="aspect-3/4 w-full rounded-md bg-muted object-cover"
+      className={cn("aspect-3/4 w-full rounded-md bg-muted object-cover", className)}
       loop
       muted
       playsInline
+      poster={poster}
       preload="metadata"
       ref={video}
       src={src}

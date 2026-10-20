@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import type { SQLOutputValue } from "node:sqlite";
 
 import { z } from "zod";
@@ -54,7 +54,6 @@ const generationRowSchema = generationSchema.extend({
   provider_job_id: z.string().min(1).nullable(),
   recipe: recipeColumn,
   recipe_hash: z.string().regex(/^[a-f0-9]{64}$/),
-  share_slug: z.string().nullable(),
   target: recipeSchema.shape.target,
   workflow_id: z.string().min(1),
   workflow_version: z.int().positive(),
@@ -101,6 +100,15 @@ export function createGeneration({
 
 export function findGeneration(id: string) {
   return parseRow(database.prepare("SELECT * FROM generations WHERE id = ?").get(id));
+}
+
+/** The done generation whose share page is `/r/<slug>`. */
+export function findShared(slug: string) {
+  return parseRow(
+    database
+      .prepare("SELECT * FROM generations WHERE share_slug = ? AND status = 'done'")
+      .get(slug),
+  );
 }
 
 /** A finished generation with this recipe, whose output can be shown instead of rendering again. */
@@ -179,7 +187,8 @@ type Outcome = Partial<
 
 /**
  * Moves a row from `from` to `to` if the state machine allows it and the row is still in `from`,
- * storing the error or the output assets that come with the new status.
+ * storing the error or the output assets that come with the new status. A row that becomes
+ * `done` gets its `share_slug` (`/r/<slug>`): 16 random hex characters, 64 bits nobody can guess.
  */
 export function transition(
   id: string,
@@ -192,6 +201,7 @@ export function transition(
   }
 
   const finishedAt = to === "done" || to === "failed" ? new Date().toISOString() : null;
+  const shareSlug = to === "done" ? randomBytes(8).toString("hex") : null;
 
   const row = parseRow(
     database
@@ -201,7 +211,8 @@ export function transition(
           error_code = coalesce(?, error_code), error_message = coalesce(?, error_message),
           output_asset_id = coalesce(?, output_asset_id),
           final_asset_id = coalesce(?, final_asset_id),
-          poster_asset_id = coalesce(?, poster_asset_id)
+          poster_asset_id = coalesce(?, poster_asset_id),
+          share_slug = coalesce(share_slug, ?)
         WHERE id = ? AND status = ?
         RETURNING *`,
       )
@@ -214,6 +225,7 @@ export function transition(
         outcome.output_asset_id ?? null,
         outcome.final_asset_id ?? null,
         outcome.poster_asset_id ?? null,
+        shareSlug,
         id,
         from,
       ),

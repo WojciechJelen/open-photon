@@ -157,7 +157,7 @@ export const generationErrorCodeSchema = z.enum([
 /**
  * A generation as `GET /api/generations/:id` and its event stream return it. A `done` row has
  * `final_asset_id` (the MP4) and `poster_asset_id` (a JPEG), both served at
- * `/media/<asset id>.<mp4|jpg>`.
+ * `/media/<asset id>.<mp4|jpg>`, and `share_slug`: its public share page is `/r/<share_slug>`.
  */
 export const generationSchema = z.object({
   character_id: z.uuid().nullable(),
@@ -170,6 +170,10 @@ export const generationSchema = z.object({
   parent_id: z.uuid().nullable(),
   poster_asset_id: z.uuid().nullable(),
   progress: z.int().min(0).max(100).nullable(),
+  share_slug: z
+    .string()
+    .regex(/^[0-9a-f]{16}$/)
+    .nullable(),
   status: generationStatusSchema,
   submitted_at: z.iso.datetime().nullable(),
 });

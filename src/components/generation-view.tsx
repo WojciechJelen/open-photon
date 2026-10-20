@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 
 import { ComparePlayer } from "#/components/compare-player";
+import { ShareLink } from "#/components/share-link";
 import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
 import { type Asset, generationEventSchema, type GenerationSnapshot } from "#/lib/contracts";
@@ -48,14 +49,16 @@ function useLiveGeneration(initial: GenerationSnapshot) {
 
 /**
  * One generation: its status word and percent while it runs (never a time estimate, which
- * Comfy does not give), the result next to its source clip when done, the reason and Retry when
- * failed, and why an `unknown` one is not retried.
+ * Comfy does not give), the result next to its source clip when done with its share link on
+ * `origin`, the reason and Retry when failed, and why an `unknown` one is not retried.
  */
 export function GenerationView({
   initial,
+  origin,
   source,
 }: {
   initial: GenerationSnapshot;
+  origin: string;
   source: Asset;
 }) {
   const { generation, providerUnavailable } = useLiveGeneration(initial);
@@ -160,6 +163,7 @@ export function GenerationView({
               </Button>
             )}
           </div>
+          {generation.share_slug && <ShareLink origin={origin} slug={generation.share_slug} />}
         </div>
       )}
 

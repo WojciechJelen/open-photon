@@ -48,12 +48,16 @@ export function queuedGenerationId() {
   );
 }
 
-/** The `done` generation `seed.ts` adds: its id, its character and the motion clip it was made from. */
+/**
+ * The `done` generation `seed.ts` adds: its id, its character, the motion clip it was made from,
+ * its result and its share slug.
+ */
 export function seededResult() {
   const row = query((database) =>
     database
       .prepare(
-        `SELECT generations.id, generations.character_id, assets.id AS source_asset_id
+        `SELECT generations.id, generations.character_id, generations.final_asset_id,
+          generations.share_slug, assets.id AS source_asset_id
         FROM generations
         JOIN assets ON assets.sha256 = generations.recipe ->> '$.inputs.driving_video_sha256'
         WHERE generations.provider_job_id = ?`,
@@ -63,7 +67,9 @@ export function seededResult() {
 
   return {
     characterId: String(row?.character_id),
+    finalAssetId: String(row?.final_asset_id),
     id: String(row?.id),
+    shareSlug: String(row?.share_slug),
     sourceAssetId: String(row?.source_asset_id),
   };
 }

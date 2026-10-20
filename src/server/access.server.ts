@@ -77,8 +77,17 @@ async function readCode(request: Request) {
   return new URLSearchParams(Buffer.concat(chunks).toString("utf8")).get("code");
 }
 
+/**
+ * The access gate. `isPublic` names the paths anyone may `GET`/`HEAD` without a session (share
+ * pages and the media they show).
+ */
 export function createAccessGuard(
-  config: { code?: string; production: boolean; publicUrl?: string },
+  config: {
+    code?: string;
+    isPublic?: (pathname: string) => boolean | Promise<boolean>;
+    production: boolean;
+    publicUrl?: string;
+  },
   now = Date.now,
 ) {
   const code = config.code;
@@ -172,6 +181,13 @@ export function createAccessGuard(
       return undefined;
     }
 
+    if (
+      ["GET", "HEAD"].includes(request.method) &&
+      (await config.isPublic?.(url.pathname)) === true
+    ) {
+      return undefined;
+    }
+
     // A page asked for without a session: the code first, then back to that page.
     if (request.method === "GET" && request.headers.get("Accept")?.includes("text/html")) {
       return respond("", 303, { Location: accessUrl(url.pathname + url.search) });
@@ -183,6 +199,9 @@ export function createAccessGuard(
 
 export const accessGuard = createAccessGuard({
   code: process.env.APP_ACCESS_CODE,
+  // Imported on first use, not statically: loading `share.ts` opens the database, and the access
+  // tests load this module without one.
+  isPublic: async (pathname) => (await import("./share.ts")).isPublicPath(pathname),
   production: process.env.NODE_ENV === "production",
   publicUrl: process.env.PUBLIC_APP_URL,
 });

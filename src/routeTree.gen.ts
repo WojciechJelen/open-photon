@@ -14,6 +14,7 @@ import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as GGenerationIdRouteImport } from './routes/g.$generationId'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
+import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
 import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
 import { Route as ApiAssetsAssetIdTrimRouteImport } from './routes/api.assets.$assetId.trim'
@@ -43,6 +44,11 @@ const GGenerationIdRoute = GGenerationIdRouteImport.update({
 const MediaFilenameRoute = MediaFilenameRouteImport.update({
   id: '/media/$filename',
   path: '/media/$filename',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RSlugRoute = RSlugRouteImport.update({
+  id: '/r/$slug',
+  path: '/r/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiDebugStreamsRoute = ApiDebugStreamsRouteImport.update({
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/api/uploads': typeof ApiUploadsRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
+  '/r/$slug': typeof RSlugRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/api/uploads': typeof ApiUploadsRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
+  '/r/$slug': typeof RSlugRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/api/uploads': typeof ApiUploadsRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
+  '/r/$slug': typeof RSlugRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/api/uploads'
     | '/g/$generationId'
     | '/media/$filename'
+    | '/r/$slug'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/api/uploads'
     | '/g/$generationId'
     | '/media/$filename'
+    | '/r/$slug'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/api/uploads'
     | '/g/$generationId'
     | '/media/$filename'
+    | '/r/$slug'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   ApiUploadsRoute: typeof ApiUploadsRoute
   GGenerationIdRoute: typeof GGenerationIdRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
+  RSlugRoute: typeof RSlugRoute
   ApiDebugStreamsRoute: typeof ApiDebugStreamsRoute
   ApiGenerationsGenerationIdRoute: typeof ApiGenerationsGenerationIdRouteWithChildren
   ApiAssetsAssetIdTrimRoute: typeof ApiAssetsAssetIdTrimRoute
@@ -196,6 +209,13 @@ declare module '@tanstack/react-router' {
       path: '/media/$filename'
       fullPath: '/media/$filename'
       preLoaderRoute: typeof MediaFilenameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/r/$slug': {
+      id: '/r/$slug'
+      path: '/r/$slug'
+      fullPath: '/r/$slug'
+      preLoaderRoute: typeof RSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/debug/streams': {
@@ -259,6 +279,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiUploadsRoute: ApiUploadsRoute,
   GGenerationIdRoute: GGenerationIdRoute,
   MediaFilenameRoute: MediaFilenameRoute,
+  RSlugRoute: RSlugRoute,
   ApiDebugStreamsRoute: ApiDebugStreamsRoute,
   ApiGenerationsGenerationIdRoute: ApiGenerationsGenerationIdRouteWithChildren,
   ApiAssetsAssetIdTrimRoute: ApiAssetsAssetIdTrimRoute,

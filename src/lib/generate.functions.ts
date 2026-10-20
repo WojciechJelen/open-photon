@@ -15,11 +15,25 @@ export const generate = createServerFn({ method: "POST" })
     return start(data);
   });
 
-/** What `/g/:id` shows; `null` for an id that names no generation. See `readResult`. */
+/**
+ * What `/g/:id` shows, and the origin its share link starts with; `null` for an id that names no
+ * generation. See `readResult`.
+ */
 export const loadResult = createServerFn({ method: "GET" })
   .validator(z.string())
   .handler(async ({ data }) => {
     const { readResult } = await import("#/server/generate");
+    const { publicOrigin } = await import("#/server/share");
+    const result = await readResult(data);
 
-    return readResult(data);
+    return result && { ...result, origin: publicOrigin() };
+  });
+
+/** What the share page `/r/:slug` shows; `null` for a slug no done generation has. See `readShare`. */
+export const loadShare = createServerFn({ method: "GET" })
+  .validator(z.string())
+  .handler(async ({ data }) => {
+    const { publicOrigin, readShare } = await import("#/server/share");
+
+    return readShare(data, publicOrigin());
   });
