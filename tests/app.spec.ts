@@ -1,6 +1,53 @@
 import { expect, test } from "@playwright/test";
 
-import { accessCode, seededResult } from "./e2e/session.ts";
+import { accessCode, open, seededResult } from "./e2e/session.ts";
+
+test("the studio home features Genjutsu, marks the tools to come Soon, and links nowhere for them", async ({
+  page,
+}) => {
+  await open(page, "/");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Make the shot.");
+
+  const tools = page.locator("#tools");
+
+  // The featured card is one link into the wizard.
+  await tools.getByRole("link", { name: /Genjutsu/ }).click();
+  await expect(page).toHaveURL(/\/genjutsu/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pick a motion");
+
+  await open(page, "/");
+
+  const soon = page.getByRole("list", { name: "Coming soon" }).getByRole("listitem");
+
+  await expect(soon).toHaveCount(3);
+
+  for (const name of ["Character from words", "Motion from text", "Cinematic shot"]) {
+    const card = soon.filter({ has: page.getByRole("heading", { name }) });
+
+    await expect(card).toContainText("Soon");
+    await expect(card.getByRole("link")).toHaveCount(0);
+    await expect(card.getByRole("button")).toHaveCount(0);
+  }
+
+  await expect(page.getByText("Built open")).toBeVisible();
+  await expect(page.getByRole("contentinfo")).toContainText("MIT licensed");
+});
+
+test("no page scrolls sideways, on a phone or a desktop", async ({ page }) => {
+  const { id, shareSlug } = seededResult();
+
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ height: 900, width });
+
+    for (const path of ["/", "/genjutsu", `/g/${id}`, `/r/${shareSlug}`]) {
+      await open(page, path);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+        `${path} at ${width} px`,
+      ).toBeLessThanOrEqual(0);
+    }
+  }
+});
 
 test.describe("without a session", () => {
   test.use({ storageState: { cookies: [], origins: [] } });

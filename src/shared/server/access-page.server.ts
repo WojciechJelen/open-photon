@@ -17,18 +17,22 @@ export function accessPage(
   <title>Access · Open Photon</title>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100svh; display: grid; place-items: center; padding: 24px; background: #fafafa; color: #18181b; font: 16px/1.5 system-ui, sans-serif; }
+    :root { color-scheme: dark; }
+    body { margin: 0; min-height: 100svh; display: grid; place-items: center; padding: 24px; background: #09080d; color: #f4f2f8; font: 16px/1.5 system-ui, sans-serif; }
     main { width: 100%; max-width: 400px; }
-    .brand { font-weight: 600; font-size: 14px; }
-    h1 { font-size: 30px; letter-spacing: -1px; margin: 24px 0 8px; }
-    p { color: #52525b; margin: 0 0 28px; }
-    label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
-    input, button { width: 100%; border-radius: 8px; font: inherit; padding: 11px 14px; }
-    input { border: 1px solid #d4d4d8; background: white; }
-    input:focus { outline: 2px solid #71717a; outline-offset: 2px; }
-    button { margin-top: 16px; border: 0; background: #18181b; color: white; cursor: pointer; font-weight: 500; }
-    button:hover { background: #3f3f46; }
-    small { display: block; color: #71717a; margin-top: 18px; }
+    .brand { font-weight: 700; font-size: 15px; }
+    h1 { font-size: 30px; letter-spacing: -0.5px; margin: 24px 0 8px; }
+    p { color: #bdb7cb; margin: 0 0 28px; }
+    label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+    input, button { width: 100%; min-height: 48px; border-radius: 12px; font: inherit; padding: 11px 14px; }
+    input { border: 1px solid rgba(255, 255, 255, 0.14); background: #0f0d15; color: #f4f2f8; }
+    input:focus { outline: 2px solid #a68bff; outline-offset: 2px; }
+    button { margin-top: 16px; border: 0; border-radius: 999px; background: #f3eeff; color: #0b0910; cursor: pointer; font-weight: 600; }
+    button:hover { background: #ffffff; }
+    button:focus-visible { outline: 2px solid #a68bff; outline-offset: 3px; }
+    small { display: block; color: #8e889c; margin-top: 18px; }
+    a { color: #bdb7cb; }
+    a:hover { color: #f4f2f8; }
   </style>
 </head>
 <body>
@@ -41,7 +45,7 @@ export function accessPage(
       <input id="code" name="code" type="password" autocomplete="one-time-code" required maxlength="256">
       <button type="submit">Continue</button>
     </form>
-    <small>Access lasts 12 hours. Ask the owner for a code. <a href="/">Browse the samples</a></small>
+    <small>Access lasts 12 hours. Ask the owner for a code. <a href="/genjutsu">Browse the samples</a></small>
   </main>
 </body>
 </html>`;

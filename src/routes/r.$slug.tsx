@@ -1,15 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
-import { Button } from "#/components/ui/button";
-import { RecipePanel } from "#/features/genjutsu/components/recipe-panel";
+import {
+  SharePageView,
+  shareDescription,
+  shareTitle,
+} from "#/features/genjutsu/components/share-page";
 import { loadShare } from "#/features/genjutsu/generate.functions";
-import { LoopingVideo } from "#/shared/components/looping-video";
-import { mediaUrl } from "#/shared/media";
-
-const title = "Genjutsu: one motion, another character";
-
-const description =
-  "The motion of one clip, performed by another character. Made with Open Photon on the Wan Animate 2 workflow.";
+import { Problem } from "#/shared/components/problem";
 
 // The public share page of a done generation. It is open without the access code
 // (`src/features/genjutsu/server/public-access.ts`), so social sites can read its Open Graph tags from the
@@ -33,8 +30,8 @@ export const Route = createFileRoute("/r/$slug")({
 
     // Open Graph properties; one whose value is unknown is left out.
     const properties: [string, number | string | null | undefined][] = [
-      ["og:title", title],
-      ["og:description", description],
+      ["og:title", shareTitle],
+      ["og:description", shareDescription],
       ["og:type", "video.other"],
       ["og:url", pageUrl],
       ["og:image", posterUrl],
@@ -49,8 +46,8 @@ export const Route = createFileRoute("/r/$slug")({
 
     return {
       meta: [
-        { title },
-        { name: "description", content: description },
+        { title: shareTitle },
+        { name: "description", content: shareDescription },
         ...properties.flatMap(([property, content]) =>
           content === null || content === undefined ? [] : [{ property, content: String(content) }],
         ),
@@ -61,77 +58,14 @@ export const Route = createFileRoute("/r/$slug")({
   },
   component: SharePage,
   notFoundComponent: () => (
-    <main className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-10">
-      <h1 className="text-2xl font-semibold">Share page not found</h1>
-      <Link className="text-sm underline" reloadDocument to="/">
+    <Problem title="Share page not found">
+      <Link className="underline underline-offset-3" reloadDocument to="/genjutsu">
         Make your own
       </Link>
-    </main>
+    </Problem>
   ),
 });
 
 function SharePage() {
-  const { final, models, poster, recipe, source } = Route.useLoaderData();
-  const portrait = (final.height ?? 0) >= (final.width ?? 0);
-
-  return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-10">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">{title}</h1>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-
-      <div className="grid grid-cols-3 items-start gap-4">
-        <figure className="col-span-2 flex flex-col gap-2">
-          <LoopingVideo
-            className={portrait ? "aspect-9/16 object-contain" : "aspect-video object-contain"}
-            label="Result"
-            poster={poster ? mediaUrl(poster) : undefined}
-            src={mediaUrl(final)}
-          />
-          <figcaption className="text-sm">Result</figcaption>
-        </figure>
-        <figure className="flex flex-col gap-2">
-          <LoopingVideo label="Source motion" src={mediaUrl(source)} />
-          <figcaption className="text-sm">Source motion</figcaption>
-        </figure>
-      </div>
-
-      <div>
-        {/* `/` is open without the code too, and the source clip is public: the visitor picks a character there. */}
-        <Button asChild>
-          <Link search={{ motion: source.id }} to="/">
-            Use this motion with my character
-          </Link>
-        </Button>
-      </div>
-
-      <RecipePanel recipe={recipe} />
-
-      <section aria-labelledby="models-heading" className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold" id="models-heading">
-          Models
-        </h2>
-        {models ? (
-          <ul className="flex flex-col gap-1 text-sm">
-            {models.map(({ file, license }) => (
-              <li className="break-all" key={file}>
-                <code>{file}</code> · {license ?? "license not recorded yet"}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm">
-            The workflow has changed since this video was made, so its model files are not listed.
-          </p>
-        )}
-        {models?.some(({ license }) => license === null) && (
-          <p className="text-sm text-muted-foreground">
-            These are the model files the workflow loads. Their licenses and hashes are not pinned
-            in this repository yet.
-          </p>
-        )}
-      </section>
-    </main>
-  );
+  return <SharePageView share={Route.useLoaderData()} />;
 }

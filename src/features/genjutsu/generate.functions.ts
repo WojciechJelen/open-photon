@@ -6,10 +6,11 @@ import { z } from "zod";
 // SDK into the client bundle.
 
 /**
- * What `/g/:id` shows, and the origin its share link starts with; `null` for an id that names no
- * generation. See `readResult`. Server functions pass the access guard, so this checks access
- * itself: a generation's page needs a session unless it is a pre-rendered sample; without one,
- * the browser goes to the code form, which returns to the page.
+ * What `/g/:id` shows, the origin its share link starts with, and whether the visitor has an
+ * access session (`signedIn`); `null` for an id that names no generation. See `readResult`.
+ * Server functions pass the access guard, so this checks access itself: a generation's page needs
+ * a session unless it is a pre-rendered sample; without one, the browser goes to the code form,
+ * which returns to the page.
  */
 export const loadResult = createServerFn({ method: "GET" })
   .validator(z.string())
@@ -19,13 +20,14 @@ export const loadResult = createServerFn({ method: "GET" })
     const { accessUrl } = await import("#/shared/server/access-page.server");
     const { readResult } = await import("#/features/genjutsu/server/generate");
     const { publicOrigin } = await import("#/features/genjutsu/server/share");
-    const result = readResult(data);
+    const signedIn = readSession(getRequest()) !== null;
+    const result = readResult(data, signedIn);
 
-    if (result && !result.prerendered && !readSession(getRequest())) {
+    if (result && !result.prerendered && !signedIn) {
       throw redirect({ href: accessUrl(`/g/${result.generation.id}`), reloadDocument: true });
     }
 
-    return result && { ...result, origin: publicOrigin() };
+    return result && { ...result, origin: publicOrigin(), signedIn };
   });
 
 /** What the share page `/r/:slug` shows; `null` for a slug no done generation has. See `readShare`. */

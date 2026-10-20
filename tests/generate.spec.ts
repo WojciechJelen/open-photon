@@ -2,7 +2,9 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { generationSchema } from "../src/features/genjutsu/contracts.ts";
 import {
+  addQueuedGeneration,
   count,
+  finishGeneration,
   open,
   queuedGenerationId,
   seededResult,
@@ -59,36 +61,36 @@ async function countStreams(page: Page) {
 
 const status = (page: Page) => page.getByRole("status", { name: "Generation status" });
 
+/** The Direct step with the sample motion and the first sample character picked. */
+const directStep = () => {
+  const { characterId, sourceAssetId } = seededResult();
+
+  return `/genjutsu?step=direct&motion=${sourceAssetId}&character=${characterId}`;
+};
+
 test("an invalid form shows why and never calls generate", async ({ page }) => {
   const posts = generatePosts(page);
   const generations = count("generations");
 
-  await open(page, "/");
-  await page.getByRole("button", { name: "Generate" }).click();
+  await open(page, directStep());
+  await page.getByRole("button", { name: /Advanced/ }).click();
 
   const problems = page
     .getByRole("alert", { name: "Problems with the form" })
     .getByRole("listitem");
 
-  // No motion and no character.
-  await expect(problems).toHaveCount(2);
-
-  await page.getByRole("button", { name: "Street dance" }).click();
-  await page.getByRole("button", { name: "Placeholder blue" }).click();
-  await expect(page).toHaveURL(/character=/);
-  await page.getByRole("button", { name: "Advanced" }).click();
-
-  const seed = page.getByLabel("Seed");
-  const prompt = page.getByLabel("Appearance and background (optional)");
+  const seed = page.getByLabel("Seed", { exact: true });
+  const look = page.getByLabel("Look");
 
   await seed.fill("-1");
   await page.getByRole("button", { name: "Generate" }).click();
   await expect(problems).toHaveCount(1);
   await expect(seed).toHaveAttribute("aria-invalid", "true");
   await seed.fill("7");
-  await prompt.fill("x".repeat(501));
+  await look.fill("x".repeat(501));
+  await expect(page.getByText("501 / 500")).toBeVisible();
   await page.getByRole("button", { name: "Generate" }).click();
-  await expect(prompt).toHaveAttribute("aria-invalid", "true");
+  await expect(look).toHaveAttribute("aria-invalid", "true");
   await expect(seed).toHaveAttribute("aria-invalid", "false");
   await expect(problems).toHaveCount(1);
 
@@ -101,23 +103,26 @@ test("an invalid form shows why and never calls generate", async ({ page }) => {
 test("with Comfy at a dead port, Generate opens a failed generation with the reason, and Retry opens its failed child", async ({
   page,
 }) => {
-  await open(page, "/");
+  await open(page, "/genjutsu");
   await page.getByRole("button", { name: "Street dance" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Placeholder blue" }).click();
-  await expect(page).toHaveURL(/character=/);
+  await page.getByRole("button", { name: "Continue" }).click();
 
-  const choices = new URL(page.url()).search;
+  const { character, motion } = Object.fromEntries(new URL(page.url()).searchParams);
 
   await page.getByLabel("Profile").check();
+  await expect(page.getByRole("complementary", { name: "Your shot" })).toContainText("Profile");
   await page.getByRole("button", { name: "Generate" }).click();
   await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}$/);
 
   const parent = page.url().split("/g/")[1] ?? "";
 
   await expect(status(page)).toHaveAttribute("data-status", "failed");
-  // The reason is the one the row stores.
+  // The reason is the one the row stores, in plain words and as stored.
   expect(count(`generations WHERE id = '${parent}' AND error_message IS NOT NULL`)).toBe(1);
-  await expect(page.getByRole("alert")).not.toBeEmpty();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Comfy couldn't be reached");
+  await expect(page.getByRole("alert")).toContainText("provider_unreachable");
   await expect(page.getByText(/remaining|left|ETA/i)).toHaveCount(0);
 
   await page.getByRole("button", { name: "Retry with a new seed" }).click();
@@ -126,15 +131,63 @@ test("with Comfy at a dead port, Generate opens a failed generation with the rea
   await expect(status(page)).toHaveAttribute("data-status", "failed");
   expect(count(`generations WHERE parent_id = '${parent}'`)).toBe(1);
 
-  // The child links back to its parent, and to the same choices on `/`.
+  // The child links back to its parent, and to the same picks in the wizard.
   await expect(page.getByRole("link", { name: "the earlier generation" })).toHaveAttribute(
     "href",
     `/g/${parent}`,
   );
-  await page.getByRole("link", { name: "Change the motion or character" }).click();
-  await expect(page).toHaveURL(`/${choices}`);
-  await expect(page.getByRole("group", { name: "Chosen motion" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Chosen character" })).toBeVisible();
+  await page.getByRole("link", { name: "Change the shot" }).click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === "/genjutsu" &&
+      url.searchParams.get("step") === "direct" &&
+      url.searchParams.get("motion") === motion &&
+      url.searchParams.get("character") === character,
+  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Direct the shot");
+});
+
+test("Change the shot on a failed take opens Direct with its angle, look and seed, to tweak and retry", async ({
+  page,
+}) => {
+  const look = "Red jacket.\n\nRain  on glass.";
+
+  await open(page, "/genjutsu");
+  await page.getByRole("button", { name: "Street dance" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Placeholder green" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByLabel("Three-quarter").check();
+  await page.getByLabel("Look").fill(look);
+  await page.getByRole("button", { name: /Advanced/ }).click();
+  await page.getByLabel("Seed", { exact: true }).fill("777");
+  await page.getByRole("button", { name: "Generate" }).click();
+  await expect(status(page)).toHaveAttribute("data-status", "failed");
+
+  const take = page.url().split("/g/")[1] ?? "";
+
+  await page.getByRole("link", { name: "Change the shot" }).click();
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get("from") === take && url.searchParams.get("step") === "direct",
+  );
+
+  // The direction is the take's, exactly, and survives a reload.
+  for (const reload of [false, true]) {
+    if (reload) {
+      await page.reload();
+      await page.locator("html[data-hydrated]").waitFor();
+    }
+
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Direct the shot");
+    await expect(page.getByLabel("Three-quarter")).toBeChecked();
+    await expect(page.getByLabel("Look")).toHaveValue(look);
+    await expect(page.getByRole("button", { name: /Advanced/ })).toContainText("Seed: 777");
+  }
+
+  const slate = page.getByRole("complementary", { name: "Your shot" });
+
+  await expect(slate).toContainText("Placeholder green");
+  await expect(slate).toContainText("Three-quarter");
 });
 
 test("with every place in flight taken, Generate says the queue is full and starts nothing", async ({
@@ -143,10 +196,7 @@ test("with every place in flight taken, Generate says the queue is full and star
   const release = takeLastInFlightPlace();
 
   try {
-    await open(page, "/");
-    await page.getByRole("button", { name: "Street dance" }).click();
-    await page.getByRole("button", { name: "Placeholder blue" }).click();
-    await expect(page).toHaveURL(/character=/);
+    await open(page, directStep());
 
     const choices = page.url();
     const rows = count("generations");
@@ -173,7 +223,7 @@ test("a running generation follows its event stream, and opens it again after a 
   const streams = await countStreams(page);
   const id = queuedGenerationId();
   const stored = generationSchema.parse(await (await request.get(`/api/generations/${id}`)).json());
-  const progress = page.getByRole("progressbar", { name: "Progress" });
+  const progress = page.getByRole("progressbar", { name: "Render progress" });
   let reported = 40;
 
   const notice = page.getByRole("status", { name: "Comfy connection" });
@@ -182,6 +232,11 @@ test("a running generation follows its event stream, and opens it again after a 
   await open(page, `/g/${id}`);
   await expect(notice).toBeVisible();
   await expect(status(page)).toHaveAttribute("data-status", "queued");
+  // The named stages, the current one marked; and the page's own link, since leaving is safe.
+  await expect(
+    page.getByRole("list", { name: "Render stages" }).locator('[aria-current="step"]'),
+  ).toContainText("Queued");
+  await expect(page.getByLabel("Link to this render")).toHaveValue(new RegExp(`/g/${id}$`));
   expect(await streams()).toBe(1);
 
   // The stream as Comfy would drive it: the stored generation, running at `reported` percent.
@@ -206,6 +261,54 @@ test("a running generation follows its event stream, and opens it again after a 
   await page.reload();
   await expect(progress).toHaveAttribute("aria-valuenow", "55");
   expect(await streams()).toBe(1);
+});
+
+test("a take the stream reports done shows its result, even when the first reload comes too early", async ({
+  page,
+  request,
+}) => {
+  const { id, remove } = addQueuedGeneration();
+
+  try {
+    const stored = generationSchema.parse(
+      await (await request.get(`/api/generations/${id}`)).json(),
+    );
+
+    const { finalAssetId } = seededResult();
+
+    // The stream says done before the stored row does, as when Comfy's last event outruns the
+    // commit: the page's first reloads find no result yet.
+    await page.route(`**/api/generations/${id}/events`, (route) =>
+      route.fulfill({
+        body: `data: ${JSON.stringify({
+          generation: { ...stored, final_asset_id: finalAssetId, progress: 100, status: "done" },
+          kind: "snapshot",
+        })}\n\n`,
+        contentType: "text/event-stream",
+      }),
+    );
+
+    await open(page, `/g/${id}`);
+    await expect(status(page)).toHaveAttribute("data-status", "finalizing");
+    await page.waitForTimeout(2500);
+    await expect(status(page)).toHaveAttribute("data-status", "finalizing");
+
+    finishGeneration(id);
+
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your shot is ready", {
+      timeout: 10_000,
+    });
+    await expect(page.locator('video[aria-label="Result"]')).toHaveAttribute(
+      "src",
+      `/media/${finalAssetId}.mp4`,
+    );
+    await expect(page.locator('video[aria-label="Result"]')).toHaveAttribute(
+      "poster",
+      /^\/media\/[0-9a-f-]{36}\.jpg$/,
+    );
+  } finally {
+    remove();
+  }
 });
 
 test("a finished generation opens no event stream", async ({ page }) => {

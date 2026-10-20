@@ -106,14 +106,20 @@ test("an anonymous visitor sees the result and the source, and the motion link s
       .toBeGreaterThan(0);
   }
 
+  // No code is asked for here, and no recipe JSON offered: that needs a session.
+  await expect(page.getByRole("link", { name: /Recipe JSON/ })).toHaveCount(0);
   await page.getByRole("link", { name: "Use this motion with my character" }).click();
 
-  // The picker is open without the code: `/` with the shared clip chosen, playable.
+  // The wizard is open without the code: the character step with the shared clip picked.
   await expect(page).toHaveURL(
-    (url) => url.pathname === "/" && url.searchParams.get("motion") === sourceAssetId,
+    (url) =>
+      url.pathname === "/genjutsu" &&
+      url.searchParams.get("motion") === sourceAssetId &&
+      url.searchParams.get("step") === "character",
   );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who performs it?");
 
-  const chosen = page.getByRole("group", { name: "Chosen motion" }).locator("video");
+  const chosen = page.getByRole("complementary", { name: "Your shot" }).locator("video");
 
   await expect
     .poll(() => chosen.evaluate((element: HTMLVideoElement) => element.readyState))
@@ -128,17 +134,20 @@ test("a done generation's page shows its share link, which opens the share page"
 
   await open(page, `/g/${id}`);
 
-  const link = page.getByLabel("Share link");
+  const link = page.getByRole("textbox", { name: "Share link" });
 
   await expect(link).toHaveValue(new RegExp(`/r/${shareSlug}$`));
+  await expect(page.getByRole("button", { name: "Copy share link" })).toBeVisible();
   await page.getByRole("link", { name: "Open share page" }).click();
   await expect(page).toHaveURL(new RegExp(`/r/${shareSlug}$`));
 
-  // Signed in, the motion link opens `/` with the motion chosen.
+  // Signed in, the motion link opens the wizard with the motion picked.
   await page.locator("html[data-hydrated]").waitFor();
-  await page.getByRole("link", { name: "Use this motion with my character" }).click();
+  await page.getByRole("link", { name: "Use this motion", exact: true }).click();
   await expect(page).toHaveURL(
-    (url) => url.pathname === "/" && url.searchParams.get("motion") === sourceAssetId,
+    (url) => url.pathname === "/genjutsu" && url.searchParams.get("motion") === sourceAssetId,
   );
-  await expect(page.getByRole("group", { name: "Chosen motion" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Your shot" })).toContainText(
+    "Street dance",
+  );
 });

@@ -1,44 +1,67 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* Self-hosted variable fonts: Geist for the UI, Geist Mono for HUD details, Syne for display
+   headings. Vite bundles the files, so pages make no third-party font requests. */
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/syne";
 
+/* "Night Shoot": the app is dark only. The shadcn variables carry the palette; the extra tokens
+   below them are the photon accent (violet → magenta), the softer text tone and the status
+   colors (tally red is `destructive`). */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.871 0.006 286.286);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.21 0.006 285.885);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.871 0.006 286.286);
+  color-scheme: dark;
+  --background: #09080d;
+  --foreground: #f4f2f8;
+  --card: #13111a;
+  --card-foreground: #f4f2f8;
+  --popover: #0f0d15;
+  --popover-foreground: #f4f2f8;
+  --primary: #f3eeff;
+  --primary-foreground: #0b0910;
+  --secondary: #1e1a27;
+  --secondary-foreground: #f4f2f8;
+  --muted: #1e1a27;
+  --muted-foreground: #8e889c;
+  --accent: rgb(255 255 255 / 0.08);
+  --accent-foreground: #f4f2f8;
+  --destructive: #ff5b4f;
+  --destructive-foreground: #ff8f86;
+  --border: rgb(255 255 255 / 0.08);
+  --input: rgb(255 255 255 / 0.14);
+  --ring: #a68bff;
+  --chart-1: #a68bff;
+  --chart-2: #f072d8;
+  --chart-3: #7be0b0;
+  --chart-4: #ffb54a;
+  --chart-5: #ff5b4f;
+  --radius: 0.75rem;
+  --sidebar: #0f0d15;
+  --sidebar-foreground: #f4f2f8;
+  --sidebar-primary: #f3eeff;
+  --sidebar-primary-foreground: #0b0910;
+  --sidebar-accent: rgb(255 255 255 / 0.08);
+  --sidebar-accent-foreground: #f4f2f8;
+  --sidebar-border: rgb(255 255 255 / 0.08);
+  --sidebar-ring: #a68bff;
+
+  --soft-foreground: #bdb7cb;
+  --edge-strong: rgb(255 255 255 / 0.24);
+  --field: #0f0d15;
+  --screen: #000000;
+  --brand: #a68bff;
+  --brand-mid: #c97cf0;
+  --brand-2: #f072d8;
+  --brand-foreground: #d9ceff;
+  --warning: #ffb54a;
+  --warning-foreground: #ffd08a;
+  --success: #7be0b0;
 }
 
 @theme inline {
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: "Syne Variable", "Helvetica Neue", Arial, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -67,6 +90,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -75,23 +100,131 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-soft-foreground: var(--soft-foreground);
+  --color-edge-strong: var(--edge-strong);
+  --color-field: var(--field);
+  --color-screen: var(--screen);
+  --color-brand: var(--brand);
+  --color-brand-mid: var(--brand-mid);
+  --color-brand-2: var(--brand-2);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-success: var(--success);
+}
+
+@theme {
+  --tracking-display: -0.035em;
+
+  /* A status light's halo, in the light's own color. */
+  --shadow-dot: 0 0 10px currentColor;
+  --shadow-glow: 0 10px 40px -12px rgb(166 139 255 / 0.7);
+  --shadow-glow-photon: 0 14px 48px -14px rgb(240 114 216 / 0.7);
+  --shadow-monitor: 0 60px 140px -40px rgb(166 139 255 / 0.45);
+  --shadow-picked:
+    0 0 0 2px rgb(166 139 255), 0 0 0 7px rgb(166 139 255 / 0.16),
+    0 28px 60px -24px rgb(166 139 255 / 0.7);
+  --shadow-modal: 0 40px 120px -20px rgb(0 0 0 / 0.85), 0 0 0 1px rgb(166 139 255 / 0.08);
+
+  /* The render monitor's scan line, the progress bar's sheen and the REC tally dot. */
+  --animate-scan: scan 2.6s linear infinite;
+  --animate-sheen: sheen 1.8s linear infinite;
+  --animate-tally: tally 1.4s ease-in-out infinite;
+
+  @keyframes scan {
+    from {
+      transform: translateY(-100%);
+    }
+    to {
+      transform: translateY(100%);
+    }
+  }
+
+  @keyframes sheen {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes tally {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    @apply bg-background;
+  }
   body {
-    @apply m-0 bg-background text-foreground antialiased;
+    @apply m-0 min-h-svh overflow-x-clip bg-background font-sans text-foreground antialiased;
+  }
+  ::selection {
+    @apply bg-brand/40 text-foreground;
   }
 }
 
-/* The compare player's swipe slider (`src/features/genjutsu/components/compare-player.tsx`): the result, laid over
-   the source, shows right of `--split`. */
-@utility clip-split {
-  clip-path: inset(0 0 0 var(--split, 50%));
+/* Scan, sheen and pulse are decoration: a visitor who asks for less motion gets none. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-@utility clip-none {
-  clip-path: none;
+/* A HUD readout, like the labels on a camera monitor: Geist Mono, 11 px, uppercase, tracked
+   out. One utility rather than `text-*` size and color classes side by side, which class merging
+   would read as two colors and keep only one of. */
+@utility hud {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  line-height: 1rem;
+  text-transform: uppercase;
+}
+
+/* The compare player's frames fit the viewport with the transport under them: a portrait frame is
+   at most the viewport's height less the page's header, heading row and transport (`--stage-chrome`,
+   taller on a phone, where the heading and the view toggle stack), so at most 9/16 of that wide
+   (and never over 28.75rem, alone in the swipe view); a side-by-side pair, twice that and the gap
+   between them. */
+:root {
+  --stage-chrome: 18.5rem;
+}
+
+@media (width < 40rem) {
+  :root {
+    --stage-chrome: 20rem;
+  }
+}
+
+@utility max-w-stage {
+  max-width: min(28.75rem, calc(max(16rem, 100dvh - var(--stage-chrome)) * 9 / 16));
+}
+
+@utility max-w-stage-pair {
+  max-width: calc(max(16rem, 100dvh - var(--stage-chrome)) * 9 / 8 + 0.75rem);
+}
+
+/* The compare player's swipe view (`src/features/genjutsu/components/compare-player.tsx`): the
+   result, laid over the source, shows right of `--split`. */
+@utility clip-split {
+  clip-path: inset(0 0 0 var(--split, 50%));
 }

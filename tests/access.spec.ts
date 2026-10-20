@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 
 import { type APIRequest, expect, test } from "@playwright/test";
 
-import { accessCode, open, storageStatePath } from "./e2e/session.ts";
+import { accessCode, open, seededResult, storageStatePath } from "./e2e/session.ts";
 
 /** Uploads `fixtures/x.mp4` (not a sample, so only a session sees it) with the run's session. */
 async function uploadPrivateClip(request: APIRequest, baseURL: string | undefined) {
@@ -27,7 +27,64 @@ async function uploadPrivateClip(request: APIRequest, baseURL: string | undefine
 test.describe("without a session", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("the picker is open; an upload asks for the code inline, then goes on with every choice kept", async ({
+  test("the wizard is open; an upload asks for the code in the dialog, then goes on with every choice kept", async ({
+    page,
+  }) => {
+    const { characterId } = seededResult();
+    const uploads: string[] = [];
+
+    page.on("request", (sent) => {
+      if (sent.method() === "POST" && new URL(sent.url()).pathname === "/api/uploads") {
+        uploads.push(sent.url());
+      }
+    });
+
+    // A link that keeps a character, as "Same character, new motion" makes one.
+    await open(page, `/genjutsu?step=motion&character=${characterId}`);
+
+    // The samples play without a session.
+    const preview = page.getByRole("list", { name: "Motions" }).locator("video").first();
+
+    await expect
+      .poll(() => preview.evaluate((video: HTMLVideoElement) => video.readyState))
+      .toBeGreaterThan(0);
+
+    await expect(page.locator('[data-upload-state="idle"]')).toContainText("Needs access code");
+    await page.getByLabel("Upload a clip").setInputFiles("fixtures/x.mp4");
+
+    // Asked for the code before anything is sent; the file waits in its tile.
+    const dialog = page.getByRole("dialog", { name: "Enter your access code" });
+
+    await expect(dialog).toBeVisible();
+    await expect(page.locator('[data-upload-state="needs-code"]')).toContainText("x.mp4");
+    expect(uploads).toEqual([]);
+
+    await dialog.getByLabel("Access code").fill("not-the-code");
+    await dialog.getByRole("button", { name: "Unlock and upload" }).click();
+    await expect(dialog.getByRole("alert")).toBeVisible();
+    expect(await page.context().cookies()).toEqual([]);
+
+    await dialog.getByLabel("Access code").fill(accessCode());
+    await dialog.getByRole("button", { name: "Unlock and upload" }).click();
+
+    // The same file went up: picked, on the same step with the character still picked.
+    await expect(page.getByRole("button", { name: /Your clip/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(dialog).toBeHidden();
+    expect(uploads).toHaveLength(1);
+    await expect(page).toHaveURL(
+      (url) =>
+        url.pathname === "/genjutsu" &&
+        url.searchParams.get("step") === "motion" &&
+        url.searchParams.get("character") === characterId &&
+        /^[0-9a-f-]{36}$/.test(url.searchParams.get("motion") ?? ""),
+    );
+    await expect(page.getByText("Code active").filter({ visible: true })).toBeVisible();
+  });
+
+  test("a clip left waiting for the code uploads once the visitor signs in another way", async ({
     page,
   }) => {
     const uploads: string[] = [];
@@ -38,48 +95,25 @@ test.describe("without a session", () => {
       }
     });
 
-    await open(page, "/");
+    await open(page, "/genjutsu");
+    await page.getByLabel("Upload a clip").setInputFiles("fixtures/x.mp4");
 
-    // The samples play without a session.
-    const preview = page.getByRole("list", { name: "Sample motions" }).locator("video").first();
+    const dialog = page.getByRole("dialog", { name: "Enter your access code" });
 
-    await expect
-      .poll(() => preview.evaluate((video: HTMLVideoElement) => video.readyState))
-      .toBeGreaterThan(0);
+    // Not now: the file stays in its tile, waiting.
+    await dialog.getByRole("button", { name: "Not now" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.locator('[data-upload-state="needs-code"]')).toContainText("x.mp4");
 
-    await page.getByRole("button", { name: "Placeholder blue" }).click();
-    await expect(page).toHaveURL(/\?character=/);
-
-    const character = new URL(page.url()).searchParams.get("character");
-
-    await page.getByLabel("Or upload your own clip").setInputFiles("fixtures/x.mp4");
-
-    // Asked for the code before anything is sent.
-    const form = page.getByRole("form", { name: "Access code" });
-
-    await expect(form).toBeVisible();
-    expect(uploads).toEqual([]);
-
-    await form.getByLabel("Access code").fill("not-the-code");
-    await form.getByRole("button", { name: "Continue" }).click();
-    await expect(form.getByRole("alert")).toBeVisible();
-    expect(await page.context().cookies()).toEqual([]);
-
-    await form.getByLabel("Access code").fill(accessCode());
-    await form.getByRole("button", { name: "Continue" }).click();
-
-    // The same file went up: ready and chosen, on the same page with the character still picked.
-    await expect(page.getByRole("status")).toHaveAttribute("data-state", "ready");
-    await expect(form).toHaveCount(0);
-    expect(uploads).toHaveLength(1);
-    await expect(page).toHaveURL(
-      (url) =>
-        url.pathname === "/" &&
-        url.searchParams.get("character") === character &&
-        /^[0-9a-f-]{36}$/.test(url.searchParams.get("motion") ?? ""),
+    // Signed in from the header instead, the waiting clip goes up and is picked.
+    await page.getByRole("banner").getByRole("button", { name: "Access code" }).click();
+    await dialog.getByLabel("Access code").fill(accessCode());
+    await dialog.getByRole("button", { name: "Unlock and upload" }).click();
+    await expect(page.getByRole("button", { name: /Your clip/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
     );
-    await expect(page.getByRole("group", { name: "Chosen motion" })).toBeVisible();
-    await expect(page.getByRole("group", { name: "Chosen character" })).toBeVisible();
+    expect(uploads).toHaveLength(1);
   });
 
   test("a link to a private clip keeps it: Generate asks for the code, then starts with every option", async ({
@@ -96,28 +130,22 @@ test.describe("without a session", () => {
       }
     });
 
-    await open(page, `/?motion=${clip}`);
-    await page.getByRole("button", { name: "Placeholder blue" }).click();
-    await expect(page).toHaveURL(new RegExp(`motion=${clip}`));
+    await open(page, `/genjutsu?motion=${clip}&character=${seededResult().characterId}`);
+    await expect(page).toHaveURL(/step=direct/);
 
-    // Chosen but not shown: the clip is an upload.
-    const motion = page.getByRole("group", { name: "Chosen motion" });
-
-    await expect(motion).toContainText("your own clip");
-    await expect(motion.locator("video")).toHaveCount(0);
+    // Picked but not shown: the clip is an upload.
     await expect(page.getByRole("region", { name: "Private choices" })).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Your shot" })).toContainText("Your clip");
 
-    await page.getByLabel("Appearance and background").fill("kept through the code");
-    await page.getByRole("button", { name: "Advanced" }).click();
-    await page.getByLabel("Seed").fill("4242");
+    await page.getByLabel("Look").fill("kept through the code");
+    await page.getByRole("button", { name: /Advanced/ }).click();
+    await page.getByLabel("Seed", { exact: true }).fill("4242");
     await page.getByRole("button", { name: "Generate" }).click();
 
-    const form = page
-      .getByRole("region", { name: "3. Generate" })
-      .getByRole("form", { name: "Access code" });
+    const dialog = page.getByRole("dialog", { name: "Enter your access code" });
 
-    await form.getByLabel("Access code").fill(accessCode());
-    await form.getByRole("button", { name: "Continue" }).click();
+    await dialog.getByLabel("Access code").fill(accessCode());
+    await dialog.getByRole("button", { name: "Unlock and generate" }).click();
 
     // The same choices went again, and the generation opened (Comfy is at a dead port).
     await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}$/);
@@ -137,7 +165,8 @@ test.describe("without a session", () => {
   }) => {
     const clip = await uploadPrivateClip(playwright.request, baseURL);
 
-    await open(page, `/?motion=${clip}`);
+    await open(page, `/genjutsu?step=motion&motion=${clip}`);
+    await expect(page.getByRole("button", { name: /Your clip, locked/ })).toBeVisible();
 
     // The handler's answer over the limit, which the e2e server's high limit never gives here.
     await page.route("**/api/uploads", (route) =>
@@ -147,21 +176,20 @@ test.describe("without a session", () => {
       }),
     );
 
-    const section = page.getByRole("region", { name: "1. Motion" });
+    await page.getByLabel("Upload a clip").setInputFiles("fixtures/x.mp4");
 
-    await section.getByLabel("Or upload your own clip").setInputFiles("fixtures/x.mp4");
+    const dialog = page.getByRole("dialog", { name: "Enter your access code" });
 
-    const form = section.getByRole("form", { name: "Access code" });
-
-    await form.getByLabel("Access code").fill(accessCode());
-    await form.getByRole("button", { name: "Continue" }).click();
+    await dialog.getByLabel("Access code").fill(accessCode());
+    await dialog.getByRole("button", { name: "Unlock and upload" }).click();
 
     // Signed in, the page shows the clip now, and the refusal with it.
-    await expect(
-      section.getByRole("group", { name: "Chosen motion" }).locator("video"),
-    ).toHaveCount(1);
-    await expect(section.getByRole("status")).toHaveAttribute("data-reason", "rate_limited");
-    await expect(section.getByRole("status")).not.toBeEmpty();
+    await expect(page.getByRole("button", { name: /Your clip/ }).locator("video")).toHaveCount(1);
+
+    const tile = page.locator("[data-upload-state]");
+
+    await expect(tile).toHaveAttribute("data-reason", "rate_limited");
+    await expect(tile.getByRole("alert")).toContainText("Too many uploads");
   });
 });
 

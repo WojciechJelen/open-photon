@@ -24,7 +24,14 @@ test("the result drives its source on one clock, both served in byte ranges", as
   const result = page.locator('video[aria-label="Result"]');
   const source = page.locator('video[aria-label="Source motion"]');
 
-  await expect(page.getByRole("slider", { name: "Swipe between source and result" })).toBeHidden();
+  // Side by side on a wide screen: no swipe line.
+  await expect(page.getByRole("radio", { name: "Side by side" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await expect(page.getByRole("slider", { name: "Swipe between source and result" })).toHaveCount(
+    0,
+  );
   await expect(result).toHaveAttribute("poster", /^\/media\/[0-9a-f-]{36}\.jpg$/);
   // Only the result is heard: the source is muted.
   expect(await read(source, "muted")).toBe(true);
@@ -70,9 +77,36 @@ test("the result drives its source on one clock, both served in byte ranges", as
   expect(await read(result, "currentTime")).toBeLessThan(2);
 
   expect(ranged.size, "206 responses for the result and the source").toBe(2);
+
+  // Switching to Swipe moves the same two videos: playback goes on, and the swipe line appears.
+  await page.getByRole("radio", { name: "Swipe" }).click();
+  await expect(page.getByRole("slider", { name: "Swipe between source and result" })).toBeVisible();
+  expect(await read(result, "paused")).toBe(false);
 });
 
-test("a narrow screen shows one picture with a swipe slider that follows the pointer", async ({
+test("the transport mutes the result's sound and the swipe line moves from the keyboard", async ({
+  page,
+}) => {
+  await open(page, `/g/${seededResult().id}`);
+
+  const result = page.locator('video[aria-label="Result"]');
+
+  await page.getByRole("button", { name: /^Mute/ }).click();
+  await expect.poll(() => read(result, "muted")).toBe(true);
+  await page.getByRole("button", { name: /^Unmute/ }).click();
+  await expect.poll(() => read(result, "muted")).toBe(false);
+
+  await page.getByRole("radio", { name: "Swipe" }).click();
+
+  const swipe = page.getByRole("slider", { name: "Swipe between source and result" });
+
+  await swipe.press("ArrowLeft");
+  await expect(swipe).toHaveAttribute("aria-valuenow", "45");
+  await swipe.press("End");
+  await expect(swipe).toHaveAttribute("aria-valuenow", "100");
+});
+
+test("a narrow screen swipes by default, with a slider that follows the pointer", async ({
   page,
 }) => {
   await page.setViewportSize({ height: 844, width: 390 });
@@ -96,4 +130,22 @@ test("a narrow screen shows one picture with a swipe slider that follows the poi
       .locator("figure", { has: page.locator('video[aria-label="Result"]') })
       .evaluate((figure) => getComputedStyle(figure).clipPath),
   ).toBe("inset(0px 0px 0px 25%)");
+});
+
+test("on a laptop screen the frames and the transport fit without scrolling, side by side and swiped", async ({
+  page,
+}) => {
+  await page.setViewportSize({ height: 800, width: 1440 });
+  await open(page, `/g/${seededResult().id}`);
+
+  for (const view of ["Side by side", "Swipe"]) {
+    await page.getByRole("radio", { name: view }).click();
+
+    const transport = await page.getByRole("slider", { name: "Seek" }).boundingBox();
+    const play = await page.getByRole("button", { name: "Play" }).boundingBox();
+
+    expect(transport, view).not.toBeNull();
+    expect((play?.y ?? 0) + (play?.height ?? 0), view).toBeLessThanOrEqual(800);
+    expect((transport?.y ?? 0) + (transport?.height ?? 0), view).toBeLessThanOrEqual(800);
+  }
 });

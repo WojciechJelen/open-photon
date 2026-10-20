@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GenjutsuRouteImport } from './routes/genjutsu'
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiGenerateRouteImport } from './routes/api.generate'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
@@ -28,6 +29,11 @@ import { Route as ApiGenerationsGenerationIdRetryRouteImport } from './routes/ap
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GenjutsuRoute = GenjutsuRouteImport.update({
+  id: '/genjutsu',
+  path: '/genjutsu',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCharactersRoute = ApiCharactersRouteImport.update({
@@ -108,6 +114,7 @@ const ApiGenerationsGenerationIdRetryRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/genjutsu': typeof GenjutsuRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/genjutsu': typeof GenjutsuRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -143,6 +151,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/genjutsu': typeof GenjutsuRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -162,6 +171,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/genjutsu'
     | '/api/characters'
     | '/api/generate'
     | '/api/uploads'
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/genjutsu'
     | '/api/characters'
     | '/api/generate'
     | '/api/uploads'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/genjutsu'
     | '/api/characters'
     | '/api/generate'
     | '/api/uploads'
@@ -214,6 +226,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  GenjutsuRoute: typeof GenjutsuRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
   ApiGenerateRoute: typeof ApiGenerateRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
@@ -233,6 +246,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/genjutsu': {
+      id: '/genjutsu'
+      path: '/genjutsu'
+      fullPath: '/genjutsu'
+      preLoaderRoute: typeof GenjutsuRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/characters': {
@@ -360,6 +380,7 @@ const ApiGenerationsGenerationIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  GenjutsuRoute: GenjutsuRoute,
   ApiCharactersRoute: ApiCharactersRoute,
   ApiGenerateRoute: ApiGenerateRoute,
   ApiUploadsRoute: ApiUploadsRoute,

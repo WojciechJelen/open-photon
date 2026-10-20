@@ -33,6 +33,7 @@ import {
 } from "../src/features/genjutsu/server/generations.ts";
 import { generateDefaults } from "../src/features/genjutsu/server/presets.ts";
 import type { Recipe } from "../src/features/genjutsu/server/recipe.ts";
+import { readSelection } from "../src/features/genjutsu/server/selection.ts";
 import { uploadVideo } from "../src/features/genjutsu/server/videos.server.ts";
 import { findAccessCode } from "../src/shared/server/access-codes.ts";
 import { createAccessGuard } from "../src/shared/server/access.server.ts";
@@ -410,6 +411,41 @@ async function doneGeneration(double: Provider, inputs = input()) {
 
   return transition(id, "finalizing", "done");
 }
+
+test("a take's direction comes back as the Direct step held it, for whoever may read the take", async () => {
+  const { double } = provider((key) => Promise.resolve(`job-${key}`));
+  const look = "Red jacket.\n\nRain  on glass.";
+
+  const shot = await generate(
+    { ...input(), angle: "three-quarter", prompt: look, seed: 777 },
+    session,
+    double,
+  );
+
+  const blank = await generate(
+    { character_id: character.id, motion_asset_id: motion.id },
+    session,
+    double,
+  );
+
+  // The look as it was typed (its angle phrasing taken off again), line breaks and all.
+  assert.deepEqual(readSelection({ from: shot.id }, true).direction, {
+    angle: "three-quarter",
+    prompt: look,
+    seed: "777",
+  });
+
+  // The defaults read as a blank form, as they were sent.
+  assert.deepEqual(readSelection({ from: blank.id }, true).direction, {
+    angle: "none",
+    prompt: "",
+    seed: "",
+  });
+
+  // Without a session a take that is not a pre-rendered sample stays private; an unknown id is none.
+  assert.equal(readSelection({ from: shot.id }, false).direction, null);
+  assert.equal(readSelection({ from: crypto.randomUUID() }, true).direction, null);
+});
 
 test("rerun of a failed generation submits a child with the same recipe_hash and the same seed", async () => {
   const failing = provider(() =>

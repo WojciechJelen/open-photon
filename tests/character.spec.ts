@@ -1,44 +1,48 @@
 import { expect, test } from "@playwright/test";
 
-import { count, open } from "./e2e/session.ts";
+import { count, open, seededResult } from "./e2e/session.ts";
 
 const uuid = "[0-9a-f-]{36}";
+
+/** The character step, with the sample motion picked. */
+const characterStep = () => `/genjutsu?step=character&motion=${seededResult().sourceAssetId}`;
 
 test("a picked motion and sample character stay in the URL and survive a reload", async ({
   page,
 }) => {
-  await open(page, "/");
+  await open(page, "/genjutsu");
   await page.getByRole("button", { name: "Street dance" }).click();
-  await expect(page).toHaveURL(new RegExp(`\\?motion=${uuid}$`));
+  await expect(page).toHaveURL(new RegExp(`step=motion&motion=${uuid}$`));
+  await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Placeholder blue" }).click();
-  await expect(page).toHaveURL(new RegExp(`\\?motion=${uuid}&character=${uuid}$`));
+  await expect(page).toHaveURL(new RegExp(`step=character&motion=${uuid}&character=${uuid}$`));
 
   const url = page.url();
 
   await page.reload();
   await page.locator("html[data-hydrated]").waitFor();
   expect(page.url()).toBe(url);
-
-  for (const name of ["Street dance", "Placeholder blue"]) {
-    await expect(page.getByRole("button", { name })).toHaveAttribute("aria-pressed", "true");
-  }
-
-  await expect(page.getByRole("group", { name: "Chosen character" })).toContainText(
-    "Placeholder blue",
+  await expect(page.getByRole("button", { name: "Placeholder blue" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
   );
+
+  const slate = page.getByRole("complementary", { name: "Your shot" });
+
+  await expect(slate).toContainText("Street dance");
+  await expect(slate).toContainText("Placeholder blue");
 });
 
-test("an uploaded photo needs the consent checkbox; with it the character is created and chosen", async ({
+test("an uploaded photo asks for consent once, under its preview; with it the character is created and picked", async ({
   page,
 }) => {
   const uploads = count("characters WHERE origin = 'upload'");
 
-  await open(page, "/");
-  await page
-    .getByLabel("Or upload a photo of a person")
-    .setInputFiles("fixtures/wan/reference.png");
+  await open(page, characterStep());
+  await page.getByLabel("Upload a photo").setInputFiles("fixtures/wan/reference.png");
+  await expect(page.getByRole("img", { name: "The photo you picked" })).toBeVisible();
 
-  const submit = page.getByRole("button", { name: "Use this photo" });
+  const submit = page.getByRole("button", { name: "Use photo" });
 
   await expect(submit).toBeDisabled();
   expect(count("characters WHERE origin = 'upload'")).toBe(uploads);
@@ -46,8 +50,11 @@ test("an uploaded photo needs the consent checkbox; with it the character is cre
   await page.getByLabel("I may use this person's likeness").check();
   await expect(submit).toBeEnabled();
   await submit.click();
-  await expect(page).toHaveURL(new RegExp(`\\?character=${uuid}$`));
-  await expect(page.getByRole("group", { name: "Chosen character" })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`character=${uuid}$`));
+  await expect(page.getByRole("button", { name: /Your photo/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
 
   const chosen = new URL(page.url()).searchParams.get("character");
 
@@ -57,27 +64,32 @@ test("an uploaded photo needs the consent checkbox; with it the character is cre
   expect(count("characters WHERE origin = 'upload'")).toBe(uploads + 1);
 });
 
-test("a file that is not an image is refused inline and creates nothing; picking a sample clears the refusal", async ({
+test("a file that is not an image is refused in its tile and creates nothing; picking a sample clears the refusal", async ({
   page,
 }) => {
   const characters = count("characters");
 
-  await open(page, "/");
-  await page.getByLabel("Or upload a photo of a person").setInputFiles("fixtures/x.mp4");
+  await open(page, characterStep());
+  await page.getByLabel("Upload a photo").setInputFiles("fixtures/x.mp4");
   await page.getByLabel("I may use this person's likeness").check();
-  await page.getByRole("button", { name: "Use this photo" }).click();
-  await expect(page.getByRole("alert")).not.toBeEmpty();
+  await page.getByRole("button", { name: "Use photo" }).click();
+
+  const tile = page.locator("[data-upload-state]");
+
+  await expect(tile).toHaveAttribute("data-reason", "not_image");
+  await expect(tile.getByRole("alert")).toContainText("Not an image");
   expect(count("characters")).toBe(characters);
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).not.toHaveURL(/character=/);
 
   await page.getByRole("button", { name: "Placeholder blue" }).click();
-  await expect(page).toHaveURL(/\?character=/);
+  await expect(page).toHaveURL(/character=/);
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
 test("a character id that names no character falls back to none", async ({ page }) => {
   for (const character of ["xyz", crypto.randomUUID()]) {
-    await open(page, `/?character=${character}`);
-    await expect(page.getByRole("group", { name: "Chosen character" })).toHaveCount(0);
+    await open(page, `${characterStep()}&character=${character}`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who performs it?");
+    await expect(page.locator('button[aria-pressed="true"]')).toHaveCount(0);
   }
 });

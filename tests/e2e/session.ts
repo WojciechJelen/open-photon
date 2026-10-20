@@ -61,11 +61,10 @@ export function queuedGenerationId() {
 }
 
 /**
- * Adds a `queued` generation like the seeded one (its own id, key and job id), so both places
- * the e2e server allows in flight (`IN_FLIGHT_MAX` in `playwright.config.ts`) are taken; the
- * returned function removes it. Comfy at the dead port never moves either on.
+ * Adds a `queued` generation like the seeded one (its own id, key and job id); Comfy at the dead
+ * port never moves it on. Returns its id and a function that removes it.
  */
-export function takeLastInFlightPlace() {
+export function addQueuedGeneration() {
   const id = randomUUID();
 
   query(
@@ -82,8 +81,41 @@ export function takeLastInFlightPlace() {
     true,
   );
 
-  return () =>
-    query((database) => database.prepare("DELETE FROM generations WHERE id = ?").run(id), true);
+  return {
+    id,
+    remove: () =>
+      query((database) => database.prepare("DELETE FROM generations WHERE id = ?").run(id), true),
+  };
+}
+
+/**
+ * Takes the second place the e2e server allows in flight (`IN_FLIGHT_MAX` in
+ * `playwright.config.ts`) with `addQueuedGeneration`, so both are taken; the returned function
+ * gives it back.
+ */
+export function takeLastInFlightPlace() {
+  return addQueuedGeneration().remove;
+}
+
+/**
+ * Stores `id` as done with the seeded result and poster, as `finalize` would once Comfy finished
+ * it; the page sees it on its next read.
+ */
+export function finishGeneration(id: string) {
+  query(
+    (database) =>
+      database
+        .prepare(
+          `UPDATE generations SET status = 'done', progress = 100,
+            finished_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+            share_slug = lower(hex(randomblob(8))),
+            final_asset_id = (SELECT final_asset_id FROM generations WHERE provider_job_id = ?),
+            poster_asset_id = (SELECT poster_asset_id FROM generations WHERE provider_job_id = ?)
+          WHERE id = ?`,
+        )
+        .run(SEEDED_JOB_ID, SEEDED_JOB_ID, id),
+    true,
+  );
 }
 
 /**

@@ -30,10 +30,13 @@ test("the recipe panel is collapsed until opened, on the result and on the share
 
     const details = page.getByRole("definition").filter({ hasText: workflowSha256 });
 
+    const recipeToggle = page.getByRole("button", { name: /^Recipe motion-transfer v1 · seed/ });
+
     await expect(details).toBeHidden();
-    await page.getByRole("button", { name: "Recipe", exact: true }).click();
+    await expect(recipeToggle).toHaveAttribute("aria-expanded", "false");
+    await recipeToggle.click();
     await expect(details).toBeVisible();
-    await page.getByRole("button", { name: "Recipe", exact: true }).click();
+    await recipeToggle.click();
     await expect(details).toBeHidden();
   }
 });
@@ -45,6 +48,7 @@ test("re-running a done generation's recipe returns its own result: no new gener
   const generations = count("generations");
 
   await open(page, `/g/${id}`);
+  await page.getByRole("button", { name: /^Recipe/ }).click();
   await page.getByRole("button", { name: "Re-run recipe" }).click();
   await expect(page.getByRole("status", { name: "Re-run" })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/g/${id}$`));

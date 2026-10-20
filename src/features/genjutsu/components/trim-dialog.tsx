@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { InfoIcon, ScissorsIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
+import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import {
   Dialog,
@@ -11,9 +13,11 @@ import {
 } from "#/components/ui/dialog";
 import { Slider } from "#/components/ui/slider";
 import { MAX_CLIP_MS, MIN_CLIP_MS, type UploadedVideo } from "#/features/genjutsu/contracts";
+import { Hud, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { type Asset, assetSchema } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 import { callApi } from "#/shared/requests";
+import { duration, timecode } from "#/shared/timecode";
 import { useRequestSignal } from "#/shared/use-request-signal";
 
 const STEP_MS = 100;
@@ -31,29 +35,27 @@ function constrain(next: number[], previous: Range): Range {
   return start === previous[0] ? [end - MAX_CLIP_MS, end] : [start, start + MAX_CLIP_MS];
 }
 
-function seconds(milliseconds: number) {
-  return `${(milliseconds / 1000).toFixed(1)} s`;
-}
-
 /**
- * For a clip over 8 s: the whole clip with a range of 3–8 s on it, the chosen range playing on
- * a loop. Confirming the default (the first 8 s) uses the cut the upload already made; any other
+ * For a clip over 8 s: the whole clip with a window of 3–8 s on it, the chosen part playing on a
+ * loop. Confirming the default (the first 8 s) uses the cut the upload already made; any other
  * range is cut by `POST /api/assets/:id/trim`. Every way of closing the dialog cancels a cut in
  * progress: the dialog unmounts, which aborts the request, and its result is dropped.
  */
 export function TrimDialog({
+  name,
   onCancel,
   onConfirm,
   trimmed,
   video,
 }: {
+  name: string;
   onCancel: () => void;
   onConfirm: (clip: Asset) => void;
   trimmed: Asset;
   video: UploadedVideo;
 }) {
-  const duration = video.duration_ms ?? MAX_CLIP_MS;
-  const initial: Range = [0, Math.min(MAX_CLIP_MS, duration)];
+  const length = video.duration_ms ?? MAX_CLIP_MS;
+  const initial: Range = [0, Math.min(MAX_CLIP_MS, length)];
   const [range, setRange] = useState<Range>(initial);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +63,9 @@ export function TrimDialog({
   // State, not a ref: the dialog mounts its content in a portal after the first render, so the
   // effect has to run again once the element exists.
   const [preview, setPreview] = useState<HTMLVideoElement | null>(null);
+  const timeline = useRef<HTMLDivElement>(null);
   const [start, end] = range;
+  const portrait = (video.height ?? 0) >= (video.width ?? 0);
 
   useEffect(() => {
     if (!preview) {
@@ -83,6 +87,12 @@ export function TrimDialog({
 
     return () => preview.removeEventListener("timeupdate", loop);
   }, [preview, start, end]);
+
+  // The window over the timeline, from the range, as CSS variables (no inline styles).
+  useEffect(() => {
+    timeline.current?.style.setProperty("--from", `${(start / length) * 100}%`);
+    timeline.current?.style.setProperty("--to", `${100 - (end / length) * 100}%`);
+  }, [start, end, length]);
 
   async function confirm() {
     if (start === initial[0] && end === initial[1]) {
@@ -125,45 +135,96 @@ export function TrimDialog({
       }}
       open
     >
-      <DialogContent>
+      <DialogContent size="lg">
         <DialogHeader>
-          <DialogTitle>Trim your clip</DialogTitle>
+          <Hud>
+            <span className="break-all">{name}</span> · {duration(length)}
+          </Hud>
+          <DialogTitle>Choose up to 8 seconds</DialogTitle>
           <DialogDescription>
-            This clip is {seconds(duration)} long. A motion lasts 3 to 8 seconds: drag the handles
-            to choose the part to use. The preview plays that part.
+            Your clip is longer than 8 seconds. Drag the handles to the part with the move; it loops
+            in the preview.
           </DialogDescription>
         </DialogHeader>
-        <video
-          aria-label="Preview of the chosen part"
-          className="max-h-80 w-full rounded-md bg-muted object-contain"
-          playsInline
-          ref={setPreview}
-          src={mediaUrl(video)}
-        />
-        <Slider
-          disabled={pending}
-          max={duration}
-          min={0}
-          minStepsBetweenThumbs={MIN_CLIP_MS / STEP_MS}
-          onValueChange={(next) => setRange(constrain(next, range))}
-          step={STEP_MS}
-          thumbLabels={["Trim start", "Trim end"]}
-          value={range}
-        />
-        <p className="text-sm text-muted-foreground">
-          {seconds(start)} to {seconds(end)} ({seconds(end - start)})
-        </p>
-        {error && (
-          <p className="text-sm text-destructive" role="alert">
-            {error}
-          </p>
-        )}
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
+          <div className="relative mx-auto w-44 shrink-0 overflow-hidden rounded-xl border bg-screen sm:mx-0 sm:w-55">
+            <video
+              aria-label="Preview of the chosen part"
+              className={
+                portrait
+                  ? "aspect-9/16 w-full object-cover"
+                  : "aspect-video w-full object-contain sm:h-full"
+              }
+              playsInline
+              ref={setPreview}
+              src={mediaUrl(video)}
+            />
+            <span className="absolute top-3 left-3">
+              <Badge variant="solid">
+                <StatusDot tone="brand" />
+                Loop
+              </Badge>
+            </span>
+            <span className="absolute inset-x-3 bottom-3 flex justify-between">
+              <Hud tone="foreground">{timecode(start / 1000)}</Hud>
+              <Hud tone="foreground">{duration(end - start)}</Hud>
+            </span>
+            <Viewfinder className="inset-3" />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <span className="text-sm font-semibold">Selection</span>
+              <span className="font-mono text-sm" aria-hidden="true">
+                {timecode(start / 1000)} → {timecode(end / 1000)}{" "}
+                <span className="text-muted-foreground">· {duration(end - start)}</span>
+              </span>
+            </div>
+            <div className="relative" ref={timeline}>
+              <div
+                aria-hidden="true"
+                className="relative h-16 overflow-hidden rounded-xl border bg-field"
+              >
+                <span className="absolute inset-y-0 right-(--to) left-(--from) rounded-lg border-2 border-brand bg-brand/12 ring-4 ring-brand/18" />
+              </div>
+              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2">
+                <Slider
+                  disabled={pending}
+                  max={length}
+                  min={0}
+                  minStepsBetweenThumbs={MIN_CLIP_MS / STEP_MS}
+                  onValueChange={(next) => setRange(constrain(next, range))}
+                  step={STEP_MS}
+                  thumbLabels={["Trim start", "Trim end"]}
+                  value={range}
+                />
+              </div>
+            </div>
+            <div aria-hidden="true" className="flex justify-between">
+              <Hud>{timecode(0)}</Hud>
+              <Hud>{timecode(length / 2000)}</Hud>
+              <Hud>{timecode(length / 1000)}</Hud>
+            </div>
+            <p className="flex items-start gap-3 rounded-xl border bg-foreground/3 px-4 py-3.5 text-sm text-soft-foreground">
+              <InfoIcon aria-hidden="true" className="mt-0.5 size-4.5 shrink-0 text-brand" />
+              Keep between 3 and 8 seconds. The first 8 seconds are ready to go; any other part is
+              cut when you confirm.
+            </p>
+            {error && (
+              <p className="text-sm text-destructive-foreground" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
+        </div>
         <DialogFooter>
-          <Button onClick={onCancel} variant="outline">
+          <Button onClick={onCancel} variant="ghost">
             Cancel
           </Button>
           <Button disabled={pending} onClick={confirm}>
-            {pending ? "Cutting…" : "Use this part"}
+            <ScissorsIcon />
+            {pending
+              ? "Cutting…"
+              : `Use these ${Number(((end - start) / 1000).toFixed(1))} seconds`}
           </Button>
         </DialogFooter>
       </DialogContent>

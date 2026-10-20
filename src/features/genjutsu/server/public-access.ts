@@ -1,6 +1,31 @@
 import { findAsset } from "../../../shared/server/assets.ts";
 import { database } from "../../../shared/server/db.server.ts";
-import { isSharedAsset } from "./share.ts";
+
+/**
+ * Whether a done generation with a share page shows this asset there: its result, its poster or
+ * the motion clip it was made from. Such files are public, like the page (`isPublicAsset`). Each
+ * lookup has its index (`007-final-review.sql`; it still names `share.ts`, where this lived).
+ */
+function isSharedAsset(assetId: string) {
+  const asset = findAsset(assetId);
+
+  if (!asset) {
+    return false;
+  }
+
+  const shared = "status = 'done' AND share_slug IS NOT NULL";
+
+  return (
+    database
+      .prepare(
+        `SELECT EXISTS (SELECT 1 FROM generations WHERE final_asset_id = :id AND ${shared})
+          OR EXISTS (SELECT 1 FROM generations WHERE poster_asset_id = :id AND ${shared})
+          OR EXISTS (SELECT 1 FROM generations
+            WHERE recipe ->> '$.inputs.driving_video_sha256' = :sha256 AND ${shared}) AS shared`,
+      )
+      .get({ id: asset.id, sha256: asset.sha256 })?.shared === 1
+  );
+}
 
 /**
  * Whether anyone may load this asset without an access code: a sample (a sample motion's clip or
@@ -13,7 +38,7 @@ export function isPublicAsset(assetId: string) {
 
 /**
  * The server functions anyone may call, keyed `<source file>#<export name>` (`serverFnMeta`, the
- * same in development and in a build): the picker's data, the share page's, and `/g/:id`'s, which
+ * same in development and in a build): the wizard's data, the studio home's, the share page's, and `/g/:id`'s, which
  * checks access itself (a pre-rendered sample's page is public, any other needs a session). Any
  * other server function needs a session (`serverFnRefusal`).
  */
@@ -21,9 +46,12 @@ export const publicServerFns = {
   "src/features/genjutsu/generate.functions.ts#loadResult": true,
   "src/features/genjutsu/generate.functions.ts#loadShare": true,
   "src/features/genjutsu/selection.functions.ts#loadSelection": true,
+  "src/features/genjutsu/selection.functions.ts#loadStudio": true,
 } satisfies Record<string, true>;
 
-// A share page and a stored file, as the router matches them (see `isPublicRequest`).
+// The Genjutsu wizard, a share page and a stored file, as the router matches them (see
+// `isPublicRequest`).
+const wizardPage = /^\/genjutsu$/i;
 const sharePage = /^\/r\/[^/]+$/i;
 const mediaFile = /^\/media\/([0-9a-f-]{36})\.[a-z0-9]+$/i;
 
@@ -46,7 +74,8 @@ export function isIndexable(pathname: string) {
 
 /**
  * Whether a request without a session may go on to its route: pages, media and reads anyone may
- * `GET`/`HEAD` (the picker `/`, share pages, public media, and the page and API of a pre-rendered
+ * `GET`/`HEAD` (the studio home `/`, the Genjutsu wizard `/genjutsu` that picks the motion and
+ * character, share pages, public media, and the page and API of a pre-rendered
  * sample generation), server function calls (`/_serverFn/*`: the function middleware decides
  * once it knows which function, `serverFnRefusal`), and the two actions that may answer with a
  * result that already exists, for free: `POST /api/generate` (a pre-rendered sample × sample
@@ -72,7 +101,7 @@ export function isPublicRequest(method: string, pathname: string) {
     return false;
   }
 
-  if (path === "/" || sharePage.test(path)) {
+  if (path === "/" || wizardPage.test(path) || sharePage.test(path)) {
     return true;
   }
 

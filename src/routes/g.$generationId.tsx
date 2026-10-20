@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
 import { GenerationView } from "#/features/genjutsu/components/generation-view";
 import { loadResult } from "#/features/genjutsu/generate.functions";
+import { Problem } from "#/shared/components/problem";
 
 export const Route = createFileRoute("/g/$generationId")({
   loader: async ({ params }) => {
@@ -13,32 +14,20 @@ export const Route = createFileRoute("/g/$generationId")({
 
     return result;
   },
+  head: () => ({ meta: [{ title: "Your take · Genjutsu · Open Photon" }] }),
   component: GenerationPage,
   notFoundComponent: () => (
-    <main className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-10">
-      <h1 className="text-2xl font-semibold">Generation not found</h1>
-      <Link className="text-sm underline" to="/">
+    <Problem title="Generation not found">
+      <Link className="underline underline-offset-3" search={{}} to="/genjutsu">
         Start a new generation
       </Link>
-    </main>
+    </Problem>
   ),
 });
 
 function GenerationPage() {
-  const { generation, origin, recipe, rerunOfParent, source } = Route.useLoaderData();
+  const data = Route.useLoaderData();
 
-  return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-10">
-      <h1 className="text-2xl font-semibold">Your generation</h1>
-      {/* Keyed by id: a retry or re-run opens its child here, with a stream of its own. */}
-      <GenerationView
-        initial={generation}
-        key={generation.id}
-        origin={origin}
-        recipe={recipe}
-        rerunOfParent={rerunOfParent}
-        source={source}
-      />
-    </main>
-  );
+  // Keyed by id: a retry or re-run opens its child here, with a stream of its own.
+  return <GenerationView data={data} key={data.generation.id} />;
 }

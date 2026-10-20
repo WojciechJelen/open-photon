@@ -4,7 +4,6 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { z } from "zod";
 
-import { assetSchema } from "../../../shared/contracts.ts";
 import { findAccessCodeById } from "../../../shared/server/access-codes.ts";
 import {
   readLimitedBody,
@@ -40,6 +39,7 @@ import {
 } from "./generations.ts";
 import { anglePresets, generateDefaults } from "./presets.ts";
 import { type Recipe, recipeHash } from "./recipe.ts";
+import { publicAsset, sampleMotionTitle, sourceClip, visibleCharacter } from "./shot.ts";
 
 /**
  * A request that cannot become a generation: `status` is the HTTP status that says why, `reason`
@@ -535,13 +535,15 @@ export async function readGeneration(id: string, provider: Provider = comfyProvi
 
 /**
  * What `/g/:id` shows: the generation as stored (a `preparing` row a stopped server left is
- * settled first), its recipe, the motion clip it was made from (`source`, the asset `?motion=`
- * names on `/`) and, for a child, whether it kept its parent's seed (a re-run) or not (a retry);
- * `null` for a malformed or unknown id (the page is then a 404). It never asks Comfy, so the page
- * renders at once even when Comfy does not answer: the page's event stream finalizes a row Comfy
- * has finished, as `GET /api/generations/:id` does.
+ * settled first), its recipe, the motion clip it was made from (`source`, the asset the wizard's
+ * `?motion=` names) with its sample title if it is one (`motionTitle`), the character with its
+ * image as `signedIn` may see it (`visibleCharacter`), the result and its poster once done
+ * (`final`, `poster`) and, for a child, whether it kept its parent's seed (a re-run) or not (a
+ * retry); `null` for a malformed or unknown id (the page is then a 404). It
+ * never asks Comfy, so the page renders at once even when Comfy does not answer: the page's event
+ * stream finalizes a row Comfy has finished, as `GET /api/generations/:id` does.
  */
-export function readResult(id: string) {
+export function readResult(id: string, signedIn: boolean) {
   const parsed = z.uuid().safeParse(id);
   const stored = parsed.success ? findGeneration(parsed.data) : null;
 
@@ -550,20 +552,22 @@ export function readResult(id: string) {
   }
 
   const row = settleAbandoned(stored);
-  const source = findBySha256(row.recipe.inputs.driving_video_sha256);
-
-  if (!source) {
-    throw new Error(`Generation ${row.id} has no stored motion clip`);
-  }
-
+  const source = sourceClip(row);
   const parent = row.parent_id ? findGeneration(row.parent_id) : null;
+  const character = row.character_id ? findCharacter(row.character_id) : null;
+
+  const done = row.status === "done";
 
   return {
+    character: visibleCharacter(character, signedIn),
+    final: done && row.final_asset_id ? publicAsset(row.final_asset_id) : null,
     generation: generationSchema.parse(row),
+    motionTitle: sampleMotionTitle(source.id),
+    poster: done && row.poster_asset_id ? publicAsset(row.poster_asset_id) : null,
     prerendered: row.is_prerendered,
     recipe: row.recipe,
     rerunOfParent: parent?.recipe.params.seed === row.recipe.params.seed,
-    source: assetSchema.parse(source),
+    source,
   };
 }
 
