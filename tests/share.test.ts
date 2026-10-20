@@ -12,9 +12,7 @@ import {
 } from "../src/server/generations.ts";
 import { isPublicRequest } from "../src/server/public-access.ts";
 import { readShare } from "../src/server/share.ts";
-import { loadWorkflow, workflowModelFiles } from "../src/server/workflows/registry.ts";
-
-const workflow = await loadWorkflow("motion-transfer", 1);
+import { motionTransferWorkflow, workflowModelFiles } from "../src/server/workflows/registry.ts";
 
 /** Stores a committed file as an asset of `kind`. */
 async function store(file: string, kind: "image" | "poster" | "video") {
@@ -56,7 +54,7 @@ function queued(drivingVideo: { sha256: string }, seed: number) {
       models: [],
       params: { fragment_length: 81, height: 848, prompt: "A dancer", seed, width: 480 },
       target: "cloud",
-      workflow: { id: "motion-transfer", sha256: workflow.sha256, version: 1 },
+      workflow: { id: "motion-transfer", sha256: motionTransferWorkflow.sha256, version: 1 },
     },
   });
 
@@ -70,7 +68,6 @@ function done(seed: number) {
 
   return transition(id, "finalizing", "done", {
     final_asset_id: result.id,
-    output_asset_id: result.id,
     poster_asset_id: poster.id,
   });
 }
@@ -114,7 +111,7 @@ test("only the result, poster and source clip of a shared generation open withou
 
 test("a share page reads its done generation with absolute media URLs; any other slug is null", async () => {
   const slug = done(5).share_slug ?? "";
-  const share = await readShare(slug, "https://photon.example");
+  const share = readShare(slug, "https://photon.example");
 
   assert.equal(share?.pageUrl, `https://photon.example/r/${slug}`);
   assert.equal(share?.videoUrl, `https://photon.example/media/${result.id}.mp4`);
@@ -122,12 +119,12 @@ test("a share page reads its done generation with absolute media URLs; any other
   assert.equal(share?.source.id, source.id);
   assert.deepEqual(
     share?.models,
-    workflowModelFiles(workflow.graph).map((file) => ({ file, license: null })),
+    workflowModelFiles(motionTransferWorkflow.graph).map((file) => ({ file, license: null })),
   );
 
   const unfinished = queued(otherSource, 6);
 
   for (const other of ["0000000000000000", "does-not-exist", unfinished.id]) {
-    assert.equal(await readShare(other, "https://photon.example"), null);
+    assert.equal(readShare(other, "https://photon.example"), null);
   }
 });

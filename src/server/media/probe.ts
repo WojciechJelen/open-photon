@@ -7,13 +7,24 @@ import { MIN_CLIP_MS, type VideoRejection } from "../../lib/contracts.ts";
 
 const execute = promisify(execFile);
 
-/** Runs `ffmpeg` or `ffprobe` with errors only on stderr and no stdin. */
+/**
+ * Runs `ffmpeg` or `ffprobe` with errors only on stderr and no stdin. Inputs (uploads, Comfy's
+ * output) may only be local files (`-protocol_whitelist file`): a crafted file cannot make
+ * FFmpeg open a URL or another protocol through a nested reference.
+ */
 export function runTool(tool: "ffmpeg" | "ffprobe", args: string[], signal?: AbortSignal) {
-  return execute(tool, ["-v", "error", ...(tool === "ffmpeg" ? ["-nostdin", "-y"] : []), ...args], {
-    maxBuffer: 8 * 1024 * 1024,
-    signal,
-    timeout: 300_000,
-  });
+  return execute(
+    tool,
+    [
+      "-v",
+      "error",
+      ...(tool === "ffmpeg" ? ["-nostdin", "-y"] : []),
+      "-protocol_whitelist",
+      "file",
+      ...args,
+    ],
+    { maxBuffer: 8 * 1024 * 1024, signal, timeout: 300_000 },
+  );
 }
 
 /** True when the tool ran and exited nonzero (it rejected its input), not when it failed to start, timed out or was aborted. */

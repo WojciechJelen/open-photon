@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { z } from "zod";
@@ -11,18 +11,16 @@ import {
   workflowGraphSchema,
 } from "./build-graph.ts";
 
-export type LoadedWorkflow = { graph: WorkflowGraph; inputsMap: InputsMap; sha256: string };
+type LoadedWorkflow = { graph: WorkflowGraph; inputsMap: InputsMap; sha256: string };
 
 /** Reads `workflows/<id>.v<version>.json` and its inputs map. `sha256` is the workflow file's. */
-export async function loadWorkflow(id: "motion-transfer", version: 1): Promise<LoadedWorkflow> {
+function readWorkflow(id: "motion-transfer", version: 1): LoadedWorkflow {
   const file = `${id}.v${version}.json`;
+  const bytes = readFileSync(resolve("workflows", file));
 
-  const [bytes, map] = await Promise.all([
-    readFile(resolve("workflows", file)),
-    readFile(resolve("workflows", `${id}.v${version}.inputs.json`), "utf8"),
-  ]);
-
-  const inputsMap = inputsMapSchema.parse(JSON.parse(map));
+  const inputsMap = inputsMapSchema.parse(
+    JSON.parse(readFileSync(resolve("workflows", `${id}.v${version}.inputs.json`), "utf8")),
+  );
 
   if (inputsMap.workflow !== file) {
     throw new Error(
@@ -36,6 +34,12 @@ export async function loadWorkflow(id: "motion-transfer", version: 1): Promise<L
     sha256: createHash("sha256").update(bytes).digest("hex"),
   };
 }
+
+/**
+ * The motion-transfer v1 workflow, read once when the server starts (from the working directory,
+ * like the migrations): the files are part of the image and never change while it runs.
+ */
+export const motionTransferWorkflow = readWorkflow("motion-transfer", 1);
 
 /**
  * The model files a graph loads: every loader field (`unet_name`, `lora_name`, `clip_name`,

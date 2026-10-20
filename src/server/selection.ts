@@ -11,10 +11,10 @@ import {
   type SampleMotion,
   sampleMotionSchema,
 } from "../lib/contracts.ts";
-import { loadAngles } from "./angles.ts";
 import { findAsset } from "./assets.ts";
 import { findCharacter, listSampleCharacters } from "./characters.server.ts";
 import { database } from "./db.server.ts";
+import { anglePresets, generateDefaults } from "./presets.ts";
 import { isPublicAsset } from "./public-access.ts";
 
 const motionRowSchema = z.object({
@@ -73,16 +73,17 @@ function pickable(character: z.output<typeof characterSchema>): PickableCharacte
 
 /**
  * What `/` shows: the sample motions and characters, the motion clip and character the URL
- * names, and the reshoot-angle presets (`placeholderAngles` while their phrasing is not the
- * benchmarked one). A character in the URL may be an upload (every upload has consent); there
- * are no accounts, so an uploaded character is listed only while the URL names it. An id that
- * names nothing usable (unknown, not a video, a clip over 8 s) resolves to `null`, so the
- * picker falls back to no choice. Without a session (`signedIn` false), a usable choice whose
- * file is not public (`isPublicAsset`: an upload rather than a sample or a shared clip) keeps
- * its id (`motionId`, `characterId`) but not its details (`motion`, `character` are `null`): the
- * picker asks for the code to show it, and Generate can still send it and ask for the code then.
+ * names, the reshoot-angle presets (`placeholderAngles` while their phrasing is not the
+ * benchmarked one) and the description a blank one stands for (`defaultPrompt`). A character in
+ * the URL may be an upload (every upload has consent); there are no accounts, so an uploaded
+ * character is listed only while the URL names it. An id that names nothing usable (unknown, not
+ * a video, a clip over 8 s) resolves to `null`, so the picker falls back to no choice. Without a
+ * session (`signedIn` false), a usable choice whose file is not public (`isPublicAsset`: an
+ * upload rather than a sample or a shared clip) keeps its id (`motionId`, `characterId`) but not
+ * its details (`motion`, `character` are `null`): the picker asks for the code to show it, and
+ * Generate can still send it and ask for the code then.
  */
-export async function readSelection(
+export function readSelection(
   {
     character,
     motion,
@@ -94,18 +95,18 @@ export async function readSelection(
 ) {
   const chosen = character ? findCharacter(character) : null;
   const clip = motion ? findMotionClip(motion) : null;
-  const angles = await loadAngles();
 
   return {
-    angles: angles.angles.map(({ id, label }): AngleChoice => ({ id, label })),
+    angles: anglePresets.angles.map(({ id, label }): AngleChoice => ({ id, label })),
     character:
       chosen && (signedIn || isPublicAsset(chosen.image_asset_id)) ? pickable(chosen) : null,
     characterId: chosen?.id ?? null,
     characters: listSampleCharacters().map(pickable),
+    defaultPrompt: generateDefaults.prompt,
     motion: clip && (signedIn || isPublicAsset(clip.id)) ? clip : null,
     motionId: clip?.id ?? null,
     motions: listSampleMotions(),
-    placeholderAngles: angles.placeholder,
+    placeholderAngles: anglePresets.placeholder,
     signedIn,
   };
 }

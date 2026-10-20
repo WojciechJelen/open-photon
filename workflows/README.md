@@ -35,6 +35,12 @@ Two edits, nothing else; the file keeps ComfyUI's formatting.
 
 `angle` is not a node field. It is a prompt fragment: `generate` appends the phrasing of the chosen preset in [`angles.json`](angles.json) to `prompt` and records the preset's id as the recipe's `angle`, so the angle is part of the recipe and its hash, and it has no entry in the map. The three presets (`front`, `three-quarter`, `profile`) are **placeholders** (`"placeholder": true`): the angle benchmark that is to pick the phrasing has not run.
 
+## App defaults
+
+[`defaults.json`](defaults.json) holds what `generate` uses for a field the user leaves blank: a neutral `prompt` (the character and background of the reference image; the form shows it as the description's placeholder) and a fixed `seed`, so the same choices make the same recipe and reuse its result. Both land in the recipe like given values. The template's own `672:582` text ("Cartoon character lost", an empty white room) is never sent.
+
+Node `672:585` (`CLIPTextEncode`, wired to `WanAnimate2ToVideo.positive_pose`) keeps the template's pose prompt, "A girl doing energetic street dance with rhythmic steps and dynamic arm gestures, background stationary", in every render. It is not an app parameter, so it is not in the inputs map or the recipe; it is part of the workflow file and its SHA-256.
+
 ## SHA-256
 
 | File | SHA-256 |

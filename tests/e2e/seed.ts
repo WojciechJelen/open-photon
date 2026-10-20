@@ -8,7 +8,7 @@ import { copyFile, stat, writeFile } from "node:fs/promises";
 
 import { providerTarget } from "../../src/server/comfy.ts";
 import { probe } from "../../src/server/media/probe.ts";
-import { loadWorkflow } from "../../src/server/workflows/registry.ts";
+import { motionTransferWorkflow } from "../../src/server/workflows/registry.ts";
 import { accessCodePath, QUEUED_JOB_ID, SEEDED_JOB_ID } from "./session.ts";
 
 const path = process.env.DATABASE_PATH;
@@ -60,7 +60,7 @@ async function storeFixture(
 
 // One `done` generation for `/g/:id`: the sample motion as its source, a 5 s H.264 + AAC result
 // (`tests/fixtures/result-5s.mp4`) and its poster. No provider was involved.
-const { characters, motions } = await readSelection({}, true);
+const { characters, motions } = readSelection({}, true);
 const clip = motions[0]?.clip;
 const character = characters[0];
 
@@ -80,8 +80,6 @@ const poster = await storeFixture("tests/fixtures/result-poster.jpg", {
   sourceAssetId: video.id,
 });
 
-const workflow = await loadWorkflow("motion-transfer", 1);
-
 /**
  * A generation of the sample motion and first character, as `generate` records one, on the target
  * the server renders on (its `COMFY_BASE_URL`), so re-running its recipe finds it.
@@ -94,7 +92,7 @@ const seedGeneration = (seed: number, providerJobId: string) => {
       models: [],
       params: { fragment_length: 81, height: 848, prompt: "e2e seeded result", seed, width: 480 },
       target: providerTarget(),
-      workflow: { id: "motion-transfer", sha256: workflow.sha256, version: 1 },
+      workflow: { id: "motion-transfer", sha256: motionTransferWorkflow.sha256, version: 1 },
     },
   });
 
@@ -109,7 +107,6 @@ transition(done, "queued", "finalizing");
 
 transition(done, "finalizing", "done", {
   final_asset_id: video.id,
-  output_asset_id: video.id,
   poster_asset_id: poster.id,
 });
 

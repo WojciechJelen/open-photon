@@ -12,7 +12,6 @@ import {
 } from "../lib/contracts.ts";
 import { findAccessCodeById } from "./access-codes.ts";
 import { readLimitedBody, readSession, type Session } from "./access.server.ts";
-import { loadAngles } from "./angles.ts";
 import { findAsset, findBySha256, type StoredAsset } from "./assets.ts";
 import { findCharacter } from "./characters.server.ts";
 import { comfyProvider, type Provider, providerError, providerTarget } from "./comfy.ts";
@@ -32,9 +31,10 @@ import {
 } from "./generations.ts";
 import { inFlightMax, requesterKeys, returnToken, takeToken } from "./limits.ts";
 import { assetsDirectory } from "./paths.ts";
+import { anglePresets, generateDefaults } from "./presets.ts";
 import { type Recipe, recipeHash } from "./recipe.ts";
 import { buildGraph } from "./workflows/build-graph.ts";
-import { type LoadedWorkflow, loadWorkflow } from "./workflows/registry.ts";
+import { motionTransferWorkflow } from "./workflows/registry.ts";
 
 /**
  * A request that cannot become a generation: `status` is the HTTP status that says why, `reason`
@@ -61,7 +61,7 @@ export class GenerateError extends Error {
 const UNKNOWN_MESSAGE =
   "Comfy may have accepted this generation before its job id was saved, so it is never submitted again automatically. See the README, “Generation state and recovery”.";
 
-// Seeds stay below 2^48, the largest range `randomInt` draws from.
+// Seeds Retry draws stay below 2^48, the largest range `randomInt` draws from.
 const SEED_RANGE = 2 ** 48 - 1;
 
 /** Rows this process is submitting. A `preparing` row outside it was left by a stopped server. */
@@ -121,7 +121,7 @@ function refreshInFlight(provider: Provider) {
   return refreshing;
 }
 
-async function send(row: Generation, workflow: LoadedWorkflow, files: Files, provider: Provider) {
+async function send(row: Generation, files: Files, provider: Provider) {
   let graph;
 
   try {
@@ -131,7 +131,7 @@ async function send(row: Generation, workflow: LoadedWorkflow, files: Files, pro
     ]);
 
     recordProviderInputs(row.id, { driving_video, reference_image });
-    graph = buildGraph(workflow.graph, workflow.inputsMap, {
+    graph = buildGraph(motionTransferWorkflow.graph, motionTransferWorkflow.inputsMap, {
       ...row.recipe.params,
       driving_video,
       reference_image,
@@ -175,7 +175,8 @@ async function send(row: Generation, workflow: LoadedWorkflow, files: Files, pro
  * its way is returned as is; otherwise a `preparing` row (with its idempotency key) is stored,
  * both files go to Comfy, the graph is submitted under that key, and the job id is saved the
  * moment it returns. A `preparing` row a stopped server left behind is settled first: one that
- * never reached Comfy fails and is not reused; one that may have is `unknown` and is.
+ * never reached Comfy fails and is not reused; one that may have is `unknown` and is, for a day
+ * (`findPending`).
  *
  * A new row needs a session whose access code has generations left; the row records the code,
  * which counts it (`006-access-codes.sql`). Without a session, only an existing generation that
@@ -200,7 +201,6 @@ async function submitRecipe(
     recipe: Recipe;
     session: Session | null;
   },
-  workflow: LoadedWorkflow,
   provider: Provider,
   admit: Admit,
 ) {
@@ -214,7 +214,9 @@ async function submitRecipe(
   const claim = () => {
     let existing = findReusable(hash) ?? findPending(hash);
 
-    while (existing && settleAbandoned(existing).status === "failed") {
+    // Settling an abandoned row can take it out of `findPending` (failed, or `unknown` for more
+    // than a day), so look again until the row found is one that stays.
+    while (existing && settleAbandoned(existing).status !== existing.status) {
       existing = findPending(hash);
     }
 
@@ -275,7 +277,7 @@ async function submitRecipe(
   submitting.add(row.id);
 
   try {
-    await send(row, workflow, files, provider);
+    await send(row, files, provider);
   } finally {
     submitting.delete(row.id);
   }
@@ -327,18 +329,14 @@ export async function generate(
   const angle =
     input.angle === undefined
       ? undefined
-      : (await loadAngles()).angles.find((preset) => preset.id === input.angle);
+      : anglePresets.angles.find((preset) => preset.id === input.angle);
 
   if (input.angle !== undefined && !angle) {
     throw new GenerateError(422, `There is no reshoot angle “${input.angle}”.`);
   }
 
-  const workflow = await loadWorkflow("motion-transfer", 1);
-  const promptField = workflow.inputsMap.inputs.prompt;
   const portrait = motion.height >= motion.width;
-
-  const prompt =
-    input.prompt ?? z.string().parse(workflow.graph[promptField.node]?.inputs[promptField.field]);
+  const prompt = input.prompt ?? generateDefaults.prompt;
 
   return submitRecipe(
     {
@@ -354,15 +352,15 @@ export async function generate(
           height: portrait ? 848 : 480,
           // The angle is a prompt fragment, not a node field (workflows/README.md).
           prompt: angle ? `${prompt.trimEnd()} ${angle.fragment}` : prompt,
-          seed: input.seed ?? randomInt(SEED_RANGE),
+          // A fixed default, so the same choices are the same recipe (and reuse its result).
+          seed: input.seed ?? generateDefaults.seed,
           width: portrait ? 480 : 848,
         },
         target: providerTarget(),
-        workflow: { id: "motion-transfer", sha256: workflow.sha256, version: 1 },
+        workflow: { id: "motion-transfer", sha256: motionTransferWorkflow.sha256, version: 1 },
       },
       session,
     },
-    workflow,
     provider,
     admit,
   );
@@ -370,8 +368,9 @@ export async function generate(
 
 /**
  * `POST /api/generations/:id/retry`: a child of a failed generation (`parent_id` = `id`) with the
- * same recipe except a fresh seed, submitted like any generation. An `unknown` generation is
- * never retried: Comfy may still be rendering it (409).
+ * same recipe except a fresh random seed, rendered on the target this server renders on now (as
+ * a re-run is), submitted like any generation. An `unknown` generation is never retried: Comfy
+ * may still be rendering it (409).
  */
 export async function retry(
   id: string,
@@ -407,7 +406,7 @@ export async function retry(
 
   return submitChild(
     parent,
-    { ...parent.recipe, params: { ...parent.recipe.params, seed } },
+    { ...parent.recipe, params: { ...parent.recipe.params, seed }, target: providerTarget() },
     { admit, free: () => false, session },
     provider,
   );
@@ -451,12 +450,10 @@ async function submitChild(
   access: { admit: Admit; free: (existing: Generation) => boolean; session: Session | null },
   provider: Provider,
 ) {
-  const workflow = await loadWorkflow("motion-transfer", 1);
-
   if (
     recipe.workflow.id !== "motion-transfer" ||
     recipe.workflow.version !== 1 ||
-    recipe.workflow.sha256 !== workflow.sha256
+    recipe.workflow.sha256 !== motionTransferWorkflow.sha256
   ) {
     throw new GenerateError(409, "The workflow has changed since; start a new generation.");
   }
@@ -477,7 +474,6 @@ async function submitChild(
       recipe,
       session: access.session,
     },
-    workflow,
     provider,
     access.admit,
   );

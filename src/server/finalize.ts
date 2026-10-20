@@ -6,6 +6,7 @@ import {
   countFinalizeAttempt,
   findGeneration,
   type Generation,
+  markFinalizing,
   transition,
 } from "./generations.ts";
 import { probe, runTool } from "./media/probe.ts";
@@ -86,6 +87,11 @@ async function rehost(output: ProviderOutput) {
   }
 }
 
+// A finalize that failed is tried again on a later read, no sooner than this many milliseconds
+// times the failures so far after the last one; the third failure fails the row.
+const FINALIZE_BACKOFF_MS = 30_000;
+const FINALIZE_ATTEMPTS = 3;
+
 async function settle(id: string, provider: Provider) {
   const row = findGeneration(id);
 
@@ -93,6 +99,13 @@ async function settle(id: string, provider: Provider) {
     !row ||
     row.provider_job_id === null ||
     !["queued", "running", "finalizing"].includes(row.status)
+  ) {
+    return row;
+  }
+
+  if (
+    row.finalize_attempted_at !== null &&
+    Date.now() < Date.parse(row.finalize_attempted_at) + row.finalize_attempts * FINALIZE_BACKOFF_MS
   ) {
     return row;
   }
@@ -128,8 +141,10 @@ async function settle(id: string, provider: Provider) {
     });
   }
 
-  if (current.status !== "finalizing") {
-    transition(id, current.status, "finalizing");
+  const started = markFinalizing(id);
+
+  if (!started) {
+    return findGeneration(id);
   }
 
   try {
@@ -137,12 +152,21 @@ async function settle(id: string, provider: Provider) {
 
     return transition(id, "finalizing", "done", {
       final_asset_id: video.id,
-      output_asset_id: video.id,
       poster_asset_id: poster.id,
     });
   } catch (error) {
-    countFinalizeAttempt(id);
-    throw error;
+    const message = error instanceof Error ? error.message : "unknown error";
+
+    if (countFinalizeAttempt(id).finalize_attempts < FINALIZE_ATTEMPTS) {
+      throw error;
+    }
+
+    console.error(JSON.stringify({ event: "finalize.failed", id, message }));
+
+    return transition(id, "finalizing", "failed", {
+      error_code: "finalize_failed",
+      error_message: `Comfy finished the job, but its output could not be downloaded and stored after ${FINALIZE_ATTEMPTS} attempts (${message}). The Comfy job ${started.provider_job_id} stays valid: its output is in your Comfy history.`,
+    });
   }
 }
 
@@ -153,7 +177,9 @@ const finalizing = new Map<string, Promise<Generation | null>>();
  * carries the driving clip's audio), cuts a poster at 0.5 s, stores both as hashed assets and
  * moves the row to `done`. `jobs.get` decides: while the job is not complete the row is left
  * untouched; a failed, cancelled or expired job fails it. One run per id at a time; concurrent
- * callers share it. A failed download leaves the row `finalizing` for the next call.
+ * callers share it. A failed download or FFmpeg run throws and leaves the row `finalizing`; a
+ * call within the backoff after it returns the row without asking Comfy, a later one tries again,
+ * and the third failure fails the row (`finalize_failed`) instead of throwing.
  */
 export function finalize(id: string, provider: Provider = comfyProvider) {
   const pending = finalizing.get(id);

@@ -30,6 +30,7 @@ function Home() {
     character,
     characterId,
     characters,
+    defaultPrompt,
     motion,
     motionId,
     motions,
@@ -131,6 +132,7 @@ function Home() {
         <GenerateForm
           angles={angles}
           characterId={characterChoice}
+          defaultPrompt={defaultPrompt}
           motionAssetId={motionChoice}
           placeholderAngles={placeholderAngles}
         />

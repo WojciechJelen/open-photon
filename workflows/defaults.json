@@ -1,0 +1,5 @@
+{
+  "note": "What generate uses for a field the user leaves blank; both are stored in the recipe. The seed is fixed so that the same choices give the same recipe (and reuse its result, including a pre-rendered sample); Retry draws a random one. Changing either changes the recipe_hash of every new blank-field generation.",
+  "prompt": "The character from the reference image, as it appears there. Background as in the reference image.",
+  "seed": 20261019
+}

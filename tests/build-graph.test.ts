@@ -8,9 +8,9 @@ import {
   workflowGraphSchema,
 } from "../src/server/workflows/build-graph.ts";
 import { motionTransferParamsSchema } from "../src/server/workflows/params.ts";
-import { loadWorkflow } from "../src/server/workflows/registry.ts";
+import { motionTransferWorkflow } from "../src/server/workflows/registry.ts";
 
-const { graph: template, inputsMap } = await loadWorkflow("motion-transfer", 1);
+const { graph: template, inputsMap } = motionTransferWorkflow;
 
 // The graph the spike submitted for work/wan-run.json (portrait, take 1), written by a one-off
 // WAN_DRY_RUN of scripts/run-wan.mjs with stand-in asset references instead of uploads.

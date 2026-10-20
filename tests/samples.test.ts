@@ -24,7 +24,7 @@ test("seeding the samples again leaves the same characters and motions", () => {
 });
 
 test("a sample motion's clip is stored as ffprobe reads it", async () => {
-  const [motion] = (await readSelection({}, true)).motions;
+  const [motion] = readSelection({}, true).motions;
   const stored = findAsset(motion?.clip.id ?? "");
 
   assert.ok(stored);
@@ -46,22 +46,16 @@ test("a sample motion's clip is stored as ffprobe reads it", async () => {
 });
 
 test("the picker resolves a motion clip and a character, and falls back to none for anything else", async () => {
-  const { characters, motions } = await readSelection({}, true);
+  const { characters, motions } = readSelection({}, true);
   const [motion] = motions;
   const [character] = characters;
 
-  assert.equal(
-    (await readSelection({ motion: motion?.clip.id }, true)).motion?.id,
-    motion?.clip.id,
-  );
-  assert.equal(
-    (await readSelection({ character: character?.id }, true)).character?.id,
-    character?.id,
-  );
+  assert.equal(readSelection({ motion: motion?.clip.id }, true).motion?.id, motion?.clip.id);
+  assert.equal(readSelection({ character: character?.id }, true).character?.id, character?.id);
 
   for (const id of [crypto.randomUUID(), character?.image.id ?? ""]) {
-    assert.equal((await readSelection({ motion: id }, true)).motion, null, id);
+    assert.equal(readSelection({ motion: id }, true).motion, null, id);
   }
 
-  assert.equal((await readSelection({ character: motion?.clip.id }, true)).character, null);
+  assert.equal(readSelection({ character: motion?.clip.id }, true).character, null);
 });

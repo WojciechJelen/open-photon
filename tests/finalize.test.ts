@@ -1,7 +1,7 @@
 import "./temp-database.ts";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { copyFile } from "node:fs/promises";
+import { copyFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
 
@@ -10,6 +10,7 @@ import type { Provider, ProviderJob, ProviderOutput } from "../src/server/comfy.
 import { database } from "../src/server/db.server.ts";
 import { finalize } from "../src/server/finalize.ts";
 import {
+  countInFlight,
   createGeneration,
   findGeneration,
   markQueued,
@@ -93,7 +94,6 @@ test("a completed job is downloaded once, hashed, given a poster and marked done
   assert.equal(first?.status, "done");
   assert.equal(first?.progress, 100);
   assert.ok(first?.finished_at);
-  assert.equal(first?.final_asset_id, first?.output_asset_id);
 
   const video = findAsset(first?.final_asset_id ?? "");
   const poster = findAsset(first?.poster_asset_id ?? "");
@@ -151,4 +151,49 @@ test("a job that failed or expired on Comfy fails the row with its reason", asyn
     assert.deepEqual([row?.status, row?.error_code], ["failed", code]);
     assert.match(row?.error_message ?? "", new RegExp(`${status} on Comfy`));
   }
+});
+
+test("an output that cannot be finalized is retried after a backoff, then fails the row and frees its place", async () => {
+  const row = running();
+  let downloads = 0;
+
+  const output: ProviderOutput = {
+    contentType: "video/mp4",
+    name: "garbage.mp4",
+    sizeBytes: 0,
+    toFile: async (path) => {
+      downloads += 1;
+      await writeFile(path, "not a video");
+
+      return path;
+    },
+  };
+
+  const double = provider("succeeded", [output]);
+  const inFlight = countInFlight();
+
+  // Moves the last failure back in time, past its backoff.
+  const backoffOver = database.prepare(
+    "UPDATE generations SET finalize_attempted_at = '2000-01-01T00:00:00.000Z' WHERE id = ?",
+  );
+
+  await assert.rejects(finalize(row.id, double), /ffprobe/);
+
+  // Within the backoff the row comes back as it is: nothing is downloaded again.
+  assert.equal((await finalize(row.id, double))?.status, "finalizing");
+  assert.equal(downloads, 1);
+
+  backoffOver.run(row.id);
+  await assert.rejects(finalize(row.id, double), /ffprobe/);
+  backoffOver.run(row.id);
+
+  const failed = await finalize(row.id, double);
+
+  assert.equal(downloads, 3);
+  assert.deepEqual(
+    [failed?.status, failed?.error_code, failed?.finalize_attempts],
+    ["failed", "finalize_failed", 3],
+  );
+  assert.ok(failed?.error_message?.includes(row.provider_job_id ?? "no job id"));
+  assert.equal(countInFlight(), inFlight - 1);
 });

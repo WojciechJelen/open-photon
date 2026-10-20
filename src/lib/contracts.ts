@@ -144,6 +144,8 @@ export const generationStatusSchema = z.enum([
  * - `provider_failed`: the job failed or was cancelled on Comfy, or finished without its MP4.
  * - `provider_unreachable`: the connection to Comfy failed, so nothing reached it.
  * - `timeout`: a request to Comfy ran out of time, or the job expired there.
+ * - `finalize_failed`: Comfy finished the job, but its output could not be downloaded or stored
+ *   (three attempts); the job and its output stay in the Comfy account's history.
  * - `interrupted`: the server stopped before sending the job; nothing was submitted.
  * - `unknown`: anything else, including an `unknown` row (the job may exist on Comfy).
  */
@@ -152,6 +154,7 @@ export const generationErrorCodeSchema = z.enum([
   "provider_failed",
   "provider_unreachable",
   "timeout",
+  "finalize_failed",
   "interrupted",
   "unknown",
 ]);

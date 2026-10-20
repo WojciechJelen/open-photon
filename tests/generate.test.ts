@@ -30,6 +30,7 @@ import {
   recordProviderInputs,
   transition,
 } from "../src/server/generations.ts";
+import { generateDefaults } from "../src/server/presets.ts";
 import type { Recipe } from "../src/server/recipe.ts";
 import { uploadVideo } from "../src/server/videos.server.ts";
 import { mintCode } from "./temp-database.ts";
@@ -280,6 +281,75 @@ test("retry submits a child with the same recipe and a new seed", async () => {
     { ...before?.recipe, params: { ...before?.recipe.params, seed: 0 } },
   );
   assert.equal(after?.character_id, before?.character_id);
+});
+
+test("retry renders on the target this server renders on, like a re-run", async () => {
+  const { double } = provider((key) => Promise.resolve(`job-${key}`));
+  const here = findGeneration((await generate(input(), session, double)).id);
+
+  assert.ok(here);
+
+  // A generation that failed on the other target.
+  const parent = createGeneration({
+    characterId: here.character_id ?? undefined,
+    recipe: {
+      ...here.recipe,
+      params: { ...here.recipe.params, seed: here.recipe.params.seed + 1_000_000 },
+      target: providerTarget() === "cloud" ? "selfhost" : "cloud",
+    },
+  });
+
+  transition(parent.id, "preparing", "failed", { error_code: "provider_rejected" });
+
+  const child = findGeneration((await retry(parent.id, session, double)).id);
+
+  assert.equal(child?.parent_id, parent.id);
+  assert.equal(child?.recipe.target, providerTarget());
+});
+
+test("a blank seed and prompt are fixed defaults: the same choices are the same recipe, which a pre-render with those values matches", async () => {
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+  const blank = { character_id: character.id, motion_asset_id: motion.id };
+  const first = await generate(blank, session, double);
+  const second = await generate(blank, session, double);
+  const row = findGeneration(first.id);
+
+  assert.deepEqual(second, { id: first.id, reused: true });
+  assert.equal(findGeneration(second.id)?.recipe_hash, row?.recipe_hash);
+  assert.equal(row?.recipe.params.prompt, generateDefaults.prompt);
+  assert.deepEqual(
+    await generate(
+      { ...blank, prompt: generateDefaults.prompt, seed: generateDefaults.seed },
+      session,
+      double,
+    ),
+    { id: first.id, reused: true },
+  );
+  assert.equal(submits.length, 1);
+});
+
+test("an unknown generation is returned for its recipe for a day, then the recipe can be generated again", async () => {
+  const timingOut = provider(() =>
+    Promise.reject(new DOMException("The operation timed out.", "TimeoutError")),
+  );
+
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+  const same = input();
+  const unknown = await generate(same, session, timingOut.double);
+
+  assert.equal(findGeneration(unknown.id)?.status, "unknown");
+  assert.deepEqual(await generate(same, session, double), { id: unknown.id, reused: true });
+
+  database
+    .prepare("UPDATE generations SET created_at = ? WHERE id = ?")
+    .run(new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(), unknown.id);
+
+  const fresh = await generate(same, session, double);
+
+  assert.equal(fresh.reused, false);
+  assert.notEqual(fresh.id, unknown.id);
+  assert.equal(findGeneration(fresh.id)?.status, "queued");
+  assert.equal(submits.length, 1);
 });
 
 test("retry refuses an unknown generation with 409 and a pointer to the README", async () => {

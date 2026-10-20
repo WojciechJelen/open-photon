@@ -34,16 +34,19 @@ function isField(key: PropertyKey | undefined): key is Field {
  * browser first: an invalid form shows why and never calls the server. A started (or reused)
  * generation opens at `/g/:id`. A refusal shows under the button (a full queue or too many
  * generations say when to try again); one that needs an access code asks for it inline, then
- * sends the same choices again.
+ * sends the same choices again. A blank description is `defaultPrompt` (its placeholder), a
+ * blank seed the server's fixed default.
  */
 export function GenerateForm({
   angles,
   characterId,
+  defaultPrompt,
   motionAssetId,
   placeholderAngles,
 }: {
   angles: AngleChoice[];
   characterId: string | undefined;
+  defaultPrompt: string;
   motionAssetId: string | undefined;
   placeholderAngles: boolean;
 }) {
@@ -152,7 +155,7 @@ export function GenerateForm({
             aria-invalid={errors.includes("prompt")}
             id="generate-prompt"
             onChange={(event) => setPrompt(event.target.value)}
-            placeholder="For example: a red raincoat, on a beach at sunset"
+            placeholder={defaultPrompt}
             value={prompt}
           />
         </div>
@@ -173,11 +176,12 @@ export function GenerateForm({
                 id="generate-seed"
                 inputMode="numeric"
                 onChange={(event) => setSeed(event.target.value)}
-                placeholder="Random"
+                placeholder="Default"
                 value={seed}
               />
               <p className="text-sm text-muted-foreground">
-                The same seed with the same choices gives the same result.
+                The same seed with the same choices gives the same result. Left blank, the seed is a
+                fixed default; “Retry with a new seed” picks a random one.
               </p>
             </div>
           </CollapsibleContent>

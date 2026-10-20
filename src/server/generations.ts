@@ -42,13 +42,12 @@ type ProviderInputs = z.output<typeof providerInputsColumn>;
 
 const generationRowSchema = generationSchema.extend({
   access_code_id: z.string().nullable(),
-  client_hash: z.string().nullable(),
+  finalize_attempted_at: z.iso.datetime().nullable(),
   finalize_attempts: z.int().nonnegative(),
   idempotency_key: z.uuid(),
   is_prerendered: z.union([z.literal(0), z.literal(1)]).transform((value) => value === 1),
-  kind: z.enum(["render", "character"]),
+  // The sample motion whose clip drives it, if it is one (`createGeneration`).
   motion_id: z.string().nullable(),
-  output_asset_id: z.uuid().nullable(),
   // The `asReference()` values of the files uploaded to the provider, to rebuild the graph.
   provider_inputs: providerInputsColumn.nullable(),
   provider_job_id: z.string().min(1).nullable(),
@@ -67,7 +66,8 @@ function parseRow(row: Record<string, SQLOutputValue> | undefined) {
 
 /**
  * Inserts a `preparing` row whose idempotency key exists before anything reaches the provider,
- * with the access code that asked for it (which counts it, `006-access-codes.sql`).
+ * with the access code that asked for it (which counts it, `006-access-codes.sql`) and the sample
+ * motion (`motion_id`) whose clip the recipe's driving video is, if any.
  */
 export function createGeneration({
   accessCodeId,
@@ -82,14 +82,19 @@ export function createGeneration({
 }) {
   const row = database
     .prepare(
-      `INSERT INTO generations (id, parent_id, kind, character_id, workflow_id, workflow_version,
-        recipe, recipe_hash, idempotency_key, target, status, access_code_id, created_at)
-      VALUES (?, ?, 'render', ?, ?, ?, ?, ?, ?, ?, 'preparing', ?, ?)
+      `INSERT INTO generations (id, parent_id, motion_id, character_id, workflow_id,
+        workflow_version, recipe, recipe_hash, idempotency_key, target, status, access_code_id,
+        created_at)
+      VALUES (?, ?,
+        (SELECT motions.id FROM motions JOIN assets ON assets.id = motions.source_asset_id
+          WHERE assets.sha256 = ?),
+        ?, ?, ?, ?, ?, ?, ?, 'preparing', ?, ?)
       RETURNING *`,
     )
     .get(
       randomUUID(),
       parentId ?? null,
+      recipe.inputs.driving_video_sha256,
       characterId ?? null,
       recipe.workflow.id,
       recipe.workflow.version,
@@ -129,19 +134,25 @@ export function findReusable(hash: string) {
   );
 }
 
+// Comfy forgets an idempotency key a day after it was used, so after that an `unknown` row can no
+// longer be told apart from a job that never existed.
+const UNKNOWN_REUSE_MS = 24 * 60 * 60 * 1000;
+
 /**
  * A generation with this recipe that may still produce its output: on its way, or `unknown`
- * (Comfy may be rendering it). Submitting the recipe again would pay for a second job.
+ * (Comfy may be rendering it) for up to a day. Submitting the recipe again would pay for a second
+ * job; an `unknown` row older than that is left alone, so the recipe can be generated again.
  */
 export function findPending(hash: string) {
   return parseRow(
     database
       .prepare(
         `SELECT * FROM generations WHERE recipe_hash = ?
-          AND status IN ('preparing', 'queued', 'running', 'finalizing', 'unknown')
+          AND (status IN ('preparing', 'queued', 'running', 'finalizing')
+            OR (status = 'unknown' AND created_at > ?))
         ORDER BY created_at DESC LIMIT 1`,
       )
-      .get(hash),
+      .get(hash, new Date(Date.now() - UNKNOWN_REUSE_MS).toISOString()),
   );
 }
 
@@ -205,11 +216,25 @@ export function markRunning(id: string, progress: number | null) {
   );
 }
 
+/**
+ * Comfy completed the job: the row moves to `finalizing` from whichever of `queued`, `running`
+ * or `finalizing` it is in now, in one statement, so the event stream's `markRunning` cannot slip
+ * in between. `null` when the row is in none of them any more.
+ */
+export function markFinalizing(id: string) {
+  return parseRow(
+    database
+      .prepare(
+        `UPDATE generations SET status = 'finalizing'
+        WHERE id = ? AND status IN ('queued', 'running', 'finalizing')
+        RETURNING *`,
+      )
+      .get(id),
+  );
+}
+
 type Outcome = Partial<
-  Pick<
-    Generation,
-    "error_code" | "error_message" | "final_asset_id" | "output_asset_id" | "poster_asset_id"
-  >
+  Pick<Generation, "error_code" | "error_message" | "final_asset_id" | "poster_asset_id">
 >;
 
 /**
@@ -236,7 +261,6 @@ export function transition(
         `UPDATE generations SET status = ?, finished_at = coalesce(?, finished_at),
           progress = CASE WHEN ? = 'done' THEN 100 ELSE progress END,
           error_code = coalesce(?, error_code), error_message = coalesce(?, error_message),
-          output_asset_id = coalesce(?, output_asset_id),
           final_asset_id = coalesce(?, final_asset_id),
           poster_asset_id = coalesce(?, poster_asset_id),
           share_slug = coalesce(share_slug, ?)
@@ -249,7 +273,6 @@ export function transition(
         to,
         outcome.error_code ?? null,
         outcome.error_message ?? null,
-        outcome.output_asset_id ?? null,
         outcome.final_asset_id ?? null,
         outcome.poster_asset_id ?? null,
         shareSlug,
@@ -270,9 +293,21 @@ export function markUnknown(id: string, outcome: Outcome = {}) {
   return transition(id, "preparing", "unknown", outcome);
 }
 
-/** Counts a finalize that failed (a download or FFmpeg error); the next read tries again. */
+/** Records a finalize that failed (a download or FFmpeg error) and when; returns the row. */
 export function countFinalizeAttempt(id: string) {
-  database
-    .prepare("UPDATE generations SET finalize_attempts = finalize_attempts + 1 WHERE id = ?")
-    .run(id);
+  const row = parseRow(
+    database
+      .prepare(
+        `UPDATE generations SET finalize_attempts = finalize_attempts + 1, finalize_attempted_at = ?
+        WHERE id = ?
+        RETURNING *`,
+      )
+      .get(new Date().toISOString(), id),
+  );
+
+  if (!row) {
+    throw new Error(`Generation ${id} does not exist`);
+  }
+
+  return row;
 }

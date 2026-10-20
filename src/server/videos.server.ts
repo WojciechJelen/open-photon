@@ -11,6 +11,7 @@ import {
   uploadedVideoSchema,
   type VideoRejection,
 } from "../lib/contracts.ts";
+import { readLimitedBody } from "./access.server.ts";
 import { findAsset, hashFile, incomingPath, type StoredAsset, storeAsset } from "./assets.ts";
 import { classifyVideo, probe } from "./media/probe.ts";
 import { shortestCutMs, trimVideo } from "./media/trim.ts";
@@ -117,9 +118,14 @@ export function uploadVideo(request: ServerRequest) {
   });
 }
 
-/** `POST /api/assets/:id/trim`; the body is `trimRequestSchema`, the response an asset. */
+/**
+ * `POST /api/assets/:id/trim`; the body is `trimRequestSchema` (400 when it is not, or is over
+ * 4 KiB), the response an asset.
+ */
 export async function trimAsset(request: Request, assetId: string) {
-  const body = trimRequestSchema.safeParse(await request.json().catch(() => null));
+  const text = await readLimitedBody(request, 4096);
+
+  const body = trimRequestSchema.safeParse(await new Response(text ?? "").json().catch(() => null));
 
   if (!body.success) {
     return Response.json({ error: z.prettifyError(body.error) }, { status: 400 });

@@ -72,9 +72,9 @@ export function takeLastInFlightPlace() {
     (database) =>
       database
         .prepare(
-          `INSERT INTO generations (id, kind, character_id, workflow_id, workflow_version, recipe,
+          `INSERT INTO generations (id, character_id, workflow_id, workflow_version, recipe,
             recipe_hash, idempotency_key, provider_job_id, target, status, created_at)
-          SELECT ?, kind, character_id, workflow_id, workflow_version, recipe, recipe_hash, ?, ?,
+          SELECT ?, character_id, workflow_id, workflow_version, recipe, recipe_hash, ?, ?,
             target, 'queued', created_at
           FROM generations WHERE provider_job_id = ?`,
         )

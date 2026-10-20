@@ -5,23 +5,31 @@ import { mediaUrl } from "../lib/media.ts";
 import { findAsset, findBySha256 } from "./assets.ts";
 import { database } from "./db.server.ts";
 import { findShared } from "./generations.ts";
-import { loadWorkflow, workflowModelFiles } from "./workflows/registry.ts";
+import { motionTransferWorkflow, workflowModelFiles } from "./workflows/registry.ts";
 
 /**
  * Whether a done generation with a share page shows this asset there: its result, its poster or
- * the motion clip it was made from. Such files are public, like the page (`isPublicAsset`).
+ * the motion clip it was made from. Such files are public, like the page (`isPublicAsset`). Each
+ * lookup has its index (`007-final-review.sql`).
  */
 export function isSharedAsset(assetId: string) {
+  const asset = findAsset(assetId);
+
+  if (!asset) {
+    return false;
+  }
+
+  const shared = "status = 'done' AND share_slug IS NOT NULL";
+
   return (
     database
       .prepare(
-        `SELECT 1 FROM generations
-        WHERE status = 'done' AND share_slug IS NOT NULL
-          AND (final_asset_id = :id OR poster_asset_id = :id
-            OR recipe ->> '$.inputs.driving_video_sha256' = (SELECT sha256 FROM assets WHERE id = :id))
-        LIMIT 1`,
+        `SELECT EXISTS (SELECT 1 FROM generations WHERE final_asset_id = :id AND ${shared})
+          OR EXISTS (SELECT 1 FROM generations WHERE poster_asset_id = :id AND ${shared})
+          OR EXISTS (SELECT 1 FROM generations
+            WHERE recipe ->> '$.inputs.driving_video_sha256' = :sha256 AND ${shared}) AS shared`,
       )
-      .get({ id: assetId }) !== undefined
+      .get({ id: asset.id, sha256: asset.sha256 })?.shared === 1
   );
 }
 
@@ -39,7 +47,7 @@ export function publicOrigin() {
  * the model files the recipe's workflow loads, with their licenses once `models.lock` pins them
  * (`null` when the stored workflow file is no longer the recipe's).
  */
-export async function readShare(slug: string, origin: string) {
+export function readShare(slug: string, origin: string) {
   const row = /^[0-9a-f]{16}$/.test(slug) ? findShared(slug) : null;
   const final = row?.final_asset_id ? findAsset(row.final_asset_id) : null;
 
@@ -54,13 +62,11 @@ export async function readShare(slug: string, origin: string) {
     throw new Error(`Generation ${row.id} has no stored motion clip`);
   }
 
-  const workflow = await loadWorkflow("motion-transfer", 1);
-
   const models =
     row.recipe.models.length > 0
       ? row.recipe.models.map(({ file, license }) => ({ file, license }))
-      : row.recipe.workflow.sha256 === workflow.sha256
-        ? workflowModelFiles(workflow.graph).map((file) => ({ file, license: null }))
+      : row.recipe.workflow.sha256 === motionTransferWorkflow.sha256
+        ? workflowModelFiles(motionTransferWorkflow.graph).map((file) => ({ file, license: null }))
         : null;
 
   return {
