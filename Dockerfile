@@ -13,9 +13,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg curl gosu && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000 DATABASE_PATH=/app/data/app.sqlite
 COPY --from=build --chown=node:node /app/.output ./.output
-COPY --from=build --chown=node:node /app/workflows ./workflows
-COPY --from=build --chown=node:node /app/samples ./samples
-COPY --from=build --chown=node:node /app/src/server/migrations ./src/server/migrations
+COPY --from=build --chown=node:node /app/src/features/genjutsu/workflows ./src/features/genjutsu/workflows
+COPY --from=build --chown=node:node /app/src/features/genjutsu/samples ./src/features/genjutsu/samples
+COPY --from=build --chown=node:node /app/src/shared/server/migrations ./src/shared/server/migrations
 # Run in the container to mint an access code on its volume: node scripts/mint-code.mjs <label> <max>
 COPY --from=build --chown=node:node /app/scripts/mint-code.mjs ./scripts/mint-code.mjs
 COPY --chmod=755 scripts/container-entrypoint.sh /usr/local/bin/open-photon-entrypoint

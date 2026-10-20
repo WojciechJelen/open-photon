@@ -5,20 +5,24 @@ import { copyFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
 
-import { findAsset, hashFile } from "../src/server/assets.ts";
-import type { Provider, ProviderJob, ProviderOutput } from "../src/server/comfy.ts";
-import { database } from "../src/server/db.server.ts";
-import { finalize } from "../src/server/finalize.ts";
+import type {
+  Provider,
+  ProviderJob,
+  ProviderOutput,
+} from "../src/features/genjutsu/server/comfy.ts";
+import { finalize } from "../src/features/genjutsu/server/finalize.ts";
 import {
   countInFlight,
   createGeneration,
   findGeneration,
   markQueued,
   transition,
-} from "../src/server/generations.ts";
-import { runTool } from "../src/server/media/probe.ts";
-import { assetsDirectory } from "../src/server/paths.ts";
-import type { Recipe } from "../src/server/recipe.ts";
+} from "../src/features/genjutsu/server/generations.ts";
+import { runTool } from "../src/features/genjutsu/server/media/probe.ts";
+import type { Recipe } from "../src/features/genjutsu/server/recipe.ts";
+import { findAsset, hashFile } from "../src/shared/server/assets.ts";
+import { database } from "../src/shared/server/db.server.ts";
+import { assetsDirectory } from "../src/shared/server/paths.ts";
 
 let seed = 0;
 

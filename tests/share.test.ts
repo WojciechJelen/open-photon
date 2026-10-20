@@ -3,16 +3,19 @@ import assert from "node:assert/strict";
 import { copyFile, stat } from "node:fs/promises";
 import test from "node:test";
 
-import { hashFile, incomingPath, storeAsset } from "../src/server/assets.ts";
 import {
   createGeneration,
   findGeneration,
   markQueued,
   transition,
-} from "../src/server/generations.ts";
-import { isPublicRequest } from "../src/server/public-access.ts";
-import { readShare } from "../src/server/share.ts";
-import { motionTransferWorkflow, workflowModelFiles } from "../src/server/workflows/registry.ts";
+} from "../src/features/genjutsu/server/generations.ts";
+import { isPublicRequest } from "../src/features/genjutsu/server/public-access.ts";
+import { readShare } from "../src/features/genjutsu/server/share.ts";
+import {
+  motionTransferWorkflow,
+  workflowModelFiles,
+} from "../src/features/genjutsu/workflows/registry.ts";
+import { hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
 
 /** Stores a committed file as an asset of `kind`. */
 async function store(file: string, kind: "image" | "poster" | "video") {

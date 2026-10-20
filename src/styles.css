@@ -86,7 +86,7 @@
   }
 }
 
-/* The compare player's swipe slider (`src/components/compare-player.tsx`): the result, laid over
+/* The compare player's swipe slider (`src/features/genjutsu/components/compare-player.tsx`): the result, laid over
    the source, shows right of `--split`. */
 @utility clip-split {
   clip-path: inset(0 0 0 var(--split, 50%));

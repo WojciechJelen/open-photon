@@ -1,7 +1,7 @@
-// Seeds the sample characters and motions of samples/*/manifest.json into DATABASE_PATH (default
+// Seeds the sample characters and motions of src/features/genjutsu/samples/*/manifest.json into DATABASE_PATH (default
 // data/app.sqlite). Opening the database does it: db.server.ts applies the migrations, then
 // upserts the samples, as the server does on its first query. Running it again changes nothing.
-import { database } from "../src/server/db.server.ts";
+import { database } from "../src/shared/server/db.server.ts";
 
 const count = (sql) => database.prepare(`SELECT count(*) AS count FROM ${sql}`).get().count;
 

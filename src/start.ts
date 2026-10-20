@@ -3,7 +3,7 @@ import { createCsrfMiddleware, createMiddleware, createStart } from "@tanstack/r
 // This file is in the client bundle too: server modules are imported inside `.server()` only,
 // where the compiler strips them from the client, since a static import would pull in SQLite.
 const access = createMiddleware().server(async ({ request, next }) => {
-  const { accessGuard } = await import("#/server/access.server");
+  const { accessGuard } = await import("#/shared/server/access.server");
   const denied = await accessGuard(request);
 
   if (denied) {
@@ -25,7 +25,7 @@ const access = createMiddleware().server(async ({ request, next }) => {
   }
 
   // Share pages and the files they show may be indexed; nothing else.
-  const { isIndexable } = await import("#/server/public-access");
+  const { isIndexable } = await import("#/features/genjutsu/server/public-access");
 
   if (!isIndexable(new URL(request.url).pathname)) {
     result.response.headers.set("X-Robots-Tag", "noindex, nofollow");
@@ -39,7 +39,7 @@ const access = createMiddleware().server(async ({ request, next }) => {
 const serverFnAccess = createMiddleware({ type: "function" }).server(
   async ({ next, serverFnMeta }) => {
     const { getRequest } = await import("@tanstack/react-start/server");
-    const { serverFnRefusal } = await import("#/server/access.server");
+    const { serverFnRefusal } = await import("#/shared/server/access.server");
     const refused = serverFnRefusal(getRequest(), serverFnMeta);
 
     if (refused) {

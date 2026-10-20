@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
-import { AccessCodeForm } from "#/components/access-code-form";
-import { CharacterGrid } from "#/components/character-grid";
-import { CharacterUpload } from "#/components/character-upload";
-import { GenerateForm } from "#/components/generate-form";
-import { LoopingVideo } from "#/components/looping-video";
-import { MotionGrid } from "#/components/motion-grid";
-import { UploadZone } from "#/components/upload-zone";
-import { mediaUrl } from "#/lib/media";
-import { loadSelection } from "#/lib/selection.functions";
+import { CharacterGrid } from "#/features/genjutsu/components/character-grid";
+import { CharacterUpload } from "#/features/genjutsu/components/character-upload";
+import { GenerateForm } from "#/features/genjutsu/components/generate-form";
+import { MotionGrid } from "#/features/genjutsu/components/motion-grid";
+import { UploadZone } from "#/features/genjutsu/components/upload-zone";
+import { loadSelection } from "#/features/genjutsu/selection.functions";
+import { AccessCodeForm } from "#/shared/components/access-code-form";
+import { LoopingVideo } from "#/shared/components/looping-video";
+import { mediaUrl } from "#/shared/media";
 
 // An id that is not a UUID is dropped, so a mangled link falls back to no choice.
 const searchSchema = z.object({

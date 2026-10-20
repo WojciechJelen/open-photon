@@ -8,10 +8,11 @@ import { setTimeout as delay } from "node:timers/promises";
 import { ComfyError, IdempotencyKeyReuse, InvalidWorkflow } from "@comfyorg/sdk";
 import { z } from "zod";
 
-import { findAccessCode } from "../src/server/access-codes.ts";
-import { createAccessGuard } from "../src/server/access.server.ts";
-import { type Provider, type ProviderJob, providerTarget } from "../src/server/comfy.ts";
-import { database } from "../src/server/db.server.ts";
+import {
+  type Provider,
+  type ProviderJob,
+  providerTarget,
+} from "../src/features/genjutsu/server/comfy.ts";
 import {
   GenerateError,
   generate,
@@ -20,7 +21,7 @@ import {
   rerun,
   retry,
   startChild,
-} from "../src/server/generate.ts";
+} from "../src/features/genjutsu/server/generate.ts";
 import {
   countInFlight,
   createGeneration,
@@ -29,10 +30,13 @@ import {
   markQueued,
   recordProviderInputs,
   transition,
-} from "../src/server/generations.ts";
-import { generateDefaults } from "../src/server/presets.ts";
-import type { Recipe } from "../src/server/recipe.ts";
-import { uploadVideo } from "../src/server/videos.server.ts";
+} from "../src/features/genjutsu/server/generations.ts";
+import { generateDefaults } from "../src/features/genjutsu/server/presets.ts";
+import type { Recipe } from "../src/features/genjutsu/server/recipe.ts";
+import { uploadVideo } from "../src/features/genjutsu/server/videos.server.ts";
+import { findAccessCode } from "../src/shared/server/access-codes.ts";
+import { createAccessGuard } from "../src/shared/server/access.server.ts";
+import { database } from "../src/shared/server/db.server.ts";
 import { mintCode } from "./temp-database.ts";
 
 // The jobs these tests submit stay queued (nothing finishes them), so the in-flight cap is lifted

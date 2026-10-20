@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import { generationSchema } from "../src/lib/contracts.ts";
+import { generationSchema } from "../src/features/genjutsu/contracts.ts";
 import {
   count,
   open,

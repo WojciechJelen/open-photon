@@ -5,11 +5,11 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import test, { after } from "node:test";
 
-import { database } from "../src/server/db.server.ts";
-import { runTool } from "../src/server/media/probe.ts";
-import { assetsDirectory } from "../src/server/paths.ts";
-import { MAX_UPLOAD_BYTES } from "../src/server/upload.server.ts";
-import { trimAsset, uploadVideo } from "../src/server/videos.server.ts";
+import { runTool } from "../src/features/genjutsu/server/media/probe.ts";
+import { trimAsset, uploadVideo } from "../src/features/genjutsu/server/videos.server.ts";
+import { database } from "../src/shared/server/db.server.ts";
+import { assetsDirectory } from "../src/shared/server/paths.ts";
+import { MAX_UPLOAD_BYTES } from "../src/shared/server/upload.server.ts";
 
 function upload(path: string) {
   const form = new FormData();

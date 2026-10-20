@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { retry, startChild } from "#/server/generate";
+import { retry, startChild } from "#/features/genjutsu/server/generate";
 
 export const Route = createFileRoute("/api/generations/$generationId/retry")({
   server: {

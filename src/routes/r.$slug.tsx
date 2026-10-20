@@ -1,10 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
-import { LoopingVideo } from "#/components/looping-video";
-import { RecipePanel } from "#/components/recipe-panel";
 import { Button } from "#/components/ui/button";
-import { loadShare } from "#/lib/generate.functions";
-import { mediaUrl } from "#/lib/media";
+import { RecipePanel } from "#/features/genjutsu/components/recipe-panel";
+import { loadShare } from "#/features/genjutsu/generate.functions";
+import { LoopingVideo } from "#/shared/components/looping-video";
+import { mediaUrl } from "#/shared/media";
 
 const title = "Genjutsu: one motion, another character";
 
@@ -12,7 +12,7 @@ const description =
   "The motion of one clip, performed by another character. Made with Open Photon on the Wan Animate 2 workflow.";
 
 // The public share page of a done generation. It is open without the access code
-// (`src/server/public-access.ts`), so social sites can read its Open Graph tags from the
+// (`src/features/genjutsu/server/public-access.ts`), so social sites can read its Open Graph tags from the
 // server-rendered HTML: every URL in them is absolute (`PUBLIC_APP_URL`, else the request's origin).
 export const Route = createFileRoute("/r/$slug")({
   loader: async ({ params }) => {

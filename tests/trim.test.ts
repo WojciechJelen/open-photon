@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { after } from "node:test";
 
-import { probe, runTool } from "../src/server/media/probe.ts";
-import { trimVideo } from "../src/server/media/trim.ts";
+import { probe, runTool } from "../src/features/genjutsu/server/media/probe.ts";
+import { trimVideo } from "../src/features/genjutsu/server/media/trim.ts";
 
 const directory = mkdtempSync(join(tmpdir(), "open-photon-trim-"));
 

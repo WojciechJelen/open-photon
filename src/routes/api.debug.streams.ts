@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { streamDiagnostics } from "#/server/generation-stream";
+import { streamDiagnostics } from "#/features/genjutsu/server/generation-stream";
 
 export const Route = createFileRoute("/api/debug/streams")({
   server: {

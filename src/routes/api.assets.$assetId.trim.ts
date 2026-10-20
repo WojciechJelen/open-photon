@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { uploadRefusal } from "#/server/access.server";
-import { trimAsset } from "#/server/videos.server";
+import { trimAsset } from "#/features/genjutsu/server/videos.server";
+import { uploadRefusal } from "#/shared/server/access.server";
 
 export const Route = createFileRoute("/api/assets/$assetId/trim")({
   server: {

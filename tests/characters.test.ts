@@ -4,9 +4,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { basename } from "node:path";
 import test from "node:test";
 
-import { uploadCharacter } from "../src/server/characters.server.ts";
-import { database } from "../src/server/db.server.ts";
-import { assetsDirectory } from "../src/server/paths.ts";
+import { uploadCharacter } from "../src/features/genjutsu/server/characters.server.ts";
+import { database } from "../src/shared/server/db.server.ts";
+import { assetsDirectory } from "../src/shared/server/paths.ts";
 
 function upload(path: string, consent?: string) {
   const form = new FormData();

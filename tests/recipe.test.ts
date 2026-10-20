@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { type Recipe, recipeHash } from "../src/server/recipe.ts";
+import { type Recipe, recipeHash } from "../src/features/genjutsu/server/recipe.ts";
 
 const recipe: Recipe = {
   inputs: { driving_video_sha256: "a".repeat(64), reference_image_sha256: "b".repeat(64) },

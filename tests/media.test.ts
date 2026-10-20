@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { copyFile, stat } from "node:fs/promises";
 import test from "node:test";
 
-import { hashFile, incomingPath, storeAsset } from "../src/server/assets.ts";
-import { byteRange, serveMedia } from "../src/server/media.server.ts";
+import { hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
+import { byteRange, serveMedia } from "../src/shared/server/media.server.ts";
 
 test("range parser: bounded, open and suffix ranges; past the end is unsatisfiable; the rest is ignored", () => {
   assert.deepEqual(byteRange("bytes=0-99", 1000), { end: 99, start: 0 });

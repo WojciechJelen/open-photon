@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { uploadRefusal } from "#/server/access.server";
-import { uploadCharacter } from "#/server/characters.server";
+import { uploadCharacter } from "#/features/genjutsu/server/characters.server";
+import { uploadRefusal } from "#/shared/server/access.server";
 
 export const Route = createFileRoute("/api/characters")({
   server: {

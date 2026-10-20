@@ -6,6 +6,21 @@ Use the latest version of Shadcn to install new components, like this command to
 npx shadcn@latest add button
 ```
 
+# Layout
+
+- `src/features/<feature>/`: everything one feature owns: `components/`, `server/`,
+  contracts (zod schemas and types), client helpers, server functions, and its data files
+  (`genjutsu` keeps `workflows/` and `samples/` here too).
+- `src/shared/`: code no single feature owns: `components/`, `server/` (access, database,
+  migrations, asset store, uploads, media serving), and client helpers.
+- `src/components/ui/`: shadcn primitives only.
+- `src/routes/`: TanStack file routes; thin, they import from features and shared.
+
+Files that Node loads in `test:server` (everything under a `server/` or `workflows/` folder,
+and what those import) use relative imports with the `.ts` extension; client code uses `#/`.
+The server-function ids in `publicServerFns` are source paths: moving a `*.functions.ts`
+file means updating them.
+
 # Toolchain
 
 Type checking, linting, and formatting are oxc/tsgo based. Do not reintroduce

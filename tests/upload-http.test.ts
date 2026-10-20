@@ -8,9 +8,9 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 
-import { assetsDirectory } from "../src/server/paths.ts";
-import { MAX_UPLOAD_BYTES } from "../src/server/upload.server.ts";
-import { uploadVideo } from "../src/server/videos.server.ts";
+import { uploadVideo } from "../src/features/genjutsu/server/videos.server.ts";
+import { assetsDirectory } from "../src/shared/server/paths.ts";
+import { MAX_UPLOAD_BYTES } from "../src/shared/server/upload.server.ts";
 
 const directory = assetsDirectory();
 

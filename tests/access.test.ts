@@ -5,15 +5,15 @@ import { createHash } from "node:crypto";
 import { copyFile, stat } from "node:fs/promises";
 import { test } from "node:test";
 
+import { createGeneration, markQueued } from "../src/features/genjutsu/server/generations.ts";
 import {
   createAccessGuard,
   readSession,
   serverFnRefusal,
   uploadRefusal,
-} from "../src/server/access.server.ts";
-import { hashFile, incomingPath, storeAsset } from "../src/server/assets.ts";
-import { database } from "../src/server/db.server.ts";
-import { createGeneration, markQueued } from "../src/server/generations.ts";
+} from "../src/shared/server/access.server.ts";
+import { hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
+import { database } from "../src/shared/server/db.server.ts";
 import { mintCode } from "./temp-database.ts";
 
 const origin = "https://preview.example";
@@ -220,13 +220,13 @@ test("server functions need a session unless they are on the public list", async
   assert.equal(unlisted?.status, 401);
   assert.equal((await unlisted?.json())?.reason, "access_required");
   // A public name in another file is another function.
-  assert.equal(call("src/lib/selection.functions.ts", "loadShare")?.status, 401);
+  assert.equal(call("src/features/genjutsu/selection.functions.ts", "loadShare")?.status, 401);
   assert.equal(call("src/lib/admin.functions.ts", "loadEverything", { Cookie: cookie }), undefined);
 
   for (const [filename, name] of [
-    ["src/lib/selection.functions.ts", "loadSelection"],
-    ["src/lib/generate.functions.ts", "loadShare"],
-    ["src/lib/generate.functions.ts", "loadResult"],
+    ["src/features/genjutsu/selection.functions.ts", "loadSelection"],
+    ["src/features/genjutsu/generate.functions.ts", "loadShare"],
+    ["src/features/genjutsu/generate.functions.ts", "loadResult"],
   ] as const) {
     assert.equal(call(filename, name), undefined);
   }

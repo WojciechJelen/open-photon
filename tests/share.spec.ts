@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { expect, test } from "@playwright/test";
 
-import { characterSchema } from "../src/lib/contracts.ts";
+import { characterSchema } from "../src/features/genjutsu/contracts.ts";
 import { open, seededResult } from "./e2e/session.ts";
 
 /** No cookies: a visitor without the access code, such as a social site's crawler. */

@@ -3,12 +3,12 @@ import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import test from "node:test";
 
-import { findAsset } from "../src/server/assets.ts";
-import { database } from "../src/server/db.server.ts";
-import { classifyVideo, probe } from "../src/server/media/probe.ts";
-import { assetsDirectory } from "../src/server/paths.ts";
-import { seedSamples } from "../src/server/samples.ts";
-import { readSelection } from "../src/server/selection.ts";
+import { classifyVideo, probe } from "../src/features/genjutsu/server/media/probe.ts";
+import { seedSamples } from "../src/features/genjutsu/server/samples.ts";
+import { readSelection } from "../src/features/genjutsu/server/selection.ts";
+import { findAsset } from "../src/shared/server/assets.ts";
+import { database } from "../src/shared/server/db.server.ts";
+import { assetsDirectory } from "../src/shared/server/paths.ts";
 
 function count(sql: string) {
   return Number(database.prepare(`SELECT count(*) AS count FROM ${sql}`).get()?.count);

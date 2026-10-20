@@ -11,7 +11,7 @@
     // Vendored upstream plugin source: keep diffable against the anti-slop repo.
     "tools/oxlint/anti-slop/**",
     // Vendored ComfyUI exports: keep byte-comparable to what ComfyUI emits.
-    "workflows/**",
+    "src/features/genjutsu/workflows/**/*.json",
     // Prose and verification records; reflowing tables churns historical evidence.
     "**/*.md",
   ],

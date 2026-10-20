@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { generationIdParam } from "#/server/generate";
-import { streamGeneration } from "#/server/generation-stream";
-import { findGeneration } from "#/server/generations";
+import { generationIdParam } from "#/features/genjutsu/server/generate";
+import { streamGeneration } from "#/features/genjutsu/server/generation-stream";
+import { findGeneration } from "#/features/genjutsu/server/generations";
 
 export const Route = createFileRoute("/api/generations/$generationId/events")({
   server: {

@@ -6,9 +6,9 @@ import { z } from "zod";
 
 import { count, open, seededResult } from "./e2e/session.ts";
 
-/** The SHA-256 of the workflow file, as `workflows/README.md` records it. */
+/** The SHA-256 of the workflow file, as `src/features/genjutsu/workflows/README.md` records it. */
 const workflowSha256 = createHash("sha256")
-  .update(readFileSync("workflows/motion-transfer.v1.json"))
+  .update(readFileSync("src/features/genjutsu/workflows/motion-transfer.v1.json"))
   .digest("hex");
 
 test("the recipe panel is collapsed until opened, on the result and on the share page", async ({

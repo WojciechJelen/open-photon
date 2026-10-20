@@ -6,16 +6,19 @@ import test from "node:test";
 
 import { z } from "zod";
 
-import { generationEventSchema } from "../src/lib/contracts.ts";
-import type { Provider, ProviderJob } from "../src/server/comfy.ts";
-import { streamDiagnostics, streamGeneration } from "../src/server/generation-stream.ts";
+import { generationEventSchema } from "../src/features/genjutsu/contracts.ts";
+import type { Provider, ProviderJob } from "../src/features/genjutsu/server/comfy.ts";
+import {
+  streamDiagnostics,
+  streamGeneration,
+} from "../src/features/genjutsu/server/generation-stream.ts";
 import {
   createGeneration,
   findGeneration,
   markQueued,
   transition,
-} from "../src/server/generations.ts";
-import type { Recipe } from "../src/server/recipe.ts";
+} from "../src/features/genjutsu/server/generations.ts";
+import type { Recipe } from "../src/features/genjutsu/server/recipe.ts";
 
 let seed = 0;
 

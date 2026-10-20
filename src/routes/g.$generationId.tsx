@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
-import { GenerationView } from "#/components/generation-view";
-import { loadResult } from "#/lib/generate.functions";
+import { GenerationView } from "#/features/genjutsu/components/generation-view";
+import { loadResult } from "#/features/genjutsu/generate.functions";
 
 export const Route = createFileRoute("/g/$generationId")({
   loader: async ({ params }) => {
