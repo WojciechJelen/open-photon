@@ -153,11 +153,9 @@ The upload-memory script requires an explicit container and HTTP address, restar
 
 ## Railway staging
 
-The deployment test app is private. Railway builds the repository's Dockerfile in the `open-photon` project, `staging` environment. It runs one replica in Europe with a 1 CPU / 1 GB RAM limit and a 5 GB volume mounted at `/app/data`. Keep one replica while SQLite and output collection use local storage.
+Staging is public to browse; uploads and generation need an access code. Railway builds the repository's Dockerfile in the `open-photon` project, `staging` environment. It runs one replica in Europe with a 1 CPU / 1 GB RAM limit and a 5 GB volume mounted at `/app/data`. Keep one replica while SQLite and output collection use local storage.
 
 Runtime variables are `PORT=3000`, `HOST=0.0.0.0`, `DATABASE_PATH=/app/data/app.sqlite`, `COMFY_BASE_URL=https://cloud.comfy.org`, `PUBLIC_APP_URL` (the deployment's public HTTPS origin: share pages build their absolute Open Graph URLs from it), `CLIENT_IP_HEADER=X-Real-IP` (Railway's edge sets that header to the client's address; see "Rate limits and the in-flight cap") and `IN_FLIGHT_MAX` (the Comfy plan's concurrency: 1 on Standard, the default). Set `COMFY_API_KEY` as a service secret; leave `ENABLE_DEBUG` unset. Access codes live in the database on the volume, not in a variable: after a deploy is healthy, mint one in the running service (for example with `railway ssh`, then `node scripts/mint-code.mjs judges 50`).
-
-Upgrading from the spike: the old `spike.sqlite` and the spike's `data/media/` and `data/renders/` are abandoned (nothing in them carries over; migration 003 drops the spike `renders` table) and can be deleted. `DATABASE_PATH` must be `/app/data/app.sqlite` or unset.
 
 Railway mounts volumes as root. `RAILWAY_RUN_UID=0` starts the entrypoint as root so it can create and assign the database directory to `node`, then `gosu` replaces it with the app running as UID 1000. Ordinary Docker runs still default to `USER node`. Existing files must already be writable by `node`; startup does not recursively change ownership of stored assets.
 

@@ -58,7 +58,7 @@ CREATE TABLE generations (
 
 CREATE INDEX generations_recipe_hash_status ON generations (recipe_hash, status);
 
--- The spike's table, still used by the studio. Step 4.1 drops it.
+-- The spike's table; migration 003 drops it.
 CREATE TABLE IF NOT EXISTS renders (
   id TEXT PRIMARY KEY,
   provider_job_id TEXT UNIQUE,
