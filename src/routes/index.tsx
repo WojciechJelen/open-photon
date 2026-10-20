@@ -24,7 +24,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { angles, character, characters, motion, motions, placeholderAngles } =
+  const { angles, character, characters, motion, motions, placeholderAngles, signedIn } =
     Route.useLoaderData();
 
   const navigate = Route.useNavigate();
@@ -49,7 +49,7 @@ function Home() {
           1. Motion
         </h2>
         <MotionGrid motions={motions} onPick={pickMotion} selectedAssetId={motion?.id} />
-        <UploadZone onReady={pickMotion} selectedAssetId={motion?.id} />
+        <UploadZone onReady={pickMotion} selectedAssetId={motion?.id} signedIn={signedIn} />
         {motion ? (
           <div aria-label="Chosen motion" className="flex max-w-40 flex-col gap-2" role="group">
             <LoopingVideo label="Chosen motion" src={mediaUrl(motion)} />
@@ -67,7 +67,7 @@ function Home() {
           2. Character
         </h2>
         <CharacterGrid characters={characters} onPick={pickCharacter} selectedId={character?.id} />
-        <CharacterUpload onReady={pickCharacter} selectedId={character?.id} />
+        <CharacterUpload onReady={pickCharacter} selectedId={character?.id} signedIn={signedIn} />
         {character ? (
           <div aria-label="Chosen character" className="flex max-w-40 flex-col gap-2" role="group">
             <img

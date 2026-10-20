@@ -1,16 +1,19 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { z } from "zod";
+
+import { findAccessCode, findAccessCodeById } from "./access-codes.ts";
 import { accessPage, accessUrl } from "./access-page.server.ts";
+import { isPublicRequest } from "./public-access.ts";
 
 const cookieName = "photon_access";
 const sessionSeconds = 12 * 60 * 60;
-const bodyLimit = 4096;
+const sessionBodySchema = z.object({ code: z.string() });
 
-function hash(value: string) {
-  return createHash("sha256").update(value).digest();
-}
+/** Who is asking: the access code the request's session was made with. */
+export type Session = { codeId: string };
 
-function respond(body: string, status: number, headers?: HeadersInit) {
+function respond(body: string | null, status: number, headers?: HeadersInit) {
   const response = new Response(body, { status, headers });
   response.headers.set("Cache-Control", "private, no-store");
   response.headers.set("X-Robots-Tag", "noindex, nofollow");
@@ -28,6 +31,19 @@ function page(next: string, message?: string, status = 200) {
   return respond(accessPage(next, message), status, { "Content-Type": "text/html; charset=utf-8" });
 }
 
+/** A JSON refusal `{ error, reason, retry_after? }`; with `retryAfter` (seconds) also its header. */
+function refusal(status: number, error: string, reason: string, retryAfter?: number) {
+  const response = respond(JSON.stringify({ error, reason, retry_after: retryAfter }), status, {
+    "Content-Type": "application/json",
+  });
+
+  if (retryAfter !== undefined) {
+    response.headers.set("Retry-After", String(retryAfter));
+  }
+
+  return response;
+}
+
 /**
  * Where `/access` returns to after the code: its `next` parameter when that is a path on this
  * site (one leading `/`, printable ASCII, no backslash), else `/`.
@@ -38,15 +54,12 @@ function nextPath(url: URL) {
   return next && /^\/(?![/\\])[\x21-\x5b\x5d-\x7e]*$/.test(next) ? next : "/";
 }
 
-async function readCode(request: Request) {
-  if (!request.headers.get("Content-Type")?.startsWith("application/x-www-form-urlencoded")) {
-    return null;
-  }
-
+/** A small request body (a login, a JSON action) as text, or `null` when it is over `limit` bytes. */
+export async function readLimitedBody(request: Request, limit: number) {
   const reader = request.body?.getReader();
 
   if (!reader) {
-    return null;
+    return "";
   }
 
   const chunks: Uint8Array[] = [];
@@ -62,7 +75,7 @@ async function readCode(request: Request) {
 
       size += value.byteLength;
 
-      if (size > bodyLimit) {
+      if (size > limit) {
         await reader.cancel();
 
         return null;
@@ -74,72 +87,124 @@ async function readCode(request: Request) {
     reader.releaseLock();
   }
 
-  return new URLSearchParams(Buffer.concat(chunks).toString("utf8")).get("code");
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+/** The code a login carries: the `/access` form's `code` field, or `POST /api/session`'s `{ code }`. */
+async function readCode(request: Request, form: boolean) {
+  const type = request.headers.get("Content-Type") ?? "";
+  const body = await readLimitedBody(request, 4096);
+
+  if (body === null) {
+    return null;
+  }
+
+  if (form) {
+    return type.startsWith("application/x-www-form-urlencoded")
+      ? new URLSearchParams(body).get("code")
+      : null;
+  }
+
+  if (!type.startsWith("application/json")) {
+    return null;
+  }
+
+  try {
+    return sessionBodySchema.safeParse(JSON.parse(body)).data?.code ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function signature(codeHash: string, codeId: string, expires: string) {
+  return createHmac("sha256", codeHash).update(`photon-session:${codeId}:${expires}`).digest("hex");
 }
 
 /**
- * The access gate. `isPublic` names the paths anyone may `GET`/`HEAD` without a session (share
- * pages and the media they show).
+ * The session the request's cookie carries, or `null`: `<code id>.<expiry ms>.<HMAC>`, signed
+ * with the code's stored hash, so it needs no server secret, survives restarts, and ends when
+ * the code is revoked (or its expiry, 12 hours after the login, passes).
+ */
+export function readSession(request: Request, now = Date.now): Session | null {
+  const token = request.headers
+    .get("Cookie")
+    ?.split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${cookieName}=`))
+    ?.slice(cookieName.length + 1);
+
+  const match = token?.match(/^([0-9a-f-]{36})\.(\d{13})\.([a-f0-9]{64})$/);
+  const [, codeId, expires, mac] = match ?? [];
+
+  if (
+    !codeId ||
+    !expires ||
+    !mac ||
+    Number(expires) <= now() ||
+    Number(expires) > now() + sessionSeconds * 1000
+  ) {
+    return null;
+  }
+
+  const code = findAccessCodeById(codeId);
+
+  return code &&
+    timingSafeEqual(Buffer.from(mac), Buffer.from(signature(code.code_hash, codeId, expires)))
+    ? { codeId }
+    : null;
+}
+
+/**
+ * The access guard, the global request middleware (`src/start.ts`). `/access` (the code form, for
+ * a page opened without a session) and `POST /api/session` (`{ code }` → 204, for the app's own
+ * inline form) exchange a code for the session cookie; both share one limit of 10 attempts a
+ * minute. A request with a session goes on; one without goes on only if `isPublicRequest` lets
+ * it; otherwise a page asked for redirects to `/access?next=<it>` and anything else is a 401.
  */
 export function createAccessGuard(
   config: {
-    code?: string;
-    isPublic?: (pathname: string) => boolean | Promise<boolean>;
     production: boolean;
     publicUrl?: string;
   },
   now = Date.now,
 ) {
-  const code = config.code;
-  const configured = Boolean(code && code.length >= 24 && code.length <= 256);
-  const enabled = config.production || code !== undefined;
-  const key = hash(code ?? "");
   let attempts = 0;
   let resetAt = 0;
 
-  function signature(expires: string) {
-    return createHmac("sha256", key).update(`photon-session:${expires}`).digest("hex");
-  }
-
-  function authenticated(request: Request) {
-    const token = request.headers
-      .get("Cookie")
-      ?.split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith(`${cookieName}=`))
-      ?.slice(cookieName.length + 1);
-
-    const match = token?.match(/^(\d{13})\.([a-f0-9]{64})$/);
-
-    if (
-      !match ||
-      !match[1] ||
-      !match[2] ||
-      Number(match[1]) <= now() ||
-      Number(match[1]) > now() + sessionSeconds * 1000
-    ) {
-      return false;
+  /** Checks a login's code; the answer is the session cookie, or the refusal's status. */
+  async function login(request: Request, form: boolean) {
+    if (now() >= resetAt) {
+      resetAt = now() + 60_000;
+      attempts = 0;
     }
 
-    return timingSafeEqual(Buffer.from(match[2]), Buffer.from(signature(match[1])));
+    if (++attempts > 10) {
+      return { status: 429 as const, retryAfter: Math.ceil((resetAt - now()) / 1000) };
+    }
+
+    const supplied = await readCode(request, form);
+    const code = supplied ? findAccessCode(supplied) : null;
+
+    if (!code) {
+      return { status: 401 as const };
+    }
+
+    const expires = String(now() + sessionSeconds * 1000);
+
+    const secure =
+      config.production || new URL(config.publicUrl ?? request.url).protocol === "https:";
+
+    return {
+      cookie: `${cookieName}=${code.id}.${expires}.${signature(code.code_hash, code.id, expires)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${sessionSeconds}${secure ? "; Secure" : ""}`,
+      status: 200 as const,
+    };
   }
 
   return async (request: Request): Promise<Response | undefined> => {
     const url = new URL(request.url);
 
     if (url.pathname === "/healthz" && ["GET", "HEAD"].includes(request.method)) {
-      return respond(
-        configured || !enabled ? "ok" : "Access is not configured",
-        configured || !enabled ? 200 : 503,
-      );
-    }
-
-    if (!enabled) {
-      return undefined;
-    }
-
-    if (!configured) {
-      return respond("Private preview is not configured", 503);
+      return respond("ok", 200);
     }
 
     if (url.pathname === "/access") {
@@ -153,38 +218,41 @@ export function createAccessGuard(
         return respond("Method not allowed", 405, { Allow: "GET, POST" });
       }
 
-      if (now() >= resetAt) {
-        resetAt = now() + 60_000;
-        attempts = 0;
+      const result = await login(request, true);
+
+      if (result.status === 429) {
+        return respond("Too many attempts. Try again in a minute.", 429, {
+          "Retry-After": String(result.retryAfter),
+        });
       }
 
-      if (++attempts > 10) {
-        return respond("Too many attempts. Try again in a minute.", 429, { "Retry-After": "60" });
-      }
-
-      const supplied = await readCode(request);
-
-      if (supplied === null || !timingSafeEqual(hash(supplied), key)) {
-        return page(next, "Incorrect access code. Please try again.", 401);
-      }
-
-      const expires = String(now() + sessionSeconds * 1000);
-      const secure = new URL(config.publicUrl ?? request.url).protocol === "https:";
-
-      return respond("", 303, {
-        Location: next,
-        "Set-Cookie": `${cookieName}=${expires}.${signature(expires)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${sessionSeconds}${secure ? "; Secure" : ""}`,
-      });
+      return result.status === 401
+        ? page(next, "Incorrect access code. Please try again.", 401)
+        : respond("", 303, { Location: next, "Set-Cookie": result.cookie });
     }
 
-    if (authenticated(request)) {
-      return undefined;
+    if (url.pathname === "/api/session") {
+      if (request.method !== "POST") {
+        return respond("Method not allowed", 405, { Allow: "POST" });
+      }
+
+      const result = await login(request, false);
+
+      if (result.status === 429) {
+        return refusal(
+          429,
+          `Too many attempts. Try again in ${result.retryAfter} s.`,
+          "rate_limited",
+          result.retryAfter,
+        );
+      }
+
+      return result.status === 401
+        ? refusal(401, "That access code is not valid.", "invalid_code")
+        : respond(null, 204, { "Set-Cookie": result.cookie });
     }
 
-    if (
-      ["GET", "HEAD"].includes(request.method) &&
-      (await config.isPublic?.(url.pathname)) === true
-    ) {
+    if (readSession(request, now) || isPublicRequest(request.method, url.pathname)) {
       return undefined;
     }
 
@@ -193,15 +261,12 @@ export function createAccessGuard(
       return respond("", 303, { Location: accessUrl(url.pathname + url.search) });
     }
 
-    return respond("Access code required", 401);
+    // An action or read that needs a session: the UI asks for the code on `access_required`.
+    return refusal(401, "Enter an access code to do this.", "access_required");
   };
 }
 
 export const accessGuard = createAccessGuard({
-  code: process.env.APP_ACCESS_CODE,
-  // Imported on first use, not statically: loading `share.ts` opens the database, and the access
-  // tests load this module without one.
-  isPublic: async (pathname) => (await import("./share.ts")).isPublicPath(pathname),
   production: process.env.NODE_ENV === "production",
   publicUrl: process.env.PUBLIC_APP_URL,
 });

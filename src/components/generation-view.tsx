@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
+import { AccessCodeForm } from "#/components/access-code-form";
 import { ComparePlayer } from "#/components/compare-player";
 import { RecipePanel } from "#/components/recipe-panel";
 import { ShareLink } from "#/components/share-link";
@@ -72,9 +73,10 @@ export function GenerationView({
   const navigate = useNavigate();
 
   // Retry (a new seed) and Re-run recipe (the same one), one at a time: what the last one did.
+  // `needs-code`: it needs an access code, asked for inline, then it is sent again.
   const [child, setChild] = useState<
     | { state: "idle" | "reused" }
-    | { action: "retry" | "rerun"; state: "running" }
+    | { action: "retry" | "rerun"; state: "needs-code" | "running" }
     | { action: "retry" | "rerun"; message: string; state: "refused" }
   >({ state: "idle" });
 
@@ -110,7 +112,11 @@ export function GenerationView({
     }
 
     if ("refusal" in answer) {
-      setChild({ action, message: answer.refusal.message, state: "refused" });
+      setChild(
+        answer.refusal.reason === "access_required"
+          ? { action, state: "needs-code" }
+          : { action, message: answer.refusal.message, state: "refused" },
+      );
     } else if (answer.data.id === generation.id) {
       setChild({ state: "reused" });
     } else {
@@ -240,6 +246,10 @@ export function GenerationView({
           </p>
         )}
       </div>
+
+      {child.state === "needs-code" && (
+        <AccessCodeForm onSignedIn={() => void startChild(child.action)} />
+      )}
 
       <div className="flex flex-wrap gap-4">
         {/* After a failure the choices may be what to change: back to them, both still picked. */}

@@ -9,7 +9,7 @@ import { loadWorkflow, workflowModelFiles } from "./workflows/registry.ts";
 
 /**
  * Whether a done generation with a share page shows this asset there: its result, its poster or
- * the motion clip it was made from. Such files are public, like the page; no other asset is.
+ * the motion clip it was made from. Such files are public, like the page (`isPublicAsset`).
  */
 export function isSharedAsset(assetId: string) {
   return (
@@ -23,21 +23,6 @@ export function isSharedAsset(assetId: string) {
       )
       .get({ id: assetId }) !== undefined
   );
-}
-
-/**
- * What anyone may open without the access code, so a share link unfurls on social sites and
- * opens for whoever gets it: `/r/<slug>` (an unknown slug is the page's own 404) and the media a
- * share page shows (`isSharedAsset`).
- */
-export function isPublicPath(pathname: string) {
-  if (/^\/r\/[^/]+$/.test(pathname)) {
-    return true;
-  }
-
-  const assetId = /^\/media\/([0-9a-f-]{36})\.[a-z0-9]+$/.exec(pathname)?.[1];
-
-  return assetId !== undefined && isSharedAsset(assetId);
 }
 
 /**

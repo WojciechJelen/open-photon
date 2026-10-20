@@ -7,9 +7,17 @@ import test from "node:test";
 import { ComfyError, IdempotencyKeyReuse, InvalidWorkflow } from "@comfyorg/sdk";
 import { z } from "zod";
 
+import { findAccessCode } from "../src/server/access-codes.ts";
 import { type Provider, providerTarget } from "../src/server/comfy.ts";
 import { database } from "../src/server/db.server.ts";
-import { GenerateError, generate, readGeneration, rerun, retry } from "../src/server/generate.ts";
+import {
+  GenerateError,
+  generate,
+  handleGenerate,
+  readGeneration,
+  rerun,
+  retry,
+} from "../src/server/generate.ts";
 import {
   createGeneration,
   findGeneration,
@@ -20,6 +28,7 @@ import {
 } from "../src/server/generations.ts";
 import type { Recipe } from "../src/server/recipe.ts";
 import { uploadVideo } from "../src/server/videos.server.ts";
+import { mintCode } from "./temp-database.ts";
 
 const form = new FormData();
 
@@ -36,6 +45,9 @@ const motion = z
 const character = z
   .object({ id: z.uuid() })
   .parse(database.prepare("SELECT id FROM characters WHERE is_sample = 1 LIMIT 1").get());
+
+/** The session every generation here is started with: a code with plenty of generations. */
+const session = { codeId: findAccessCode(mintCode(1000))?.id ?? "" };
 
 let seed = 0;
 
@@ -77,7 +89,7 @@ test("the idempotency key and provider inputs are stored before submit, the job 
     return Promise.resolve(`job-${key}`);
   });
 
-  const { id, reused } = await generate(input(), double);
+  const { id, reused } = await generate(input(), session, double);
   const row = findGeneration(id);
 
   assert.equal(reused, false);
@@ -90,8 +102,8 @@ test("the idempotency key and provider inputs are stored before submit, the job 
 test("the same inputs and seed return the generation on its way without a second submit", async () => {
   const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
   const same = input();
-  const first = await generate(same, double);
-  const second = await generate(same, double);
+  const first = await generate(same, session, double);
+  const second = await generate(same, session, double);
 
   assert.deepEqual(second, { id: first.id, reused: true });
   assert.equal(submits.length, 1);
@@ -139,7 +151,7 @@ test("after a restart, generating the same recipe again settles the row the stop
   /** Fresh inputs, plus the row a stopped server left `preparing` with the recipe they build. */
   const abandon = async (uploaded: boolean) => {
     const inputs = input();
-    const failed = findGeneration((await generate(inputs, refusing.double)).id);
+    const failed = findGeneration((await generate(inputs, session, refusing.double)).id);
 
     assert.ok(failed);
 
@@ -157,7 +169,7 @@ test("after a restart, generating the same recipe again settles the row the stop
 
   // Stopped while uploading: nothing reached Comfy, so a fresh generation is submitted.
   const interrupted = await abandon(false);
-  const fresh = await generate(interrupted.inputs, double);
+  const fresh = await generate(interrupted.inputs, session, double);
 
   assert.equal(fresh.reused, false);
   assert.notEqual(fresh.id, interrupted.id);
@@ -171,7 +183,10 @@ test("after a restart, generating the same recipe again settles the row the stop
   // Stopped after the uploads: Comfy may be rendering it, so it is returned, never resubmitted.
   const uncertain = await abandon(true);
 
-  assert.deepEqual(await generate(uncertain.inputs, double), { id: uncertain.id, reused: true });
+  assert.deepEqual(await generate(uncertain.inputs, session, double), {
+    id: uncertain.id,
+    reused: true,
+  });
   assert.equal(findGeneration(uncertain.id)?.status, "unknown");
   assert.equal(submits.length, 1);
 });
@@ -224,7 +239,7 @@ test("Comfy's errors map to error codes: a refusal fails the row, an uncertain s
       double.upload = upload;
     }
 
-    const { id } = await generate(input(), double);
+    const { id } = await generate(input(), session, double);
     const row = findGeneration(id);
 
     assert.deepEqual([row?.status, row?.error_code, submits.length], expected);
@@ -238,9 +253,9 @@ test("retry submits a child with the same recipe and a new seed", async () => {
     Promise.reject(new InvalidWorkflow("Rejected", { code: "invalid_workflow", httpStatus: 400 })),
   );
 
-  const parent = await generate(input(), failing.double);
+  const parent = await generate(input(), session, failing.double);
   const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
-  const child = await retry(parent.id, double);
+  const child = await retry(parent.id, session, double);
   const [before, after] = [findGeneration(parent.id), findGeneration(child.id)];
 
   assert.equal(child.reused, false);
@@ -259,13 +274,14 @@ test("retry submits a child with the same recipe and a new seed", async () => {
 test("retry refuses an unknown generation with 409 and a pointer to the README", async () => {
   const unknown = await generate(
     input(),
+    session,
     provider(() => Promise.reject(new DOMException("The operation timed out.", "TimeoutError")))
       .double,
   );
 
   const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
 
-  await assert.rejects(retry(unknown.id, double), (error) => {
+  await assert.rejects(retry(unknown.id, session, double), (error) => {
     assert.ok(error instanceof GenerateError);
     assert.equal(error.status, 409);
     assert.match(error.message, /README/);
@@ -273,17 +289,21 @@ test("retry refuses an unknown generation with 409 and a pointer to the README",
     return true;
   });
 
-  const queued = await generate(input(), double);
+  const queued = await generate(input(), session, double);
 
-  await assert.rejects(retry(queued.id, double), { status: 409 });
+  await assert.rejects(retry(queued.id, session, double), { status: 409 });
   assert.equal(submits.length, 1);
 });
 
 test("an angle appends its phrasing to the prompt and is part of the recipe; an unknown one is refused", async () => {
   const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
   const same = { ...input(), prompt: "A dancer" };
-  const angled = findGeneration((await generate({ ...same, angle: "profile" }, double)).id);
-  const plain = findGeneration((await generate(same, double)).id);
+
+  const angled = findGeneration(
+    (await generate({ ...same, angle: "profile" }, session, double)).id,
+  );
+
+  const plain = findGeneration((await generate(same, session, double)).id);
 
   assert.equal(angled?.recipe.angle, "profile");
   assert.match(angled?.recipe.params.prompt ?? "", /^A dancer Profile view: /);
@@ -291,13 +311,15 @@ test("an angle appends its phrasing to the prompt and is part of the recipe; an 
   assert.equal(plain?.recipe.params.prompt, "A dancer");
   assert.notEqual(plain?.recipe_hash, angled?.recipe_hash);
 
-  await assert.rejects(generate({ ...input(), angle: "upside-down" }, double), { status: 422 });
+  await assert.rejects(generate({ ...input(), angle: "upside-down" }, session, double), {
+    status: 422,
+  });
   assert.equal(submits.length, 2);
 });
 
-/** A generation of fresh inputs taken to `done` (its output stands in; nothing is downloaded). */
-async function doneGeneration(double: Provider) {
-  const { id } = await generate(input(), double);
+/** A generation of `inputs` (fresh ones by default) taken to `done` (nothing is downloaded). */
+async function doneGeneration(double: Provider, inputs = input()) {
+  const { id } = await generate(inputs, session, double);
 
   transition(id, "queued", "finalizing");
 
@@ -309,12 +331,12 @@ test("rerun of a failed generation submits a child with the same recipe_hash and
     Promise.reject(new InvalidWorkflow("Rejected", { code: "invalid_workflow", httpStatus: 400 })),
   );
 
-  const parent = findGeneration((await generate(input(), failing.double)).id);
+  const parent = findGeneration((await generate(input(), session, failing.double)).id);
   const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
 
   assert.ok(parent);
 
-  const child = await rerun(parent.id, double);
+  const child = await rerun(parent.id, session, double);
   const row = findGeneration(child.id);
 
   assert.equal(child.reused, false);
@@ -330,14 +352,14 @@ test("rerun of a done generation returns the parent's output: no child, no submi
   const parent = await doneGeneration(double);
   const rows = database.prepare("SELECT count(*) AS n FROM generations").get()?.n;
 
-  assert.deepEqual(await rerun(parent.id, double), { id: parent.id, reused: true });
+  assert.deepEqual(await rerun(parent.id, session, double), { id: parent.id, reused: true });
   assert.equal(submits.length, 1);
   assert.equal(database.prepare("SELECT count(*) AS n FROM generations").get()?.n, rows);
 });
 
 test("rerun of a done generation made on another target renders a child with the same seed here", async () => {
   const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
-  const here = findGeneration((await generate(input(), double)).id);
+  const here = findGeneration((await generate(input(), session, double)).id);
 
   assert.ok(here);
 
@@ -355,7 +377,7 @@ test("rerun of a done generation made on another target renders a child with the
   transition(parent.id, "queued", "finalizing");
   transition(parent.id, "finalizing", "done");
 
-  const child = await rerun(parent.id, double);
+  const child = await rerun(parent.id, session, double);
   const row = findGeneration(child.id);
 
   assert.equal(child.reused, false);
@@ -364,4 +386,103 @@ test("rerun of a done generation made on another target renders a child with the
   assert.equal(row?.recipe.target, providerTarget());
   assert.equal(row?.recipe.params.seed, parent.recipe.params.seed);
   assert.notEqual(row?.recipe_hash, parent.recipe_hash);
+});
+
+const rows = () =>
+  Number(database.prepare("SELECT count(*) AS count FROM generations").get()?.count);
+
+test("without a session only an existing result comes back, for free: a pre-rendered sample, or a re-run of a done generation", async () => {
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+  const sample = input();
+  const other = input();
+  const prerendered = await doneGeneration(double, sample);
+  const done = await doneGeneration(double, other);
+
+  database.prepare("UPDATE generations SET is_prerendered = 1 WHERE id = ?").run(prerendered.id);
+
+  const before = rows();
+
+  assert.deepEqual(await generate(sample, null, double), { id: prerendered.id, reused: true });
+  assert.deepEqual(await rerun(done.id, null, double), { id: done.id, reused: true });
+
+  // Anything else (a done generation that is no sample, a new recipe) asks for the code.
+  for (const refused of [other, input()]) {
+    await assert.rejects(generate(refused, null, double), {
+      reason: "access_required",
+      status: 401,
+    });
+  }
+
+  const response = await handleGenerate(
+    new Request("http://localhost/api/generate", {
+      body: JSON.stringify(input()),
+      method: "POST",
+    }),
+    double,
+  );
+
+  assert.equal(response.status, 401);
+  assert.equal((await response.json()).reason, "access_required");
+  assert.equal(
+    (
+      await handleGenerate(
+        new Request("http://localhost/api/generate", { body: "{}", method: "POST" }),
+        double,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(submits.length, 2);
+  assert.equal(rows(), before);
+});
+
+test("a code counts each generation Comfy may have accepted, once, and refuses past its maximum", async () => {
+  const limited = { codeId: findAccessCode(mintCode(2))?.id ?? "" };
+
+  const used = () =>
+    Number(
+      database.prepare("SELECT used FROM access_codes WHERE id = ?").get(limited.codeId)?.used,
+    );
+
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+  const first = input();
+  const { id } = await generate(first, limited, double);
+
+  assert.equal(used(), 1);
+  assert.equal(findGeneration(id)?.access_code_id, limited.codeId);
+
+  // The same recipe again is the same generation, so it is not counted again.
+  assert.deepEqual(await generate(first, limited, double), { id, reused: true });
+  assert.equal(used(), 1);
+
+  // Comfy unreachable before the submit: nothing reached it, so the count comes back.
+  const unreachable = provider((key) => Promise.resolve(`job-${key}`));
+
+  unreachable.double.upload = () => Promise.reject(new TypeError("fetch failed"));
+
+  const failed = await generate(input(), limited, unreachable.double);
+
+  assert.equal(findGeneration(failed.id)?.status, "failed");
+  assert.equal(used(), 1);
+
+  // An uncertain submit may have reached Comfy: it counts.
+  const uncertain = provider(() =>
+    Promise.reject(new DOMException("The operation timed out.", "TimeoutError")),
+  );
+
+  assert.equal(
+    findGeneration((await generate(input(), limited, uncertain.double)).id)?.status,
+    "unknown",
+  );
+  assert.equal(used(), 2);
+
+  const before = rows();
+
+  await assert.rejects(generate(input(), limited, double), {
+    reason: "code_exhausted",
+    status: 403,
+  });
+  assert.equal(rows(), before);
+  assert.equal(submits.length, 1);
+  assert.equal(used(), 2);
 });

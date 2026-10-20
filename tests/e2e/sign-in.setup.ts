@@ -1,16 +1,12 @@
 import { expect, test as setup } from "@playwright/test";
 
-import { storageStatePath } from "./session.ts";
+import { accessCode, storageStatePath } from "./session.ts";
 
-// One sign-in per run, shared by every test: `/access` allows 10 attempts a minute.
-setup("sign in with the access code, if the server has one", async ({ request }) => {
-  const code = process.env.APP_ACCESS_CODE;
+// One sign-in per run, shared by every test that needs a session: logins are limited to 10 a
+// minute. Tests of the anonymous flow start without this state.
+setup("sign in with the run's access code", async ({ request }) => {
+  const response = await request.post("/api/session", { data: { code: accessCode() } });
 
-  if (code) {
-    const response = await request.post("/access", { form: { code }, maxRedirects: 0 });
-
-    expect(response.status()).toBe(303);
-  }
-
+  expect(response.status()).toBe(204);
   await request.storageState({ path: storageStatePath() });
 });

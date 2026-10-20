@@ -1,17 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-import { seededResult } from "./e2e/session.ts";
-
-const code = process.env.APP_ACCESS_CODE;
+import { accessCode, seededResult } from "./e2e/session.ts";
 
 test.describe("without a session", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("the access gate admits the right code and nothing else, then opens the page asked for", async ({
+  test("a generation's page asks for the code, admits the right one only, then opens", async ({
     page,
   }) => {
-    test.skip(!code, "Set APP_ACCESS_CODE: without it the dev server has no gate.");
-
     const asked = `/g/${seededResult().id}`;
 
     await page.goto(asked);
@@ -20,7 +16,7 @@ test.describe("without a session", () => {
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page).toHaveURL(/\/access\?next=/);
     expect(await page.context().cookies()).toEqual([]);
-    await page.getByLabel("Access code").fill(code ?? "");
+    await page.getByLabel("Access code").fill(accessCode());
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page).toHaveURL(asked);
     await expect(page.getByRole("status", { name: "Generation status" })).toBeVisible();

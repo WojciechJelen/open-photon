@@ -1,64 +1,148 @@
+import "./temp-database.ts";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { copyFile, stat } from "node:fs/promises";
 import { test } from "node:test";
 
-import { createAccessGuard } from "../src/server/access.server.ts";
+import { createAccessGuard, readSession } from "../src/server/access.server.ts";
+import { hashFile, incomingPath, storeAsset } from "../src/server/assets.ts";
+import { database } from "../src/server/db.server.ts";
+import { createGeneration, markQueued } from "../src/server/generations.ts";
+import { mintCode } from "./temp-database.ts";
 
-const code = "test-only-long-random-access-code";
 const origin = "https://preview.example";
 
-function login(value = code, path = "/access") {
-  return new Request(`${origin}${path}`, {
+/** `POST /api/session` with `{ code }`. */
+function exchange(code: string) {
+  return new Request(`${origin}/api/session`, {
+    body: JSON.stringify({ code }),
+    headers: { "Content-Type": "application/json" },
     method: "POST",
-    body: new URLSearchParams({ code: value }),
   });
 }
 
-test("production fails closed without a strong code; development can stay open", async () => {
-  for (const value of [undefined, "short"]) {
-    const guard = createAccessGuard({ code: value, production: true });
-    assert.equal((await guard(new Request(`${origin}/healthz`)))?.status, 503);
-    assert.equal(
-      (await guard(new Request(`${origin}/api/uploads`, { method: "POST" })))?.status,
-      503,
-    );
-  }
+/** The `/access` form's post, returning to `path`'s `next`. */
+function login(code: string, path = "/access") {
+  return new Request(`${origin}${path}`, { body: new URLSearchParams({ code }), method: "POST" });
+}
 
-  assert.equal(await createAccessGuard({ production: false })(new Request(origin)), undefined);
+/** The `name=value` part of a session cookie the guard set for `code`. */
+async function sessionCookie(code: string) {
+  const response = await createAccessGuard({ production: true })(exchange(code));
+
+  return response?.headers.get("Set-Cookie")?.split(";")[0] ?? "";
+}
+
+test("a minted code is printed once and stored only as its SHA-256", () => {
+  const code = mintCode(50);
+
+  const row = database
+    .prepare("SELECT * FROM access_codes WHERE code_hash = ?")
+    .get(createHash("sha256").update(code).digest("hex"));
+
+  assert.match(code, /^[A-Za-z0-9_-]{24}$/);
+  assert.equal(row?.label, "test");
+  assert.equal(row?.max_generations, 50);
+  assert.equal(row?.used, 0);
+  assert.notEqual(mintCode(50), code);
+
+  // Nothing stored is the plain code. (Not checked by reading the database file: closing a file
+  // descriptor drops this process's POSIX locks on it, SQLite's included.)
+  assert.ok(!Object.values(row ?? {}).some((value) => String(value).includes(code)));
+
+  const usage = spawnSync(process.execPath, ["scripts/mint-code.mjs", "judges"], {
+    encoding: "utf8",
+  });
+
+  assert.equal(usage.status, 2);
+  assert.equal(usage.stdout, "");
 });
 
-test("anonymous APIs, server functions, media, SSE and pages are protected", async () => {
-  const guard = createAccessGuard({ code, production: true });
+test("POST /api/session exchanges a code for an HttpOnly cookie; anything else is a 401", async () => {
+  const code = mintCode(5);
+  const guard = createAccessGuard({ production: true });
+  const response = await guard(exchange(code));
+  const header = response?.headers.get("Set-Cookie") ?? "";
 
-  for (const path of [
-    "/api/uploads",
-    "/_serverFn/example",
-    "/media/example.mp4",
-    "/api/generations/example",
-    "/api/generations/example/events",
-    "/api/generations/example/retry",
+  assert.equal(response?.status, 204);
+
+  for (const flag of ["HttpOnly", "SameSite=Lax", "Secure", "Max-Age=43200", "Path=/"]) {
+    assert.ok(header.includes(flag), flag);
+  }
+
+  assert.ok(!header.includes(code));
+
+  for (const body of [
+    exchange(`${code}x`),
+    exchange(""),
+    new Request(`${origin}/api/session`, { method: "POST" }),
   ]) {
-    for (const method of ["GET", "POST", "HEAD"]) {
-      assert.equal((await guard(new Request(`${origin}${path}`, { method })))?.status, 401);
-    }
+    const refused = await guard(body);
+
+    assert.equal(refused?.status, 401);
+    assert.equal((await refused?.json())?.reason, "invalid_code");
   }
 
-  const page = await guard(new Request(`${origin}/`, { headers: { Accept: "text/html" } }));
-  assert.equal(page?.status, 303);
-  assert.equal(page?.headers.get("Location"), "/access");
-  assert.equal((await guard(new Request(`${origin}/healthz`)))?.status, 200);
+  // Development over plain HTTP: the same cookie without `Secure`.
+  const local = await createAccessGuard({ production: false })(
+    new Request("http://127.0.0.1:3031/api/session", {
+      body: JSON.stringify({ code }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    }),
+  );
+
+  assert.equal(local?.status, 204);
+  assert.ok(!local?.headers.get("Set-Cookie")?.includes("Secure"));
 });
 
-test("a page asked for without a session opens after the code; any other target opens /", async () => {
-  const guard = createAccessGuard({ code, production: true });
+test("a session is bound to its code: it survives a restart, not tampering, expiry or revocation", async () => {
+  const code = mintCode(5);
+  const cookie = await sessionCookie(code);
+
+  const codeId = String(
+    database
+      .prepare("SELECT id FROM access_codes WHERE code_hash = ?")
+      .get(createHash("sha256").update(code).digest("hex"))?.id,
+  );
+
+  const request = (value = cookie) =>
+    new Request(`${origin}/api/uploads`, { headers: { Cookie: value }, method: "POST" });
+
+  // A new guard (a restarted server) knows it: it is signed with the stored hash, not a secret.
+  assert.deepEqual(readSession(request()), { codeId });
+  assert.equal(await createAccessGuard({ production: true })(request()), undefined);
+  assert.equal(readSession(request(`${cookie}0`)), null);
+  assert.equal(readSession(request(cookie.replace(/\.\d{13}\./, ".9999999999999."))), null);
+  assert.equal(
+    readSession(request(), () => Date.now() + 12 * 60 * 60 * 1000),
+    null,
+  );
+
+  database
+    .prepare("UPDATE access_codes SET revoked_at = ? WHERE id = ?")
+    .run(new Date().toISOString(), codeId);
+
+  assert.equal(readSession(request()), null);
+  assert.equal((await createAccessGuard({ production: true })(exchange(code)))?.status, 401);
+});
+
+test("the /access form signs in and returns to the page asked for, on this site only", async () => {
+  const code = mintCode(5);
+  const guard = createAccessGuard({ production: true });
 
   const redirect = await guard(
-    new Request(`${origin}/g/example?x=1`, { headers: { Accept: "text/html" } }),
+    new Request(`${origin}/g/${crypto.randomUUID()}?x=1`, { headers: { Accept: "text/html" } }),
   );
 
   const access = redirect?.headers.get("Location") ?? "";
-  assert.equal(access, "/access?next=%2Fg%2Fexample%3Fx%3D1");
+  const asked = decodeURIComponent(access.replace("/access?next=", ""));
+
+  assert.match(access, /^\/access\?next=%2Fg%2F/);
   assert.ok((await (await guard(new Request(`${origin}${access}`)))?.text())?.includes(access));
-  assert.equal((await guard(login(code, access)))?.headers.get("Location"), "/g/example?x=1");
+  assert.equal((await guard(login("wrong", access)))?.status, 401);
+  assert.equal((await guard(login(code, access)))?.headers.get("Location"), asked);
 
   for (const next of ["//evil.example/", "/\\evil.example", "https://evil.example/", "x"]) {
     const path = `/access?next=${encodeURIComponent(next)}`;
@@ -66,71 +150,132 @@ test("a page asked for without a session opens after the code; any other target 
   }
 });
 
-test("signed sessions survive a restart but reject tampering, expiry and code rotation", async () => {
+test("logins are limited to 10 a minute, without trusting client IP headers", async () => {
+  const code = mintCode(5);
   let time = Date.now();
-  const guard = createAccessGuard({ code, production: true }, () => time);
-  const response = await guard(login());
-  assert.equal(response?.status, 303);
-  const header = response?.headers.get("Set-Cookie") ?? "";
+  const guard = createAccessGuard({ production: true }, () => time);
 
-  for (const flag of ["HttpOnly", "SameSite=Strict", "Secure", "Max-Age=43200"]) {
-    assert.ok(header.includes(flag));
-  }
-
-  assert.ok(!header.includes(code));
-  const cookie = header.split(";")[0] ?? "";
-
-  const request = () =>
-    new Request(`${origin}/api/uploads`, { method: "POST", headers: { Cookie: cookie } });
-
-  assert.equal(await guard(request()), undefined);
-  assert.equal(await createAccessGuard({ code, production: true })(request()), undefined);
-  assert.equal(
-    (await createAccessGuard({ code: `${code}-rotated`, production: true })(request()))?.status,
-    401,
-  );
-  assert.equal(
-    (await guard(new Request(origin, { headers: { Cookie: `${cookie}a` } })))?.status,
-    401,
-  );
-  time += 12 * 60 * 60 * 1000;
-  assert.equal((await guard(request()))?.status, 401);
-});
-
-test("login rejects oversized bodies and throttles attempts without trusting client IP headers", async () => {
-  let time = Date.now();
-  const guard = createAccessGuard({ code, production: true }, () => time);
   assert.equal((await guard(login("x".repeat(5000))))?.status, 401);
 
   for (let attempt = 0; attempt < 9; attempt++) {
-    assert.equal((await guard(login("wrong")))?.status, 401);
+    assert.equal((await guard(exchange("wrong")))?.status, 401);
   }
 
-  assert.equal((await guard(login()))?.status, 429);
+  const limited = await guard(exchange(code));
+
+  assert.equal(limited?.status, 429);
+  assert.equal(limited?.headers.get("Retry-After"), "60");
+  assert.equal((await guard(login(code)))?.status, 429);
   time += 60_000;
-  assert.equal((await guard(login()))?.status, 303);
+  assert.equal((await guard(exchange(code)))?.status, 204);
 });
 
-test("a public path (a share page and its media) opens without a session, for GET and HEAD only", async () => {
-  const guard = createAccessGuard({
-    code,
-    isPublic: (pathname) => pathname === "/r/shared" || pathname === "/media/shared.mp4",
-    production: true,
-  });
+test("without a session: the picker, samples, share pages and pre-rendered samples are open; uploads, generations and other media are not", async () => {
+  const guard = createAccessGuard({ production: true });
+  const cookie = await sessionCookie(mintCode(5));
 
-  for (const path of ["/r/shared", "/media/shared.mp4"]) {
-    for (const method of ["GET", "HEAD"]) {
-      assert.equal(await guard(new Request(`${origin}${path}`, { method })), undefined);
-    }
-
-    assert.equal((await guard(new Request(`${origin}${path}`, { method: "POST" })))?.status, 401);
-  }
-
-  assert.equal((await guard(new Request(`${origin}/media/private.mp4`)))?.status, 401);
-
-  const page = await guard(
-    new Request(`${origin}/g/example`, { headers: { Accept: "text/html" } }),
+  const sampleImage = String(
+    database.prepare("SELECT image_asset_id FROM characters WHERE is_sample = 1").get()
+      ?.image_asset_id,
   );
 
+  const temporary = await incomingPath();
+  await copyFile("fixtures/x.mp4", temporary);
+
+  const { asset: upload } = await storeAsset(temporary, {
+    bytes: (await stat(temporary)).size,
+    duration_ms: null,
+    ext: "mp4",
+    fps: null,
+    has_audio: null,
+    height: null,
+    kind: "video",
+    mime: "video/mp4",
+    role: "upload",
+    sha256: await hashFile(temporary),
+    source_asset_id: null,
+    width: null,
+  });
+
+  /** A queued generation; `prerendered` marks it as a pre-rendered sample (Step 9.2). */
+  const generation = (seed: number, prerendered: boolean) => {
+    const { id } = createGeneration({
+      recipe: {
+        inputs: { driving_video_sha256: upload.sha256, reference_image_sha256: upload.sha256 },
+        models: [],
+        params: { fragment_length: 81, height: 848, prompt: "A dancer", seed, width: 480 },
+        target: "cloud",
+        workflow: { id: "motion-transfer", sha256: upload.sha256, version: 1 },
+      },
+    });
+
+    markQueued(id, `job-${id}`);
+    database
+      .prepare("UPDATE generations SET is_prerendered = ? WHERE id = ?")
+      .run(Number(prerendered), id);
+
+    return id;
+  };
+
+  const sample = generation(1, true);
+  const private_ = generation(2, false);
+
+  const ask = (method: string, path: string, headers: HeadersInit = {}) =>
+    guard(new Request(`${origin}${path}`, { headers, method }));
+
+  const open = [
+    ["GET", "/"],
+    ["GET", "/?motion=x"],
+    ["GET", "/r/0123456789abcdef"],
+    ["GET", `/media/${sampleImage}.png`],
+    ["HEAD", `/media/${sampleImage}.png`],
+    ["GET", `/g/${sample}`],
+    ["GET", `/api/generations/${sample}`],
+    ["GET", `/api/generations/${sample}/events`],
+    ["GET", `/api/generations/${sample}/recipe.json`],
+    // Their handlers decide: only a result that exists already is free (tests/generate.test.ts).
+    ["POST", "/api/generate"],
+    ["POST", `/api/generations/${private_}/rerun`],
+    ["POST", "/_serverFn/example"],
+  ];
+
+  const closed = [
+    ["POST", "/api/uploads"],
+    ["POST", "/api/characters"],
+    ["POST", `/api/assets/${upload.id}/trim`],
+    ["POST", `/api/generations/${private_}/retry`],
+    ["POST", `/api/generations/${sample}/retry`],
+    ["POST", "/"],
+    ["GET", `/media/${upload.id}.mp4`],
+    ["GET", `/media/${crypto.randomUUID()}.mp4`],
+    ["GET", `/api/generations/${private_}`],
+    ["GET", `/api/generations/${private_}/events`],
+    ["GET", `/api/generations/${private_}/recipe.json`],
+    ["GET", "/api/debug/streams"],
+  ];
+
+  for (const [method = "", path = ""] of open) {
+    assert.equal(await ask(method, path), undefined, `${method} ${path}`);
+  }
+
+  for (const [method = "", path = ""] of closed) {
+    const response = await ask(method, path);
+
+    assert.equal(response?.status, 401, `${method} ${path}`);
+    assert.equal((await response?.json())?.reason, "access_required");
+  }
+
+  // A page that needs a session asks for the code first, then comes back to it.
+  const page = await ask("GET", `/g/${private_}`, { Accept: "text/html" });
+
   assert.equal(page?.status, 303);
+  assert.equal(
+    page?.headers.get("Location"),
+    `/access?next=${encodeURIComponent(`/g/${private_}`)}`,
+  );
+
+  // With a session, every one of them goes on to its route.
+  for (const [method = "", path = ""] of [...open, ...closed]) {
+    assert.equal(await ask(method, path, { Cookie: cookie }), undefined, `${method} ${path}`);
+  }
 });

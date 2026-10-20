@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
+import { Route as ApiGenerateRouteImport } from './routes/api.generate'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as GGenerationIdRouteImport } from './routes/g.$generationId'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
@@ -31,6 +32,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApiCharactersRoute = ApiCharactersRouteImport.update({
   id: '/api/characters',
   path: '/api/characters',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGenerateRoute = ApiGenerateRouteImport.update({
+  id: '/api/generate',
+  path: '/api/generate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiUploadsRoute = ApiUploadsRouteImport.update({
@@ -97,6 +103,7 @@ const ApiGenerationsGenerationIdRetryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/characters': typeof ApiCharactersRoute
+  '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/characters': typeof ApiCharactersRoute
+  '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/characters': typeof ApiCharactersRoute
+  '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/api/characters'
+    | '/api/generate'
     | '/api/uploads'
     | '/g/$generationId'
     | '/media/$filename'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/api/characters'
+    | '/api/generate'
     | '/api/uploads'
     | '/g/$generationId'
     | '/media/$filename'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/api/characters'
+    | '/api/generate'
     | '/api/uploads'
     | '/g/$generationId'
     | '/media/$filename'
@@ -191,6 +203,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
+  ApiGenerateRoute: typeof ApiGenerateRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   GGenerationIdRoute: typeof GGenerationIdRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
@@ -214,6 +227,13 @@ declare module '@tanstack/react-router' {
       path: '/api/characters'
       fullPath: '/api/characters'
       preLoaderRoute: typeof ApiCharactersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/generate': {
+      id: '/api/generate'
+      path: '/api/generate'
+      fullPath: '/api/generate'
+      preLoaderRoute: typeof ApiGenerateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/uploads': {
@@ -321,6 +341,7 @@ const ApiGenerationsGenerationIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiCharactersRoute: ApiCharactersRoute,
+  ApiGenerateRoute: ApiGenerateRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   GGenerationIdRoute: GGenerationIdRoute,
   MediaFilenameRoute: MediaFilenameRoute,

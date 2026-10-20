@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { AccessCodeForm } from "#/components/access-code-form";
 import { TrimDialog } from "#/components/trim-dialog";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
@@ -10,6 +11,8 @@ import { useRequestSignal } from "#/lib/use-request-signal";
 
 type UploadState =
   | { kind: "idle" }
+  // An upload needs an access code: the file waits for it.
+  | { file: File; kind: "needs-code" }
   | { kind: "uploading"; percent: number }
   | { kind: "probing" }
   | { kind: "too-long"; trimmed: Asset; video: UploadedVideo }
@@ -28,6 +31,7 @@ const rejectionLabels = new Map([
 function describe(state: UploadState, selectedAssetId: string | undefined) {
   switch (state.kind) {
     case "idle":
+    case "needs-code":
       return "";
     case "uploading":
       return `Uploading ${state.percent}%`;
@@ -44,14 +48,18 @@ function describe(state: UploadState, selectedAssetId: string | undefined) {
 
 /**
  * Upload your own driving clip: `uploading % → probing → too long (trim) | rejected (reason) →
- * ready`. A clip of 3–8 s is ready as uploaded; a longer one opens the trim dialog.
+ * ready`. A clip of 3–8 s is ready as uploaded; a longer one opens the trim dialog. Without an
+ * access session (`signedIn`, or a 401 when it has expired) the code comes first, inline, and the
+ * chosen file is uploaded right after it.
  */
 export function UploadZone({
   onReady,
   selectedAssetId,
+  signedIn,
 }: {
   onReady: (assetId: string) => void;
   selectedAssetId: string | undefined;
+  signedIn: boolean;
 }) {
   const [state, setState] = useState<UploadState>({ kind: "idle" });
   const nextSignal = useRequestSignal();
@@ -67,7 +75,15 @@ export function UploadZone({
     onReady(clip.id);
   }
 
-  async function upload(file: File) {
+  function upload(file: File) {
+    if (signedIn) {
+      void send(file);
+    } else {
+      setState({ file, kind: "needs-code" });
+    }
+  }
+
+  async function send(file: File) {
     const signal = nextSignal();
 
     setState({ kind: "uploading", percent: 0 });
@@ -84,7 +100,11 @@ export function UploadZone({
     }
 
     if ("refusal" in result) {
-      setState({ kind: "rejected", refusal: result.refusal, selectedAssetId });
+      setState(
+        result.refusal.reason === "access_required"
+          ? { file, kind: "needs-code" }
+          : { kind: "rejected", refusal: result.refusal, selectedAssetId },
+      );
     } else if (result.video.trimmed) {
       setState({ kind: "too-long", trimmed: result.video.trimmed, video: result.video });
     } else {
@@ -102,7 +122,7 @@ export function UploadZone({
         const file = event.dataTransfer.files[0];
 
         if (file && !busy) {
-          void upload(file);
+          upload(file);
         }
       }}
     >
@@ -118,7 +138,7 @@ export function UploadZone({
           event.target.value = "";
 
           if (file) {
-            void upload(file);
+            upload(file);
           }
         }}
         type="file"
@@ -138,6 +158,7 @@ export function UploadZone({
       >
         {describe(shown, selectedAssetId)}
       </p>
+      {state.kind === "needs-code" && <AccessCodeForm onSignedIn={() => void send(state.file)} />}
       {state.kind === "too-long" && (
         <TrimDialog
           onCancel={() => setState({ kind: "idle" })}

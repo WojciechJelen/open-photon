@@ -1,13 +1,15 @@
 // Prepares the database of a Playwright run (`playwright.config.ts` runs it before the dev
 // server starts). It only ever creates a database: an existing file, such as `data/app.sqlite`,
-// is refused, so the tests never depend on (or touch) real generations.
+// is refused, so the tests never depend on (or touch) real generations. It also mints the run's
+// access code with `scripts/mint-code.mjs` and keeps it next to the database (`accessCode()`).
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { copyFile, stat } from "node:fs/promises";
+import { copyFile, stat, writeFile } from "node:fs/promises";
 
 import { providerTarget } from "../../src/server/comfy.ts";
 import { probe } from "../../src/server/media/probe.ts";
 import { loadWorkflow } from "../../src/server/workflows/registry.ts";
-import { QUEUED_JOB_ID, SEEDED_JOB_ID } from "./session.ts";
+import { accessCodePath, QUEUED_JOB_ID, SEEDED_JOB_ID } from "./session.ts";
 
 const path = process.env.DATABASE_PATH;
 
@@ -58,7 +60,7 @@ async function storeFixture(
 
 // One `done` generation for `/g/:id`: the sample motion as its source, a 5 s H.264 + AAC result
 // (`tests/fixtures/result-5s.mp4`) and its poster. No provider was involved.
-const { characters, motions } = await readSelection({});
+const { characters, motions } = await readSelection({}, true);
 const clip = motions[0]?.clip;
 const character = characters[0];
 
@@ -114,5 +116,11 @@ transition(done, "finalizing", "done", {
 // One generation still `queued`, for a page that follows its event stream. Comfy at the dead
 // port never moves it on.
 const queued = seedGeneration(2, QUEUED_JOB_ID);
+
+const code = execFileSync(process.execPath, ["scripts/mint-code.mjs", "e2e", "1000"], {
+  encoding: "utf8",
+}).trim();
+
+await writeFile(accessCodePath(path), code);
 
 console.log(`e2e database ${path}, done generation ${done}, queued generation ${queued}`);

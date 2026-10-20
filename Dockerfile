@@ -5,7 +5,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 RUN test ! -e docs/priv && test ! -e .env \
-  && COMFY_API_KEY=spike-build-canary-not-a-real-key APP_ACCESS_CODE=access-build-canary-not-a-real-code npm run build \
+  && COMFY_API_KEY=spike-build-canary-not-a-real-key npm run build \
   && npm run check:client
 
 FROM node:24.19.0-bookworm-slim AS runtime
@@ -16,6 +16,8 @@ COPY --from=build --chown=node:node /app/.output ./.output
 COPY --from=build --chown=node:node /app/workflows ./workflows
 COPY --from=build --chown=node:node /app/samples ./samples
 COPY --from=build --chown=node:node /app/src/server/migrations ./src/server/migrations
+# Run in the container to mint an access code on its volume: node scripts/mint-code.mjs <label> <max>
+COPY --from=build --chown=node:node /app/scripts/mint-code.mjs ./scripts/mint-code.mjs
 COPY --chmod=755 scripts/container-entrypoint.sh /usr/local/bin/open-photon-entrypoint
 RUN mkdir /app/data && chown node:node /app/data
 USER node

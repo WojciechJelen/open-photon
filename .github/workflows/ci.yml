@@ -35,23 +35,25 @@ jobs:
       - run: npm run test:server
       - name: Install Chromium for the browser tests
         run: npx playwright install --with-deps chromium
-      - name: Browser tests (own dev server and database, Comfy at a dead port)
-        env:
-          APP_ACCESS_CODE: ci-only-access-code-not-a-secret
+      - name: Browser tests (own dev server, database and minted access code; Comfy at a dead port)
         run: npm run test:e2e
       - name: Build production image and scan client output
         run: docker build --platform linux/amd64 --tag open-photon:ci .
-      - name: Check upload memory on native AMD64
+      - name: Check access and upload memory on native AMD64
         env:
           SPIKE_DOCKER_CONTEXT: default
           SPIKE_CONTAINER: open-photon-memory
           BASE_URL: http://127.0.0.1:3031
-          APP_ACCESS_CODE: ci-only-access-code-not-a-secret
         run: |
           test "$(uname -m)" = x86_64
           docker run -d --name open-photon-memory --init --user 0 \
             --mount type=volume,destination=/app/data,volume-nocopy \
-            -e ENABLE_DEBUG=1 -e APP_ACCESS_CODE -p 127.0.0.1:3031:3000 open-photon:ci
+            -e ENABLE_DEBUG=1 -p 127.0.0.1:3031:3000 open-photon:ci
+          # The first request opens (and migrates) the database; then mint a code on the volume.
+          for attempt in $(seq 60); do curl -fsS -o /dev/null "$BASE_URL/healthz" && break; sleep 1; done
+          ACCESS_CODE=$(docker exec --user node open-photon-memory node scripts/mint-code.mjs ci 5)
+          echo "::add-mask::$ACCESS_CODE"
+          export ACCESS_CODE
           node scripts/verify-access.mjs
           node scripts/verify-upload-memory.mjs
       - name: Verify volume permissions and unprivileged application process

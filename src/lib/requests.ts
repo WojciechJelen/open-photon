@@ -11,20 +11,23 @@ const errorBodySchema = z.object({ error: z.string(), reason: z.string().optiona
 /** A refused request in words, with the API's `reason` code when it gave one. */
 export type Refusal = { message: string; reason?: string };
 
-/** The refusal an API error response carries: `{ error, reason? }`, or a status-based fallback. */
+/**
+ * The refusal an API error response carries: `{ error, reason? }`, or a status-based fallback. A
+ * 401 without a body of its own is `access_required`, which makes the UI ask for the code.
+ */
 function refusal(status: number, body: Body): Refusal {
-  if (status === 401) {
-    return { message: "Your access session has expired. Reload the page and enter the code." };
-  }
-
   if (status === 413) {
     return { message: "This file is over 128 MiB.", reason: "too_large" };
   }
 
   const parsed = errorBodySchema.safeParse(body);
 
-  return parsed.success
-    ? { message: parsed.data.error, reason: parsed.data.reason }
+  if (parsed.success) {
+    return { message: parsed.data.error, reason: parsed.data.reason };
+  }
+
+  return status === 401
+    ? { message: "Enter an access code to do this.", reason: "access_required" }
     : { message: `The request failed (${status}). Try again.` };
 }
 

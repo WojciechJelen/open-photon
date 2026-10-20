@@ -5,7 +5,7 @@ import { rerun, startChild } from "#/server/generate";
 export const Route = createFileRoute("/api/generations/$generationId/rerun")({
   server: {
     handlers: {
-      POST: ({ params }) => startChild(params.generationId, rerun),
+      POST: ({ request, params }) => startChild(request, params.generationId, rerun),
     },
   },
 });

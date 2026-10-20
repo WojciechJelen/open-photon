@@ -49,8 +49,6 @@ test("the share page opens without the code, its Open Graph tags in the server-r
 });
 
 test("everything else stays behind the access code", async ({ baseURL, playwright, request }) => {
-  test.skip(!process.env.APP_ACCESS_CODE, "the access gate is off without APP_ACCESS_CODE");
-
   // A character photo uploaded with a session: never public, even once its generation is shared.
   const uploaded = await request.post("/api/characters", {
     multipart: {
@@ -102,15 +100,16 @@ test("an anonymous visitor sees the result and the source, and the motion link s
 
   await page.getByRole("link", { name: "Use this motion with my character" }).click();
 
-  // Behind the access code: the code first, then `/` with the motion chosen.
-  const expected = `/?motion=${sourceAssetId}`;
-
-  await expect(page).toHaveURL((url) =>
-    process.env.APP_ACCESS_CODE
-      ? url.pathname === "/access" && url.searchParams.get("next") === expected
-      : url.pathname + url.search === expected,
+  // The picker is open without the code: `/` with the shared clip chosen, playable.
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/" && url.searchParams.get("motion") === sourceAssetId,
   );
 
+  const chosen = page.getByRole("group", { name: "Chosen motion" }).locator("video");
+
+  await expect
+    .poll(() => chosen.evaluate((element: HTMLVideoElement) => element.readyState))
+    .toBeGreaterThan(0);
   await context.close();
 });
 

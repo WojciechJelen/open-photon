@@ -3,12 +3,12 @@ import { expect, type Page, test } from "@playwright/test";
 import { generationSchema } from "../src/lib/contracts.ts";
 import { count, open, queuedGenerationId, seededResult } from "./e2e/session.ts";
 
-/** Records every server-function POST: `generate` is the only one, and it submits to Comfy. */
-function serverFunctionPosts(page: Page) {
+/** Records every `POST /api/generate`, the request that submits to Comfy. */
+function generatePosts(page: Page) {
   const posts: string[] = [];
 
   page.on("request", (sent) => {
-    if (sent.method() === "POST" && new URL(sent.url()).pathname.startsWith("/_serverFn/")) {
+    if (sent.method() === "POST" && new URL(sent.url()).pathname === "/api/generate") {
       posts.push(sent.url());
     }
   });
@@ -54,7 +54,7 @@ async function countStreams(page: Page) {
 const status = (page: Page) => page.getByRole("status", { name: "Generation status" });
 
 test("an invalid form shows why and never calls generate", async ({ page }) => {
-  const posts = serverFunctionPosts(page);
+  const posts = generatePosts(page);
   const generations = count("generations");
 
   await open(page, "/");
@@ -88,7 +88,7 @@ test("an invalid form shows why and never calls generate", async ({ page }) => {
 
   // A submit that slipped through would have fired by now.
   await page.waitForTimeout(1500);
-  expect(posts, "unexpected POST to the generate server function").toEqual([]);
+  expect(posts, "unexpected POST /api/generate").toEqual([]);
   expect(count("generations")).toBe(generations);
 });
 

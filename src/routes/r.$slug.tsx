@@ -12,8 +12,8 @@ const description =
   "The motion of one clip, performed by another character. Made with Open Photon on the Wan Animate 2 workflow.";
 
 // The public share page of a done generation. It is open without the access code
-// (`src/server/share.ts`), so social sites can read its Open Graph tags from the server-rendered
-// HTML: every URL in them is absolute (`PUBLIC_APP_URL`, else the request's origin).
+// (`src/server/public-access.ts`), so social sites can read its Open Graph tags from the
+// server-rendered HTML: every URL in them is absolute (`PUBLIC_APP_URL`, else the request's origin).
 export const Route = createFileRoute("/r/$slug")({
   loader: async ({ params }) => {
     const share = await loadShare({ data: params.slug });
@@ -98,9 +98,9 @@ function SharePage() {
       </div>
 
       <div>
-        {/* A whole page load: `/` is behind the access code, which a visitor may still have to enter. */}
+        {/* `/` is open without the code too, and the source clip is public: the visitor picks a character there. */}
         <Button asChild>
-          <Link reloadDocument search={{ motion: source.id }} to="/">
+          <Link search={{ motion: source.id }} to="/">
             Use this motion with my character
           </Link>
         </Button>

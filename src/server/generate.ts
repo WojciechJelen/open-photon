@@ -5,10 +5,12 @@ import { z } from "zod";
 
 import {
   assetSchema,
-  type generateInputSchema,
+  generateInputSchema,
   generationSchema,
   MAX_CLIP_MS,
 } from "../lib/contracts.ts";
+import { findAccessCodeById } from "./access-codes.ts";
+import { readLimitedBody, readSession, type Session } from "./access.server.ts";
 import { loadAngles } from "./angles.ts";
 import { findAsset, findBySha256, type StoredAsset } from "./assets.ts";
 import { findCharacter } from "./characters.server.ts";
@@ -30,12 +32,17 @@ import { type Recipe, recipeHash } from "./recipe.ts";
 import { buildGraph } from "./workflows/build-graph.ts";
 import { type LoadedWorkflow, loadWorkflow } from "./workflows/registry.ts";
 
-/** A request that cannot become a generation; `status` is the HTTP status that says why. */
+/**
+ * A request that cannot become a generation: `status` is the HTTP status that says why, `reason`
+ * a code the UI acts on (`access_required` asks for the access code).
+ */
 export class GenerateError extends Error {
-  status: 404 | 409 | 422;
-  constructor(status: 404 | 409 | 422, message: string) {
+  status: 401 | 403 | 404 | 409 | 422;
+  reason: string | undefined;
+  constructor(status: 401 | 403 | 404 | 409 | 422, message: string, reason?: string) {
     super(message);
     this.status = status;
+    this.reason = reason;
   }
 }
 
@@ -105,18 +112,26 @@ async function send(row: Generation, workflow: LoadedWorkflow, files: Files, pro
  * both files go to Comfy, the graph is submitted under that key, and the job id is saved the
  * moment it returns. A `preparing` row a stopped server left behind is settled first: one that
  * never reached Comfy fails and is not reused; one that may have is `unknown` and is.
+ *
+ * A new row needs a session whose access code has generations left; the row records the code,
+ * which counts it (`006-access-codes.sql`). Without a session, only an existing generation that
+ * `free` allows comes back; anything else is a 401 asking for the code.
  */
 async function submitRecipe(
   {
     characterId,
     files,
+    free,
     parentId,
     recipe,
+    session,
   }: {
     characterId: string | null;
     files: Files;
+    free: (existing: Generation) => boolean;
     parentId?: string;
     recipe: Recipe;
+    session: Session | null;
   },
   workflow: LoadedWorkflow,
   provider: Provider,
@@ -129,11 +144,31 @@ async function submitRecipe(
     existing = findPending(hash);
   }
 
-  if (existing) {
+  if (existing && (session || free(existing))) {
     return { id: existing.id, reused: true };
   }
 
-  const row = createGeneration({ characterId: characterId ?? undefined, parentId, recipe });
+  const code = session ? findAccessCodeById(session.codeId) : null;
+
+  if (!code) {
+    throw new GenerateError(401, "Enter an access code to do this.", "access_required");
+  }
+
+  if (code.used >= code.max_generations) {
+    throw new GenerateError(
+      403,
+      `This access code has used all ${code.max_generations} of its generations. Ask the owner for another code.`,
+      "code_exhausted",
+    );
+  }
+
+  const row = createGeneration({
+    accessCodeId: code.id,
+    characterId: characterId ?? undefined,
+    parentId,
+    recipe,
+  });
+
   submitting.add(row.id);
 
   try {
@@ -145,9 +180,14 @@ async function submitRecipe(
   return { id: row.id, reused: false };
 }
 
-/** The `generate` server function: the input contract is `generateInputSchema`. */
+/**
+ * `POST /api/generate` (`handleGenerate`): the input contract is `generateInputSchema`. Without
+ * a session (`session` is `null`) it answers only with a done pre-rendered sample generation of
+ * the same recipe, the free sample × sample lookup.
+ */
 export async function generate(
   input: z.output<typeof generateInputSchema>,
+  session: Session | null,
   provider: Provider = comfyProvider,
 ) {
   const motion = findAsset(input.motion_asset_id);
@@ -200,6 +240,7 @@ export async function generate(
     {
       characterId: character.id,
       files: { drivingVideo: motion, referenceImage: image },
+      free: (existing) => existing.status === "done" && existing.is_prerendered,
       recipe: {
         angle: angle?.id,
         inputs: { driving_video_sha256: motion.sha256, reference_image_sha256: image.sha256 },
@@ -215,6 +256,7 @@ export async function generate(
         target: providerTarget(),
         workflow: { id: "motion-transfer", sha256: workflow.sha256, version: 1 },
       },
+      session,
     },
     workflow,
     provider,
@@ -226,7 +268,11 @@ export async function generate(
  * same recipe except a fresh seed, submitted like any generation. An `unknown` generation is
  * never retried: Comfy may still be rendering it (409).
  */
-export async function retry(id: string, provider: Provider = comfyProvider) {
+export async function retry(
+  id: string,
+  session: Session | null,
+  provider: Provider = comfyProvider,
+) {
   const parent = findGeneration(id);
 
   if (!parent) {
@@ -256,6 +302,7 @@ export async function retry(id: string, provider: Provider = comfyProvider) {
   return submitChild(
     parent,
     { ...parent.recipe, params: { ...parent.recipe.params, seed } },
+    { free: () => false, session },
     provider,
   );
 }
@@ -264,22 +311,39 @@ export async function retry(id: string, provider: Provider = comfyProvider) {
  * `POST /api/generations/:id/rerun`: the generation's recipe again, seed included, on the target
  * this server renders on now. It goes through the same reuse as `generate`: with the target
  * unchanged the recipe hash is the parent's, so a done parent (or any done generation of that
- * recipe) is returned as it is (`reused`, no row, nothing submitted) and one still on its way is
- * followed; otherwise — a failed parent, or another target — a child (`parent_id` = `id`) with the
- * same seed is submitted, which costs a render.
+ * recipe) is returned as it is (`reused`, no row, nothing submitted, free: no session needed) and
+ * one still on its way is followed; otherwise — a failed parent, or another target — a child
+ * (`parent_id` = `id`) with the same seed is submitted, which costs a render.
  */
-export async function rerun(id: string, provider: Provider = comfyProvider) {
+export async function rerun(
+  id: string,
+  session: Session | null,
+  provider: Provider = comfyProvider,
+) {
   const parent = findGeneration(id);
 
   if (!parent) {
     throw new GenerateError(404, "Generation not found.");
   }
 
-  return submitChild(parent, { ...parent.recipe, target: providerTarget() }, provider);
+  return submitChild(
+    parent,
+    { ...parent.recipe, target: providerTarget() },
+    { free: (existing) => existing.status === "done", session },
+    provider,
+  );
 }
 
-/** Submits `recipe` (the parent's, changed by a retry or re-run) as a child of `parent`. */
-async function submitChild(parent: Generation, recipe: Recipe, provider: Provider) {
+/**
+ * Submits `recipe` (the parent's, changed by a retry or re-run) as a child of `parent`; `access`
+ * as in `submitRecipe`.
+ */
+async function submitChild(
+  parent: Generation,
+  recipe: Recipe,
+  access: { free: (existing: Generation) => boolean; session: Session | null },
+  provider: Provider,
+) {
   const workflow = await loadWorkflow("motion-transfer", 1);
 
   if (
@@ -301,8 +365,10 @@ async function submitChild(parent: Generation, recipe: Recipe, provider: Provide
     {
       characterId: parent.character_id,
       files: { drivingVideo, referenceImage },
+      free: access.free,
       parentId: parent.id,
       recipe,
+      session: access.session,
     },
     workflow,
     provider,
@@ -385,6 +451,7 @@ export function readResult(id: string) {
 
   return {
     generation: generationSchema.parse(row),
+    prerendered: row.is_prerendered,
     recipe: row.recipe,
     rerunOfParent: parent?.recipe.params.seed === row.recipe.params.seed,
     source: assetSchema.parse(source),
@@ -392,31 +459,60 @@ export function readResult(id: string) {
 }
 
 /**
- * The answer of `POST /api/generations/:id/retry` and `…/rerun`: 201 `{ id, reused: false }` for a
- * submitted child, 200 with `reused: true` for a generation returned instead, the
- * `GenerateError`'s status for a refusal, 400 for a malformed id.
+ * The answer to a request that starts a generation: 201 `{ id, reused: false }` for a submitted
+ * one, 200 with `reused: true` for an existing one returned instead, or the `GenerateError`'s
+ * status with `{ error, reason? }`.
  */
-export async function startChild(
-  value: string,
-  start: (id: string) => Promise<{ id: string; reused: boolean }>,
-) {
-  const id = generationIdParam(value);
-
-  if (id instanceof Response) {
-    return id;
-  }
-
+async function answer(start: () => Promise<{ id: string; reused: boolean }>) {
   try {
-    const result = await start(id);
+    const result = await start();
 
     return Response.json(result, { status: result.reused ? 200 : 201 });
   } catch (error) {
     if (error instanceof GenerateError) {
-      return Response.json({ error: error.message }, { status: error.status });
+      return Response.json(
+        { error: error.message, reason: error.reason },
+        { status: error.status },
+      );
     }
 
     throw error;
   }
+}
+
+/**
+ * `POST /api/generate` with a JSON `generateInputSchema` body: `generate`, answered by `answer`;
+ * 400 for a body that is too large, not JSON, or not the schema.
+ */
+export async function handleGenerate(request: Request, provider: Provider = comfyProvider) {
+  const body = await readLimitedBody(request, 16_384);
+
+  const input = generateInputSchema.safeParse(
+    await new Response(body ?? "").json().catch(() => null),
+  );
+
+  if (!input.success) {
+    return Response.json(
+      { error: z.prettifyError(input.error), reason: "invalid_input" },
+      { status: 400 },
+    );
+  }
+
+  return answer(() => generate(input.data, readSession(request), provider));
+}
+
+/**
+ * `POST /api/generations/:id/retry` and `…/rerun`: `start` (`retry` or `rerun`) for the request's
+ * session, answered by `answer`; 400 for a malformed id.
+ */
+export function startChild(
+  request: Request,
+  value: string,
+  start: (id: string, session: Session | null) => Promise<{ id: string; reused: boolean }>,
+) {
+  const id = generationIdParam(value);
+
+  return id instanceof Response ? id : answer(() => start(id, readSession(request)));
 }
 
 /** A route's `:generationId` as a UUID, or the 400 response for a malformed one. */

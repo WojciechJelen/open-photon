@@ -65,12 +65,17 @@ function parseRow(row: Record<string, SQLOutputValue> | undefined) {
   return row === undefined ? null : generationRowSchema.parse(row);
 }
 
-/** Inserts a `preparing` row whose idempotency key exists before anything reaches the provider. */
+/**
+ * Inserts a `preparing` row whose idempotency key exists before anything reaches the provider,
+ * with the access code that asked for it (which counts it, `006-access-codes.sql`).
+ */
 export function createGeneration({
+  accessCodeId,
   characterId,
   parentId,
   recipe,
 }: {
+  accessCodeId?: string;
   characterId?: string;
   parentId?: string;
   recipe: Recipe;
@@ -78,8 +83,8 @@ export function createGeneration({
   const row = database
     .prepare(
       `INSERT INTO generations (id, parent_id, kind, character_id, workflow_id, workflow_version,
-        recipe, recipe_hash, idempotency_key, target, status, created_at)
-      VALUES (?, ?, 'render', ?, ?, ?, ?, ?, ?, ?, 'preparing', ?)
+        recipe, recipe_hash, idempotency_key, target, status, access_code_id, created_at)
+      VALUES (?, ?, 'render', ?, ?, ?, ?, ?, ?, ?, 'preparing', ?, ?)
       RETURNING *`,
     )
     .get(
@@ -92,6 +97,7 @@ export function createGeneration({
       recipeHash(recipe),
       randomUUID(),
       recipe.target,
+      accessCodeId ?? null,
       new Date().toISOString(),
     );
 

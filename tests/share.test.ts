@@ -10,7 +10,8 @@ import {
   markQueued,
   transition,
 } from "../src/server/generations.ts";
-import { isPublicPath, readShare } from "../src/server/share.ts";
+import { isPublicRequest } from "../src/server/public-access.ts";
+import { readShare } from "../src/server/share.ts";
 import { loadWorkflow, workflowModelFiles } from "../src/server/workflows/registry.ts";
 
 const workflow = await loadWorkflow("motion-transfer", 1);
@@ -93,22 +94,22 @@ test("only the result, poster and source clip of a shared generation open withou
   queued(otherSource, 3);
 
   for (const asset of [otherSource, characterImage]) {
-    assert.equal(isPublicPath(`/media/${asset.id}.mp4`), false);
+    assert.equal(isPublicRequest("GET", `/media/${asset.id}.mp4`), false);
   }
 
   done(4);
 
-  assert.equal(isPublicPath("/r/anything"), true);
-  assert.equal(isPublicPath(`/media/${result.id}.mp4`), true);
-  assert.equal(isPublicPath(`/media/${poster.id}.jpg`), true);
-  assert.equal(isPublicPath(`/media/${source.id}.mp4`), true);
+  assert.equal(isPublicRequest("GET", "/r/anything"), true);
+  assert.equal(isPublicRequest("GET", `/media/${result.id}.mp4`), true);
+  assert.equal(isPublicRequest("GET", `/media/${poster.id}.jpg`), true);
+  assert.equal(isPublicRequest("GET", `/media/${source.id}.mp4`), true);
 
   // The character photo, a clip only an unfinished generation uses, unknown ids, other routes.
-  assert.equal(isPublicPath(`/media/${characterImage.id}.png`), false);
-  assert.equal(isPublicPath(`/media/${otherSource.id}.mp4`), false);
-  assert.equal(isPublicPath(`/media/${crypto.randomUUID()}.mp4`), false);
-  assert.equal(isPublicPath("/r/a/b"), false);
-  assert.equal(isPublicPath(`/api/generations/${crypto.randomUUID()}`), false);
+  assert.equal(isPublicRequest("GET", `/media/${characterImage.id}.png`), false);
+  assert.equal(isPublicRequest("GET", `/media/${otherSource.id}.mp4`), false);
+  assert.equal(isPublicRequest("GET", `/media/${crypto.randomUUID()}.mp4`), false);
+  assert.equal(isPublicRequest("GET", "/r/a/b"), false);
+  assert.equal(isPublicRequest("GET", `/api/generations/${crypto.randomUUID()}`), false);
 });
 
 test("a share page reads its done generation with absolute media URLs; any other slug is null", async () => {

@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 import { findAsset } from "./assets.ts";
 import { assetsDirectory } from "./paths.ts";
-import { isSharedAsset } from "./share.ts";
+import { isPublicAsset } from "./public-access.ts";
 
 /**
  * A `Range` header against a file of `size` bytes, one range only: the inclusive span to send,
@@ -46,8 +46,9 @@ export function byteRange(header: string, size: number) {
  * `GET`/`HEAD /media/<asset id>.<ext>`: a stored asset's file, found by its id in the `assets`
  * table (the request never names a path), with single byte ranges. Assets never change, so the
  * answer is cacheable for a year (`immutable`) and its `ETag` is the file's SHA-256; a matching
- * `If-None-Match` gets 304. Only what a share page shows may sit in shared caches (`public`);
- * everything else is behind the access code (`private`). `?download=1` asks the browser to save
+ * `If-None-Match` gets 304. Only what anyone may see (samples and what a share page shows,
+ * `isPublicAsset`) may sit in shared caches (`public`); everything else is behind the access code
+ * (`private`). `?download=1` asks the browser to save
  * it, as `open-photon-<first 8 of the id>.<ext>`.
  */
 export async function serveMedia(request: Request, filename: string) {
@@ -70,7 +71,7 @@ export async function serveMedia(request: Request, filename: string) {
 
   const headers = new Headers({
     "Accept-Ranges": "bytes",
-    "Cache-Control": `${isSharedAsset(asset.id) ? "public" : "private"}, max-age=31536000, immutable`,
+    "Cache-Control": `${isPublicAsset(asset.id) ? "public" : "private"}, max-age=31536000, immutable`,
     ETag: etag,
     "Last-Modified": lastModified,
   });

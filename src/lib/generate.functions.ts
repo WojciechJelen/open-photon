@@ -1,30 +1,29 @@
+import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-
-import { generateInputSchema } from "#/lib/contracts";
 
 // The server modules are loaded on the server only: a static import would pull SQLite and the
 // SDK into the client bundle.
 
-/** Starts a generation, or returns the one with the same recipe; see `generateInputSchema`. */
-export const generate = createServerFn({ method: "POST" })
-  .validator(generateInputSchema)
-  .handler(async ({ data }) => {
-    const { generate: start } = await import("#/server/generate");
-
-    return start(data);
-  });
-
 /**
  * What `/g/:id` shows, and the origin its share link starts with; `null` for an id that names no
- * generation. See `readResult`.
+ * generation. See `readResult`. Server functions pass the access guard, so this checks access
+ * itself: a generation's page needs a session unless it is a pre-rendered sample; without one,
+ * the browser goes to the code form, which returns to the page.
  */
 export const loadResult = createServerFn({ method: "GET" })
   .validator(z.string())
   .handler(async ({ data }) => {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const { readSession } = await import("#/server/access.server");
+    const { accessUrl } = await import("#/server/access-page.server");
     const { readResult } = await import("#/server/generate");
     const { publicOrigin } = await import("#/server/share");
     const result = readResult(data);
+
+    if (result && !result.prerendered && !readSession(getRequest())) {
+      throw redirect({ href: accessUrl(`/g/${result.generation.id}`), reloadDocument: true });
+    }
 
     return result && { ...result, origin: publicOrigin() };
   });

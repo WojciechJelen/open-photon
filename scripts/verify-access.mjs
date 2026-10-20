@@ -6,9 +6,7 @@ import { accessCookie } from "./access-session.mjs";
 
 const base = process.env.BASE_URL;
 
-assert.ok(base, "Set BASE_URL to the guarded deployment");
-
-assert.ok(process.env.APP_ACCESS_CODE, "Set APP_ACCESS_CODE for authenticated checks");
+assert.ok(base, "Set BASE_URL to the deployment");
 
 for (let attempt = 0; ; attempt++) {
   try {
@@ -32,7 +30,6 @@ for (const [path, method] of [
   ["/api/uploads", "POST"],
   ["/api/assets/anonymous-probe/trim", "POST"],
   ["/api/characters", "POST"],
-  ["/_serverFn/anonymous-probe", "POST"],
   [`/api/generations/${probe}`, "GET"],
   [`/api/generations/${probe}/events`, "GET"],
   [`/api/generations/${probe}/retry`, "POST"],
@@ -42,23 +39,31 @@ for (const [path, method] of [
   assert.equal(response.status, 401, `Anonymous ${method} ${path} must be blocked`);
 }
 
-const page = await fetch(`${base}/`, {
+// The picker is open without a code; a generation's page asks for it first.
+const picker = await fetch(`${base}/`, { headers: { Accept: "text/html" }, redirect: "manual" });
+
+assert.equal(picker.status, 200);
+
+assert.ok((await picker.text()).includes("Open Photon"));
+
+const page = await fetch(`${base}/g/${probe}`, {
   headers: { Accept: "text/html" },
   redirect: "manual",
 });
 
 assert.equal(page.status, 303);
 
-assert.equal(page.headers.get("Location"), "/access");
+assert.equal(page.headers.get("Location"), `/access?next=${encodeURIComponent(`/g/${probe}`)}`);
+
+const anonymousGenerate = await fetch(`${base}/api/generate`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ character_id: probe, motion_asset_id: probe }),
+});
+
+assert.equal(anonymousGenerate.status, 404, "An unknown motion is refused before anything else");
 
 const Cookie = await accessCookie(base);
-const allowed = await fetch(`${base}/`, { headers: { Cookie } });
-
-assert.equal(allowed.status, 200);
-
-assert.match(allowed.headers.get("Cache-Control"), /private, no-store/);
-
-assert.ok((await allowed.text()).includes("Open Photon"));
 
 const invalid = await fetch(`${base}/api/generations/not-a-uuid`, { headers: { Cookie } });
 
@@ -90,6 +95,12 @@ assert.equal(video.status, 206);
 
 assert.equal((await video.arrayBuffer()).byteLength, 100);
 
+assert.equal(
+  (await fetch(`${base}/media/${id}.mp4`)).status,
+  401,
+  "An upload stays private without a session",
+);
+
 console.log(
-  "Access verification passed: anonymous requests blocked, login, CSRF, validation and private video ranges work. No paid jobs submitted.",
+  "Access verification passed: the picker is open, actions and private media need a session, login, CSRF, validation and private video ranges work. No paid jobs submitted.",
 );
