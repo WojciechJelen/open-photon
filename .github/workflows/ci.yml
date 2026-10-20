@@ -56,6 +56,14 @@ jobs:
           export ACCESS_CODE
           node scripts/verify-access.mjs
           node scripts/verify-upload-memory.mjs
+      - name: Preserve upload memory samples
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: upload-memory
+          path: work/upload-memory.json
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Verify volume permissions and unprivileged application process
         run: |
           docker exec open-photon-memory sh -ec '

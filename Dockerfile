@@ -25,4 +25,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s \
   CMD curl --fail --silent --show-error --max-time 3 --output /dev/null http://127.0.0.1:3000/healthz
 ENTRYPOINT ["open-photon-entrypoint"]
-CMD ["node", ".output/server/index.mjs"]
+# Collect short-lived upload buffers before they exceed the native upload-memory budget.
+CMD ["node", "--max-semi-space-size=4", ".output/server/index.mjs"]

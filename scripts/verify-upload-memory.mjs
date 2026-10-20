@@ -154,6 +154,7 @@ const report = {
   ),
   imageId,
   imagePlatform: docker("image", "inspect", imageId, "--format", "{{.Os}}/{{.Architecture}}"),
+  nodeVersion: docker("exec", container, "node", "--version"),
   readiness: "Home page loaded, then one small multipart upload",
   runs: [],
   runtime: docker("exec", container, "uname", "-m"),
