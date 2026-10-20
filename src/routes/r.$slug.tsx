@@ -115,7 +115,7 @@ function SharePage() {
         {models ? (
           <ul className="flex flex-col gap-1 text-sm">
             {models.map(({ file, license }) => (
-              <li key={file}>
+              <li className="break-all" key={file}>
                 <code>{file}</code> · {license ?? "license not recorded yet"}
               </li>
             ))}
