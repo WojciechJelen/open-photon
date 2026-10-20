@@ -4,6 +4,7 @@
 import { existsSync } from "node:fs";
 import { copyFile, stat } from "node:fs/promises";
 
+import { providerTarget } from "../../src/server/comfy.ts";
 import { probe } from "../../src/server/media/probe.ts";
 import { loadWorkflow } from "../../src/server/workflows/registry.ts";
 import { QUEUED_JOB_ID, SEEDED_JOB_ID } from "./session.ts";
@@ -79,7 +80,10 @@ const poster = await storeFixture("tests/fixtures/result-poster.jpg", {
 
 const workflow = await loadWorkflow("motion-transfer", 1);
 
-/** A generation of the sample motion and first character, as `generate` records one. */
+/**
+ * A generation of the sample motion and first character, as `generate` records one, on the target
+ * the server renders on (its `COMFY_BASE_URL`), so re-running its recipe finds it.
+ */
 const seedGeneration = (seed: number, providerJobId: string) => {
   const { id } = createGeneration({
     characterId: character.id,
@@ -87,7 +91,7 @@ const seedGeneration = (seed: number, providerJobId: string) => {
       inputs: { driving_video_sha256: clip.sha256, reference_image_sha256: character.image.sha256 },
       models: [],
       params: { fragment_length: 81, height: 848, prompt: "e2e seeded result", seed, width: 480 },
-      target: "cloud",
+      target: providerTarget(),
       workflow: { id: "motion-transfer", sha256: workflow.sha256, version: 1 },
     },
   });

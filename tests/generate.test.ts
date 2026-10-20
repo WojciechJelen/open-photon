@@ -7,14 +7,16 @@ import test from "node:test";
 import { ComfyError, IdempotencyKeyReuse, InvalidWorkflow } from "@comfyorg/sdk";
 import { z } from "zod";
 
-import type { Provider } from "../src/server/comfy.ts";
+import { type Provider, providerTarget } from "../src/server/comfy.ts";
 import { database } from "../src/server/db.server.ts";
-import { GenerateError, generate, readGeneration, retry } from "../src/server/generate.ts";
+import { GenerateError, generate, readGeneration, rerun, retry } from "../src/server/generate.ts";
 import {
   createGeneration,
   findGeneration,
   findPending,
+  markQueued,
   recordProviderInputs,
+  transition,
 } from "../src/server/generations.ts";
 import type { Recipe } from "../src/server/recipe.ts";
 import { uploadVideo } from "../src/server/videos.server.ts";
@@ -291,4 +293,75 @@ test("an angle appends its phrasing to the prompt and is part of the recipe; an 
 
   await assert.rejects(generate({ ...input(), angle: "upside-down" }, double), { status: 422 });
   assert.equal(submits.length, 2);
+});
+
+/** A generation of fresh inputs taken to `done` (its output stands in; nothing is downloaded). */
+async function doneGeneration(double: Provider) {
+  const { id } = await generate(input(), double);
+
+  transition(id, "queued", "finalizing");
+
+  return transition(id, "finalizing", "done");
+}
+
+test("rerun of a failed generation submits a child with the same recipe_hash and the same seed", async () => {
+  const failing = provider(() =>
+    Promise.reject(new InvalidWorkflow("Rejected", { code: "invalid_workflow", httpStatus: 400 })),
+  );
+
+  const parent = findGeneration((await generate(input(), failing.double)).id);
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+
+  assert.ok(parent);
+
+  const child = await rerun(parent.id, double);
+  const row = findGeneration(child.id);
+
+  assert.equal(child.reused, false);
+  assert.equal(submits.length, 1);
+  assert.equal(row?.parent_id, parent.id);
+  assert.equal(row?.status, "queued");
+  assert.equal(row?.recipe_hash, parent.recipe_hash);
+  assert.equal(row?.recipe.params.seed, parent.recipe.params.seed);
+});
+
+test("rerun of a done generation returns the parent's output: no child, no submit", async () => {
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+  const parent = await doneGeneration(double);
+  const rows = database.prepare("SELECT count(*) AS n FROM generations").get()?.n;
+
+  assert.deepEqual(await rerun(parent.id, double), { id: parent.id, reused: true });
+  assert.equal(submits.length, 1);
+  assert.equal(database.prepare("SELECT count(*) AS n FROM generations").get()?.n, rows);
+});
+
+test("rerun of a done generation made on another target renders a child with the same seed here", async () => {
+  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
+  const here = findGeneration((await generate(input(), double)).id);
+
+  assert.ok(here);
+
+  // A done generation of a recipe this target has not rendered: another seed, the other target.
+  const parent = createGeneration({
+    characterId: here.character_id ?? undefined,
+    recipe: {
+      ...here.recipe,
+      params: { ...here.recipe.params, seed: here.recipe.params.seed + 1_000_000 },
+      target: providerTarget() === "cloud" ? "selfhost" : "cloud",
+    },
+  });
+
+  markQueued(parent.id, `job-${parent.id}`);
+  transition(parent.id, "queued", "finalizing");
+  transition(parent.id, "finalizing", "done");
+
+  const child = await rerun(parent.id, double);
+  const row = findGeneration(child.id);
+
+  assert.equal(child.reused, false);
+  assert.equal(submits.length, 2);
+  assert.equal(row?.parent_id, parent.id);
+  assert.equal(row?.recipe.target, providerTarget());
+  assert.equal(row?.recipe.params.seed, parent.recipe.params.seed);
+  assert.notEqual(row?.recipe_hash, parent.recipe_hash);
 });

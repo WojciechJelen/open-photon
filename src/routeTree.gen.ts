@@ -19,6 +19,8 @@ import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
 import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
 import { Route as ApiAssetsAssetIdTrimRouteImport } from './routes/api.assets.$assetId.trim'
 import { Route as ApiGenerationsGenerationIdEventsRouteImport } from './routes/api.generations.$generationId.events'
+import { Route as ApiGenerationsGenerationIdRecipeDotjsonRouteImport } from './routes/api.generations.$generationId.recipe[.]json'
+import { Route as ApiGenerationsGenerationIdRerunRouteImport } from './routes/api.generations.$generationId.rerun'
 import { Route as ApiGenerationsGenerationIdRetryRouteImport } from './routes/api.generations.$generationId.retry'
 
 const IndexRoute = IndexRouteImport.update({
@@ -73,6 +75,18 @@ const ApiGenerationsGenerationIdEventsRoute =
     path: '/events',
     getParentRoute: () => ApiGenerationsGenerationIdRoute,
   } as any)
+const ApiGenerationsGenerationIdRecipeDotjsonRoute =
+  ApiGenerationsGenerationIdRecipeDotjsonRouteImport.update({
+    id: '/recipe.json',
+    path: '/recipe.json',
+    getParentRoute: () => ApiGenerationsGenerationIdRoute,
+  } as any)
+const ApiGenerationsGenerationIdRerunRoute =
+  ApiGenerationsGenerationIdRerunRouteImport.update({
+    id: '/rerun',
+    path: '/rerun',
+    getParentRoute: () => ApiGenerationsGenerationIdRoute,
+  } as any)
 const ApiGenerationsGenerationIdRetryRoute =
   ApiGenerationsGenerationIdRetryRouteImport.update({
     id: '/retry',
@@ -91,6 +105,8 @@ export interface FileRoutesByFullPath {
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
+  '/api/generations/$generationId/recipe.json': typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
+  '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
 }
 export interface FileRoutesByTo {
@@ -104,6 +120,8 @@ export interface FileRoutesByTo {
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
+  '/api/generations/$generationId/recipe.json': typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
+  '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
 }
 export interface FileRoutesById {
@@ -118,6 +136,8 @@ export interface FileRoutesById {
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
+  '/api/generations/$generationId/recipe.json': typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
+  '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
 }
 export interface FileRouteTypes {
@@ -133,6 +153,8 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
     | '/api/generations/$generationId/events'
+    | '/api/generations/$generationId/recipe.json'
+    | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -146,6 +168,8 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
     | '/api/generations/$generationId/events'
+    | '/api/generations/$generationId/recipe.json'
+    | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
   id:
     | '__root__'
@@ -159,6 +183,8 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
     | '/api/generations/$generationId/events'
+    | '/api/generations/$generationId/recipe.json'
+    | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
   fileRoutesById: FileRoutesById
 }
@@ -246,6 +272,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerationsGenerationIdEventsRouteImport
       parentRoute: typeof ApiGenerationsGenerationIdRoute
     }
+    '/api/generations/$generationId/recipe.json': {
+      id: '/api/generations/$generationId/recipe.json'
+      path: '/recipe.json'
+      fullPath: '/api/generations/$generationId/recipe.json'
+      preLoaderRoute: typeof ApiGenerationsGenerationIdRecipeDotjsonRouteImport
+      parentRoute: typeof ApiGenerationsGenerationIdRoute
+    }
+    '/api/generations/$generationId/rerun': {
+      id: '/api/generations/$generationId/rerun'
+      path: '/rerun'
+      fullPath: '/api/generations/$generationId/rerun'
+      preLoaderRoute: typeof ApiGenerationsGenerationIdRerunRouteImport
+      parentRoute: typeof ApiGenerationsGenerationIdRoute
+    }
     '/api/generations/$generationId/retry': {
       id: '/api/generations/$generationId/retry'
       path: '/retry'
@@ -258,6 +298,8 @@ declare module '@tanstack/react-router' {
 
 interface ApiGenerationsGenerationIdRouteChildren {
   ApiGenerationsGenerationIdEventsRoute: typeof ApiGenerationsGenerationIdEventsRoute
+  ApiGenerationsGenerationIdRecipeDotjsonRoute: typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
+  ApiGenerationsGenerationIdRerunRoute: typeof ApiGenerationsGenerationIdRerunRoute
   ApiGenerationsGenerationIdRetryRoute: typeof ApiGenerationsGenerationIdRetryRoute
 }
 
@@ -265,6 +307,9 @@ const ApiGenerationsGenerationIdRouteChildren: ApiGenerationsGenerationIdRouteCh
   {
     ApiGenerationsGenerationIdEventsRoute:
       ApiGenerationsGenerationIdEventsRoute,
+    ApiGenerationsGenerationIdRecipeDotjsonRoute:
+      ApiGenerationsGenerationIdRecipeDotjsonRoute,
+    ApiGenerationsGenerationIdRerunRoute: ApiGenerationsGenerationIdRerunRoute,
     ApiGenerationsGenerationIdRetryRoute: ApiGenerationsGenerationIdRetryRoute,
   }
 

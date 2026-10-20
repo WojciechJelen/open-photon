@@ -247,8 +247,40 @@ export async function retry(id: string, provider: Provider = comfyProvider) {
     );
   }
 
+  let seed = randomInt(SEED_RANGE);
+
+  while (seed === parent.recipe.params.seed) {
+    seed = randomInt(SEED_RANGE);
+  }
+
+  return submitChild(
+    parent,
+    { ...parent.recipe, params: { ...parent.recipe.params, seed } },
+    provider,
+  );
+}
+
+/**
+ * `POST /api/generations/:id/rerun`: the generation's recipe again, seed included, on the target
+ * this server renders on now. It goes through the same reuse as `generate`: with the target
+ * unchanged the recipe hash is the parent's, so a done parent (or any done generation of that
+ * recipe) is returned as it is (`reused`, no row, nothing submitted) and one still on its way is
+ * followed; otherwise — a failed parent, or another target — a child (`parent_id` = `id`) with the
+ * same seed is submitted, which costs a render.
+ */
+export async function rerun(id: string, provider: Provider = comfyProvider) {
+  const parent = findGeneration(id);
+
+  if (!parent) {
+    throw new GenerateError(404, "Generation not found.");
+  }
+
+  return submitChild(parent, { ...parent.recipe, target: providerTarget() }, provider);
+}
+
+/** Submits `recipe` (the parent's, changed by a retry or re-run) as a child of `parent`. */
+async function submitChild(parent: Generation, recipe: Recipe, provider: Provider) {
   const workflow = await loadWorkflow("motion-transfer", 1);
-  const { recipe } = parent;
 
   if (
     recipe.workflow.id !== "motion-transfer" ||
@@ -262,13 +294,7 @@ export async function retry(id: string, provider: Provider = comfyProvider) {
   const referenceImage = findBySha256(recipe.inputs.reference_image_sha256);
 
   if (!drivingVideo || !referenceImage) {
-    throw new Error(`Generation ${id} names input files that are not stored`);
-  }
-
-  let seed = randomInt(SEED_RANGE);
-
-  while (seed === recipe.params.seed) {
-    seed = randomInt(SEED_RANGE);
+    throw new Error(`Generation ${parent.id} names input files that are not stored`);
   }
 
   return submitRecipe(
@@ -276,7 +302,7 @@ export async function retry(id: string, provider: Provider = comfyProvider) {
       characterId: parent.character_id,
       files: { drivingVideo, referenceImage },
       parentId: parent.id,
-      recipe: { ...recipe, params: { ...recipe.params, seed } },
+      recipe,
     },
     workflow,
     provider,
@@ -333,8 +359,9 @@ export async function readGeneration(id: string, provider: Provider = comfyProvi
 }
 
 /**
- * What `/g/:id` shows: the generation as `GET /api/generations/:id` reads it and the motion clip
- * it was made from (`source`, the asset `?motion=` names on `/`), or `null` for a malformed or
+ * What `/g/:id` shows: the generation as `GET /api/generations/:id` reads it, its recipe, the
+ * motion clip it was made from (`source`, the asset `?motion=` names on `/`) and, for a child,
+ * whether it kept its parent's seed (a re-run) or not (a retry); `null` for a malformed or
  * unknown id (the page is then a 404).
  */
 export async function readResult(id: string) {
@@ -352,7 +379,42 @@ export async function readResult(id: string) {
     throw new Error(`Generation ${row.id} has no stored motion clip`);
   }
 
-  return { generation, source: assetSchema.parse(source) };
+  const parent = row.parent_id ? findGeneration(row.parent_id) : null;
+
+  return {
+    generation,
+    recipe: row.recipe,
+    rerunOfParent: parent?.recipe.params.seed === row.recipe.params.seed,
+    source: assetSchema.parse(source),
+  };
+}
+
+/**
+ * The answer of `POST /api/generations/:id/retry` and `…/rerun`: 201 `{ id, reused: false }` for a
+ * submitted child, 200 with `reused: true` for a generation returned instead, the
+ * `GenerateError`'s status for a refusal, 400 for a malformed id.
+ */
+export async function startChild(
+  value: string,
+  start: (id: string) => Promise<{ id: string; reused: boolean }>,
+) {
+  const id = generationIdParam(value);
+
+  if (id instanceof Response) {
+    return id;
+  }
+
+  try {
+    const result = await start(id);
+
+    return Response.json(result, { status: result.reused ? 200 : 201 });
+  } catch (error) {
+    if (error instanceof GenerateError) {
+      return Response.json({ error: error.message }, { status: error.status });
+    }
+
+    throw error;
+  }
 }
 
 /** A route's `:generationId` as a UUID, or the 400 response for a malformed one. */

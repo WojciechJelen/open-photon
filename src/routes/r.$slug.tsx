@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
 import { LoopingVideo } from "#/components/looping-video";
+import { RecipePanel } from "#/components/recipe-panel";
 import { Button } from "#/components/ui/button";
 import { loadShare } from "#/lib/generate.functions";
 import { mediaUrl } from "#/lib/media";
@@ -70,7 +71,7 @@ export const Route = createFileRoute("/r/$slug")({
 });
 
 function SharePage() {
-  const { final, models, poster, source } = Route.useLoaderData();
+  const { final, models, poster, recipe, source } = Route.useLoaderData();
   const portrait = (final.height ?? 0) >= (final.width ?? 0);
 
   return (
@@ -104,6 +105,8 @@ function SharePage() {
           </Link>
         </Button>
       </div>
+
+      <RecipePanel recipe={recipe} />
 
       <section aria-labelledby="models-heading" className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold" id="models-heading">

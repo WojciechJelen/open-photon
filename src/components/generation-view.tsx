@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 
 import { ComparePlayer } from "#/components/compare-player";
+import { RecipePanel } from "#/components/recipe-panel";
 import { ShareLink } from "#/components/share-link";
 import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
@@ -10,6 +11,7 @@ import { type Asset, generationEventSchema, type GenerationSnapshot } from "#/li
 import { mediaUrl } from "#/lib/media";
 import { callApi } from "#/lib/requests";
 import { useRequestSignal } from "#/lib/use-request-signal";
+import type { Recipe } from "#/server/recipe";
 
 const finished = new Set(["done", "failed", "unknown"]);
 
@@ -55,16 +57,27 @@ function useLiveGeneration(initial: GenerationSnapshot) {
 export function GenerationView({
   initial,
   origin,
+  recipe,
+  rerunOfParent,
   source,
 }: {
   initial: GenerationSnapshot;
   origin: string;
+  recipe: Recipe;
+  /** A child that kept its parent's seed: a re-run of its recipe, not a retry. */
+  rerunOfParent: boolean;
   source: Asset;
 }) {
   const { generation, providerUnavailable } = useLiveGeneration(initial);
   const navigate = useNavigate();
-  const [retrying, setRetrying] = useState(false);
-  const [retryError, setRetryError] = useState<string | null>(null);
+
+  // Retry (a new seed) and Re-run recipe (the same one), one at a time: what the last one did.
+  const [child, setChild] = useState<
+    | { state: "idle" | "reused" }
+    | { action: "retry" | "rerun"; state: "running" }
+    | { action: "retry" | "rerun"; message: string; state: "refused" }
+  >({ state: "idle" });
+
   const nextSignal = useRequestSignal();
   const percent = generation.progress ?? 0;
   const running = !finished.has(generation.status);
@@ -74,17 +87,21 @@ export function GenerationView({
       ? mediaUrl({ id: generation.final_asset_id, mime: "video/mp4" })
       : null;
 
-  async function retry() {
-    // Not passed to the request: a retry that reached the server finishes there. Leaving the page
-    // only drops the navigation to the child.
+  /**
+   * `POST /api/generations/:id/retry` or `…/rerun`, then opens the generation it answers with. A
+   * re-run of a done generation answers with this one (same recipe, same result, nothing
+   * rendered), so the page says so instead.
+   */
+  async function startChild(action: "retry" | "rerun") {
+    // Not passed to the request: a request that reached the server finishes there. Leaving the
+    // page only drops the navigation to the child.
     const signal = nextSignal();
 
-    setRetrying(true);
-    setRetryError(null);
+    setChild({ action, state: "running" });
 
-    const result = await callApi(
+    const answer = await callApi(
       z.object({ id: z.uuid() }),
-      `/api/generations/${generation.id}/retry`,
+      `/api/generations/${generation.id}/${action}`,
       { method: "POST" },
     );
 
@@ -92,11 +109,12 @@ export function GenerationView({
       return;
     }
 
-    if ("refusal" in result) {
-      setRetryError(result.refusal.message);
-      setRetrying(false);
+    if ("refusal" in answer) {
+      setChild({ action, message: answer.refusal.message, state: "refused" });
+    } else if (answer.data.id === generation.id) {
+      setChild({ state: "reused" });
     } else {
-      await navigate({ params: { generationId: result.data.id }, to: "/g/$generationId" });
+      await navigate({ params: { generationId: answer.data.id }, to: "/g/$generationId" });
     }
   }
 
@@ -118,7 +136,7 @@ export function GenerationView({
       )}
       {generation.parent_id && (
         <p className="text-sm">
-          A retry of{" "}
+          {rerunOfParent ? "A re-run of the recipe of " : "A retry of "}
           <Link
             className="underline"
             params={{ generationId: generation.parent_id }}
@@ -126,7 +144,7 @@ export function GenerationView({
           >
             the earlier generation
           </Link>
-          , with a new seed.
+          {rerunOfParent ? ", with the same seed." : ", with a new seed."}
         </p>
       )}
 
@@ -170,14 +188,16 @@ export function GenerationView({
       {generation.status === "failed" && (
         <div className="flex flex-col gap-3">
           <p role="alert">{generation.error_message ?? "The generation failed."}</p>
-          {retryError && (
+          {child.state === "refused" && child.action === "retry" && (
             <p className="text-sm text-destructive" role="alert">
-              {retryError}
+              {child.message}
             </p>
           )}
           <div>
-            <Button disabled={retrying} onClick={retry}>
-              {retrying ? "Retrying…" : "Retry with a new seed"}
+            <Button disabled={child.state === "running"} onClick={() => startChild("retry")}>
+              {child.state === "running" && child.action === "retry"
+                ? "Retrying…"
+                : "Retry with a new seed"}
             </Button>
           </div>
         </div>
@@ -190,6 +210,36 @@ export function GenerationView({
           Start a new generation instead.
         </p>
       )}
+
+      <div className="flex flex-col gap-3">
+        <RecipePanel recipe={recipe} />
+        <div className="flex flex-wrap items-center gap-4">
+          {(generation.status === "done" || generation.status === "failed") && (
+            <Button
+              disabled={child.state === "running"}
+              onClick={() => startChild("rerun")}
+              variant="outline"
+            >
+              {child.state === "running" && child.action === "rerun"
+                ? "Re-running…"
+                : "Re-run recipe"}
+            </Button>
+          )}
+          <a className="text-sm underline" href={`/api/generations/${generation.id}/recipe.json`}>
+            Recipe as JSON
+          </a>
+        </div>
+        {child.state === "reused" && (
+          <p aria-label="Re-run" className="text-sm" role="status">
+            Same recipe, same result: this video is what it makes, so nothing was rendered again.
+          </p>
+        )}
+        {child.state === "refused" && child.action === "rerun" && (
+          <p className="text-sm text-destructive" role="alert">
+            {child.message}
+          </p>
+        )}
+      </div>
 
       <div className="flex flex-wrap gap-4">
         {/* After a failure the choices may be what to change: back to them, both still picked. */}
