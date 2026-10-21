@@ -73,7 +73,7 @@ export function RecipePanel({ children, recipe }: { children?: React.ReactNode; 
                       ))}
                     </ul>
                   ) : (
-                    "None recorded. Recipes list their model files, with hashes and licenses, once the repository pins them in models.lock; it does not yet."
+                    "This render predates model pinning. Its recipe has no recorded model hashes or licenses."
                   )}
                 </dd>
               </div>

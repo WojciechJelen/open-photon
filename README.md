@@ -1,5 +1,7 @@
 # Open Photon
 
+[![Open weights CI](https://github.com/WojciechJelen/open-photon/actions/workflows/ci.yml/badge.svg)](https://github.com/WojciechJelen/open-photon/actions/workflows/ci.yml)
+
 Genjutsu: film yourself moving, pick a character, and get a video of the character doing the same, rendered with the open-weights Wan Animate 2 workflow on Comfy. TanStack Start v1 with typed routes, SQLite, the Comfy SDK, streamed uploads and video byte ranges.
 
 Start is pinned to `1.169.3`; the registry does not publish an exact `1.0.0`. The app uses Tailwind 4, shadcn components, and Node's built-in SQLite module. Node 24 and FFmpeg are included in the production image.
@@ -39,6 +41,26 @@ Choosing samples is open to anyone. Uploads and new generations need an access c
 
 For local development, use Node 24+ and npm 11.6.2 (`npm install --global npm@11.6.2`), then `npm ci` and `npm run dev`. Docker and CI use the same npm version declared in `packageManager`. Install FFmpeg locally (with libx264): uploads are probed and trimmed with `ffprobe`/`ffmpeg`, the server tests run them, and generated outputs are verified with them.
 
+## Open-weights checks and self-hosting
+
+[models.lock](models.lock) pins the five files loaded by `motion-transfer.v1.json` to immutable Hugging Face URLs, SHA-256 hashes and the Comfy-Org repack's declared Apache-2.0 license. New recipes include the pins. The Docker image includes the lock; historical recipes retain their original model data.
+
+```sh
+npm run check:models        # 5 model files, 5 locked, 0 missing
+npm run check:open-weights  # scans every feature's workflows, including nested UI subgraphs
+node scripts/check-open-weights.mjs tests/fixtures/partner-node.json  # must exit 1
+```
+
+CI runs both checks and the negative-control tests. The forbidden patterns are in [scripts/forbidden-nodes.json](scripts/forbidden-nodes.json). With ComfyUI's `object_info` JSON available, pass `--definitions <file>` to also reject nodes marked `api_node: true`. Unknown node names without definitions are checked against the patterns; the gate does not audit arbitrary custom-node Python code.
+
+The [Runpod 5090 setup](docs/selfhost.md) covers model installation with hash verification, ComfyUI preflight, `comfy-api-proxy`, an SSH tunnel, the Compose `selfhost` profile, and a repeatable proof check. The provider uses the same SDK adapter with `COMFY_BASE_URL` and optional proxy auth in `COMFY_API_KEY`.
+
+| GPU | Workflow variant | Resolution | Clip seconds | Peak VRAM MiB | Submission to done seconds | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| RTX 5090, 32 GB | int8 base + lightx2v distillation LoRA, 6 steps | 480×848 | Pending | Pending | Pending | Awaiting a Runpod render through the app |
+
+Step 8.3 remains incomplete until this row contains measurements, the recipe records `target: selfhost`, and the output plays with the source audio. The optional non-LoRA base variant has not been measured.
+
 ## Credits
 
 Credits per 5 s 480×848 render (distilled: lightx2v LoRA, 6 steps, int8 model): **≈17.5 credits** ($0.083 at 211 credits per dollar), for 64.9 s of GPU execution. Measured on 2026-10-19 from the workspace balance (`GET https://cloud.comfy.org/api/billing/usage/timeseries`, `summary.balance`) before and after one job, and again (≈17.7 credits) for the Step 4.1 generation; the base variant is not measured yet.
@@ -71,13 +93,13 @@ Opening `/g/:id` never waits for Comfy: the page renders the stored row at once,
 
 ## Recipes and re-runs
 
-Every generation page (and every share page) has a "Recipe" panel, collapsed until opened, that shows the stored recipe: the workflow id, version and SHA-256, the models (none recorded yet: recipes list model files with hashes and licenses once `models.lock` pins them, and it does not exist yet), every parameter (prompt, seed, size, `fragment_length`) and the reshoot angle, the SHA-256 of the motion clip and of the character image, and the target (Comfy Cloud or self-hosted ComfyUI, from `COMFY_BASE_URL`). `GET /api/generations/:id/recipe.json` returns the same recipe as JSON (`recipeSchema` in `src/features/genjutsu/server/recipe.ts`; its `workflow.sha256` is the one in `src/features/genjutsu/workflows/README.md`); 400 for a malformed id, 404 for an unknown one.
+Every generation page (and every share page) has a "Recipe" panel, collapsed until opened, that shows the stored recipe: the workflow id, version and SHA-256, the five model files with SHA-256 and licenses from `models.lock` (older recipes keep their original empty model list), every parameter (prompt, seed, size, `fragment_length`) and the reshoot angle, the SHA-256 of the motion clip and of the character image, and the target (Comfy Cloud or self-hosted ComfyUI, from `COMFY_BASE_URL`). `GET /api/generations/:id/recipe.json` returns the same recipe as JSON (`recipeSchema` in `src/features/genjutsu/server/recipe.ts`; its `workflow.sha256` is the one in `src/features/genjutsu/workflows/README.md`); 400 for a malformed id, 404 for an unknown one.
 
 "Re-run recipe" (on a done or failed generation) calls `POST /api/generations/:id/rerun`: the generation's recipe again, seed included, on the target this server renders on now. It goes through the same reuse as `generate`. With the target unchanged the recipe hash is the parent's, so a done parent comes back as it is: 200 `{ id: <the parent>, reused: true }`, no new row, nothing submitted, and the page says the result is already this one. Re-running is free unless something in the recipe changed, and that answer needs no access session. A failed parent, or a parent made on the other target, gets a child (`parent_id` = `:id`, same seed) that is submitted like any generation (201): **that submits a real GPU job**, and needs a session (401 `access_required` without one). A child that kept its parent's seed says it is a re-run of the earlier generation; one with a new seed, that it is a retry. 409 when the workflow file has changed since the recipe was made, 404 for an unknown id, 400 for a malformed one.
 
 ## Share pages
 
-A generation gets its `share_slug` when it becomes done: 16 random hex characters (64 bits; migration 005 gave one to the rows done before). Its page shows the link (`<origin>/r/<slug>`) with a copy button and "Open share page". `/r/:slug` is rendered on the server from the stored row: the result as a muted looping video with its poster, the source clip, the model files the recipe's workflow loads (their licenses and hashes are not pinned in this repository yet, and the page says so), and "Use this motion with my character", which opens the wizard's character step with that motion picked (`/genjutsu?step=character&motion=<source asset id>`; open to anyone, like the rest of the wizard; the access code is asked for when the visitor uploads or generates). An unknown slug is an HTTP 404.
+A generation gets its `share_slug` when it becomes done: 16 random hex characters (64 bits; migration 005 gave one to the rows done before). Its page shows the link (`<origin>/r/<slug>`) with a copy button and "Open share page". `/r/:slug` is rendered on the server from the stored row: the result as a muted looping video with its poster, the source clip, the model files and licenses recorded in its recipe (older renders show filenames without retroactively claiming verified pins), and "Use this motion with my character", which opens the wizard's character step with that motion picked (`/genjutsu?step=character&motion=<source asset id>`; open to anyone, like the rest of the wizard; the access code is asked for when the visitor uploads or generates). An unknown slug is an HTTP 404.
 
 The page's `<head>` carries Open Graph tags for link previews: `og:title`, `og:description`, `og:type` (`video.other`), `og:url`, `og:image` (the poster, with its size), `og:video` (the MP4, with `og:video:type`, `og:video:width` and `og:video:height`; `og:video:secure_url` when the URL is HTTPS) and `twitter:card` `summary_large_image` (a `player` card needs an embeddable player page, which the app does not have). Every URL in them is absolute: it starts with `PUBLIC_APP_URL` when that is set (a deployment behind a proxy must set it to its public HTTPS origin, for example `https://photon.example`), otherwise with the origin of the request, which is right for local development.
 

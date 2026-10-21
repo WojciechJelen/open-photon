@@ -21,7 +21,7 @@ export const recipeSchema = z.strictObject({
     driving_video_sha256: sha256Schema,
     reference_image_sha256: sha256Schema,
   }),
-  // Entries of models.lock (Step 8.1); recipes carry an empty list until it exists.
+  // Expected model pins from models.lock; older recipes retain their empty list.
   models: z.array(
     z.strictObject({ file: z.string().min(1), license: z.string().min(1), sha256: sha256Schema }),
   ),

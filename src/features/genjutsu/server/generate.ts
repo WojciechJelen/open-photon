@@ -20,7 +20,7 @@ import {
 import { assetsDirectory } from "../../../shared/server/paths.ts";
 import { generateInputSchema, generationSchema, MAX_CLIP_MS } from "../contracts.ts";
 import { buildGraph } from "../workflows/build-graph.ts";
-import { motionTransferWorkflow } from "../workflows/registry.ts";
+import { motionTransferModels, motionTransferWorkflow } from "../workflows/registry.ts";
 import { findCharacter } from "./characters.server.ts";
 import { comfyProvider, type Provider, providerError, providerTarget } from "./comfy.ts";
 import { finalize } from "./finalize.ts";
@@ -351,7 +351,7 @@ export async function generate(
       recipe: {
         angle: angle?.id,
         inputs: { driving_video_sha256: motion.sha256, reference_image_sha256: image.sha256 },
-        models: [],
+        models: motionTransferModels,
         params: {
           fragment_length: 81,
           height: portrait ? 848 : 480,

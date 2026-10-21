@@ -203,6 +203,19 @@ export function SharePageView({ share }: { share: Share }) {
               <h3>
                 <Hud tone="foreground">Model files</Hud>
               </h3>
+              <div className="flex flex-wrap items-center gap-3 text-xs">
+                <Badge asChild variant="brand">
+                  <a href={`${REPOSITORY_URL}/actions/workflows/ci.yml`}>
+                    Open weights only · CI check
+                  </a>
+                </Badge>
+                <a
+                  className="underline underline-offset-4"
+                  href={`${REPOSITORY_URL}/blob/main/models.lock`}
+                >
+                  Model sources and hashes
+                </a>
+              </div>
               {models ? (
                 <ul aria-label="Model files" className="flex flex-col">
                   {models.map(({ file, license }) => (
@@ -223,7 +236,8 @@ export function SharePageView({ share }: { share: Share }) {
               )}
               <p className="text-sm text-muted-foreground">
                 No partner nodes and no closed APIs: these are the model files the workflow loads.
-                {unpinned && " Their licenses and hashes are not pinned in this repository yet."}
+                {unpinned &&
+                  " This render predates model pinning; its model hashes and licenses were not recorded."}
               </p>
             </div>
           </div>
