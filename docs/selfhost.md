@@ -1,11 +1,11 @@
 # Runpod 5090 proof
 
-Phase 8.3 is pending a real GPU render. The commands below prepare the existing app and workflow for it.
+The commands below reproduce the Phase 8.3 GPU proof through the existing app and workflow.
 
 ## Pod requirements
 
 - One NVIDIA GeForce RTX 5090, 32 GB VRAM, with no other workload running.
-- A recent ComfyUI template with CUDA/PyTorch support for the 5090. ComfyUI core must include `WanAnimate2ToVideo`, `WanAnimate2Cache`, and the loop nodes in the workflow. The preflight below checks all required node classes.
+- A recent ComfyUI template with CUDA/PyTorch support for the 5090. The proof used official template `wgd3p4n4o6`, image `runpod/comfyui:1.3.3-comfyuiv0.30.0-cuda13.0`, with a 150 GB container disk and 100 GB persistent volume. Its bundled ComfyUI 0.30.0 lacks the required Wan Animate 2 and loop nodes; update it before generating. ComfyUI core must include `WanAnimate2ToVideo`, `WanAnimate2Cache`, and the loop nodes in the workflow. The preflight below checks all required node classes.
 - At least 80 GB persistent disk for ComfyUI, its environment, approximately 26 GB of weights and outputs. Use 100 GB if the fused distilled or non-LoRA base variants will also be measured.
 - SSH access. The proxy can stay bound to loopback and reach the app through an SSH tunnel; no public ComfyUI or proxy port is needed.
 - Node 24+ for the repository scripts and Python 3.10+ for `comfy-api-proxy`.
@@ -14,11 +14,12 @@ After creating the pod, provide its pod ID, SSH command, and ComfyUI directory. 
 
 ## Install the exact model files
 
-On the pod, clone this repository and enter its directory. Set `COMFYUI_DIRECTORY` to the template's actual ComfyUI directory, for example `/workspace/ComfyUI`.
+On the pod, clone this repository and enter its directory. Set `COMFYUI_DIRECTORY` to the template's actual ComfyUI directory, for example `/workspace/runpod-slim/ComfyUI`.
 
 ```sh
-export COMFYUI_DIRECTORY=/workspace/ComfyUI
-npm ci
+export COMFYUI_DIRECTORY=/workspace/runpod-slim/ComfyUI
+npm install -g npm@11.6.2
+npm ci --omit=dev
 node scripts/check-models-lock.mjs
 node scripts/install-models.mjs "$COMFYUI_DIRECTORY/models"
 node scripts/install-models.mjs "$COMFYUI_DIRECTORY/models" --verify-only
@@ -30,6 +31,18 @@ The first proof uses the **unchanged** v1 workflow: `wan_animate_2_int8_convrot.
 
 ## Check ComfyUI and start the v2 proxy
 
+The proof used ComfyUI 0.42.0 at commit `7a28332047b6af638dc6c7f72ef3481a718769fd`, PyTorch `2.10.0+cu130`, Python 3.12.3 and NVIDIA driver 595.91.07. With the official template above, update its core and install dependencies into its existing virtual environment:
+
+```sh
+cd "$COMFYUI_DIRECTORY"
+git fetch --depth 1 https://github.com/Comfy-Org/ComfyUI.git \
+  7a28332047b6af638dc6c7f72ef3481a718769fd
+git checkout --detach 7a28332047b6af638dc6c7f72ef3481a718769fd
+.venv-cu128/bin/python -m pip install -r requirements.txt
+```
+
+Stop the template's existing `main.py` process before starting the updated core with `.venv-cu128/bin/python main.py --listen 127.0.0.1 --port 8188`. The template keeps SSH alive when ComfyUI exits. Install Node 24 outside `/workspace` (for example `/opt/open-photon-node`); this template's persistent filesystem rejects archive ownership changes, so extract it with `tar --no-same-owner`.
+
 Start the template's ComfyUI on loopback port 8188, then run from this repository on the pod:
 
 ```sh
@@ -40,8 +53,9 @@ node scripts/check-models-lock.mjs models.lock \
 node scripts/check-open-weights.mjs src/features/genjutsu/workflows \
   --definitions work/object-info.json
 
-python -m pip install comfy-api-proxy==0.1.6
-comfy-api-proxy --comfyui http://127.0.0.1:8188 \
+python3 -m venv /opt/open-photon-proxy
+/opt/open-photon-proxy/bin/pip install comfy-api-proxy==0.1.6
+/opt/open-photon-proxy/bin/comfy-api-proxy run --comfyui http://127.0.0.1:8188 \
   --comfyui-base-dir "$COMFYUI_DIRECTORY" --port 8189 \
   --max-upload-mb 128 --state-dir /workspace/open-photon-proxy-state
 ```

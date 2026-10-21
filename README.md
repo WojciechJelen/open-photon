@@ -57,9 +57,9 @@ The [Runpod 5090 setup](docs/selfhost.md) covers model installation with hash ve
 
 | GPU | Workflow variant | Resolution | Clip seconds | Peak VRAM MiB | Submission to done seconds | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| RTX 5090, 32 GB | int8 base + lightx2v distillation LoRA, 6 steps | 480×848 | Pending | Pending | Pending | Awaiting a Runpod render through the app |
+| RTX 5090, 32 GB | int8 base + lightx2v distillation LoRA, 6 steps | 480×848 | 5.016584 | 31,066 | 158.717 | [2026-10-21 report, recipe, GPU samples and MP4](docs/selfhost-proof-2026-10-21/README.md) |
 
-Step 8.3 remains incomplete until this row contains measurements, the recipe records `target: selfhost`, and the output plays with the source audio. The optional non-LoRA base variant has not been measured.
+The first self-hosted render reached `done` through the app with `target: selfhost`, the unchanged workflow and SDK adapter, and all five model files verified against the lock. Timing includes cold model loading. Browser playback completed with audio enabled; the decoded audio matches the driving clip (0.995 waveform correlation after AAC re-encoding). The optional non-LoRA base variant has not been measured.
 
 ## Credits
 

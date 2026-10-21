@@ -1,0 +1,9 @@
+7a28332047b6af638dc6c7f72ef3481a718769fd
+{
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "pytorch": "2.10.0+cu130",
+  "comfy-api-proxy": "0.1.6",
+  "comfy-kitchen": "0.2.39",
+  "comfy-aimdo": "0.5.6"
+}
+NVIDIA GeForce RTX 5090, 595.91.07, 32607 MiB
