@@ -10,7 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as GenjutsuRouteImport } from './routes/genjutsu'
+import { Route as MotionTransferRouteImport } from './routes/motionTransfer'
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiGenerateRouteImport } from './routes/api.generate'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
@@ -31,9 +31,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GenjutsuRoute = GenjutsuRouteImport.update({
-  id: '/genjutsu',
-  path: '/genjutsu',
+const MotionTransferRoute = MotionTransferRouteImport.update({
+  id: '/motionTransfer',
+  path: '/motionTransfer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCharactersRoute = ApiCharactersRouteImport.update({
@@ -114,7 +114,7 @@ const ApiGenerationsGenerationIdRetryRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/genjutsu': typeof GenjutsuRoute
+  '/motionTransfer': typeof MotionTransferRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -132,7 +132,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/genjutsu': typeof GenjutsuRoute
+  '/motionTransfer': typeof MotionTransferRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -151,7 +151,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/genjutsu': typeof GenjutsuRoute
+  '/motionTransfer': typeof MotionTransferRoute
   '/api/characters': typeof ApiCharactersRoute
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -171,7 +171,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/genjutsu'
+    | '/motionTransfer'
     | '/api/characters'
     | '/api/generate'
     | '/api/uploads'
@@ -189,7 +189,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/genjutsu'
+    | '/motionTransfer'
     | '/api/characters'
     | '/api/generate'
     | '/api/uploads'
@@ -207,7 +207,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/genjutsu'
+    | '/motionTransfer'
     | '/api/characters'
     | '/api/generate'
     | '/api/uploads'
@@ -226,7 +226,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  GenjutsuRoute: typeof GenjutsuRoute
+  MotionTransferRoute: typeof MotionTransferRoute
   ApiCharactersRoute: typeof ApiCharactersRoute
   ApiGenerateRoute: typeof ApiGenerateRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
@@ -248,11 +248,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/genjutsu': {
-      id: '/genjutsu'
-      path: '/genjutsu'
-      fullPath: '/genjutsu'
-      preLoaderRoute: typeof GenjutsuRouteImport
+    '/motionTransfer': {
+      id: '/motionTransfer'
+      path: '/motionTransfer'
+      fullPath: '/motionTransfer'
+      preLoaderRoute: typeof MotionTransferRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/characters': {
@@ -380,7 +380,7 @@ const ApiGenerationsGenerationIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  GenjutsuRoute: GenjutsuRoute,
+  MotionTransferRoute: MotionTransferRoute,
   ApiCharactersRoute: ApiCharactersRoute,
   ApiGenerateRoute: ApiGenerateRoute,
   ApiUploadsRoute: ApiUploadsRoute,

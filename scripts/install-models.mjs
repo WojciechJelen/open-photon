@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
-import { modelsLockSchema } from "../src/features/genjutsu/workflows/models.ts";
+import { modelsLockSchema } from "../src/features/motionTransfer/workflows/models.ts";
 
 const args = process.argv.slice(2);
 const verifyOnly = args.includes("--verify-only");

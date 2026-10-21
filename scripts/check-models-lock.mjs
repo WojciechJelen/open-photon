@@ -2,13 +2,13 @@ import { readFileSync } from "node:fs";
 
 import { z } from "zod";
 
-import { workflowGraphSchema } from "../src/features/genjutsu/workflows/build-graph.ts";
-import { lockedModels, modelsLockSchema } from "../src/features/genjutsu/workflows/models.ts";
+import { workflowGraphSchema } from "../src/features/motionTransfer/workflows/build-graph.ts";
+import { lockedModels, modelsLockSchema } from "../src/features/motionTransfer/workflows/models.ts";
 
 try {
   const [
     lockFile = "models.lock",
-    workflow = "src/features/genjutsu/workflows/motion-transfer.v1.json",
+    workflow = "src/features/motionTransfer/workflows/motion-transfer.v1.json",
     definitionsFile,
   ] = process.argv.slice(2);
 

@@ -5,11 +5,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { modelsLockSchema } from "../src/features/genjutsu/workflows/models.ts";
+import { modelsLockSchema } from "../src/features/motionTransfer/workflows/models.ts";
 import {
   motionTransferModels,
   motionTransferWorkflow,
-} from "../src/features/genjutsu/workflows/registry.ts";
+} from "../src/features/motionTransfer/workflows/registry.ts";
 
 function run(script: string, ...args: string[]) {
   const result = spawnSync(process.execPath, [`scripts/${script}.mjs`, ...args], {
@@ -92,7 +92,7 @@ test("pod preflight rejects a ComfyUI installation that lacks a required class",
       run(
         "check-models-lock",
         "models.lock",
-        "src/features/genjutsu/workflows/motion-transfer.v1.json",
+        "src/features/motionTransfer/workflows/motion-transfer.v1.json",
         path,
       ).status,
       0,
@@ -103,7 +103,7 @@ test("pod preflight rejects a ComfyUI installation that lacks a required class",
     const missing = run(
       "check-models-lock",
       "models.lock",
-      "src/features/genjutsu/workflows/motion-transfer.v1.json",
+      "src/features/motionTransfer/workflows/motion-transfer.v1.json",
       path,
     );
 

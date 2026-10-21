@@ -25,7 +25,7 @@ const access = createMiddleware().server(async ({ request, next }) => {
   }
 
   // Share pages and the files they show may be indexed; nothing else.
-  const { isIndexable } = await import("#/features/genjutsu/server/public-access");
+  const { isIndexable } = await import("#/features/motionTransfer/server/public-access");
 
   if (!isIndexable(new URL(request.url).pathname)) {
     result.response.headers.set("X-Robots-Tag", "noindex, nofollow");

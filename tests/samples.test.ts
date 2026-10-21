@@ -8,11 +8,11 @@ import {
   createGeneration,
   markQueued,
   transition,
-} from "../src/features/genjutsu/server/generations.ts";
-import { classifyVideo, probe } from "../src/features/genjutsu/server/media/probe.ts";
-import { seedSamples } from "../src/features/genjutsu/server/samples.ts";
-import { readSelection, readStudio } from "../src/features/genjutsu/server/selection.ts";
-import { motionTransferWorkflow } from "../src/features/genjutsu/workflows/registry.ts";
+} from "../src/features/motionTransfer/server/generations.ts";
+import { classifyVideo, probe } from "../src/features/motionTransfer/server/media/probe.ts";
+import { seedSamples } from "../src/features/motionTransfer/server/samples.ts";
+import { readSelection, readStudio } from "../src/features/motionTransfer/server/selection.ts";
+import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
 import { findAsset, hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
 import { database } from "../src/shared/server/db.server.ts";
 import { assetsDirectory } from "../src/shared/server/paths.ts";

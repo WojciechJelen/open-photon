@@ -15,7 +15,7 @@ const slate = (page: Page) => page.getByRole("complementary", { name: "Your shot
 test("a step needs its pick: Continue waits for one, and the stepper marks the current step", async ({
   page,
 }) => {
-  await open(page, "/genjutsu");
+  await open(page, "/motionTransfer");
   await expect(page).toHaveURL(/step=motion/);
 
   const stepper = page.getByRole("navigation", { name: "Steps" });
@@ -41,13 +41,13 @@ test("a step needs its pick: Continue waits for one, and the stepper marks the c
   ).toBeDisabled();
 
   // A link to a step whose picks are missing shows the furthest one it can reach.
-  await open(page, `/genjutsu?step=direct&motion=${seededResult().sourceAssetId}`);
+  await open(page, `/motionTransfer?step=direct&motion=${seededResult().sourceAssetId}`);
   await expect(page).toHaveURL(/step=character/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who performs it?");
 });
 
 test("the whole tile toggles its pick, from the keyboard too", async ({ page }) => {
-  await open(page, "/genjutsu");
+  await open(page, "/motionTransfer");
 
   const tile = page.getByRole("button", { name: "Street dance" });
 
@@ -63,7 +63,7 @@ test("the whole tile toggles its pick, from the keyboard too", async ({ page }) 
 test("Back and Forward retrace the steps, a reload keeps the step, and the slate changes earlier picks", async ({
   page,
 }) => {
-  await open(page, "/genjutsu");
+  await open(page, "/motionTransfer");
   await page.getByRole("button", { name: "Street dance" }).click();
   await slate(page).getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Placeholder green" }).click();
@@ -110,7 +110,7 @@ test("a link to the old picker opens the wizard with its picks", async ({ page }
   await open(page, `/?motion=${sourceAssetId}&character=${characterId}`);
   await expect(page).toHaveURL(
     (url) =>
-      url.pathname === "/genjutsu" &&
+      url.pathname === "/motionTransfer" &&
       url.searchParams.get("motion") === sourceAssetId &&
       url.searchParams.get("character") === characterId &&
       url.searchParams.get("step") === "direct",
@@ -132,7 +132,10 @@ test.describe("without a session", () => {
       }
     });
 
-    await open(page, `/genjutsu?step=direct&motion=${sourceAssetId}&character=${characterId}`);
+    await open(
+      page,
+      `/motionTransfer?step=direct&motion=${sourceAssetId}&character=${characterId}`,
+    );
     await page.getByLabel("Front").check();
     await page.getByRole("button", { name: "Neon street at night" }).click();
     await expect(page.getByLabel("Look")).toHaveValue(/neon-lit/);
@@ -158,7 +161,7 @@ test.describe("without a session", () => {
   test("the header's Access code opens the dialog, and the status turns active", async ({
     page,
   }) => {
-    await open(page, "/genjutsu");
+    await open(page, "/motionTransfer");
 
     const header = page.getByRole("banner").filter({ visible: true });
 
@@ -179,7 +182,7 @@ test.describe("on a phone", () => {
   test("a compact header counts the steps, and the bottom bar carries the pick and Continue", async ({
     page,
   }) => {
-    await open(page, "/genjutsu");
+    await open(page, "/motionTransfer");
     await expect(page.getByRole("banner").getByText("Step 1 of 4")).toBeVisible();
     await expect(slate(page)).toBeHidden();
 

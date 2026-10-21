@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { expect, test } from "@playwright/test";
 
-import { characterSchema } from "../src/features/genjutsu/contracts.ts";
+import { characterSchema } from "../src/features/motionTransfer/contracts.ts";
 import { open, seededResult } from "./e2e/session.ts";
 
 /** No cookies: a visitor without the access code, such as a social site's crawler. */
@@ -113,7 +113,7 @@ test("an anonymous visitor sees the result and the source, and the motion link s
   // The wizard is open without the code: the character step with the shared clip picked.
   await expect(page).toHaveURL(
     (url) =>
-      url.pathname === "/genjutsu" &&
+      url.pathname === "/motionTransfer" &&
       url.searchParams.get("motion") === sourceAssetId &&
       url.searchParams.get("step") === "character",
   );
@@ -145,7 +145,7 @@ test("a done generation's page shows its share link, which opens the share page"
   await page.locator("html[data-hydrated]").waitFor();
   await page.getByRole("link", { name: "Use this motion", exact: true }).click();
   await expect(page).toHaveURL(
-    (url) => url.pathname === "/genjutsu" && url.searchParams.get("motion") === sourceAssetId,
+    (url) => url.pathname === "/motionTransfer" && url.searchParams.get("motion") === sourceAssetId,
   );
   await expect(page.getByRole("complementary", { name: "Your shot" })).toContainText(
     "Street dance",

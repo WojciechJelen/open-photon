@@ -8,12 +8,12 @@ import { pipeline } from "node:stream/promises";
 
 import { z } from "zod";
 
-import { generationSchema } from "../src/features/genjutsu/contracts.ts";
-import { recipeSchema } from "../src/features/genjutsu/server/recipe.ts";
+import { generationSchema } from "../src/features/motionTransfer/contracts.ts";
+import { recipeSchema } from "../src/features/motionTransfer/server/recipe.ts";
 import {
   motionTransferModels,
   motionTransferWorkflow,
-} from "../src/features/genjutsu/workflows/registry.ts";
+} from "../src/features/motionTransfer/workflows/registry.ts";
 import { accessCookie } from "./access-session.mjs";
 
 const base = process.env.BASE_URL;

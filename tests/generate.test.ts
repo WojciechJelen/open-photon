@@ -12,7 +12,7 @@ import {
   type Provider,
   type ProviderJob,
   providerTarget,
-} from "../src/features/genjutsu/server/comfy.ts";
+} from "../src/features/motionTransfer/server/comfy.ts";
 import {
   GenerateError,
   generate,
@@ -21,7 +21,7 @@ import {
   rerun,
   retry,
   startChild,
-} from "../src/features/genjutsu/server/generate.ts";
+} from "../src/features/motionTransfer/server/generate.ts";
 import {
   countInFlight,
   createGeneration,
@@ -30,12 +30,12 @@ import {
   markQueued,
   recordProviderInputs,
   transition,
-} from "../src/features/genjutsu/server/generations.ts";
-import { generateDefaults } from "../src/features/genjutsu/server/presets.ts";
-import type { Recipe } from "../src/features/genjutsu/server/recipe.ts";
-import { readSelection } from "../src/features/genjutsu/server/selection.ts";
-import { uploadVideo } from "../src/features/genjutsu/server/videos.server.ts";
-import { motionTransferModels } from "../src/features/genjutsu/workflows/registry.ts";
+} from "../src/features/motionTransfer/server/generations.ts";
+import { generateDefaults } from "../src/features/motionTransfer/server/presets.ts";
+import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
+import { readSelection } from "../src/features/motionTransfer/server/selection.ts";
+import { uploadVideo } from "../src/features/motionTransfer/server/videos.server.ts";
+import { motionTransferModels } from "../src/features/motionTransfer/workflows/registry.ts";
 import { findAccessCode } from "../src/shared/server/access-codes.ts";
 import { createAccessGuard } from "../src/shared/server/access.server.ts";
 import { database } from "../src/shared/server/db.server.ts";

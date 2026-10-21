@@ -9,17 +9,17 @@ import type {
   Provider,
   ProviderJob,
   ProviderOutput,
-} from "../src/features/genjutsu/server/comfy.ts";
-import { finalize } from "../src/features/genjutsu/server/finalize.ts";
+} from "../src/features/motionTransfer/server/comfy.ts";
+import { finalize } from "../src/features/motionTransfer/server/finalize.ts";
 import {
   countInFlight,
   createGeneration,
   findGeneration,
   markQueued,
   transition,
-} from "../src/features/genjutsu/server/generations.ts";
-import { runTool } from "../src/features/genjutsu/server/media/probe.ts";
-import type { Recipe } from "../src/features/genjutsu/server/recipe.ts";
+} from "../src/features/motionTransfer/server/generations.ts";
+import { runTool } from "../src/features/motionTransfer/server/media/probe.ts";
+import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
 import { findAsset, hashFile } from "../src/shared/server/assets.ts";
 import { database } from "../src/shared/server/db.server.ts";
 import { assetsDirectory } from "../src/shared/server/paths.ts";

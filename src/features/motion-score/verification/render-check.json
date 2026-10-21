@@ -1,0 +1,90 @@
+{
+  "streams": {
+    "retimed-driver": [
+      {
+        "codec_type": "video",
+        "width": 288,
+        "height": 512,
+        "r_frame_rate": "16/1",
+        "duration": "5.062500",
+        "nb_frames": "81"
+      },
+      {
+        "codec_type": "audio",
+        "r_frame_rate": "0/0",
+        "duration": "5.062000",
+        "nb_frames": "239"
+      }
+    ],
+    "before-after": [
+      {
+        "codec_type": "video",
+        "width": 576,
+        "height": 512,
+        "r_frame_rate": "16/1",
+        "duration": "5.062500",
+        "nb_frames": "81"
+      },
+      {
+        "codec_type": "audio",
+        "r_frame_rate": "0/0",
+        "duration": "5.062000",
+        "nb_frames": "239"
+      }
+    ],
+    "character": [
+      {
+        "codec_type": "video",
+        "width": 288,
+        "height": 512,
+        "r_frame_rate": "16/1",
+        "duration": "5.062500",
+        "nb_frames": "81"
+      },
+      {
+        "codec_type": "audio",
+        "r_frame_rate": "0/0",
+        "duration": "5.062000",
+        "nb_frames": "239"
+      }
+    ],
+    "driver-character": [
+      {
+        "codec_type": "video",
+        "width": 576,
+        "height": 512,
+        "r_frame_rate": "16/1",
+        "duration": "5.062500",
+        "nb_frames": "81"
+      },
+      {
+        "codec_type": "audio",
+        "r_frame_rate": "0/0",
+        "duration": "5.062000",
+        "nb_frames": "239"
+      }
+    ]
+  },
+  "driver_pins": [
+    {
+      "source_frame": 28,
+      "target_frame": 32,
+      "nearest_source_frame_in_render": 28,
+      "error_frames": 0
+    },
+    {
+      "source_frame": 52,
+      "target_frame": 48,
+      "nearest_source_frame_in_render": 52,
+      "error_frames": 0
+    },
+    {
+      "source_frame": 64,
+      "target_frame": 64,
+      "nearest_source_frame_in_render": 64,
+      "error_frames": 0
+    }
+  ],
+  "method": "Nearest source frame by grayscale MAE at 32x56, after decoding the Cloud MP4.",
+  "generated_gesture_timing": "unmeasured; exact driver pins do not certify generated gestures"
+}

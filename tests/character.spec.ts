@@ -5,12 +5,12 @@ import { count, open, seededResult } from "./e2e/session.ts";
 const uuid = "[0-9a-f-]{36}";
 
 /** The character step, with the sample motion picked. */
-const characterStep = () => `/genjutsu?step=character&motion=${seededResult().sourceAssetId}`;
+const characterStep = () => `/motionTransfer?step=character&motion=${seededResult().sourceAssetId}`;
 
 test("a picked motion and sample character stay in the URL and survive a reload", async ({
   page,
 }) => {
-  await open(page, "/genjutsu");
+  await open(page, "/motionTransfer");
   await page.getByRole("button", { name: "Street dance" }).click();
   await expect(page).toHaveURL(new RegExp(`step=motion&motion=${uuid}$`));
   await page.getByRole("button", { name: "Continue" }).click();

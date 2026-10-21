@@ -2,7 +2,7 @@ import { once } from "node:events";
 
 import { createFileRoute } from "@tanstack/react-router";
 
-import { eventStream } from "#/features/genjutsu/server/generation-stream";
+import { eventStream } from "#/features/motionTransfer/server/generation-stream";
 
 /**
  * With `ENABLE_DEBUG=1` only (else a 404): an event stream that sends an opening comment, then

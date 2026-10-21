@@ -4,8 +4,8 @@ import { useState } from "react";
 
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import type { PickableCharacter, SampleMotion } from "#/features/genjutsu/contracts";
-import type { loadStudio } from "#/features/genjutsu/selection.functions";
+import type { PickableCharacter, SampleMotion } from "#/features/motionTransfer/contracts";
+import type { loadStudio } from "#/features/motionTransfer/selection.functions";
 import { Hud, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { LoopingVideo } from "#/shared/components/looping-video";
 import { mediaUrl } from "#/shared/media";
@@ -48,7 +48,7 @@ function HeroMonitor({
 
   const caption = take
     ? `${motionTitle ?? "A sample motion"}, performed by ${take.characterTitle ?? "a sample character"}. Rendered with Wan Animate 2.`
-    : `${motionTitle ?? "A sample motion"} and ${character?.title ?? "a sample character"}: pick them in Genjutsu to render the take.`;
+    : `${motionTitle ?? "A sample motion"} and ${character?.title ?? "a sample character"}: pick them in Motion Transfer to render the take.`;
 
   return (
     <figure className="flex min-w-0 flex-col gap-3">
@@ -112,7 +112,7 @@ function HeroMonitor({
   );
 }
 
-/** The studio's opening: the pitch, the way into Genjutsu, and the split monitor. */
+/** The studio's opening: the pitch, the way into Motion Transfer, and the split monitor. */
 export function StudioHero({
   characters,
   motions,
@@ -138,14 +138,14 @@ export function StudioHero({
           </span>
         </h1>
         <p className="max-w-xl text-lg text-pretty text-soft-foreground">
-          Open Photon is an open-source studio for AI video effects. Start with Genjutsu: give any
-          character any move. Every render runs an open-weights workflow on Comfy, and keeps the
-          recipe that made it.
+          Open Photon is an open-source studio for AI video effects. Start with Motion Transfer:
+          give any character any move. Every render runs an open-weights workflow on Comfy, and
+          keeps the recipe that made it.
         </p>
         <div className="flex flex-wrap gap-3">
           <Button asChild size="lg">
-            <Link to="/genjutsu">
-              Start with Genjutsu
+            <Link to="/motionTransfer">
+              Start with Motion Transfer
               <ArrowRightIcon />
             </Link>
           </Button>

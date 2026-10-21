@@ -1,0 +1,1038 @@
+{
+  "revision": 0,
+  "last_node_id": 900,
+  "last_link_id": 91,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadVideo",
+      "pos": [0, 830],
+      "size": [320, 560],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [1]
+        }
+      ],
+      "title": "01 \u00b7 Source performance \u00b7 81 frames / 16 fps",
+      "properties": {
+        "Node name for S&R": "LoadVideo"
+      },
+      "widgets_values": [
+        "0deb5516fd3cc166ee077b765b33e85be41dffdc95d03832cdab58b06a28b144.mp4",
+        "image"
+      ],
+      "widgets_values_named": {
+        "file": "0deb5516fd3cc166ee077b765b33e85be41dffdc95d03832cdab58b06a28b144.mp4",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 2,
+      "type": "GetVideoComponents",
+      "pos": [0, 1440],
+      "size": [300, 160],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [2, 20, 33]
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": []
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "links": []
+        },
+        {
+          "name": "bit_depth",
+          "type": "COMBO",
+          "links": []
+        },
+        {
+          "name": "color_space",
+          "type": "COMBO",
+          "links": []
+        }
+      ],
+      "title": "Decode source RGB frames",
+      "properties": {
+        "Node name for S&R": "GetVideoComponents"
+      }
+    },
+    {
+      "id": 3,
+      "type": "GetImageSize",
+      "pos": [350, 1440],
+      "size": [280, 140],
+      "flags": {},
+      "order": 29,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "links": [9]
+        }
+      ],
+      "title": "Source frame count",
+      "properties": {
+        "Node name for S&R": "GetImageSize"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 4,
+      "type": "LoadAudio",
+      "pos": [0, 1660],
+      "size": [630, 180],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [31, 36]
+        }
+      ],
+      "title": "02 \u00b7 Target soundtrack \u00b7 120 BPM / 5.0625 s",
+      "properties": {
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        "4eb2b838515ec267dd13ddb9a31f8948392cd571aec3fdaeb58d00e093ee0795.wav",
+        ""
+      ],
+      "widgets_values_named": {
+        "audio": "4eb2b838515ec267dd13ddb9a31f8948392cd571aec3fdaeb58d00e093ee0795.wav",
+        "upload": ""
+      }
+    },
+    {
+      "id": 10,
+      "type": "PrimitiveInt",
+      "pos": [720, 100],
+      "size": [300, 110],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [3, 12, 23]
+        }
+      ],
+      "title": "SOURCE 1 \u2014 frame at 16 fps",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [28, "fixed"],
+      "widgets_values_named": {
+        "value": 28,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 11,
+      "type": "PrimitiveInt",
+      "pos": [720, 265],
+      "size": [300, 110],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [4, 13, 24]
+        }
+      ],
+      "title": "SOURCE 2 \u2014 frame at 16 fps",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [52, "fixed"],
+      "widgets_values_named": {
+        "value": 52,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 12,
+      "type": "PrimitiveInt",
+      "pos": [720, 430],
+      "size": [300, 110],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [5, 14, 25]
+        }
+      ],
+      "title": "SOURCE 3 \u2014 frame at 16 fps",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [64, "fixed"],
+      "widgets_values_named": {
+        "value": 64,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 20,
+      "type": "PrimitiveInt",
+      "pos": [1060, 100],
+      "size": [300, 110],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [6, 15, 26]
+        }
+      ],
+      "title": "TARGET 1 \u2014 frame at 16 fps",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [32, "fixed"],
+      "widgets_values_named": {
+        "value": 32,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 21,
+      "type": "PrimitiveInt",
+      "pos": [1060, 265],
+      "size": [300, 110],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [7, 16, 27]
+        }
+      ],
+      "title": "TARGET 2 \u2014 frame at 16 fps",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [48, "fixed"],
+      "widgets_values_named": {
+        "value": 48,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 22,
+      "type": "PrimitiveInt",
+      "pos": [1060, 430],
+      "size": [300, 110],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [8, 17, 28]
+        }
+      ],
+      "title": "TARGET 3 \u2014 frame at 16 fps",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [64, "fixed"],
+      "widgets_values_named": {
+        "value": 64,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 30,
+      "type": "ComfyMathExpression",
+      "pos": [1440, 100],
+      "size": [420, 300],
+      "flags": {},
+      "order": 33,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 3
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 4
+        },
+        {
+          "name": "values.c",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 5
+        },
+        {
+          "name": "values.d",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 6
+        },
+        {
+          "name": "values.e",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 7
+        },
+        {
+          "name": "values.f",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 8
+        },
+        {
+          "name": "values.g",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 9
+        },
+        {
+          "name": "values.h",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": []
+        },
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [10]
+        },
+        {
+          "name": "BOOL",
+          "type": "BOOLEAN",
+          "links": []
+        }
+      ],
+      "title": "VALIDATE \u00b7 ordered pins / 0.75\u20131.5x / 81 frames",
+      "properties": {
+        "Node name for S&R": "ComfyMathExpression"
+      },
+      "widgets_values": [
+        "81 if (g == 81 and 0 < a < b < c < 80 and 0 < d < e < f < 80 and 0.75 <= a/d <= 1.5 and 0.75 <= (b-a)/(e-d) <= 1.5 and 0.75 <= (c-b)/(f-e) <= 1.5 and 0.75 <= (80-c)/(80-f) <= 1.5) else 1/0"
+      ],
+      "widgets_values_named": {
+        "expression": "81 if (g == 81 and 0 < a < b < c < 80 and 0 < d < e < f < 80 and 0.75 <= a/d <= 1.5 and 0.75 <= (b-a)/(e-d) <= 1.5 and 0.75 <= (c-b)/(f-e) <= 1.5 and 0.75 <= (80-c)/(80-f) <= 1.5) else 1/0"
+      }
+    },
+    {
+      "id": 31,
+      "type": "Basic data handling: DataListRange",
+      "pos": [1440, 450],
+      "size": [300, 140],
+      "flags": {},
+      "order": 37,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "stop",
+          "type": "INT",
+          "widget": {
+            "name": "stop"
+          },
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "INT",
+          "shape": 6,
+          "type": "INT",
+          "links": [11]
+        }
+      ],
+      "title": "Output frame clock: 0\u201380",
+      "properties": {
+        "Node name for S&R": "Basic data handling: DataListRange"
+      },
+      "widgets_values": [0, 10, 1],
+      "widgets_values_named": {
+        "start": 0,
+        "stop": 10,
+        "step": 1
+      }
+    },
+    {
+      "id": 32,
+      "type": "ComfyMathExpression",
+      "pos": [1900, 100],
+      "size": [420, 300],
+      "flags": {},
+      "order": 39,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 11
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 12
+        },
+        {
+          "name": "values.c",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 13
+        },
+        {
+          "name": "values.d",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 14
+        },
+        {
+          "name": "values.e",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 15
+        },
+        {
+          "name": "values.f",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 16
+        },
+        {
+          "name": "values.g",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 17
+        },
+        {
+          "name": "values.h",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": []
+        },
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [18]
+        },
+        {
+          "name": "BOOL",
+          "type": "BOOLEAN",
+          "links": []
+        }
+      ],
+      "title": "Motion Score \u00b7 piecewise-linear source frame",
+      "properties": {
+        "Node name for S&R": "ComfyMathExpression"
+      },
+      "widgets_values": [
+        "round(a*b/e if a <= e else b+(a-e)*(c-b)/(f-e) if a <= f else c+(a-f)*(d-c)/(g-f) if a <= g else d+(a-g)*(80-d)/(80-g))"
+      ],
+      "widgets_values_named": {
+        "expression": "round(a*b/e if a <= e else b+(a-e)*(c-b)/(f-e) if a <= f else c+(a-f)*(d-c)/(g-f) if a <= g else d+(a-g)*(80-d)/(80-g))"
+      }
+    },
+    {
+      "id": 33,
+      "type": "StringFormat",
+      "pos": [1900, 450],
+      "size": [420, 170],
+      "flags": {},
+      "order": 40,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "shape": 7,
+          "type": "*",
+          "link": 18
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [19]
+        }
+      ],
+      "title": "One source index per output frame",
+      "properties": {
+        "Node name for S&R": "StringFormat"
+      },
+      "widgets_values": ["{a:d}"],
+      "widgets_values_named": {
+        "f_string": "{a:d}"
+      }
+    },
+    {
+      "id": 34,
+      "type": "Basic data handling: StringDataListJoin",
+      "pos": [1900, 680],
+      "size": [420, 100],
+      "flags": {},
+      "order": 41,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "strings",
+          "type": "STRING",
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [21, 22]
+        }
+      ],
+      "title": "Compile frame map",
+      "properties": {
+        "Node name for S&R": "Basic data handling: StringDataListJoin"
+      },
+      "widgets_values": [","],
+      "widgets_values_named": {
+        "sep": ","
+      }
+    },
+    {
+      "id": 35,
+      "type": "GetImagesFromBatchIndexed",
+      "pos": [1440, 680],
+      "size": [420, 180],
+      "flags": {},
+      "order": 42,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 20
+        },
+        {
+          "name": "indexes",
+          "type": "STRING",
+          "widget": {
+            "name": "indexes"
+          },
+          "link": 21
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [30, 34]
+        }
+      ],
+      "title": "04 \u00b7 Retime RGB driver (nearest frame)",
+      "properties": {
+        "Node name for S&R": "GetImagesFromBatchIndexed"
+      },
+      "widgets_values": ["0, 1, 2"],
+      "widgets_values_named": {
+        "indexes": "0, 1, 2"
+      }
+    },
+    {
+      "id": 36,
+      "type": "PreviewAny",
+      "pos": [1440, 930],
+      "size": [880, 220],
+      "flags": {},
+      "order": 43,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "title": "Inspect compiled source frame map",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 37,
+      "type": "StringFormat",
+      "pos": [720, 650],
+      "size": [640, 240],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "shape": 7,
+          "type": "*",
+          "link": 23
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "*",
+          "link": 24
+        },
+        {
+          "name": "values.c",
+          "shape": 7,
+          "type": "*",
+          "link": 25
+        },
+        {
+          "name": "values.d",
+          "shape": 7,
+          "type": "*",
+          "link": 26
+        },
+        {
+          "name": "values.e",
+          "shape": 7,
+          "type": "*",
+          "link": 27
+        },
+        {
+          "name": "values.f",
+          "shape": 7,
+          "type": "*",
+          "link": 28
+        },
+        {
+          "name": "values.g",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [29]
+        }
+      ],
+      "title": "Score plan \u00b7 source \u2192 target frames (16 fps)",
+      "properties": {
+        "Node name for S&R": "StringFormat"
+      },
+      "widgets_values": [
+        "Pin 1: {a} \u2192 {d}\nPin 2: {b} \u2192 {e}\nPin 3: {c} \u2192 {f}\n81 frames @ 16 fps; 0.75\u20131.5x; manual landmarks"
+      ],
+      "widgets_values_named": {
+        "f_string": "Pin 1: {a} \u2192 {d}\nPin 2: {b} \u2192 {e}\nPin 3: {c} \u2192 {f}\n81 frames @ 16 fps; 0.75\u20131.5x; manual landmarks"
+      }
+    },
+    {
+      "id": 38,
+      "type": "PreviewAny",
+      "pos": [720, 950],
+      "size": [640, 200],
+      "flags": {},
+      "order": 30,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 29
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "title": "Read score plan",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 40,
+      "type": "CreateVideo",
+      "pos": [2400, 100],
+      "size": [420, 220],
+      "flags": {},
+      "order": 44,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 30
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 31
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [32]
+        }
+      ],
+      "title": "Preview \u00b7 retimed driver + target beat",
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [16, "auto", "sRGB", "none"],
+      "widgets_values_named": {
+        "fps": 16,
+        "bit_depth": "auto",
+        "color_space": "sRGB",
+        "codec": "none"
+      }
+    },
+    {
+      "id": 41,
+      "type": "SaveVideo",
+      "pos": [2400, 400],
+      "size": [420, 600],
+      "flags": {},
+      "order": 47,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 32
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": []
+        }
+      ],
+      "title": "Preview \u00b7 retimed driver + target beat \u00b7 MP4",
+      "properties": {},
+      "widgets_values": ["motion-score/driver", "mp4", "h264", "auto", "h264", "auto"],
+      "widgets_values_named": {
+        "filename_prefix": "motion-score/driver",
+        "format": "mp4",
+        "format.codec": "h264",
+        "format.codec.encoding": "auto",
+        "codec": "h264",
+        "codec.encoding": "auto"
+      }
+    },
+    {
+      "id": 42,
+      "type": "ImageConcatMulti",
+      "pos": [2860, 100],
+      "size": [420, 220],
+      "flags": {},
+      "order": 45,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "type": "IMAGE,MASK",
+          "link": 33
+        },
+        {
+          "name": "image_2",
+          "shape": 7,
+          "type": "IMAGE,MASK",
+          "link": 34
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "IMAGE",
+          "links": [35]
+        }
+      ],
+      "title": "Left: original \u00b7 Right: retimed",
+      "properties": {},
+      "widgets_values": [2, "right", true, null],
+      "widgets_values_named": {
+        "inputcount": 2,
+        "direction": "right",
+        "match_image_size": true,
+        "Update inputs": null
+      }
+    },
+    {
+      "id": 43,
+      "type": "CreateVideo",
+      "pos": [2860, 400],
+      "size": [420, 220],
+      "flags": {},
+      "order": 48,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 35
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 36
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [37]
+        }
+      ],
+      "title": "A/B \u00b7 original vs retimed driver",
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [16, "auto", "sRGB", "none"],
+      "widgets_values_named": {
+        "fps": 16,
+        "bit_depth": "auto",
+        "color_space": "sRGB",
+        "codec": "none"
+      }
+    },
+    {
+      "id": 44,
+      "type": "SaveVideo",
+      "pos": [2860, 700],
+      "size": [420, 460],
+      "flags": {},
+      "order": 50,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 37
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": []
+        }
+      ],
+      "title": "A/B \u00b7 original vs retimed driver \u00b7 MP4",
+      "properties": {},
+      "widgets_values": ["motion-score/before-after", "mp4", "h264", "auto", "h264", "auto"],
+      "widgets_values_named": {
+        "filename_prefix": "motion-score/before-after",
+        "format": "mp4",
+        "format.codec": "h264",
+        "format.codec.encoding": "auto",
+        "codec": "h264",
+        "codec.encoding": "auto"
+      }
+    },
+    {
+      "id": 900,
+      "type": "MarkdownNote",
+      "pos": [0, 70],
+      "size": [640, 630],
+      "flags": {},
+      "order": 100,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Motion Score \u00b7 START HERE",
+      "properties": {},
+      "widgets_values": [
+        "# Motion Score \u2014 timing preview\n\nEdit SOURCE/TARGET frame numbers and Run.\n\nThis workflow only retimes the driving video and exports the before/after comparison.\n\nThe source is 81 frames at 16 fps. Pins are ordered interior frame numbers; local speed must stay between 0.75 and 1.5x. Invalid pins fail at VALIDATE.\n\n120 BPM accents at 2, 3 and 4 s correspond to target frames 32, 48 and 64.\n\nFor character generation and manual audit, open Motion Score - PoC in Workflows."
+      ]
+    }
+  ],
+  "links": [
+    [1, 1, 0, 2, 0, "VIDEO"],
+    [2, 2, 0, 3, 0, "IMAGE"],
+    [3, 10, 0, 30, 0, "INT"],
+    [4, 11, 0, 30, 1, "INT"],
+    [5, 12, 0, 30, 2, "INT"],
+    [6, 20, 0, 30, 3, "INT"],
+    [7, 21, 0, 30, 4, "INT"],
+    [8, 22, 0, 30, 5, "INT"],
+    [9, 3, 2, 30, 6, "INT"],
+    [10, 30, 1, 31, 0, "INT"],
+    [11, 31, 0, 32, 0, "INT"],
+    [12, 10, 0, 32, 1, "INT"],
+    [13, 11, 0, 32, 2, "INT"],
+    [14, 12, 0, 32, 3, "INT"],
+    [15, 20, 0, 32, 4, "INT"],
+    [16, 21, 0, 32, 5, "INT"],
+    [17, 22, 0, 32, 6, "INT"],
+    [18, 32, 1, 33, 0, "INT"],
+    [19, 33, 0, 34, 0, "STRING"],
+    [20, 2, 0, 35, 0, "IMAGE"],
+    [21, 34, 0, 35, 1, "STRING"],
+    [22, 34, 0, 36, 0, "STRING"],
+    [23, 10, 0, 37, 0, "INT"],
+    [24, 11, 0, 37, 1, "INT"],
+    [25, 12, 0, 37, 2, "INT"],
+    [26, 20, 0, 37, 3, "INT"],
+    [27, 21, 0, 37, 4, "INT"],
+    [28, 22, 0, 37, 5, "INT"],
+    [29, 37, 0, 38, 0, "STRING"],
+    [30, 35, 0, 40, 0, "IMAGE"],
+    [31, 4, 0, 40, 1, "AUDIO"],
+    [32, 40, 0, 41, 0, "VIDEO"],
+    [33, 2, 0, 42, 0, "IMAGE"],
+    [34, 35, 0, 42, 1, "IMAGE"],
+    [35, 42, 0, 43, 0, "IMAGE"],
+    [36, 4, 0, 43, 1, "AUDIO"],
+    [37, 43, 0, 44, 0, "VIDEO"]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "01 \u00b7 Inputs and guide",
+      "bounding": [-40, 0, 740, 1880],
+      "color": "#344b60",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "02 \u00b7 Pin the score \u00b7 frames at 16 fps",
+      "bounding": [690, 0, 700, 1200],
+      "color": "#3e6d58",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "03 \u00b7 Validate and retime RGB",
+      "bounding": [1400, 0, 960, 1200],
+      "color": "#3e6d58",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "04 \u00b7 Inspect the timing edit",
+      "bounding": [2360, 0, 960, 1200],
+      "color": "#6b5938",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.4,
+      "offset": [100, 100]
+    },
+    "frontendVersion": "1.57.0",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

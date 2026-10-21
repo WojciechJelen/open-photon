@@ -10,7 +10,7 @@ Generation `301917e1-7798-4a03-af37-049bc82faee2` completed through the producti
 - [Browser observation](playback.png): Chrome compare playback reached the end at 5.016584 seconds, `readyState: 4`, no media error, result unmuted. Frames show the reference character performing the driving motion.
 - [Audio comparison](audio-comparison.json): source and result decoded to mono 16 kHz float PCM, 80,620 aligned samples, normalized correlation 0.995162 and signal-to-error ratio 20.152 dB. This verifies the source audio survived AAC re-encoding; the compressed audio packets are not identical. No separate claim of a human listening test is made.
 
-Inputs: `src/features/genjutsu/samples/motions/street-dance.mp4` and `fixtures/wan/reference.png`, seed 20261021. Their hashes are in the recipe. The optional non-LoRA base variant was not benchmarked.
+Inputs: `src/features/motionTransfer/samples/motions/street-dance.mp4` and `fixtures/wan/reference.png`, seed 20261021. Their hashes are in the recipe. The optional non-LoRA base variant was not benchmarked.
 
 The official Runpod template was `wgd3p4n4o6`, image `runpod/comfyui:1.3.3-comfyuiv0.30.0-cuda13.0`, one RTX 5090 in EU-RO-1, 150 GB container disk and 100 GB persistent volume. Its original ComfyUI 0.30.0 lacked five required core nodes; updating the core and its dependencies made the preflight pass. See [reproduction commands](../selfhost.md).
 

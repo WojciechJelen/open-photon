@@ -8,7 +8,7 @@ ALTER TABLE generations DROP COLUMN client_hash;
 -- assets.license_ref stays, empty: reserved for Step 9.1 (the license file of each sample).
 
 -- When `finalize` last failed for the row; the next attempt waits a little longer each time, and
--- the third failure fails the row (`finalize_failed`, src/features/genjutsu/server/finalize.ts).
+-- the third failure fails the row (`finalize_failed`, src/features/motionTransfer/server/finalize.ts).
 ALTER TABLE generations ADD COLUMN finalize_attempted_at TEXT;
 
 -- `motion_id` names the sample motion a generation's driving clip is (`createGeneration`), for the
@@ -19,7 +19,7 @@ UPDATE generations SET motion_id = (
 )
 WHERE motion_id IS NULL;
 
--- `isSharedAsset` (src/features/genjutsu/server/share.ts) runs for every public media request: one index per way a
+-- `isSharedAsset` (src/features/motionTransfer/server/share.ts) runs for every public media request: one index per way a
 -- done, shared generation shows an asset.
 CREATE INDEX generations_shared_final ON generations (final_asset_id)
 WHERE status = 'done' AND share_slug IS NOT NULL;

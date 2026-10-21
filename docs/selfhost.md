@@ -49,8 +49,8 @@ Start the template's ComfyUI on loopback port 8188, then run from this repositor
 mkdir -p work
 curl -fsS http://127.0.0.1:8188/object_info -o work/object-info.json
 node scripts/check-models-lock.mjs models.lock \
-  src/features/genjutsu/workflows/motion-transfer.v1.json work/object-info.json
-node scripts/check-open-weights.mjs src/features/genjutsu/workflows \
+  src/features/motionTransfer/workflows/motion-transfer.v1.json work/object-info.json
+node scripts/check-open-weights.mjs src/features/motionTransfer/workflows \
   --definitions work/object-info.json
 
 python3 -m venv /opt/open-photon-proxy

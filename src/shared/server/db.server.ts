@@ -2,7 +2,7 @@ import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { seedSamples } from "../../features/genjutsu/server/samples.ts";
+import { seedSamples } from "../../features/motionTransfer/server/samples.ts";
 import { databasePath } from "./paths.ts";
 
 // Resolved from the working directory, like the workflows; the Dockerfile copies it next to `.output`.

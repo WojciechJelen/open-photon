@@ -1,0 +1,33 @@
+{
+  "id": "eb4247cd-4ac8-46fa-b210-ee570ba4f998",
+  "status": "succeeded",
+  "error": null,
+  "startedAt": "2026-10-21T00:11:32.871Z",
+  "completedAt": "2026-10-21T00:11:49.748Z",
+  "metrics": {
+    "execution_ms": 16877,
+    "queue_ms": 2801
+  },
+  "outputs": [
+    {
+      "nodeId": "41",
+      "name": "motion-score/driver_00001_.mp4",
+      "contentType": "video/mp4"
+    },
+    {
+      "nodeId": "44",
+      "name": "motion-score/before-after_00001_.mp4",
+      "contentType": "video/mp4"
+    },
+    {
+      "nodeId": "61",
+      "name": "motion-score/character_00001_.mp4",
+      "contentType": "video/mp4"
+    },
+    {
+      "nodeId": "64",
+      "name": "motion-score/driver-character_00001_.mp4",
+      "contentType": "video/mp4"
+    }
+  ]
+}

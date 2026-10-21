@@ -6,9 +6,9 @@ import {
   buildGraph,
   type WorkflowGraph,
   workflowGraphSchema,
-} from "../src/features/genjutsu/workflows/build-graph.ts";
-import { motionTransferParamsSchema } from "../src/features/genjutsu/workflows/params.ts";
-import { motionTransferWorkflow } from "../src/features/genjutsu/workflows/registry.ts";
+} from "../src/features/motionTransfer/workflows/build-graph.ts";
+import { motionTransferParamsSchema } from "../src/features/motionTransfer/workflows/params.ts";
+import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
 
 const { graph: template, inputsMap } = motionTransferWorkflow;
 

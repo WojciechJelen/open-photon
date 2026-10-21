@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { rerun, startChild } from "#/features/genjutsu/server/generate";
+import { rerun, startChild } from "#/features/motionTransfer/server/generate";
 
 export const Route = createFileRoute("/api/generations/$generationId/rerun")({
   server: {

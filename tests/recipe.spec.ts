@@ -4,12 +4,12 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { z } from "zod";
 
-import { motionTransferModels } from "../src/features/genjutsu/workflows/registry.ts";
+import { motionTransferModels } from "../src/features/motionTransfer/workflows/registry.ts";
 import { count, open, seededResult } from "./e2e/session.ts";
 
-/** The SHA-256 of the workflow file, as `src/features/genjutsu/workflows/README.md` records it. */
+/** The SHA-256 of the workflow file, as `src/features/motionTransfer/workflows/README.md` records it. */
 const workflowSha256 = createHash("sha256")
-  .update(readFileSync("src/features/genjutsu/workflows/motion-transfer.v1.json"))
+  .update(readFileSync("src/features/motionTransfer/workflows/motion-transfer.v1.json"))
   .digest("hex");
 
 test("the recipe panel is collapsed until opened, on the result and on the share page", async ({

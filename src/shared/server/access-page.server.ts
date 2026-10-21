@@ -45,7 +45,7 @@ export function accessPage(
       <input id="code" name="code" type="password" autocomplete="one-time-code" required maxlength="256">
       <button type="submit">Continue</button>
     </form>
-    <small>Access lasts 12 hours. Ask the owner for a code. <a href="/genjutsu">Browse the samples</a></small>
+    <small>Access lasts 12 hours. Ask the owner for a code. <a href="/motionTransfer">Browse the samples</a></small>
   </main>
 </body>
 </html>`;
