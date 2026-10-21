@@ -10,7 +10,7 @@ npx shadcn@latest add button
 
 - `src/features/<feature>/`: everything one feature owns: `components/`, `server/`,
   contracts (zod schemas and types), client helpers, server functions, and its data files
-  (`genjutsu` keeps `workflows/` and `samples/` here too).
+  (`motionTransfer` keeps `workflows/` and `samples/` here too).
 - `src/shared/`: code no single feature owns: `components/`, `server/` (access, database,
   migrations, asset store, uploads, media serving), and client helpers.
 - `src/components/ui/`: shadcn primitives only.

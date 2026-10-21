@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { starters, toggleStarter } from "../src/features/genjutsu/look.ts";
+import { starters, toggleStarter } from "../src/features/motionTransfer/look.ts";
 
 const [neon, studio] = starters.map(({ phrase }) => phrase);
 

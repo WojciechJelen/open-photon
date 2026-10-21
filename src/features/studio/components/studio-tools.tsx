@@ -11,7 +11,7 @@ import {
 
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import type { PickableCharacter, SampleMotion } from "#/features/genjutsu/contracts";
+import type { PickableCharacter, SampleMotion } from "#/features/motionTransfer/contracts";
 import type { SampleTake } from "#/features/studio/components/studio-hero";
 import { Hud, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
@@ -37,7 +37,7 @@ function Frame({ highlight, seconds, src }: { highlight?: boolean; seconds: numb
 }
 
 /**
- * The filmstrip on the Genjutsu card: the sample motion stopped at three moments and, below, the
+ * The filmstrip on the Motion Transfer card: the sample motion stopped at three moments and, below, the
  * pre-rendered sample take at the same moments, or (before one is rendered) the sample characters
  * that can perform it.
  */
@@ -98,7 +98,7 @@ const upcoming = [
   {
     icon: <UserIcon />,
     model: "FLUX 3 Klein",
-    text: "Describe a character and get a photo of them, ready to drop into Genjutsu.",
+    text: "Describe a character and get a photo of them, ready to drop into Motion Transfer.",
     title: "Character from words",
   },
   {
@@ -116,7 +116,7 @@ const upcoming = [
 ];
 
 /**
- * The tool grid: Genjutsu, live and featured (the whole card opens it), and the tools still to
+ * The tool grid: Motion Transfer, live and featured (the whole card opens it), and the tools still to
  * come, marked Soon and not interactive.
  */
 export function StudioTools({
@@ -152,7 +152,7 @@ export function StudioTools({
 
       <Link
         className="group flex flex-col overflow-hidden rounded-3xl border bg-linear-to-b from-foreground/4 to-foreground/1 transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring lg:flex-row"
-        to="/genjutsu"
+        to="/motionTransfer"
       >
         <div className="relative p-6 sm:p-7 lg:w-3/5">
           <Filmstrip characters={characters} motion={motions[0]} take={take} />
@@ -166,7 +166,7 @@ export function StudioTools({
             <Badge>Motion transfer</Badge>
           </div>
           <h3 className="font-display text-4xl leading-none font-bold tracking-display sm:text-5xl">
-            Genjutsu
+            Motion Transfer
           </h3>
           <p className="text-base text-soft-foreground">
             Pick a move, add a photo of a character, and watch them perform it. Reshoot it from
@@ -190,7 +190,7 @@ export function StudioTools({
           <div className="flex flex-wrap items-center gap-4 pt-2">
             <Button asChild size="lg" variant="photon">
               <span>
-                Open Genjutsu
+                Open Motion Transfer
                 <ArrowRightIcon />
               </span>
             </Button>

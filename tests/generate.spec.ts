@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import { generationSchema } from "../src/features/genjutsu/contracts.ts";
+import { generationSchema } from "../src/features/motionTransfer/contracts.ts";
 import {
   addQueuedGeneration,
   count,
@@ -65,7 +65,7 @@ const status = (page: Page) => page.getByRole("status", { name: "Generation stat
 const directStep = () => {
   const { characterId, sourceAssetId } = seededResult();
 
-  return `/genjutsu?step=direct&motion=${sourceAssetId}&character=${characterId}`;
+  return `/motionTransfer?step=direct&motion=${sourceAssetId}&character=${characterId}`;
 };
 
 test("an invalid form shows why and never calls generate", async ({ page }) => {
@@ -103,7 +103,7 @@ test("an invalid form shows why and never calls generate", async ({ page }) => {
 test("with Comfy at a dead port, Generate opens a failed generation with the reason, and Retry opens its failed child", async ({
   page,
 }) => {
-  await open(page, "/genjutsu");
+  await open(page, "/motionTransfer");
   await page.getByRole("button", { name: "Street dance" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Placeholder blue" }).click();
@@ -139,7 +139,7 @@ test("with Comfy at a dead port, Generate opens a failed generation with the rea
   await page.getByRole("link", { name: "Change the shot" }).click();
   await expect(page).toHaveURL(
     (url) =>
-      url.pathname === "/genjutsu" &&
+      url.pathname === "/motionTransfer" &&
       url.searchParams.get("step") === "direct" &&
       url.searchParams.get("motion") === motion &&
       url.searchParams.get("character") === character,
@@ -152,7 +152,7 @@ test("Change the shot on a failed take opens Direct with its angle, look and see
 }) => {
   const look = "Red jacket.\n\nRain  on glass.";
 
-  await open(page, "/genjutsu");
+  await open(page, "/motionTransfer");
   await page.getByRole("button", { name: "Street dance" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Placeholder green" }).click();

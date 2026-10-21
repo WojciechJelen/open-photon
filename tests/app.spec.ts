@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { accessCode, open, seededResult } from "./e2e/session.ts";
 
-test("the studio home features Genjutsu, marks the tools to come Soon, and links nowhere for them", async ({
+test("the studio home features Motion Transfer, marks the tools to come Soon, and links nowhere for them", async ({
   page,
 }) => {
   await open(page, "/");
@@ -11,8 +11,8 @@ test("the studio home features Genjutsu, marks the tools to come Soon, and links
   const tools = page.locator("#tools");
 
   // The featured card is one link into the wizard.
-  await tools.getByRole("link", { name: /Genjutsu/ }).click();
-  await expect(page).toHaveURL(/\/genjutsu/);
+  await tools.getByRole("link", { name: /Motion Transfer/ }).click();
+  await expect(page).toHaveURL(/\/motionTransfer/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pick a motion");
 
   await open(page, "/");
@@ -39,7 +39,7 @@ test("no page scrolls sideways, on a phone or a desktop", async ({ page }) => {
   for (const width of [390, 1440]) {
     await page.setViewportSize({ height: 900, width });
 
-    for (const path of ["/", "/genjutsu", `/g/${id}`, `/r/${shareSlug}`]) {
+    for (const path of ["/", "/motionTransfer", `/g/${id}`, `/r/${shareSlug}`]) {
       await open(page, path);
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),

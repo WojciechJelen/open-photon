@@ -4,11 +4,12 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { z } from "zod";
 
+import { motionTransferModels } from "../src/features/motionTransfer/workflows/registry.ts";
 import { count, open, seededResult } from "./e2e/session.ts";
 
-/** The SHA-256 of the workflow file, as `src/features/genjutsu/workflows/README.md` records it. */
+/** The SHA-256 of the workflow file, as `src/features/motionTransfer/workflows/README.md` records it. */
 const workflowSha256 = createHash("sha256")
-  .update(readFileSync("src/features/genjutsu/workflows/motion-transfer.v1.json"))
+  .update(readFileSync("src/features/motionTransfer/workflows/motion-transfer.v1.json"))
   .digest("hex");
 
 test("the recipe panel is collapsed until opened, on the result and on the share page", async ({
@@ -20,6 +21,14 @@ test("the recipe panel is collapsed until opened, on the result and on the share
   const recipe = await request.get(`/api/generations/${id}/recipe.json`);
 
   expect(recipe.status()).toBe(200);
+
+  const recorded = z
+    .object({
+      models: z.array(z.object({ file: z.string(), license: z.string(), sha256: z.string() })),
+    })
+    .parse(await recipe.json());
+
+  expect(recorded.models).toEqual(motionTransferModels);
   expect(
     z.object({ workflow: z.object({ sha256: z.string() }) }).parse(await recipe.json()).workflow
       .sha256,
@@ -36,6 +45,21 @@ test("the recipe panel is collapsed until opened, on the result and on the share
     await expect(recipeToggle).toHaveAttribute("aria-expanded", "false");
     await recipeToggle.click();
     await expect(details).toBeVisible();
+
+    for (const model of motionTransferModels) {
+      await expect(page.getByRole("definition").filter({ hasText: model.sha256 })).toBeVisible();
+    }
+
+    if (path.startsWith("/r/")) {
+      await expect(
+        page.getByRole("link", { name: "Open weights only · CI check" }),
+      ).toHaveAttribute("href", /actions\/workflows\/ci.yml$/);
+      await expect(page.getByRole("link", { name: "Model sources and hashes" })).toHaveAttribute(
+        "href",
+        /blob\/main\/models.lock$/,
+      );
+    }
+
     await recipeToggle.click();
     await expect(details).toBeHidden();
   }

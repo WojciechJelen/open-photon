@@ -6,19 +6,19 @@ import test from "node:test";
 
 import { z } from "zod";
 
-import { generationEventSchema } from "../src/features/genjutsu/contracts.ts";
-import type { Provider, ProviderJob } from "../src/features/genjutsu/server/comfy.ts";
+import { generationEventSchema } from "../src/features/motionTransfer/contracts.ts";
+import type { Provider, ProviderJob } from "../src/features/motionTransfer/server/comfy.ts";
 import {
   streamDiagnostics,
   streamGeneration,
-} from "../src/features/genjutsu/server/generation-stream.ts";
+} from "../src/features/motionTransfer/server/generation-stream.ts";
 import {
   createGeneration,
   findGeneration,
   markQueued,
   transition,
-} from "../src/features/genjutsu/server/generations.ts";
-import type { Recipe } from "../src/features/genjutsu/server/recipe.ts";
+} from "../src/features/motionTransfer/server/generations.ts";
+import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
 
 let seed = 0;
 

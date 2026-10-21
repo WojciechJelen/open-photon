@@ -1,0 +1,41 @@
+{
+  "generation_id": "301917e1-7798-4a03-af37-049bc82faee2",
+  "target": "selfhost",
+  "gpu": "NVIDIA GeForce RTX 5090",
+  "variant": "int8 base + lightx2v distillation LoRA, 6 steps",
+  "resolution": "480x848",
+  "clip_seconds": 5.016584,
+  "submitted_to_done_seconds": 158.717,
+  "peak_vram_mib": 31066,
+  "vram_samples": 160,
+  "workflow_sha256": "ef8b31e822968f27fd80409d7158a6d7c2ca46cf96b8814427ad15b180a3b1a9",
+  "models": [
+    {
+      "file": "wan_animate_2_int8_convrot.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "0580ecdd65e47e97c30df9670d13a6c4a131d26de5a1faf2ccc78392d5167584"
+    },
+    {
+      "file": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "85c4a61c30e0497aa44b91d93a893b624708461a56fe5485183b28fa07e2dfb3"
+    },
+    {
+      "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68"
+    },
+    {
+      "file": "clip_vision_h.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "64a7ef761bfccbadbaa3da77366aac4185a6c58fa5de5f589b42a65bcc21f161"
+    },
+    {
+      "file": "Wan2_1_VAE_bf16.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "1ab9a32cc2c740f6e39d80d367ce5dcc28db8c71b79b28670546b8973e9d75f9"
+    }
+  ],
+  "output_sha256": "aff2d9c9d8e077fcc9b185ff7a3d5f53dde305530d0270c3b2ff52d5619910a4",
+  "audio": "Present and decodable; compare playback with the source clip before marking the proof complete"
+}

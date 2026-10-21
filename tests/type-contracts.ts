@@ -1,8 +1,8 @@
 import { linkOptions } from "@tanstack/react-router";
 
 import type { Route as Result } from "../src/routes/g.$generationId";
-import type { Route as Wizard } from "../src/routes/genjutsu";
 import type { Route as Home } from "../src/routes/index";
+import type { Route as Wizard } from "../src/routes/motionTransfer";
 
 export function verifyContracts(
   result: (typeof Result)["types"]["loaderData"],
@@ -26,14 +26,14 @@ export function verifyContracts(
   const link = linkOptions({ to: "/" });
   // The studio home still takes the picks an old link names, to send them on to the wizard.
   const legacy = linkOptions({ search: { motion: id }, to: "/" });
-  const picked = linkOptions({ search: { motion: id, step: "character" }, to: "/genjutsu" });
+  const picked = linkOptions({ search: { motion: id, step: "character" }, to: "/motionTransfer" });
 
   // @ts-expect-error A path outside the route tree must fail compilation.
   linkOptions({ to: "/nope" });
   // @ts-expect-error A search param outside the schema must fail compilation.
-  linkOptions({ search: { nope: id }, to: "/genjutsu" });
+  linkOptions({ search: { nope: id }, to: "/motionTransfer" });
   // @ts-expect-error A step outside the wizard's must fail compilation.
-  linkOptions({ search: { step: "render" }, to: "/genjutsu" });
+  linkOptions({ search: { step: "render" }, to: "/motionTransfer" });
   // @ts-expect-error The loader data of `/g/:id` must not degrade to any.
   const missing: string = result.nonexistentColumn;
   // @ts-expect-error The loader data must not degrade to any.

@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { copyFile, stat } from "node:fs/promises";
 import { test } from "node:test";
 
-import { createGeneration, markQueued } from "../src/features/genjutsu/server/generations.ts";
+import { createGeneration, markQueued } from "../src/features/motionTransfer/server/generations.ts";
 import {
   createAccessGuard,
   readSession,
@@ -220,14 +220,17 @@ test("server functions need a session unless they are on the public list", async
   assert.equal(unlisted?.status, 401);
   assert.equal((await unlisted?.json())?.reason, "access_required");
   // A public name in another file is another function.
-  assert.equal(call("src/features/genjutsu/selection.functions.ts", "loadShare")?.status, 401);
+  assert.equal(
+    call("src/features/motionTransfer/selection.functions.ts", "loadShare")?.status,
+    401,
+  );
   assert.equal(call("src/lib/admin.functions.ts", "loadEverything", { Cookie: cookie }), undefined);
 
   for (const [filename, name] of [
-    ["src/features/genjutsu/selection.functions.ts", "loadSelection"],
-    ["src/features/genjutsu/selection.functions.ts", "loadStudio"],
-    ["src/features/genjutsu/generate.functions.ts", "loadShare"],
-    ["src/features/genjutsu/generate.functions.ts", "loadResult"],
+    ["src/features/motionTransfer/selection.functions.ts", "loadSelection"],
+    ["src/features/motionTransfer/selection.functions.ts", "loadStudio"],
+    ["src/features/motionTransfer/generate.functions.ts", "loadShare"],
+    ["src/features/motionTransfer/generate.functions.ts", "loadResult"],
   ] as const) {
     assert.equal(call(filename, name), undefined);
   }
@@ -337,8 +340,8 @@ test("without a session: the picker, samples, share pages and pre-rendered sampl
   const open = [
     ["GET", "/"],
     ["GET", "/?motion=x"],
-    ["GET", "/genjutsu"],
-    ["GET", "/genjutsu?step=direct&motion=x"],
+    ["GET", "/motionTransfer"],
+    ["GET", "/motionTransfer?step=direct&motion=x"],
     ["GET", "/r/0123456789abcdef"],
     ["GET", `/media/${sampleImage}.png`],
     ["HEAD", `/media/${sampleImage}.png`],
@@ -351,7 +354,7 @@ test("without a session: the picker, samples, share pages and pre-rendered sampl
     ["POST", `/api/generations/${private_}/rerun`],
     ["POST", "/_serverFn/example"],
     // Aliases the router sends to the same routes: any letter case, a trailing slash.
-    ["GET", "/Genjutsu/"],
+    ["GET", "/MotionTransfer/"],
     ["GET", "/R/0123456789abcdef/"],
     ["GET", `/Media/${sampleImage}.png/`],
     ["GET", `/API/Generations/${sample}/Events/`],
@@ -364,8 +367,8 @@ test("without a session: the picker, samples, share pages and pre-rendered sampl
     ["POST", `/api/generations/${private_}/retry`],
     ["POST", `/api/generations/${sample}/retry`],
     ["POST", "/"],
-    ["POST", "/genjutsu"],
-    ["GET", "/genjutsu/x"],
+    ["POST", "/motionTransfer"],
+    ["GET", "/motionTransfer/x"],
     ["GET", `/media/${upload.id}.mp4`],
     ["GET", `/media/${crypto.randomUUID()}.mp4`],
     ["GET", `/api/generations/${private_}`],

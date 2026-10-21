@@ -6,9 +6,12 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { copyFile, stat, writeFile } from "node:fs/promises";
 
-import { providerTarget } from "../../src/features/genjutsu/server/comfy.ts";
-import { probe } from "../../src/features/genjutsu/server/media/probe.ts";
-import { motionTransferWorkflow } from "../../src/features/genjutsu/workflows/registry.ts";
+import { providerTarget } from "../../src/features/motionTransfer/server/comfy.ts";
+import { probe } from "../../src/features/motionTransfer/server/media/probe.ts";
+import {
+  motionTransferModels,
+  motionTransferWorkflow,
+} from "../../src/features/motionTransfer/workflows/registry.ts";
 import { accessCodePath, QUEUED_JOB_ID, SEEDED_JOB_ID } from "./session.ts";
 
 const path = process.env.DATABASE_PATH;
@@ -22,9 +25,9 @@ if (!path || existsSync(path)) {
 const { hashFile, incomingPath, storeAsset } = await import("../../src/shared/server/assets.ts");
 
 const { createGeneration, markQueued, transition } =
-  await import("../../src/features/genjutsu/server/generations.ts");
+  await import("../../src/features/motionTransfer/server/generations.ts");
 
-const { readSelection } = await import("../../src/features/genjutsu/server/selection.ts");
+const { readSelection } = await import("../../src/features/motionTransfer/server/selection.ts");
 
 /** Stores a committed fixture as an asset, the way `finalize` stores a result and its poster. */
 async function storeFixture(
@@ -89,7 +92,7 @@ const seedGeneration = (seed: number, providerJobId: string) => {
     characterId: character.id,
     recipe: {
       inputs: { driving_video_sha256: clip.sha256, reference_image_sha256: character.image.sha256 },
-      models: [],
+      models: motionTransferModels,
       params: { fragment_length: 81, height: 848, prompt: "e2e seeded result", seed, width: 480 },
       target: providerTarget(),
       workflow: { id: "motion-transfer", sha256: motionTransferWorkflow.sha256, version: 1 },

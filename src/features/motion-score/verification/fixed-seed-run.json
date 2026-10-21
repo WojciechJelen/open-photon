@@ -1,0 +1,10 @@
+{
+  "id": "376d1b55-19d7-4818-bf3f-b6217e445998",
+  "status": "completed",
+  "audit": {
+    "text": [
+      "UNMEASURED — inspect generated video; enter three observed event frames in OBSERVED controls. -1 means unknown."
+    ]
+  },
+  "video_output_nodes": ["41", "44", "61", "64"]
+}

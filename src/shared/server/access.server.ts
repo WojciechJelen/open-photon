@@ -2,7 +2,10 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { z } from "zod";
 
-import { isPublicRequest, publicServerFns } from "../../features/genjutsu/server/public-access.ts";
+import {
+  isPublicRequest,
+  publicServerFns,
+} from "../../features/motionTransfer/server/public-access.ts";
 import { findAccessCode, findAccessCodeById } from "./access-codes.ts";
 import { accessPage, accessUrl } from "./access-page.server.ts";
 import { requesterKeys, returnToken, takeToken } from "./limits.ts";

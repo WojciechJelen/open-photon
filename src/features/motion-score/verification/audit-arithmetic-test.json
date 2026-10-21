@@ -1,0 +1,10 @@
+{
+  "id": "fce1b894-56e1-4ec1-a9af-d9a06e651fd7",
+  "status": "completed",
+  "synthetic_observations": [32, 49, 62],
+  "expected_error_ms": [0, 62.5, -125],
+  "output": [
+    "MANUAL OBSERVATIONS\nError ms: 0.0, 62.5, -125.0\nTolerance target: ±125 ms. Inspect appearance separately."
+  ],
+  "note": "Synthetic test values, not observations of the generated character."
+}

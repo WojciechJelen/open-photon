@@ -10,7 +10,7 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 
-import { uploadVideo } from "../src/features/genjutsu/server/videos.server.ts";
+import { uploadVideo } from "../src/features/motionTransfer/server/videos.server.ts";
 import { assetsDirectory } from "../src/shared/server/paths.ts";
 import { MAX_UPLOAD_BYTES } from "../src/shared/server/upload.server.ts";
 

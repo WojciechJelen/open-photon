@@ -1,0 +1,20 @@
+{
+  "id": "6df5fa78-4daa-4883-a052-2fe78d12dc5b",
+  "status": "completed",
+  "map": {
+    "text": [
+      "0,1,2,3,4,4,5,6,7,8,9,10,10,11,12,13,14,15,16,17,18,18,19,20,21,22,23,24,24,25,26,27,28,30,31,32,34,36,37,38,40,42,43,44,46,48,49,50,52,53,54,54,55,56,56,57,58,59,60,60,61,62,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80"
+    ]
+  },
+  "plan": {
+    "text": [
+      "Pin 1: 28 → 32\nPin 2: 52 → 48\nPin 3: 64 → 64\n81 frames @ 16 fps; 0.75–1.5x; manual landmarks"
+    ]
+  },
+  "audit": {
+    "text": [
+      "UNMEASURED — inspect generated video; enter three observed event frames in OBSERVED controls. -1 means unknown."
+    ]
+  },
+  "video_output_nodes": ["41", "44", "61", "64"]
+}

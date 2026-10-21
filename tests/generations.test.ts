@@ -10,8 +10,8 @@ import {
   markQueued,
   markUnknown,
   transition,
-} from "../src/features/genjutsu/server/generations.ts";
-import { type Recipe, recipeHash } from "../src/features/genjutsu/server/recipe.ts";
+} from "../src/features/motionTransfer/server/generations.ts";
+import { type Recipe, recipeHash } from "../src/features/motionTransfer/server/recipe.ts";
 
 let seed = 0;
 

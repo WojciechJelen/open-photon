@@ -223,7 +223,7 @@
   max-width: calc(max(16rem, 100dvh - var(--stage-chrome)) * 9 / 8 + 0.75rem);
 }
 
-/* The compare player's swipe view (`src/features/genjutsu/components/compare-player.tsx`): the
+/* The compare player's swipe view (`src/features/motionTransfer/components/compare-player.tsx`): the
    result, laid over the source, shows right of `--split`. */
 @utility clip-split {
   clip-path: inset(0 0 0 var(--split, 50%));

@@ -4,12 +4,12 @@ import {
   SharePageView,
   shareDescription,
   shareTitle,
-} from "#/features/genjutsu/components/share-page";
-import { loadShare } from "#/features/genjutsu/generate.functions";
+} from "#/features/motionTransfer/components/share-page";
+import { loadShare } from "#/features/motionTransfer/generate.functions";
 import { Problem } from "#/shared/components/problem";
 
 // The public share page of a done generation. It is open without the access code
-// (`src/features/genjutsu/server/public-access.ts`), so social sites can read its Open Graph tags from the
+// (`src/features/motionTransfer/server/public-access.ts`), so social sites can read its Open Graph tags from the
 // server-rendered HTML: every URL in them is absolute (`PUBLIC_APP_URL`, else the request's origin).
 export const Route = createFileRoute("/r/$slug")({
   loader: async ({ params }) => {
@@ -59,7 +59,7 @@ export const Route = createFileRoute("/r/$slug")({
   component: SharePage,
   notFoundComponent: () => (
     <Problem title="Share page not found">
-      <Link className="underline underline-offset-3" reloadDocument to="/genjutsu">
+      <Link className="underline underline-offset-3" reloadDocument to="/motionTransfer">
         Make your own
       </Link>
     </Problem>

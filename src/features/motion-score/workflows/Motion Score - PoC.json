@@ -1,0 +1,2507 @@
+{
+  "id": "e4a2448d-f130-4761-9fbc-403110d71874",
+  "revision": 0,
+  "last_node_id": 900,
+  "last_link_id": 91,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadVideo",
+      "pos": [0, 830],
+      "size": [331.2681640625, 560],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [1]
+        }
+      ],
+      "title": "01 \u00b7 Source performance \u00b7 81 frames / 16 fps",
+      "properties": {
+        "Node name for S&R": "LoadVideo"
+      },
+      "widgets_values": [
+        "0deb5516fd3cc166ee077b765b33e85be41dffdc95d03832cdab58b06a28b144.mp4",
+        "image"
+      ],
+      "widgets_values_named": {
+        "file": "0deb5516fd3cc166ee077b765b33e85be41dffdc95d03832cdab58b06a28b144.mp4",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 2,
+      "type": "GetVideoComponents",
+      "pos": [0, 1440],
+      "size": [300, 160],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [2, 20, 33]
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "bit_depth",
+          "type": "COMBO",
+          "links": null
+        },
+        {
+          "name": "color_space",
+          "type": "COMBO",
+          "links": null
+        }
+      ],
+      "title": "Decode source RGB frames",
+      "properties": {
+        "Node name for S&R": "GetVideoComponents"
+      }
+    },
+    {
+      "id": 3,
+      "type": "GetImageSize",
+      "pos": [350, 1440],
+      "size": [280, 140],
+      "flags": {},
+      "order": 30,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "links": [9]
+        }
+      ],
+      "title": "Source frame count",
+      "properties": {
+        "Node name for S&R": "GetImageSize"
+      }
+    },
+    {
+      "id": 4,
+      "type": "LoadAudio",
+      "pos": [0, 1660],
+      "size": [630, 180],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [31, 36, 40, 45]
+        }
+      ],
+      "title": "02 \u00b7 Target soundtrack \u00b7 120 BPM / 5.0625 s",
+      "properties": {
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        "4eb2b838515ec267dd13ddb9a31f8948392cd571aec3fdaeb58d00e093ee0795.wav",
+        ""
+      ],
+      "widgets_values_named": {
+        "audio": "4eb2b838515ec267dd13ddb9a31f8948392cd571aec3fdaeb58d00e093ee0795.wav",
+        "upload": ""
+      }
+    },
+    {
+      "id": 5,
+      "type": "LoadImage",
+      "pos": [350, 830],
+      "size": [320, 560],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [70, 76]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "03 \u00b7 Character reference",
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "604eeadf00c2cf35abbbed2e7c4bf470aca30e17b72f32580388b49942e60b3f.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "604eeadf00c2cf35abbbed2e7c4bf470aca30e17b72f32580388b49942e60b3f.png",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 10,
+      "type": "PrimitiveInt",
+      "pos": [720, 100],
+      "size": [300, 110],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [3, 12, 23]
+        }
+      ],
+      "title": "SOURCE 1 \u2014 frame at 16 fps",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [28, "fixed"],
+      "widgets_values_named": {
+        "value": 28,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 11,
+      "type": "PrimitiveInt",
+      "pos": [720, 265],
+      "size": [300, 110],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [4, 13, 24]
+        }
+      ],
+      "title": "SOURCE 2 \u2014 frame at 16 fps",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [52, "fixed"],
+      "widgets_values_named": {
+        "value": 52,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 12,
+      "type": "PrimitiveInt",
+      "pos": [720, 430],
+      "size": [300, 110],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [5, 14, 25]
+        }
+      ],
+      "title": "SOURCE 3 \u2014 frame at 16 fps",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [64, "fixed"],
+      "widgets_values_named": {
+        "value": 64,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 20,
+      "type": "PrimitiveInt",
+      "pos": [1060, 100],
+      "size": [300, 110],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [6, 15, 26, 51]
+        }
+      ],
+      "title": "TARGET 1 \u2014 frame at 16 fps",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [32, "fixed"],
+      "widgets_values_named": {
+        "value": 32,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 21,
+      "type": "PrimitiveInt",
+      "pos": [1060, 265],
+      "size": [300, 110],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [7, 16, 27, 53]
+        }
+      ],
+      "title": "TARGET 2 \u2014 frame at 16 fps",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [48, "fixed"],
+      "widgets_values_named": {
+        "value": 48,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 22,
+      "type": "PrimitiveInt",
+      "pos": [1060, 430],
+      "size": [300, 110],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [8, 17, 28, 55]
+        }
+      ],
+      "title": "TARGET 3 \u2014 frame at 16 fps",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [64, "fixed"],
+      "widgets_values_named": {
+        "value": 64,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 30,
+      "type": "ComfyMathExpression",
+      "pos": [1440, 100],
+      "size": [420, 300],
+      "flags": {},
+      "order": 34,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 3
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 4
+        },
+        {
+          "name": "values.c",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 5
+        },
+        {
+          "name": "values.d",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 6
+        },
+        {
+          "name": "values.e",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 7
+        },
+        {
+          "name": "values.f",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 8
+        },
+        {
+          "name": "values.g",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 9
+        },
+        {
+          "name": "values.h",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [10]
+        },
+        {
+          "name": "BOOL",
+          "type": "BOOLEAN",
+          "links": null
+        }
+      ],
+      "title": "VALIDATE \u00b7 ordered pins / 0.75\u20131.5x / 81 frames",
+      "properties": {
+        "Node name for S&R": "ComfyMathExpression"
+      },
+      "widgets_values": [
+        "81 if (g == 81 and 0 < a < b < c < 80 and 0 < d < e < f < 80 and 0.75 <= a/d <= 1.5 and 0.75 <= (b-a)/(e-d) <= 1.5 and 0.75 <= (c-b)/(f-e) <= 1.5 and 0.75 <= (80-c)/(80-f) <= 1.5) else 1/0"
+      ],
+      "widgets_values_named": {
+        "expression": "81 if (g == 81 and 0 < a < b < c < 80 and 0 < d < e < f < 80 and 0.75 <= a/d <= 1.5 and 0.75 <= (b-a)/(e-d) <= 1.5 and 0.75 <= (c-b)/(f-e) <= 1.5 and 0.75 <= (80-c)/(80-f) <= 1.5) else 1/0"
+      }
+    },
+    {
+      "id": 31,
+      "type": "Basic data handling: DataListRange",
+      "pos": [1440, 450],
+      "size": [300, 140],
+      "flags": {},
+      "order": 38,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "stop",
+          "type": "INT",
+          "widget": {
+            "name": "stop"
+          },
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "INT",
+          "shape": 6,
+          "type": "INT",
+          "links": [11]
+        }
+      ],
+      "title": "Output frame clock: 0\u201380",
+      "properties": {
+        "Node name for S&R": "Basic data handling: DataListRange"
+      },
+      "widgets_values": [0, 10, 1],
+      "widgets_values_named": {
+        "start": 0,
+        "stop": 10,
+        "step": 1
+      }
+    },
+    {
+      "id": 32,
+      "type": "ComfyMathExpression",
+      "pos": [1900, 100],
+      "size": [420, 300],
+      "flags": {},
+      "order": 40,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 11
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 12
+        },
+        {
+          "name": "values.c",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 13
+        },
+        {
+          "name": "values.d",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 14
+        },
+        {
+          "name": "values.e",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 15
+        },
+        {
+          "name": "values.f",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 16
+        },
+        {
+          "name": "values.g",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 17
+        },
+        {
+          "name": "values.h",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [18]
+        },
+        {
+          "name": "BOOL",
+          "type": "BOOLEAN",
+          "links": null
+        }
+      ],
+      "title": "Motion Score \u00b7 piecewise-linear source frame",
+      "properties": {
+        "Node name for S&R": "ComfyMathExpression"
+      },
+      "widgets_values": [
+        "round(a*b/e if a <= e else b+(a-e)*(c-b)/(f-e) if a <= f else c+(a-f)*(d-c)/(g-f) if a <= g else d+(a-g)*(80-d)/(80-g))"
+      ],
+      "widgets_values_named": {
+        "expression": "round(a*b/e if a <= e else b+(a-e)*(c-b)/(f-e) if a <= f else c+(a-f)*(d-c)/(g-f) if a <= g else d+(a-g)*(80-d)/(80-g))"
+      }
+    },
+    {
+      "id": 33,
+      "type": "StringFormat",
+      "pos": [1900, 450],
+      "size": [420, 170],
+      "flags": {},
+      "order": 41,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "shape": 7,
+          "type": "*",
+          "link": 18
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [19]
+        }
+      ],
+      "title": "One source index per output frame",
+      "properties": {
+        "Node name for S&R": "StringFormat"
+      },
+      "widgets_values": ["{a:d}"],
+      "widgets_values_named": {
+        "f_string": "{a:d}"
+      }
+    },
+    {
+      "id": 34,
+      "type": "Basic data handling: StringDataListJoin",
+      "pos": [1900, 680],
+      "size": [420, 100],
+      "flags": {},
+      "order": 42,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "strings",
+          "type": "STRING",
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [21, 22]
+        }
+      ],
+      "title": "Compile frame map",
+      "properties": {
+        "Node name for S&R": "Basic data handling: StringDataListJoin"
+      },
+      "widgets_values": [","],
+      "widgets_values_named": {
+        "sep": ","
+      }
+    },
+    {
+      "id": 35,
+      "type": "GetImagesFromBatchIndexed",
+      "pos": [1440, 680],
+      "size": [420, 180],
+      "flags": {},
+      "order": 43,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 20
+        },
+        {
+          "name": "indexes",
+          "type": "STRING",
+          "widget": {
+            "name": "indexes"
+          },
+          "link": 21
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [30, 34, 38, 42, 71]
+        }
+      ],
+      "title": "04 \u00b7 Retime RGB driver (nearest frame)",
+      "properties": {
+        "Node name for S&R": "GetImagesFromBatchIndexed"
+      },
+      "widgets_values": ["0, 1, 2"],
+      "widgets_values_named": {
+        "indexes": "0, 1, 2"
+      }
+    },
+    {
+      "id": 36,
+      "type": "PreviewAny",
+      "pos": [1440, 930],
+      "size": [880, 220],
+      "flags": {},
+      "order": 44,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Inspect compiled source frame map",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 37,
+      "type": "StringFormat",
+      "pos": [720, 650],
+      "size": [640, 240],
+      "flags": {},
+      "order": 20,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "shape": 7,
+          "type": "*",
+          "link": 23
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "*",
+          "link": 24
+        },
+        {
+          "name": "values.c",
+          "shape": 7,
+          "type": "*",
+          "link": 25
+        },
+        {
+          "name": "values.d",
+          "shape": 7,
+          "type": "*",
+          "link": 26
+        },
+        {
+          "name": "values.e",
+          "shape": 7,
+          "type": "*",
+          "link": 27
+        },
+        {
+          "name": "values.f",
+          "shape": 7,
+          "type": "*",
+          "link": 28
+        },
+        {
+          "name": "values.g",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [29]
+        }
+      ],
+      "title": "Score plan \u00b7 source \u2192 target frames (16 fps)",
+      "properties": {
+        "Node name for S&R": "StringFormat"
+      },
+      "widgets_values": [
+        "Pin 1: {a} \u2192 {d}\nPin 2: {b} \u2192 {e}\nPin 3: {c} \u2192 {f}\n81 frames @ 16 fps; 0.75\u20131.5x; manual landmarks"
+      ],
+      "widgets_values_named": {
+        "f_string": "Pin 1: {a} \u2192 {d}\nPin 2: {b} \u2192 {e}\nPin 3: {c} \u2192 {f}\n81 frames @ 16 fps; 0.75\u20131.5x; manual landmarks"
+      }
+    },
+    {
+      "id": 38,
+      "type": "PreviewAny",
+      "pos": [720, 950],
+      "size": [640, 200],
+      "flags": {},
+      "order": 31,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 29
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Read score plan",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 40,
+      "type": "CreateVideo",
+      "pos": [2400, 100],
+      "size": [420, 220],
+      "flags": {},
+      "order": 45,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 30
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 31
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [32]
+        }
+      ],
+      "title": "Preview \u00b7 retimed driver + target beat",
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [16, "auto", "sRGB", "none"],
+      "widgets_values_named": {
+        "fps": 16,
+        "bit_depth": "auto",
+        "color_space": "sRGB",
+        "codec": "none"
+      }
+    },
+    {
+      "id": 41,
+      "type": "SaveVideo",
+      "pos": [2400, 400],
+      "size": [420, 600],
+      "flags": {},
+      "order": 48,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 32
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "title": "Preview \u00b7 retimed driver + target beat \u00b7 MP4",
+      "properties": {},
+      "widgets_values": ["motion-score/driver", "mp4", "h264", "auto", "h264", "auto"],
+      "widgets_values_named": {
+        "filename_prefix": "motion-score/driver",
+        "format": "mp4",
+        "format.codec": "h264",
+        "format.codec.encoding": "auto",
+        "codec": "h264",
+        "codec.encoding": "auto"
+      }
+    },
+    {
+      "id": 42,
+      "type": "ImageConcatMulti",
+      "pos": [2860, 100],
+      "size": [420, 220],
+      "flags": {},
+      "order": 46,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "type": "IMAGE,MASK",
+          "link": 33
+        },
+        {
+          "name": "image_2",
+          "shape": 7,
+          "type": "IMAGE,MASK",
+          "link": 34
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "IMAGE",
+          "links": [35]
+        }
+      ],
+      "title": "Left: original \u00b7 Right: retimed",
+      "properties": {},
+      "widgets_values": [2, "right", true, null],
+      "widgets_values_named": {
+        "inputcount": 2,
+        "direction": "right",
+        "match_image_size": true,
+        "Update inputs": null
+      }
+    },
+    {
+      "id": 43,
+      "type": "CreateVideo",
+      "pos": [2860, 400],
+      "size": [420, 220],
+      "flags": {},
+      "order": 49,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 35
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 36
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [37]
+        }
+      ],
+      "title": "A/B \u00b7 original vs retimed driver",
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [16, "auto", "sRGB", "none"],
+      "widgets_values_named": {
+        "fps": 16,
+        "bit_depth": "auto",
+        "color_space": "sRGB",
+        "codec": "none"
+      }
+    },
+    {
+      "id": 44,
+      "type": "SaveVideo",
+      "pos": [2860, 700],
+      "size": [420, 460],
+      "flags": {},
+      "order": 51,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 37
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "title": "A/B \u00b7 original vs retimed driver \u00b7 MP4",
+      "properties": {},
+      "widgets_values": ["motion-score/before-after", "mp4", "h264", "auto", "h264", "auto"],
+      "widgets_values_named": {
+        "filename_prefix": "motion-score/before-after",
+        "format": "mp4",
+        "format.codec": "h264",
+        "format.codec.encoding": "auto",
+        "codec": "h264",
+        "codec.encoding": "auto"
+      }
+    },
+    {
+      "id": 50,
+      "type": "ImageFromBatch",
+      "pos": [720, 1370],
+      "size": [290, 180],
+      "flags": {},
+      "order": 47,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 38
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [87]
+        }
+      ],
+      "title": "Retimed pose reference frame",
+      "properties": {
+        "Node name for S&R": "ImageFromBatch"
+      },
+      "widgets_values": [0, 1],
+      "widgets_values_named": {
+        "batch_index": 0,
+        "length": 1
+      }
+    },
+    {
+      "id": 60,
+      "type": "CreateVideo",
+      "pos": [3390, 1350],
+      "size": [420, 220],
+      "flags": {},
+      "order": 56,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 39
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 40
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [41]
+        }
+      ],
+      "title": "05 \u00b7 Generated character + target beat",
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [16, "auto", "sRGB", "none"],
+      "widgets_values_named": {
+        "fps": 16,
+        "bit_depth": "auto",
+        "color_space": "sRGB",
+        "codec": "none"
+      }
+    },
+    {
+      "id": 61,
+      "type": "SaveVideo",
+      "pos": [3390, 1650],
+      "size": [420, 670],
+      "flags": {},
+      "order": 58,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 41
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "title": "05 \u00b7 Generated character + target beat \u00b7 MP4",
+      "properties": {},
+      "widgets_values": ["motion-score/character", "mp4", "h264", "auto", "h264", "auto"],
+      "widgets_values_named": {
+        "filename_prefix": "motion-score/character",
+        "format": "mp4",
+        "format.codec": "h264",
+        "format.codec.encoding": "auto",
+        "codec": "h264",
+        "codec.encoding": "auto"
+      }
+    },
+    {
+      "id": 62,
+      "type": "ImageConcatMulti",
+      "pos": [3850, 1350],
+      "size": [600, 220],
+      "flags": {},
+      "order": 57,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "type": "IMAGE,MASK",
+          "link": 42
+        },
+        {
+          "name": "image_2",
+          "shape": 7,
+          "type": "IMAGE,MASK",
+          "link": 43
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "IMAGE",
+          "links": [44]
+        }
+      ],
+      "title": "Left: scored driver \u00b7 Right: generated",
+      "properties": {},
+      "widgets_values": [2, "right", true, null],
+      "widgets_values_named": {
+        "inputcount": 2,
+        "direction": "right",
+        "match_image_size": true,
+        "Update inputs": null
+      }
+    },
+    {
+      "id": 63,
+      "type": "CreateVideo",
+      "pos": [3850, 1650],
+      "size": [600, 220],
+      "flags": {},
+      "order": 59,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 44
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 45
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [46]
+        }
+      ],
+      "title": "Compare generated motion with scored driver",
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [16, "auto", "sRGB", "none"],
+      "widgets_values_named": {
+        "fps": 16,
+        "bit_depth": "auto",
+        "color_space": "sRGB",
+        "codec": "none"
+      }
+    },
+    {
+      "id": 64,
+      "type": "SaveVideo",
+      "pos": [3850, 1950],
+      "size": [600, 520],
+      "flags": {},
+      "order": 60,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 46
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "title": "Compare generated motion with scored driver \u00b7 MP4",
+      "properties": {},
+      "widgets_values": ["motion-score/driver-character", "mp4", "h264", "auto", "h264", "auto"],
+      "widgets_values_named": {
+        "filename_prefix": "motion-score/driver-character",
+        "format": "mp4",
+        "format.codec": "h264",
+        "format.codec.encoding": "auto",
+        "codec": "h264",
+        "codec.encoding": "auto"
+      }
+    },
+    {
+      "id": 70,
+      "type": "PrimitiveInt",
+      "pos": [3390, 100],
+      "size": [371.66171875, 130],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [47, 50]
+        }
+      ],
+      "title": "OBSERVED 1 \u00b7 generated frame (-1 = unmeasured)",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [-1, "fixed"],
+      "widgets_values_named": {
+        "value": -1,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 71,
+      "type": "PrimitiveInt",
+      "pos": [3750, 100],
+      "size": [374.50546875, 130],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [48, 52]
+        }
+      ],
+      "title": "OBSERVED 2 \u00b7 generated frame (-1 = unmeasured)",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [-1, "fixed"],
+      "widgets_values_named": {
+        "value": -1,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 72,
+      "type": "PrimitiveInt",
+      "pos": [4110, 100],
+      "size": [374.61484375, 130],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [49, 54]
+        }
+      ],
+      "title": "OBSERVED 3 \u00b7 generated frame (-1 = unmeasured)",
+      "properties": {
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [-1, "fixed"],
+      "widgets_values_named": {
+        "value": -1,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 73,
+      "type": "ComfyMathExpression",
+      "pos": [3390, 600],
+      "size": [300, 200],
+      "flags": {},
+      "order": 23,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 47
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 48
+        },
+        {
+          "name": "values.c",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 49
+        },
+        {
+          "name": "values.d",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "BOOL",
+          "type": "BOOLEAN",
+          "links": [59]
+        }
+      ],
+      "title": "All three observations confirmed?",
+      "properties": {
+        "Node name for S&R": "ComfyMathExpression"
+      },
+      "widgets_values": ["0 <= a < b < c <= 80"],
+      "widgets_values_named": {
+        "expression": "0 <= a < b < c <= 80"
+      }
+    },
+    {
+      "id": 74,
+      "type": "ComfyMathExpression",
+      "pos": [3390, 330],
+      "size": [330, 200],
+      "flags": {},
+      "order": 21,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 50
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 51
+        },
+        {
+          "name": "values.c",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": [56]
+        },
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "BOOL",
+          "type": "BOOLEAN",
+          "links": null
+        }
+      ],
+      "title": "Pin 1 \u00b7 error in milliseconds",
+      "properties": {
+        "Node name for S&R": "ComfyMathExpression"
+      },
+      "widgets_values": ["(a-b)*1000/16"],
+      "widgets_values_named": {
+        "expression": "(a-b)*1000/16"
+      }
+    },
+    {
+      "id": 75,
+      "type": "ComfyMathExpression",
+      "pos": [3750, 330],
+      "size": [330, 200],
+      "flags": {},
+      "order": 22,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 52
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 53
+        },
+        {
+          "name": "values.c",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": [57]
+        },
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "BOOL",
+          "type": "BOOLEAN",
+          "links": null
+        }
+      ],
+      "title": "Pin 2 \u00b7 error in milliseconds",
+      "properties": {
+        "Node name for S&R": "ComfyMathExpression"
+      },
+      "widgets_values": ["(a-b)*1000/16"],
+      "widgets_values_named": {
+        "expression": "(a-b)*1000/16"
+      }
+    },
+    {
+      "id": 76,
+      "type": "ComfyMathExpression",
+      "pos": [4110, 330],
+      "size": [330, 200],
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 54
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": 55
+        },
+        {
+          "name": "values.c",
+          "shape": 7,
+          "type": "FLOAT,INT,BOOLEAN",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": [58]
+        },
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "BOOL",
+          "type": "BOOLEAN",
+          "links": null
+        }
+      ],
+      "title": "Pin 3 \u00b7 error in milliseconds",
+      "properties": {
+        "Node name for S&R": "ComfyMathExpression"
+      },
+      "widgets_values": ["(a-b)*1000/16"],
+      "widgets_values_named": {
+        "expression": "(a-b)*1000/16"
+      }
+    },
+    {
+      "id": 77,
+      "type": "StringFormat",
+      "pos": [3750, 600],
+      "size": [700, 210],
+      "flags": {},
+      "order": 32,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values.a",
+          "shape": 7,
+          "type": "*",
+          "link": 56
+        },
+        {
+          "name": "values.b",
+          "shape": 7,
+          "type": "*",
+          "link": 57
+        },
+        {
+          "name": "values.c",
+          "shape": 7,
+          "type": "*",
+          "link": 58
+        },
+        {
+          "name": "values.d",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [61]
+        }
+      ],
+      "title": "Manual timing audit",
+      "properties": {
+        "Node name for S&R": "StringFormat"
+      },
+      "widgets_values": [
+        "MANUAL OBSERVATIONS\nError ms: {a}, {b}, {c}\nTolerance target: \u00b1125 ms. Inspect appearance separately."
+      ],
+      "widgets_values_named": {
+        "f_string": "MANUAL OBSERVATIONS\nError ms: {a}, {b}, {c}\nTolerance target: \u00b1125 ms. Inspect appearance separately."
+      }
+    },
+    {
+      "id": 78,
+      "type": "PrimitiveString",
+      "pos": [3390, 870],
+      "size": [300, 120],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [60]
+        }
+      ],
+      "title": "Unknown is not a pass",
+      "properties": {
+        "Node name for S&R": "PrimitiveString"
+      },
+      "widgets_values": [
+        "UNMEASURED \u2014 inspect generated video; enter three observed event frames in OBSERVED controls. -1 means unknown."
+      ],
+      "widgets_values_named": {
+        "value": "UNMEASURED \u2014 inspect generated video; enter three observed event frames in OBSERVED controls. -1 means unknown."
+      }
+    },
+    {
+      "id": 79,
+      "type": "ComfySwitchNode",
+      "pos": [3750, 870],
+      "size": [300, 140],
+      "flags": {},
+      "order": 35,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "on_false",
+          "shape": 7,
+          "type": "STRING",
+          "link": 60
+        },
+        {
+          "name": "on_true",
+          "shape": 7,
+          "type": "STRING",
+          "link": 61
+        },
+        {
+          "name": "switch",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "switch"
+          },
+          "link": 59
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "STRING",
+          "links": [62]
+        }
+      ],
+      "title": "Measured audit or explicit unknown",
+      "properties": {
+        "Node name for S&R": "ComfySwitchNode"
+      },
+      "widgets_values": [false],
+      "widgets_values_named": {
+        "switch": false
+      }
+    },
+    {
+      "id": 80,
+      "type": "PreviewAny",
+      "pos": [4100, 870],
+      "size": [350, 270],
+      "flags": {},
+      "order": 39,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 62
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "06 \u00b7 Timing audit (human-confirmed)",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 578,
+      "type": "UNETLoader",
+      "pos": [720, 1640],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 13,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [63]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": ["wan_animate_2_int8_convrot.safetensors", "default"],
+      "widgets_values_named": {
+        "unet_name": "wan_animate_2_int8_convrot.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 579,
+      "type": "LoraLoaderModelOnly",
+      "pos": [1150, 1640],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 25,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 63
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [79]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoraLoaderModelOnly"
+      },
+      "widgets_values": ["lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors", 1],
+      "widgets_values_named": {
+        "lora_name": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+        "strength_model": 1
+      }
+    },
+    {
+      "id": 580,
+      "type": "CLIPLoader",
+      "pos": [1580, 1640],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 14,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [64, 65, 66]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": ["umt5_xxl_fp8_e4m3fn_scaled.safetensors", "wan", "default"],
+      "widgets_values_named": {
+        "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+        "type": "wan",
+        "device": "default"
+      }
+    },
+    {
+      "id": 581,
+      "type": "CLIPTextEncode",
+      "pos": [2870, 1640],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 26,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 64
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [68]
+        }
+      ],
+      "title": "CLIP Text Encode (Negative Prompt)",
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "\u8272\u8c03\u8273\u4e3d\uff0c\u8fc7\u66dd\uff0c\u9759\u6001\uff0c\u7ec6\u8282\u6a21\u7cca\u4e0d\u6e05\uff0c\u5b57\u5e55\uff0c\u98ce\u683c\uff0c\u4f5c\u54c1\uff0c\u753b\u4f5c\uff0c\u753b\u9762\uff0c\u9759\u6b62\uff0c\u6574\u4f53\u53d1\u7070\uff0c\u6700\u5dee\u8d28\u91cf\uff0c\u4f4e\u8d28\u91cf\uff0cJPEG\u538b\u7f29\u6b8b\u7559\uff0c\u4e11\u964b\u7684\uff0c\u6b8b\u7f3a\u7684\uff0c\u591a\u4f59\u7684\u624b\u6307\uff0c\u753b\u5f97\u4e0d\u597d\u7684\u624b\u90e8\uff0c\u753b\u5f97\u4e0d\u597d\u7684\u8138\u90e8\uff0c\u7578\u5f62\u7684\uff0c\u6bc1\u5bb9\u7684\uff0c\u5f62\u6001\u7578\u5f62\u7684\u80a2\u4f53\uff0c\u624b\u6307\u878d\u5408\uff0c\u9759\u6b62\u4e0d\u52a8\u7684\u753b\u9762\uff0c\u6742\u4e71\u7684\u80cc\u666f\uff0c\u4e09\u6761\u817f\uff0c\u80cc\u666f\u4eba\u5f88\u591a\uff0c\u5012\u7740\u8d70"
+      ],
+      "widgets_values_named": {
+        "text": "\u8272\u8c03\u8273\u4e3d\uff0c\u8fc7\u66dd\uff0c\u9759\u6001\uff0c\u7ec6\u8282\u6a21\u7cca\u4e0d\u6e05\uff0c\u5b57\u5e55\uff0c\u98ce\u683c\uff0c\u4f5c\u54c1\uff0c\u753b\u4f5c\uff0c\u753b\u9762\uff0c\u9759\u6b62\uff0c\u6574\u4f53\u53d1\u7070\uff0c\u6700\u5dee\u8d28\u91cf\uff0c\u4f4e\u8d28\u91cf\uff0cJPEG\u538b\u7f29\u6b8b\u7559\uff0c\u4e11\u964b\u7684\uff0c\u6b8b\u7f3a\u7684\uff0c\u591a\u4f59\u7684\u624b\u6307\uff0c\u753b\u5f97\u4e0d\u597d\u7684\u624b\u90e8\uff0c\u753b\u5f97\u4e0d\u597d\u7684\u8138\u90e8\uff0c\u7578\u5f62\u7684\uff0c\u6bc1\u5bb9\u7684\uff0c\u5f62\u6001\u7578\u5f62\u7684\u80a2\u4f53\uff0c\u624b\u6307\u878d\u5408\uff0c\u9759\u6b62\u4e0d\u52a8\u7684\u753b\u9762\uff0c\u6742\u4e71\u7684\u80cc\u666f\uff0c\u4e09\u6761\u817f\uff0c\u80cc\u666f\u4eba\u5f88\u591a\uff0c\u5012\u7740\u8d70"
+      }
+    },
+    {
+      "id": 582,
+      "type": "CLIPTextEncode",
+      "pos": [720, 1940],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 27,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 65
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [67]
+        }
+      ],
+      "title": "CLIP Text Encode (Positive Prompt)",
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "A pink-haired woman with mechanical arms performs energetic street dance, full body, stable camera."
+      ],
+      "widgets_values_named": {
+        "text": "A pink-haired woman with mechanical arms performs energetic street dance, full body, stable camera."
+      }
+    },
+    {
+      "id": 583,
+      "type": "CLIPVisionLoader",
+      "pos": [2010, 1640],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 15,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP_VISION",
+          "type": "CLIP_VISION",
+          "links": [75, 86]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPVisionLoader"
+      },
+      "widgets_values": ["clip_vision_h.safetensors"],
+      "widgets_values_named": {
+        "clip_name": "clip_vision_h.safetensors"
+      }
+    },
+    {
+      "id": 584,
+      "type": "VAELoader",
+      "pos": [2440, 1640],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 16,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [69, 89]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": ["Wan2_1_VAE_bf16.safetensors"],
+      "widgets_values_named": {
+        "vae_name": "Wan2_1_VAE_bf16.safetensors"
+      }
+    },
+    {
+      "id": 585,
+      "type": "CLIPTextEncode",
+      "pos": [1150, 1940],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 28,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 66
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [73]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "A girl doing energetic street dance with rhythmic steps and dynamic arm gestures, background stationary\n"
+      ],
+      "widgets_values_named": {
+        "text": "A girl doing energetic street dance with rhythmic steps and dynamic arm gestures, background stationary\n"
+      }
+    },
+    {
+      "id": 587,
+      "type": "WanAnimate2ToVideo",
+      "pos": [1580, 2240],
+      "size": [390, 520],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 52,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 67
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 68
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 69
+        },
+        {
+          "name": "reference_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 70
+        },
+        {
+          "name": "pose_video",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 71
+        },
+        {
+          "name": "clip_vision_output",
+          "shape": 7,
+          "type": "CLIP_VISION_OUTPUT",
+          "link": 72
+        },
+        {
+          "name": "positive_pose",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": 73
+        },
+        {
+          "name": "clip_vision_output_pose",
+          "shape": 7,
+          "type": "CLIP_VISION_OUTPUT",
+          "link": 74
+        },
+        {
+          "name": "continue_motion",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [81]
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [82]
+        },
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [85]
+        },
+        {
+          "name": "trim_latent",
+          "type": "INT",
+          "links": [90]
+        },
+        {
+          "name": "trim_image",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "video_frame_offset",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "WanAnimate2ToVideo"
+      },
+      "widgets_values": [288, 512, 81, 1, 0, 1, 0, 1, 1],
+      "widgets_values_named": {
+        "width": 288,
+        "height": 512,
+        "length": 81,
+        "batch_size": 1,
+        "video_frame_offset": 0,
+        "pose_strength": 1,
+        "pose_start_percent": 0,
+        "pose_end_percent": 1,
+        "reference_image_strength": 1
+      }
+    },
+    {
+      "id": 589,
+      "type": "CLIPVisionEncode",
+      "pos": [1580, 1940],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 29,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip_vision",
+          "type": "CLIP_VISION",
+          "link": 75
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 76
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CLIP_VISION_OUTPUT",
+          "type": "CLIP_VISION_OUTPUT",
+          "links": [72]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPVisionEncode"
+      },
+      "widgets_values": ["none"],
+      "widgets_values_named": {
+        "crop": "none"
+      }
+    },
+    {
+      "id": 591,
+      "type": "BasicScheduler",
+      "pos": [2870, 1940],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 36,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 77
+        }
+      ],
+      "outputs": [
+        {
+          "name": "SIGMAS",
+          "type": "SIGMAS",
+          "links": [84]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BasicScheduler"
+      },
+      "widgets_values": ["simple", 6, 1],
+      "widgets_values_named": {
+        "scheduler": "simple",
+        "steps": 6,
+        "denoise": 1
+      }
+    },
+    {
+      "id": 592,
+      "type": "ModelSamplingSD3",
+      "pos": [720, 2240],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 37,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 78
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [80]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ModelSamplingSD3"
+      },
+      "widgets_values": [5],
+      "widgets_values_named": {
+        "shift": 5
+      }
+    },
+    {
+      "id": 593,
+      "type": "KSamplerSelect",
+      "pos": [1150, 2240],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 17,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "links": [83]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": ["lcm"],
+      "widgets_values_named": {
+        "sampler_name": "lcm"
+      }
+    },
+    {
+      "id": 594,
+      "type": "WanAnimate2Cache",
+      "pos": [2440, 1940],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 33,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 79
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [77, 78]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "WanAnimate2Cache"
+      },
+      "widgets_values": ["cpu", "int8"],
+      "widgets_values_named": {
+        "device": "cpu",
+        "dtype": "int8"
+      }
+    },
+    {
+      "id": 597,
+      "type": "SamplerCustom",
+      "pos": [2010, 2240],
+      "size": [390, 520],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 53,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 80
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 81
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 82
+        },
+        {
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 83
+        },
+        {
+          "name": "sigmas",
+          "type": "SIGMAS",
+          "link": 84
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 85
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "LATENT",
+          "links": [91]
+        },
+        {
+          "name": "denoised_output",
+          "type": "LATENT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SamplerCustom"
+      },
+      "widgets_values": [true, 218734, "fixed", 1],
+      "widgets_values_named": {
+        "add_noise": true,
+        "noise_seed": 218734,
+        "control_after_generate": "fixed",
+        "cfg": 1
+      }
+    },
+    {
+      "id": 598,
+      "type": "CLIPVisionEncode",
+      "pos": [2010, 1940],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 50,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip_vision",
+          "type": "CLIP_VISION",
+          "link": 86
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 87
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CLIP_VISION_OUTPUT",
+          "type": "CLIP_VISION_OUTPUT",
+          "links": [74]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPVisionEncode"
+      },
+      "widgets_values": ["none"],
+      "widgets_values_named": {
+        "crop": "none"
+      }
+    },
+    {
+      "id": 601,
+      "type": "VAEDecode",
+      "pos": [2870, 2240],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 55,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 88
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 89
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [39, 43]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 602,
+      "type": "TrimVideoLatent",
+      "pos": [2440, 2240],
+      "size": [390, 240],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 54,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 91
+        },
+        {
+          "name": "trim_amount",
+          "type": "INT",
+          "widget": {
+            "name": "trim_amount"
+          },
+          "link": 90
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [88]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TrimVideoLatent"
+      },
+      "widgets_values": [0],
+      "widgets_values_named": {
+        "trim_amount": 0
+      }
+    },
+    {
+      "id": 900,
+      "type": "MarkdownNote",
+      "pos": [0, 70],
+      "size": [640, 630],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "Motion Score \u00b7 START HERE",
+      "properties": {},
+      "widgets_values": [
+        "# Motion Score \u2014 runnable PoC\n\n**Pin a performance to a soundtrack, then animate a character.**\n\n1. Edit SOURCE and TARGET frame numbers (16 frames = 1 second).\n2. Run. The driver is retimed inside this graph before Wan Animate 2.\n3. Compare original / retimed and driver / character videos.\n4. Inspect the generated events; enter observed frame numbers in OBSERVED.\n   Leave -1 when the event is missing or uncertain. Unknown is not a pass.\n\n## Demo score\nSource 28 \u2192 target 32 (2 s); 52 \u2192 48 (3 s); 64 \u2192 64 (4 s).\nThese are manually selected poses, not automatically recognized actions.\nThe soundtrack is a synthesized 120 BPM click track with stronger accents.\n\n## PoC limits\n81 frames at 16 fps (5.0625 s). Source assets are already normalized.\nOrdered interior pins; local speed 0.75\u20131.5x. Invalid pins stop at VALIDATE\nwith a division-by-zero error. Output fps and sample duration stay fixed.\nNearest-frame retiming can repeat/drop frames. No optical interpolation.\nWan may alter or omit gestures: the retimed driver's exact pins do not\nprove that the generated character followed them. Audit is manual.\n\nUse the separate Motion Score preview workflow for fast retiming-only runs.\nFull setup, provenance and measured results: features/motion-score.md.\n"
+      ],
+      "widgets_values_named": {
+        "text": "# Motion Score \u2014 runnable PoC\n\n**Pin a performance to a soundtrack, then animate a character.**\n\n1. Edit SOURCE and TARGET frame numbers (16 frames = 1 second).\n2. Run. The driver is retimed inside this graph before Wan Animate 2.\n3. Compare original / retimed and driver / character videos.\n4. Inspect the generated events; enter observed frame numbers in OBSERVED.\n   Leave -1 when the event is missing or uncertain. Unknown is not a pass.\n\n## Demo score\nSource 28 \u2192 target 32 (2 s); 52 \u2192 48 (3 s); 64 \u2192 64 (4 s).\nThese are manually selected poses, not automatically recognized actions.\nThe soundtrack is a synthesized 120 BPM click track with stronger accents.\n\n## PoC limits\n81 frames at 16 fps (5.0625 s). Source assets are already normalized.\nOrdered interior pins; local speed 0.75\u20131.5x. Invalid pins stop at VALIDATE\nwith a division-by-zero error. Output fps and sample duration stay fixed.\nNearest-frame retiming can repeat/drop frames. No optical interpolation.\nWan may alter or omit gestures: the retimed driver's exact pins do not\nprove that the generated character followed them. Audit is manual.\n\nUse the separate Motion Score preview workflow for fast retiming-only runs.\nFull setup, provenance and measured results: features/motion-score.md.\n"
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [1, 1, 0, 2, 0, "VIDEO"],
+    [2, 2, 0, 3, 0, "IMAGE"],
+    [19, 33, 0, 34, 0, "STRING"],
+    [20, 2, 0, 35, 0, "IMAGE"],
+    [21, 34, 0, 35, 1, "STRING"],
+    [22, 34, 0, 36, 0, "STRING"],
+    [29, 37, 0, 38, 0, "STRING"],
+    [30, 35, 0, 40, 0, "IMAGE"],
+    [31, 4, 0, 40, 1, "AUDIO"],
+    [33, 2, 0, 42, 0, "IMAGE"],
+    [34, 35, 0, 42, 1, "IMAGE"],
+    [35, 42, 0, 43, 0, "IMAGE"],
+    [36, 4, 0, 43, 1, "AUDIO"],
+    [38, 35, 0, 50, 0, "IMAGE"],
+    [39, 601, 0, 60, 0, "IMAGE"],
+    [40, 4, 0, 60, 1, "AUDIO"],
+    [42, 35, 0, 62, 0, "IMAGE"],
+    [43, 601, 0, 62, 1, "IMAGE"],
+    [44, 62, 0, 63, 0, "IMAGE"],
+    [45, 4, 0, 63, 1, "AUDIO"],
+    [59, 73, 2, 79, 2, "BOOLEAN"],
+    [60, 78, 0, 79, 0, "STRING"],
+    [61, 77, 0, 79, 1, "STRING"],
+    [62, 79, 0, 80, 0, "STRING"],
+    [63, 578, 0, 579, 0, "MODEL"],
+    [64, 580, 0, 581, 0, "CLIP"],
+    [65, 580, 0, 582, 0, "CLIP"],
+    [66, 580, 0, 585, 0, "CLIP"],
+    [67, 582, 0, 587, 0, "CONDITIONING"],
+    [68, 581, 0, 587, 1, "CONDITIONING"],
+    [69, 584, 0, 587, 2, "VAE"],
+    [70, 5, 0, 587, 3, "IMAGE"],
+    [71, 35, 0, 587, 4, "IMAGE"],
+    [72, 589, 0, 587, 5, "CLIP_VISION_OUTPUT"],
+    [73, 585, 0, 587, 6, "CONDITIONING"],
+    [74, 598, 0, 587, 7, "CLIP_VISION_OUTPUT"],
+    [75, 583, 0, 589, 0, "CLIP_VISION"],
+    [76, 5, 0, 589, 1, "IMAGE"],
+    [77, 594, 0, 591, 0, "MODEL"],
+    [78, 594, 0, 592, 0, "MODEL"],
+    [79, 579, 0, 594, 0, "MODEL"],
+    [80, 592, 0, 597, 0, "MODEL"],
+    [81, 587, 0, 597, 1, "CONDITIONING"],
+    [82, 587, 1, 597, 2, "CONDITIONING"],
+    [83, 593, 0, 597, 3, "SAMPLER"],
+    [84, 591, 0, 597, 4, "SIGMAS"],
+    [85, 587, 2, 597, 5, "LATENT"],
+    [86, 583, 0, 598, 0, "CLIP_VISION"],
+    [87, 50, 0, 598, 1, "IMAGE"],
+    [88, 602, 0, 601, 0, "LATENT"],
+    [89, 584, 0, 601, 1, "VAE"],
+    [90, 587, 3, 602, 1, "INT"],
+    [91, 597, 0, 602, 0, "LATENT"],
+    [18, 32, 1, 33, 0, "INT"],
+    [32, 40, 0, 41, 0, "VIDEO"],
+    [37, 43, 0, 44, 0, "VIDEO"],
+    [41, 60, 0, 61, 0, "VIDEO"],
+    [46, 63, 0, 64, 0, "VIDEO"],
+    [50, 70, 0, 74, 0, "INT"],
+    [51, 20, 0, 74, 1, "INT"],
+    [52, 71, 0, 75, 0, "INT"],
+    [53, 21, 0, 75, 1, "INT"],
+    [54, 72, 0, 76, 0, "INT"],
+    [55, 22, 0, 76, 1, "INT"],
+    [3, 10, 0, 30, 0, "INT"],
+    [4, 11, 0, 30, 1, "INT"],
+    [5, 12, 0, 30, 2, "INT"],
+    [6, 20, 0, 30, 3, "INT"],
+    [7, 21, 0, 30, 4, "INT"],
+    [8, 22, 0, 30, 5, "INT"],
+    [9, 3, 2, 30, 6, "INT"],
+    [10, 30, 1, 31, 0, "INT"],
+    [11, 31, 0, 32, 0, "INT"],
+    [12, 10, 0, 32, 1, "INT"],
+    [13, 11, 0, 32, 2, "INT"],
+    [14, 12, 0, 32, 3, "INT"],
+    [15, 20, 0, 32, 4, "INT"],
+    [16, 21, 0, 32, 5, "INT"],
+    [17, 22, 0, 32, 6, "INT"],
+    [23, 10, 0, 37, 0, "INT"],
+    [24, 11, 0, 37, 1, "INT"],
+    [25, 12, 0, 37, 2, "INT"],
+    [26, 20, 0, 37, 3, "INT"],
+    [27, 21, 0, 37, 4, "INT"],
+    [28, 22, 0, 37, 5, "INT"],
+    [47, 70, 0, 73, 0, "INT"],
+    [48, 71, 0, 73, 1, "INT"],
+    [49, 72, 0, 73, 2, "INT"],
+    [56, 74, 0, 77, 0, "FLOAT"],
+    [57, 75, 0, 77, 1, "FLOAT"],
+    [58, 76, 0, 77, 2, "FLOAT"]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "01 \u00b7 Inputs and guide",
+      "bounding": [-40, 0, 740, 1880],
+      "color": "#344b60",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "02 \u00b7 Pin the score \u00b7 frames at 16 fps",
+      "bounding": [690, 0, 700, 1200],
+      "color": "#3e6d58",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "03 \u00b7 Validate and retime RGB",
+      "bounding": [1400, 0, 960, 1200],
+      "color": "#3e6d58",
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "04 \u00b7 Inspect the timing edit",
+      "bounding": [2360, 0, 960, 1200],
+      "color": "#6b5938",
+      "flags": {}
+    },
+    {
+      "id": 5,
+      "title": "05 \u00b7 Wan Animate 2 \u00b7 one fragment",
+      "bounding": [690, 1250, 2630, 1430],
+      "color": "#514168",
+      "flags": {}
+    },
+    {
+      "id": 6,
+      "title": "06 \u00b7 Human-confirmed timing audit",
+      "bounding": [3350, 0, 1140, 1200],
+      "color": "#655040",
+      "flags": {}
+    },
+    {
+      "id": 7,
+      "title": "07 \u00b7 Generated outputs",
+      "bounding": [3350, 1250, 1140, 1430],
+      "color": "#344b60",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.3132194244604317,
+      "offset": [1253.3921906402525, 473.33333333333326]
+    },
+    "frontendVersion": "1.57.0",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

@@ -13,8 +13,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg curl gosu && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000 DATABASE_PATH=/app/data/app.sqlite
 COPY --from=build --chown=node:node /app/.output ./.output
-COPY --from=build --chown=node:node /app/src/features/genjutsu/workflows ./src/features/genjutsu/workflows
-COPY --from=build --chown=node:node /app/src/features/genjutsu/samples ./src/features/genjutsu/samples
+COPY --from=build --chown=node:node /app/models.lock ./models.lock
+COPY --from=build --chown=node:node /app/src/features/motionTransfer/workflows ./src/features/motionTransfer/workflows
+COPY --from=build --chown=node:node /app/src/features/motionTransfer/samples ./src/features/motionTransfer/samples
 COPY --from=build --chown=node:node /app/src/shared/server/migrations ./src/shared/server/migrations
 # Run in the container to mint an access code on its volume: node scripts/mint-code.mjs <label> <max>
 COPY --from=build --chown=node:node /app/scripts/mint-code.mjs ./scripts/mint-code.mjs

@@ -12,7 +12,7 @@ import {
   type Provider,
   type ProviderJob,
   providerTarget,
-} from "../src/features/genjutsu/server/comfy.ts";
+} from "../src/features/motionTransfer/server/comfy.ts";
 import {
   GenerateError,
   generate,
@@ -21,7 +21,7 @@ import {
   rerun,
   retry,
   startChild,
-} from "../src/features/genjutsu/server/generate.ts";
+} from "../src/features/motionTransfer/server/generate.ts";
 import {
   countInFlight,
   createGeneration,
@@ -30,11 +30,12 @@ import {
   markQueued,
   recordProviderInputs,
   transition,
-} from "../src/features/genjutsu/server/generations.ts";
-import { generateDefaults } from "../src/features/genjutsu/server/presets.ts";
-import type { Recipe } from "../src/features/genjutsu/server/recipe.ts";
-import { readSelection } from "../src/features/genjutsu/server/selection.ts";
-import { uploadVideo } from "../src/features/genjutsu/server/videos.server.ts";
+} from "../src/features/motionTransfer/server/generations.ts";
+import { generateDefaults } from "../src/features/motionTransfer/server/presets.ts";
+import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
+import { readSelection } from "../src/features/motionTransfer/server/selection.ts";
+import { uploadVideo } from "../src/features/motionTransfer/server/videos.server.ts";
+import { motionTransferModels } from "../src/features/motionTransfer/workflows/registry.ts";
 import { findAccessCode } from "../src/shared/server/access-codes.ts";
 import { createAccessGuard } from "../src/shared/server/access.server.ts";
 import { database } from "../src/shared/server/db.server.ts";
@@ -114,6 +115,7 @@ test("the idempotency key and provider inputs are stored before submit, the job 
   assert.equal(row?.status, "queued");
   assert.equal(row?.provider_job_id, `job-${submits[0]}`);
   assert.equal(row?.idempotency_key, submits[0]);
+  assert.deepEqual(row?.recipe.models, motionTransferModels);
 });
 
 test("the same inputs and seed return the generation on its way without a second submit", async () => {

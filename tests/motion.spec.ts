@@ -30,7 +30,7 @@ async function hold(page: Page, url: string) {
 test("a sample motion plays as a muted loop, and picking it names its clip in the URL", async ({
   page,
 }) => {
-  await open(page, "/genjutsu");
+  await open(page, "/motionTransfer");
 
   const preview = page.getByRole("list", { name: "Motions" }).locator("video").first();
 
@@ -52,7 +52,7 @@ test("a sample motion plays as a muted loop, and picking it names its clip in th
 test("a clip over 8 s opens the trim dialog; its first 8 s or another part become ready", async ({
   page,
 }) => {
-  await open(page, "/genjutsu");
+  await open(page, "/motionTransfer");
   await upload(page).setInputFiles("tests/fixtures/long-12s.mp4");
 
   const dialog = page.getByRole("dialog", { name: "Choose up to 8 seconds" });
@@ -93,7 +93,7 @@ test("a clip over 8 s opens the trim dialog; its first 8 s or another part becom
 test("closing the trim dialog while it cuts cancels the cut, and its answer selects nothing", async ({
   page,
 }) => {
-  await open(page, "/genjutsu");
+  await open(page, "/motionTransfer");
   await page.getByRole("button", { name: "Street dance" }).click();
   await expect(page).toHaveURL(/motion=/);
 
@@ -148,7 +148,7 @@ test("leaving the page during an upload cancels it, and its answer never navigat
 test("a 2 s clip is too short and stores nothing; an audio file has no video; picking a sample clears the refusal", async ({
   page,
 }) => {
-  await open(page, "/genjutsu");
+  await open(page, "/motionTransfer");
 
   const assets = count("assets");
 
@@ -170,7 +170,7 @@ test("a 2 s clip is too short and stores nothing; an audio file has no video; pi
 test("an upload over the rate limit says to wait and keeps the page as it was", async ({
   page,
 }) => {
-  await open(page, "/genjutsu");
+  await open(page, "/motionTransfer");
 
   // The upload handler's answer over the limit (`uploadRefusal`): the e2e server's limit is high
   // enough for the whole run, so the page gets it here.
@@ -194,7 +194,7 @@ test("an upload over the rate limit says to wait and keeps the page as it was", 
 
 test("a motion id that names no clip falls back to none", async ({ page }) => {
   for (const motion of ["xyz", crypto.randomUUID()]) {
-    await open(page, `/genjutsu?motion=${motion}`);
+    await open(page, `/motionTransfer?motion=${motion}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pick a motion");
     await expect(page.getByRole("button", { name: "Street dance" })).toHaveAttribute(
       "aria-pressed",

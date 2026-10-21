@@ -40,7 +40,7 @@ test.describe("without a session", () => {
     });
 
     // A link that keeps a character, as "Same character, new motion" makes one.
-    await open(page, `/genjutsu?step=motion&character=${characterId}`);
+    await open(page, `/motionTransfer?step=motion&character=${characterId}`);
 
     // The samples play without a session.
     const preview = page.getByRole("list", { name: "Motions" }).locator("video").first();
@@ -76,7 +76,7 @@ test.describe("without a session", () => {
     expect(uploads).toHaveLength(1);
     await expect(page).toHaveURL(
       (url) =>
-        url.pathname === "/genjutsu" &&
+        url.pathname === "/motionTransfer" &&
         url.searchParams.get("step") === "motion" &&
         url.searchParams.get("character") === characterId &&
         /^[0-9a-f-]{36}$/.test(url.searchParams.get("motion") ?? ""),
@@ -95,7 +95,7 @@ test.describe("without a session", () => {
       }
     });
 
-    await open(page, "/genjutsu");
+    await open(page, "/motionTransfer");
     await page.getByLabel("Upload a clip").setInputFiles("fixtures/x.mp4");
 
     const dialog = page.getByRole("dialog", { name: "Enter your access code" });
@@ -130,7 +130,7 @@ test.describe("without a session", () => {
       }
     });
 
-    await open(page, `/genjutsu?motion=${clip}&character=${seededResult().characterId}`);
+    await open(page, `/motionTransfer?motion=${clip}&character=${seededResult().characterId}`);
     await expect(page).toHaveURL(/step=direct/);
 
     // Picked but not shown: the clip is an upload.
@@ -165,7 +165,7 @@ test.describe("without a session", () => {
   }) => {
     const clip = await uploadPrivateClip(playwright.request, baseURL);
 
-    await open(page, `/genjutsu?step=motion&motion=${clip}`);
+    await open(page, `/motionTransfer?step=motion&motion=${clip}`);
     await expect(page.getByRole("button", { name: /Your clip, locked/ })).toBeVisible();
 
     // The handler's answer over the limit, which the e2e server's high limit never gives here.

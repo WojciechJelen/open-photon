@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
-import { GenerationView } from "#/features/genjutsu/components/generation-view";
-import { loadResult } from "#/features/genjutsu/generate.functions";
+import { GenerationView } from "#/features/motionTransfer/components/generation-view";
+import { loadResult } from "#/features/motionTransfer/generate.functions";
 import { Problem } from "#/shared/components/problem";
 
 export const Route = createFileRoute("/g/$generationId")({
@@ -14,11 +14,11 @@ export const Route = createFileRoute("/g/$generationId")({
 
     return result;
   },
-  head: () => ({ meta: [{ title: "Your take · Genjutsu · Open Photon" }] }),
+  head: () => ({ meta: [{ title: "Your take · Motion Transfer · Open Photon" }] }),
   component: GenerationPage,
   notFoundComponent: () => (
     <Problem title="Generation not found">
-      <Link className="underline underline-offset-3" search={{}} to="/genjutsu">
+      <Link className="underline underline-offset-3" search={{}} to="/motionTransfer">
         Start a new generation
       </Link>
     </Problem>

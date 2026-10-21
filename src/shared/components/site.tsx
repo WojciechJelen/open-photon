@@ -20,7 +20,7 @@ export function OpenWeightsBadge() {
 
 /**
  * The header of the studio's public pages: the mark, the main navigation when `nav` is set
- * (Studio, Genjutsu, All tools), and `children` at the end.
+ * (Studio, Motion Transfer, All tools), and `children` at the end.
  */
 export function SiteHeader({
   children,
@@ -43,9 +43,9 @@ export function SiteHeader({
           </Link>
           <Link
             className="inline-flex min-h-11 items-center rounded-full px-3.5 text-sm font-medium text-soft-foreground hover:bg-foreground/5 hover:text-foreground"
-            to="/genjutsu"
+            to="/motionTransfer"
           >
-            Genjutsu
+            Motion Transfer
           </Link>
           <a
             className="inline-flex min-h-11 items-center rounded-full px-3.5 text-sm font-medium text-soft-foreground hover:bg-foreground/5 hover:text-foreground"
@@ -83,7 +83,7 @@ export function SiteFooter({ tagline }: { tagline: string }) {
         </a>
         <a
           className={footerLink}
-          href={`${REPOSITORY_URL}/blob/main/src/features/genjutsu/workflows/README.md`}
+          href={`${REPOSITORY_URL}/blob/main/src/features/motionTransfer/workflows/README.md`}
         >
           Workflow and provenance
         </a>

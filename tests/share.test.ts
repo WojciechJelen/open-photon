@@ -1,22 +1,21 @@
-import "./temp-database.ts";
 import assert from "node:assert/strict";
+
+import "./temp-database.ts";
 import { copyFile, stat } from "node:fs/promises";
 import test from "node:test";
 
-import { listSampleCharacters } from "../src/features/genjutsu/server/characters.server.ts";
-import { readResult } from "../src/features/genjutsu/server/generate.ts";
+import { listSampleCharacters } from "../src/features/motionTransfer/server/characters.server.ts";
+import { readResult } from "../src/features/motionTransfer/server/generate.ts";
 import {
   createGeneration,
   findGeneration,
   markQueued,
   transition,
-} from "../src/features/genjutsu/server/generations.ts";
-import { isPublicRequest } from "../src/features/genjutsu/server/public-access.ts";
-import { readShare } from "../src/features/genjutsu/server/share.ts";
-import {
-  motionTransferWorkflow,
-  workflowModelFiles,
-} from "../src/features/genjutsu/workflows/registry.ts";
+} from "../src/features/motionTransfer/server/generations.ts";
+import { isPublicRequest } from "../src/features/motionTransfer/server/public-access.ts";
+import { readShare } from "../src/features/motionTransfer/server/share.ts";
+import { workflowModelFiles } from "../src/features/motionTransfer/workflows/models.ts";
+import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
 import { hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
 import { database } from "../src/shared/server/db.server.ts";
 

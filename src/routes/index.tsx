@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 
-import { loadStudio } from "#/features/genjutsu/selection.functions";
+import { loadStudio } from "#/features/motionTransfer/selection.functions";
 import { StudioHero } from "#/features/studio/components/studio-hero";
 import { BuiltOpen, StudioTools } from "#/features/studio/components/studio-tools";
 import { PageGlow } from "#/shared/components/brand";
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/")({
     if (search.motion || search.character) {
       throw redirect({
         search: { character: search.character, motion: search.motion },
-        to: "/genjutsu",
+        to: "/motionTransfer",
       });
     }
   },

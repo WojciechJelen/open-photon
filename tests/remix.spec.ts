@@ -27,7 +27,7 @@ test("each remix opens the wizard with exactly one of motion and character kept,
 
   await open(page, `/g/${id}`);
   await page.getByRole("link", { name: /Same motion/ }).click();
-  await expect(page).toHaveURL(/\/genjutsu\?/);
+  await expect(page).toHaveURL(/\/motionTransfer\?/);
   expect(searchOf(page)).toEqual({ from: id, motion: sourceAssetId, step: "character" });
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who performs it?");
   await expect(slate).toContainText("Street dance");
@@ -37,7 +37,7 @@ test("each remix opens the wizard with exactly one of motion and character kept,
 
   await open(page, `/g/${id}`);
   await page.getByRole("link", { name: /Same character/ }).click();
-  await expect(page).toHaveURL(/\/genjutsu\?/);
+  await expect(page).toHaveURL(/\/motionTransfer\?/);
   expect(searchOf(page)).toEqual({ character: characterId, from: id, step: "motion" });
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pick a motion");
   await expect(slate).toContainText("Placeholder blue");

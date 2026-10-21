@@ -1,0 +1,259 @@
+{
+  "10": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 28
+    },
+    "_meta": {
+      "title": "SOURCE 1 \u2014 frame at 16 fps"
+    }
+  },
+  "11": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 52
+    },
+    "_meta": {
+      "title": "SOURCE 2 \u2014 frame at 16 fps"
+    }
+  },
+  "12": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 64
+    },
+    "_meta": {
+      "title": "SOURCE 3 \u2014 frame at 16 fps"
+    }
+  },
+  "20": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 32
+    },
+    "_meta": {
+      "title": "TARGET 1 \u2014 frame at 16 fps"
+    }
+  },
+  "21": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 48
+    },
+    "_meta": {
+      "title": "TARGET 2 \u2014 frame at 16 fps"
+    }
+  },
+  "22": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 64
+    },
+    "_meta": {
+      "title": "TARGET 3 \u2014 frame at 16 fps"
+    }
+  },
+  "1": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "0deb5516fd3cc166ee077b765b33e85be41dffdc95d03832cdab58b06a28b144.mp4"
+    },
+    "_meta": {
+      "title": "01 \u00b7 Source performance \u00b7 81 frames / 16 fps"
+    }
+  },
+  "2": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": ["1", 0]
+    },
+    "_meta": {
+      "title": "Decode source RGB frames"
+    }
+  },
+  "3": {
+    "class_type": "GetImageSize",
+    "inputs": {
+      "image": ["2", 0]
+    },
+    "_meta": {
+      "title": "Source frame count"
+    }
+  },
+  "4": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": "4eb2b838515ec267dd13ddb9a31f8948392cd571aec3fdaeb58d00e093ee0795.wav"
+    },
+    "_meta": {
+      "title": "02 \u00b7 Target soundtrack \u00b7 120 BPM / 5.0625 s"
+    }
+  },
+  "30": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "81 if (g == 81 and 0 < a < b < c < 80 and 0 < d < e < f < 80 and 0.75 <= a/d <= 1.5 and 0.75 <= (b-a)/(e-d) <= 1.5 and 0.75 <= (c-b)/(f-e) <= 1.5 and 0.75 <= (80-c)/(80-f) <= 1.5) else 1/0",
+      "values.a": ["10", 0],
+      "values.b": ["11", 0],
+      "values.c": ["12", 0],
+      "values.d": ["20", 0],
+      "values.e": ["21", 0],
+      "values.f": ["22", 0],
+      "values.g": ["3", 2]
+    },
+    "_meta": {
+      "title": "VALIDATE \u00b7 ordered pins / 0.75\u20131.5x / 81 frames"
+    }
+  },
+  "31": {
+    "class_type": "Basic data handling: DataListRange",
+    "inputs": {
+      "start": 0,
+      "stop": ["30", 1],
+      "step": 1
+    },
+    "_meta": {
+      "title": "Output frame clock: 0\u201380"
+    }
+  },
+  "32": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "round(a*b/e if a <= e else b+(a-e)*(c-b)/(f-e) if a <= f else c+(a-f)*(d-c)/(g-f) if a <= g else d+(a-g)*(80-d)/(80-g))",
+      "values.a": ["31", 0],
+      "values.b": ["10", 0],
+      "values.c": ["11", 0],
+      "values.d": ["12", 0],
+      "values.e": ["20", 0],
+      "values.f": ["21", 0],
+      "values.g": ["22", 0]
+    },
+    "_meta": {
+      "title": "Motion Score \u00b7 piecewise-linear source frame"
+    }
+  },
+  "33": {
+    "class_type": "StringFormat",
+    "inputs": {
+      "f_string": "{a:d}",
+      "values.a": ["32", 1]
+    },
+    "_meta": {
+      "title": "One source index per output frame"
+    }
+  },
+  "34": {
+    "class_type": "Basic data handling: StringDataListJoin",
+    "inputs": {
+      "strings": ["33", 0],
+      "sep": ","
+    },
+    "_meta": {
+      "title": "Compile frame map"
+    }
+  },
+  "35": {
+    "class_type": "GetImagesFromBatchIndexed",
+    "inputs": {
+      "images": ["2", 0],
+      "indexes": ["34", 0]
+    },
+    "_meta": {
+      "title": "04 \u00b7 Retime RGB driver (nearest frame)"
+    }
+  },
+  "36": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": ["34", 0]
+    },
+    "_meta": {
+      "title": "Inspect compiled source frame map"
+    }
+  },
+  "37": {
+    "class_type": "StringFormat",
+    "inputs": {
+      "f_string": "Pin 1: {a} \u2192 {d}\nPin 2: {b} \u2192 {e}\nPin 3: {c} \u2192 {f}\n81 frames @ 16 fps; 0.75\u20131.5x; manual landmarks",
+      "values.a": ["10", 0],
+      "values.b": ["11", 0],
+      "values.c": ["12", 0],
+      "values.d": ["20", 0],
+      "values.e": ["21", 0],
+      "values.f": ["22", 0]
+    },
+    "_meta": {
+      "title": "Score plan \u00b7 source \u2192 target frames (16 fps)"
+    }
+  },
+  "38": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": ["37", 0]
+    },
+    "_meta": {
+      "title": "Read score plan"
+    }
+  },
+  "40": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": ["35", 0],
+      "fps": 16,
+      "audio": ["4", 0]
+    },
+    "_meta": {
+      "title": "Preview \u00b7 retimed driver + target beat"
+    }
+  },
+  "41": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": ["40", 0],
+      "filename_prefix": "motion-score/driver",
+      "format": "mp4",
+      "format.codec": "h264",
+      "codec": "h264"
+    },
+    "_meta": {
+      "title": "Preview \u00b7 retimed driver + target beat \u00b7 MP4"
+    }
+  },
+  "42": {
+    "class_type": "ImageConcatMulti",
+    "inputs": {
+      "inputcount": 2,
+      "image_1": ["2", 0],
+      "image_2": ["35", 0],
+      "direction": "right",
+      "match_image_size": true
+    },
+    "_meta": {
+      "title": "Left: original \u00b7 Right: retimed"
+    }
+  },
+  "43": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": ["42", 0],
+      "fps": 16,
+      "audio": ["4", 0]
+    },
+    "_meta": {
+      "title": "A/B \u00b7 original vs retimed driver"
+    }
+  },
+  "44": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": ["43", 0],
+      "filename_prefix": "motion-score/before-after",
+      "format": "mp4",
+      "format.codec": "h264",
+      "codec": "h264"
+    },
+    "_meta": {
+      "title": "A/B \u00b7 original vs retimed driver \u00b7 MP4"
+    }
+  }
+}
