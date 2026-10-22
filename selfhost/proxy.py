@@ -58,13 +58,29 @@ def create_app(env, comfyui_url="http://127.0.0.1:8188"):
     middlewares = [external_origin, make_origin_only_middleware()]
     if token:
         middlewares.append(make_bearer_auth_middleware(token))
-    return make_app(
+    app = make_app(
         comfyui_url,
         comfyui_base_dir="/opt/ComfyUI",
         max_upload_bytes=int(env.get("MAX_UPLOAD_MB", "128")) * 1024 * 1024,
         state_dir=env.get("PROXY_STATE_DIR", "/workspace/comfy-api-proxy"),
         middlewares=middlewares,
     )
+
+    # A CDN can turn a cold HEAD into GET before deciding whether to cache it.
+    # Reuse the upstream hash probe, including its validation and auth middleware.
+    probe = next(
+        route
+        for route in app.router.routes()
+        if route.method == "HEAD"
+        and route.resource.canonical == "/api/v2/assets/by-hash/{hash}"
+    )
+    app.router.add_get(probe.resource.canonical, probe.handler, allow_head=False)
+
+    async def no_cache(request, response):
+        response.headers["Cache-Control"] = "private, no-store"
+
+    app.on_response_prepare.append(no_cache)
+    return app
 
 
 if __name__ == "__main__":

@@ -17,6 +17,8 @@ At start, `selfhost/entrypoint.sh` runs, in order:
 3. Once ComfyUI serves `/object_info`: `node scripts/check-models-lock.mjs --definitions <object_info>`, which checks every runtime workflow's node classes and that every locked file is among ComfyUI's loader choices.
 4. `selfhost/proxy.py` serves the upstream `comfy-api-proxy` on `$PROXY_HOST:8189`, preserving its bearer authentication and browser-origin guard. It uses `/opt/ComfyUI`, the configured upload limit and persistent state directory. Job and output links use the public Runpod HTTPS origin derived from `RUNPOD_POD_ID`, or an explicit `PROXY_PUBLIC_URL` on another host; forwarded headers cannot change that origin.
 
+The launcher also serves the upstream hash probe through GET: CDN gateways can turn a first HEAD into GET. Proxy responses are `private, no-store`, so authentication and job state are never shared through a CDN cache.
+
 ComfyUI listens on loopback port 8188 only; port 8189 is the only one the template exposes. The proxy serves at most 8 event streams at once. The container stops when ComfyUI or the proxy stops, and passes a stop signal to both.
 
 ## Known risks
@@ -56,7 +58,7 @@ After recording the evidence, stop the paid pod in Runpod.
 
 ## Appendix: manual setup on any GPU box
 
-The image automates these steps; they are how the 2026-10-21 proof was set up by hand on Runpod's ComfyUI template.
+These are the steps used by the 2026-10-21 proof on Runpod's ComfyUI template over an SSH tunnel. The bare proxy CLI below is for a direct connection or that tunnel. For Runpod's HTTPS gateway, use the published GPU image: its launcher supplies the public origin and CDN-compatible hash probe.
 
 ### Pod requirements
 
@@ -110,7 +112,7 @@ python3 -m venv /opt/open-photon-proxy
   --max-upload-mb 128 --state-dir /workspace/open-photon-proxy-state
 ```
 
-Keep the proxy process running. The persistent state directory preserves the proxy's job and idempotency records. If ComfyUI lacks node classes, update it and restart before submitting. The graph uses ComfyUI core nodes; adding a paid partner node is not a workaround. The [proxy documentation](https://github.com/Comfy-Org/comfy-api-proxy#cli-reference) describes its flags. Expose port 8189, then point the app at it as in [deployment reference](deployment.md) (set the two variables, `npm run check:comfy`).
+Keep the proxy process running. The persistent state directory preserves the proxy's job and idempotency records. If ComfyUI lacks node classes, update it and restart before submitting. The graph uses ComfyUI core nodes; adding a paid partner node is not a workaround. The [proxy documentation](https://github.com/Comfy-Org/comfy-api-proxy#cli-reference) describes its flags. For a direct connection, expose port 8189 and point the app at it as in [deployment reference](deployment.md). For a secure tunnel, follow the next section. Runpod's HTTPS gateway requires the published GPU image described above.
 
 ### Loopback alternative: an SSH tunnel
 

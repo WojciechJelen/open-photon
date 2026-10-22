@@ -117,6 +117,14 @@ class ProxyBehindGateway(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status, 201)
         asset = await response.json()
         self.assertTrue(asset["url"].startswith(self.base))
+        for hash_value, status in [(asset["hash"], 200), ("blake3:" + "0" * 64, 404)]:
+            for method in ("GET", "HEAD"):
+                probe = await self.client.request(
+                    method, f"/api/v2/assets/by-hash/{hash_value}", headers=self.headers
+                )
+                self.assertEqual(probe.status, status)
+                self.assertEqual(probe.headers["Cache-Control"], "private, no-store")
+                self.assertEqual(await probe.read(), b"")
         response = await self.client.post(
             "/api/v2/jobs",
             json={"workflow": {"1": {"class_type": "EmptyImage", "inputs": {}}}},
@@ -135,6 +143,10 @@ class ProxyBehindGateway(unittest.IsolatedAsyncioTestCase):
     async def test_auth_and_cross_site_guard_remain_enabled(self):
         for headers in [{}, {"Authorization": "Bearer wrong"}]:
             response = await self.client.get("/api/v2/jobs", headers=headers)
+            self.assertEqual(response.status, 401)
+            response = await self.client.get(
+                "/api/v2/assets/by-hash/blake3:" + "0" * 64, headers=headers
+            )
             self.assertEqual(response.status, 401)
         response = await self.client.get(
             "/api/v2/jobs", headers={**self.headers, "Sec-Fetch-Site": "cross-site"}
