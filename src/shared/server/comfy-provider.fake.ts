@@ -4,7 +4,7 @@ import { copyFile, readFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
-import type { ComfyEvent, Progress } from "@comfyorg/sdk";
+import { type ComfyEvent, IdempotencyKeyReuse, type Progress } from "@comfyorg/sdk";
 
 import type { AssetReference } from "./comfy-assets.ts";
 import type { Provider, ProviderJob, ProviderOutput } from "./comfy-provider.ts";
@@ -160,8 +160,9 @@ type FakeProvider = Provider & {
 
 /**
  * A provider that never leaves the process (`COMFY_PROVIDER=fake`, `comfy-provider.ts`): uploads
- * are named by the file's hash, a submit's job id by its idempotency key (the same key returns the
- * same job, as Comfy does), and jobs live in memory, so a restart forgets them.
+ * are named by the file's hash, a submit's job id by its idempotency key, and jobs live in memory,
+ * so a restart forgets them. Keys are single-use, as on Comfy: a second submit with a key already
+ * seen throws the SDK's `IdempotencyKeyReuse` (422) and leaves the first job as it was.
  */
 function createFakeProvider() {
   const jobs = new Map<string, FakeJob>();
@@ -181,7 +182,15 @@ function createFakeProvider() {
     submit: async (graph, idempotencyKey) => {
       provider.calls.submit += 1;
       const id = `fake-${createHash("sha256").update(idempotencyKey).digest("hex").slice(0, 32)}`;
-      const scenario = jobs.get(id)?.scenario ?? scenarioFor(graph);
+
+      if (jobs.has(id)) {
+        throw new IdempotencyKeyReuse(
+          `The fake provider has already seen idempotency key ${idempotencyKey}.`,
+          { code: "idempotency_key_reuse", httpStatus: 422 },
+        );
+      }
+
+      const scenario = scenarioFor(graph);
 
       jobs.set(id, { id, outputs: outputNodes(graph), scenario });
 

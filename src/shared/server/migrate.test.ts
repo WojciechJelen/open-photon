@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   cpSync,
@@ -13,8 +14,11 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
+import { promisify } from "node:util";
 
 import { migrate } from "./migrate.ts";
+
+const run = promisify(execFile);
 
 const MIGRATIONS = resolve("src/shared/server/migrations");
 const legacyFiles = readdirSync(MIGRATIONS).filter((file) => file.endsWith(".sql"));
@@ -114,6 +118,59 @@ test("a database the flat-only runner migrated upgrades in place; a namespaced m
   assert.throws(() => migrate(database, directory), {
     message: /^Migration legacy\/001 \(001-assets-generations\.sql\) changed after it was applied/,
   });
+});
+
+test("two connections upgrading the same legacy database: the second finds it upgraded", (t) => {
+  const directory = migrationsCopy(t);
+  const path = join(directory, "app.sqlite");
+
+  migrateAsBefore(new DatabaseSync(path), directory);
+
+  const first = new DatabaseSync(path);
+  const second = new DatabaseSync(path);
+
+  migrate(first, directory);
+
+  const upgraded = rows(first);
+
+  migrate(second, directory);
+
+  assert.deepEqual(rows(second), upgraded);
+  assert.deepEqual(
+    upgraded.map(({ identity }) => identity),
+    legacyFiles.map((file) => `legacy/${file.slice(0, 3)}`),
+  );
+});
+
+test("processes starting together on one legacy database all upgrade it without an error", async (t) => {
+  const directory = migrationsCopy(t);
+  const path = join(directory, "app.sqlite");
+  const legacy = new DatabaseSync(path);
+
+  legacy.exec("PRAGMA journal_mode = WAL");
+  migrateAsBefore(legacy, directory);
+  legacy.close();
+
+  // Each process opens its own connection, as two worktrees or `seed-samples.mjs` beside the
+  // server do, and migrates the moment it loads.
+  const script = `
+    import { DatabaseSync } from "node:sqlite";
+    import { migrate } from ${JSON.stringify(resolve("src/shared/server/migrate.ts"))};
+    const database = new DatabaseSync(${JSON.stringify(path)});
+    database.exec("PRAGMA busy_timeout = 5000");
+    migrate(database, ${JSON.stringify(directory)});
+  `;
+
+  await Promise.all(
+    Array.from({ length: 6 }, () =>
+      run(process.execPath, ["--no-warnings", "--input-type=module", "-e", script]),
+    ),
+  );
+
+  assert.deepEqual(
+    rows(new DatabaseSync(path)).map(({ identity }) => identity),
+    legacyFiles.map((file) => `legacy/${file.slice(0, 3)}`),
+  );
 });
 
 test("a fresh database gets the legacy migrations as legacy/001…, then shared, then other domains alphabetically", (t) => {

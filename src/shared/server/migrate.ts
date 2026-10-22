@@ -117,27 +117,28 @@ function discover(directory: string) {
  * Upgrades the `migrations` table the flat-only runner created (`version INTEGER PRIMARY KEY,
  * name, applied_at`) in place: adds `identity` (unique) and `checksum`, and records each existing
  * row as `legacy/NNN`. Its rows otherwise stay as they are; their checksums are recorded the next
- * time their files are read (`migrate`).
+ * time their files are read (`migrate`). The schema is read and changed in one `BEGIN IMMEDIATE`
+ * transaction, so a second process opening the same database waits, then finds it upgraded.
  */
 function upgradeTable(database: DatabaseSync) {
-  database.exec(`CREATE TABLE IF NOT EXISTS migrations (
+  transaction(database, () => {
+    database.exec(`CREATE TABLE IF NOT EXISTS migrations (
   version INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
   applied_at TEXT NOT NULL
 )`);
 
-  const columns = database.prepare("SELECT name FROM pragma_table_info('migrations')").all();
+    const columns = database.prepare("SELECT name FROM pragma_table_info('migrations')").all();
 
-  if (columns.some((column) => column.name === "identity")) {
-    return;
-  }
+    if (columns.some((column) => column.name === "identity")) {
+      return;
+    }
 
-  transaction(database, () =>
     database.exec(`ALTER TABLE migrations ADD COLUMN identity TEXT;
 ALTER TABLE migrations ADD COLUMN checksum TEXT;
 UPDATE migrations SET identity = 'legacy/' || printf('%03d', version);
-CREATE UNIQUE INDEX migrations_identity ON migrations (identity);`),
-  );
+CREATE UNIQUE INDEX migrations_identity ON migrations (identity);`);
+  });
 }
 
 /**
