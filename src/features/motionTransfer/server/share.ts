@@ -3,7 +3,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { assetSchema } from "../../../shared/contracts.ts";
 import { mediaUrl } from "../../../shared/media.ts";
 import { findAsset } from "../../../shared/server/assets.ts";
-import { workflowModelFiles } from "../workflows/models.ts";
+import { workflowModelFiles } from "../../../shared/server/models-lock.ts";
 import { motionTransferWorkflow } from "../workflows/registry.ts";
 import { findCharacter } from "./characters.server.ts";
 import { findShared } from "./generations.ts";

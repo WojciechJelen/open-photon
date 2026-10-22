@@ -1,11 +1,13 @@
 import { createHash } from "node:crypto";
-import { createReadStream, createWriteStream } from "node:fs";
-import { mkdir, readFile, rename, rm } from "node:fs/promises";
+import { createReadStream, createWriteStream, readFileSync } from "node:fs";
+import { mkdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
-import { modelsLockSchema } from "../src/features/motionTransfer/workflows/models.ts";
+import { discoverWorkflows } from "../src/shared/server/comfy-workflows.ts";
+import { aggregateModelsLocks, workflowModelsLock } from "../src/shared/server/models-lock.ts";
+import { workflowGraphSchema } from "../src/shared/server/workflow-graph.ts";
 
 const args = process.argv.slice(2);
 const verifyOnly = args.includes("--verify-only");
@@ -14,7 +16,18 @@ const directory = args.find((arg) => arg !== "--verify-only");
 if (!directory)
   throw new Error("Usage: node scripts/install-models.mjs /path/to/ComfyUI/models [--verify-only]");
 
-const lock = modelsLockSchema.parse(JSON.parse(await readFile("models.lock", "utf8")));
+// Every feature's models.lock (the one beside its runtime workflows), merged; a workflow that loads
+// models without a lock, or a file two features pin differently, stops here, before any download.
+const locks = new Map();
+
+for (const workflow of discoverWorkflows()) {
+  const graph = workflowGraphSchema.parse(JSON.parse(readFileSync(workflow.workflowFile, "utf8")));
+  const lock = workflowModelsLock(workflow, graph);
+
+  if (lock) locks.set(workflow.lockFile, { feature: workflow.feature, lock });
+}
+
+const models = aggregateModelsLocks([...locks.values()]);
 
 async function hashFile(path) {
   const hash = createHash("sha256");
@@ -24,7 +37,7 @@ async function hashFile(path) {
   return hash.digest("hex");
 }
 
-for (const model of lock.models) {
+for (const model of models) {
   const destination = join(directory, model.directory, model.file);
   let existing;
 

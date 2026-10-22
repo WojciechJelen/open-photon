@@ -1,0 +1,17 @@
+{
+  "name": "open-photon-comfy",
+  "category": "NVIDIA",
+  "isServerless": false,
+  "isPublic": false,
+  "containerDiskInGb": 50,
+  "volumeInGb": 50,
+  "volumeMountPath": "/workspace",
+  "ports": ["8189/http"],
+  "env": {
+    "PROXY_TOKEN": "{{ RUNPOD_SECRET_open_photon_proxy_token }}",
+    "MODELS_DIR": "/workspace/models",
+    "PROXY_STATE_DIR": "/workspace/comfy-api-proxy",
+    "MAX_UPLOAD_MB": "128"
+  },
+  "readme": "Open Photon's self-hosted Comfy target: ComfyUI 0.42.0 (7a28332) with the Wan Animate 2 weights from models.lock, behind comfy-api-proxy 0.1.6 on port 8189 (Comfy API v2, bearer PROXY_TOKEN). Needs one GPU with at least 32 GB VRAM (RTX 5090 measured at 31,066 MiB peak) and a CUDA 13 driver: create pods with --min-cuda-version 13.0. Attach a network volume at /workspace to keep the ~26 GB of weights between pods; the first boot downloads them. Point the app at https://<pod-id>-8189.proxy.runpod.net with COMFY_API_KEY set to the token. See docs/selfhost.md in the open-photon repository."
+}

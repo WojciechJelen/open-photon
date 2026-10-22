@@ -56,7 +56,7 @@ test("the recipe panel is collapsed until opened, on the result and on the share
       ).toHaveAttribute("href", /actions\/workflows\/ci.yml$/);
       await expect(page.getByRole("link", { name: "Model sources and hashes" })).toHaveAttribute(
         "href",
-        /blob\/main\/models.lock$/,
+        /blob\/main\/src\/features\/motionTransfer\/workflows\/models\.lock$/,
       );
     }
 

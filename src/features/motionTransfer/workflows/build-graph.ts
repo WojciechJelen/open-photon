@@ -1,17 +1,7 @@
 import { z } from "zod";
 
+import type { WorkflowGraph } from "../../../shared/server/workflow-graph.ts";
 import { type MotionTransferParams, motionTransferParamsSchema } from "./params.ts";
-
-export const workflowGraphSchema = z.record(
-  z.string(),
-  z.object({
-    _meta: z.object({ title: z.string() }).optional(),
-    class_type: z.string().min(1),
-    inputs: z.record(z.string(), z.json()),
-  }),
-);
-
-export type WorkflowGraph = z.infer<typeof workflowGraphSchema>;
 
 export const inputsMapSchema = z.object({
   inputs: z.record(

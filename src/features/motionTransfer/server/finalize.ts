@@ -1,7 +1,11 @@
 import { rm, stat } from "node:fs/promises";
 
 import { hashFile, incomingPath, storeAsset } from "../../../shared/server/assets.ts";
-import { comfyProvider, OUTPUT_NODE, type Provider, type ProviderOutput } from "./comfy.ts";
+import {
+  comfyProvider,
+  type Provider,
+  type ProviderOutput,
+} from "../../../shared/server/comfy-provider.ts";
 import {
   countFinalizeAttempt,
   findGeneration,
@@ -10,6 +14,9 @@ import {
   transition,
 } from "./generations.ts";
 import { probe, runTool } from "./media/probe.ts";
+
+/** motion-transfer.v1's SaveVideo node; its MP4 (with the driving clip's audio) is the result. */
+const OUTPUT_NODE = "246";
 
 /** The output's frame at 0.5 s as a JPEG, or its first frame when it ends before then. */
 async function cutPoster(video: string, poster: string) {

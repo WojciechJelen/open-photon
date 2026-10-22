@@ -6,12 +6,12 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { copyFile, stat, writeFile } from "node:fs/promises";
 
-import { providerTarget } from "../../src/features/motionTransfer/server/comfy.ts";
 import { probe } from "../../src/features/motionTransfer/server/media/probe.ts";
 import {
   motionTransferModels,
   motionTransferWorkflow,
 } from "../../src/features/motionTransfer/workflows/registry.ts";
+import { comfyTarget } from "../../src/shared/server/comfy-target.ts";
 import { accessCodePath, QUEUED_JOB_ID, SEEDED_JOB_ID } from "./session.ts";
 
 const path = process.env.DATABASE_PATH;
@@ -94,7 +94,7 @@ const seedGeneration = (seed: number, providerJobId: string) => {
       inputs: { driving_video_sha256: clip.sha256, reference_image_sha256: character.image.sha256 },
       models: motionTransferModels,
       params: { fragment_length: 81, height: 848, prompt: "e2e seeded result", seed, width: 480 },
-      target: providerTarget(),
+      target: comfyTarget().kind,
       workflow: { id: "motion-transfer", sha256: motionTransferWorkflow.sha256, version: 1 },
     },
   });

@@ -10,7 +10,7 @@ Docs: <https://open-photon-docs.vercel.app> ([source](https://github.com/Wojciec
 
 ## Run
 
-Quick start:
+Quick start on Comfy Cloud:
 
 ```sh
 cp .env.example .env    # then set COMFY_API_KEY in .env
@@ -18,44 +18,26 @@ docker compose up --build
 docker compose exec app node scripts/mint-code.mjs me 20   # once it is up: an access code
 ```
 
-The app is then on <http://localhost:3030>. `.env` is ignored by Git and the Docker context; Compose passes it to the app, so the optional settings listed in [`.env.example`](.env.example) (`PUBLIC_APP_URL`, `IN_FLIGHT_MAX`, `CLIENT_IP_HEADER`, `DATABASE_PATH`, the rate limits, `ENABLE_DEBUG`) apply when uncommented. The account behind `COMFY_API_KEY` needs access to Comfy Cloud workflow generation and enough credits. Authentication alone does not establish this access. Supply the key only at runtime.
+The app is then on <http://localhost:3030>. Full setup for Comfy Cloud and self-hosting (prerequisites, running without Docker, RunPod, every variable, troubleshooting): [SETUP.md](SETUP.md).
 
-Verified on 2026-10-21 with two fresh GitHub clones and separate empty volumes on an existing Colima host: sample selection, clip upload and trim, consented photo upload, real Comfy generation, compare playback and MP4 download. Both runs needed no app changes. See the [verification log](docs/fresh-clone-2026-10-21.log) for timings, credits and the Docker cache used.
+The app opens on the studio home, with Motion Transfer as its live tool (the others are marked Soon). Motion Transfer is a wizard at `/motionTransfer`, one decision per screen. Step 1 picks the motion: a grid of looping, muted sample clips, or an upload of your own (3–8 s; a longer clip opens a trim dialog). Step 2 picks the character: a sample, or a photo you upload, confirming the likeness consent under its preview. Step 3, optional, directs the shot (angle, look, seed), and Generate opens step 4, the render, at `/g/<id>`. The step and both picks are in the URL (`/motionTransfer?step=<motion|character|direct>&motion=<asset id>&character=<character id>`), so a reload, Back and Forward and a shared link keep them; a step whose picks are missing shows the furthest one it can reach, and an old `/?motion=…&character=…` link redirects to the wizard. There are no accounts, so an uploaded character is listed only while the URL names it. The workflow, its provenance and its input map are described in [src/features/motionTransfer/workflows/README.md](src/features/motionTransfer/workflows/README.md).
 
-Or with plain Docker:
-
-```sh
-docker build -t open-photon:latest .
-docker run -d --name open-photon --init \
-  --env-file .env -e COMFY_BASE_URL=https://cloud.comfy.org \
-  -p 127.0.0.1:3030:3000 \
-  --mount type=volume,source=open-photon-data,target=/app/data \
-  open-photon:latest
-```
-
-For Colima, add `--context colima` after `docker`. Stop the running app before building on a small Docker VM. The quick start's Compose service uses its own volume (`sqlite-data`). Keep the volume containing your render data when replacing containers.
-
-Build and run natively: ARM64 on Apple Silicon, AMD64 on x86 hosts. Compose pins `linux/amd64`, so on Apple Silicon it builds and runs emulated. CI builds the AMD64 image on an x86 runner. For an explicit cross-platform compatibility check, add `--platform linux/amd64` to both build and run, using a separate image tag and container. Earlier emulated runs had a route-generator segmentation fault and inconsistent memory measurements; use native runs for memory checks.
-
-Open <http://localhost:3030>: the studio home, with Motion Transfer as its live tool (the others are marked Soon). Motion Transfer is a wizard at `/motionTransfer`, one decision per screen. Step 1 picks the motion: a grid of looping, muted sample clips, or an upload of your own (3–8 s; a longer clip opens a trim dialog). Step 2 picks the character: a sample, or a photo you upload, confirming the likeness consent under its preview. Step 3, optional, directs the shot (angle, look, seed), and Generate opens step 4, the render, at `/g/<id>`. The step and both picks are in the URL (`/motionTransfer?step=<motion|character|direct>&motion=<asset id>&character=<character id>`), so a reload, Back and Forward and a shared link keep them; a step whose picks are missing shows the furthest one it can reach, and an old `/?motion=…&character=…` link redirects to the wizard. There are no accounts, so an uploaded character is listed only while the URL names it. The workflow, its provenance and its input map are described in [src/features/motionTransfer/workflows/README.md](src/features/motionTransfer/workflows/README.md).
-
-Choosing samples is open to anyone. Uploads and new generations need an access code (see "Access codes"): mint one on the app's database once it has started, `docker exec open-photon node scripts/mint-code.mjs me 20` (with `npm run dev`: `node scripts/mint-code.mjs me 20` after the first page load), and enter it when the app asks.
-
-For local development, use Node 24+ and npm 11.6.2 (`npm install --global npm@11.6.2`), then `npm ci` and `npm run dev`. Docker and CI use the same npm version declared in `packageManager`. Install FFmpeg locally (with libx264): uploads are probed and trimmed with `ffprobe`/`ffmpeg`, the server tests run them, and generated outputs are verified with them.
+Choosing samples is open to anyone. Uploads and new generations need an access code (the quick start's last command; see "Access codes"); enter it when the app asks.
 
 ## Open-weights checks and self-hosting
 
-[models.lock](models.lock) pins the five files loaded by `motion-transfer.v1.json` to immutable Hugging Face URLs, SHA-256 hashes and the Comfy-Org repack's declared Apache-2.0 license. New recipes include the pins. The Docker image includes the lock; historical recipes retain their original model data.
+[src/features/motionTransfer/workflows/models.lock](src/features/motionTransfer/workflows/models.lock) pins the five files loaded by `motion-transfer.v1.json` to immutable Hugging Face URLs, SHA-256 hashes and the Comfy-Org repack's declared Apache-2.0 license; each feature keeps its pins beside its workflows. New recipes include the pins. The Docker image includes every feature's workflows and lock; historical recipes retain their original model data.
 
 ```sh
-npm run check:models        # 5 model files, 5 locked, 0 missing
+npm run check:models        # motionTransfer/motion-transfer.v1: 5 model files, 5 locked, 0 missing
+                            # 5 distinct model files across 1 feature lock, 0 conflicts
 npm run check:open-weights  # scans every feature's workflows, including nested UI subgraphs
 node scripts/check-open-weights.mjs tests/fixtures/partner-node.json  # must exit 1
 ```
 
 CI runs both checks and the negative-control tests. The forbidden patterns are in [scripts/forbidden-nodes.json](scripts/forbidden-nodes.json). With ComfyUI's `object_info` JSON available, pass `--definitions <file>` to also reject nodes marked `api_node: true`. Unknown node names without definitions are checked against the patterns; the gate does not audit arbitrary custom-node Python code.
 
-The [Runpod 5090 setup](docs/selfhost.md) covers model installation with hash verification, ComfyUI preflight, `comfy-api-proxy`, an SSH tunnel, the Compose `selfhost` profile, and a repeatable proof check. The provider uses the same SDK adapter with `COMFY_BASE_URL` and optional proxy auth in `COMFY_API_KEY`.
+To render on your own GPU instead of Comfy Cloud, run the [`selfhost/`](selfhost/) image on a RunPod pod or any GPU host and point the app at it: [SETUP.md](SETUP.md). The self-hosted proof (set up by hand on RunPod, as in the [docs/selfhost.md](docs/selfhost.md) appendix):
 
 | GPU | Workflow variant | Resolution | Clip seconds | Peak VRAM MiB | Submission to done seconds | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -95,7 +77,7 @@ Opening `/g/:id` never waits for Comfy: the page renders the stored row at once,
 
 ## Recipes and re-runs
 
-Every generation page (and every share page) has a "Recipe" panel, collapsed until opened, that shows the stored recipe: the workflow id, version and SHA-256, the five model files with SHA-256 and licenses from `models.lock` (older recipes keep their original empty model list), every parameter (prompt, seed, size, `fragment_length`) and the reshoot angle, the SHA-256 of the motion clip and of the character image, and the target (Comfy Cloud or self-hosted ComfyUI, from `COMFY_BASE_URL`). `GET /api/generations/:id/recipe.json` returns the same recipe as JSON (`recipeSchema` in `src/features/motionTransfer/server/recipe.ts`; its `workflow.sha256` is the one in `src/features/motionTransfer/workflows/README.md`); 400 for a malformed id, 404 for an unknown one.
+Every generation page (and every share page) has a "Recipe" panel, collapsed until opened, that shows the stored recipe: the workflow id, version and SHA-256, the five model files with SHA-256 and licenses from the feature's `models.lock` (older recipes keep their original empty model list), every parameter (prompt, seed, size, `fragment_length`) and the reshoot angle, the SHA-256 of the motion clip and of the character image, and the target (Comfy Cloud or self-hosted ComfyUI, from `COMFY_BASE_URL`). `GET /api/generations/:id/recipe.json` returns the same recipe as JSON (`recipeSchema` in `src/features/motionTransfer/server/recipe.ts`; its `workflow.sha256` is the one in `src/features/motionTransfer/workflows/README.md`); 400 for a malformed id, 404 for an unknown one.
 
 "Re-run recipe" (on a done or failed generation) calls `POST /api/generations/:id/rerun`: the generation's recipe again, seed included, on the target this server renders on now. It goes through the same reuse as `generate`. With the target unchanged the recipe hash is the parent's, so a done parent comes back as it is: 200 `{ id: <the parent>, reused: true }`, no new row, nothing submitted, and the page says the result is already this one. Re-running is free unless something in the recipe changed, and that answer needs no access session. A failed parent, or a parent made on the other target, gets a child (`parent_id` = `:id`, same seed) that is submitted like any generation (201): **that submits a real GPU job**, and needs a session (401 `access_required` without one). A child that kept its parent's seed says it is a re-run of the earlier generation; one with a new seed, that it is a retry. 409 when the workflow file has changed since the recipe was made, 404 for an unknown id, 400 for a malformed one.
 

@@ -1,7 +1,7 @@
 import { setTimeout as delay } from "node:timers/promises";
 
+import { comfyProvider, type Provider } from "../../../shared/server/comfy-provider.ts";
 import { type GenerationEvent, generationSchema } from "../contracts.ts";
-import { comfyProvider, type Provider } from "./comfy.ts";
 import { finalize } from "./finalize.ts";
 import { settleAbandoned } from "./generate.ts";
 import { findGeneration, type Generation, markRunning } from "./generations.ts";

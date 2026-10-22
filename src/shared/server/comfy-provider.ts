@@ -1,20 +1,9 @@
-import {
-  BASE_URL_ENV_VAR,
-  Comfy,
-  COMFY_CLOUD_BASE_URL,
-  ComfyError,
-  IdempotencyKeyReuse,
-  type Job,
-  type Output,
-} from "@comfyorg/sdk";
+import { Comfy, ComfyError, IdempotencyKeyReuse, type Job, type Output } from "@comfyorg/sdk";
 import { z } from "zod";
 
-import type { generationErrorCodeSchema } from "../contracts.ts";
-import type { WorkflowGraph } from "../workflows/build-graph.ts";
-import { type MotionTransferParams, motionTransferParamsSchema } from "../workflows/params.ts";
-
-/** The template's SaveVideo node; its MP4 (with the driving clip's audio) is the result. */
-export const OUTPUT_NODE = "246";
+import { type AssetReference, assetReferenceSchema } from "./comfy-assets.ts";
+import { comfyTarget } from "./comfy-target.ts";
+import type { WorkflowGraph } from "./workflow-graph.ts";
 
 export type ProviderOutput = Pick<Output, "contentType" | "name" | "sizeBytes" | "toFile">;
 
@@ -29,13 +18,19 @@ export type Provider = {
   /** Sends the graph under `idempotencyKey`; resolves to the provider job id. */
   submit(graph: WorkflowGraph, idempotencyKey: string): Promise<string>;
   /** Uploads a file (content-addressed, so a known file is not sent again). */
-  upload(path: string): Promise<MotionTransferParams["driving_video"]>;
+  upload(path: string): Promise<AssetReference>;
 };
 
 let client: Comfy | undefined;
 
 function sdk() {
-  client ??= new Comfy({ clientInfo: "open-photon", timeoutMs: 30_000 });
+  // The key is passed explicitly; the SDK reads `COMFY_BASE_URL` itself, which `comfyTarget()`
+  // validated with the SDK's own rules at boot.
+  client ??= new Comfy({
+    apiKey: comfyTarget().apiKey,
+    clientInfo: "open-photon",
+    timeoutMs: 30_000,
+  });
 
   return client;
 }
@@ -45,20 +40,11 @@ export const comfyProvider: Provider = {
   submit: async (graph, idempotencyKey) =>
     (await sdk().submit(sdk().workflows.fromJson(graph), { idempotencyKey })).id,
   upload: async (path) =>
-    motionTransferParamsSchema.shape.driving_video.parse(
-      await sdk().assets.fromFile(path).asReference(),
-    ),
+    assetReferenceSchema.parse(await sdk().assets.fromFile(path).asReference()),
 };
 
-/** `cloud` when `COMFY_BASE_URL` is unset or Comfy Cloud, else `selfhost` (a recipe's `target`). */
-export function providerTarget() {
-  const base = process.env[BASE_URL_ENV_VAR]?.trim() || COMFY_CLOUD_BASE_URL;
-
-  return new URL(base).origin === new URL(COMFY_CLOUD_BASE_URL).origin ? "cloud" : "selfhost";
-}
-
 type ProviderError = {
-  code: z.infer<typeof generationErrorCodeSchema>;
+  code: "provider_rejected" | "provider_unreachable" | "timeout" | "unknown";
   /** True when Comfy certainly did not accept the request: it answered no, or never got it. */
   refused: boolean;
   message: string;

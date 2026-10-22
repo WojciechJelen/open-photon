@@ -9,11 +9,6 @@ import { ComfyError, IdempotencyKeyReuse, InvalidWorkflow } from "@comfyorg/sdk"
 import { z } from "zod";
 
 import {
-  type Provider,
-  type ProviderJob,
-  providerTarget,
-} from "../src/features/motionTransfer/server/comfy.ts";
-import {
   GenerateError,
   generate,
   handleGenerate,
@@ -38,6 +33,8 @@ import { uploadVideo } from "../src/features/motionTransfer/server/videos.server
 import { motionTransferModels } from "../src/features/motionTransfer/workflows/registry.ts";
 import { findAccessCode } from "../src/shared/server/access-codes.ts";
 import { createAccessGuard } from "../src/shared/server/access.server.ts";
+import type { Provider, ProviderJob } from "../src/shared/server/comfy-provider.ts";
+import { comfyTarget } from "../src/shared/server/comfy-target.ts";
 import { database } from "../src/shared/server/db.server.ts";
 import { mintCode } from "./temp-database.ts";
 
@@ -47,6 +44,10 @@ process.env.IN_FLIGHT_MAX = "1000";
 
 // Requests name their client in `X-Client`.
 process.env.CLIENT_IP_HEADER = "X-Client";
+
+// Recipes record this server's target. A self-hosted dead port, as in the e2e tests: no key is
+// needed, and the doubles below stand in for Comfy, so nothing can reach it.
+process.env.COMFY_BASE_URL = "http://127.0.0.1:1";
 
 const form = new FormData();
 
@@ -302,7 +303,7 @@ test("retry renders on the target this server renders on, like a re-run", async 
     recipe: {
       ...here.recipe,
       params: { ...here.recipe.params, seed: here.recipe.params.seed + 1_000_000 },
-      target: providerTarget() === "cloud" ? "selfhost" : "cloud",
+      target: comfyTarget().kind === "cloud" ? "selfhost" : "cloud",
     },
   });
 
@@ -311,7 +312,7 @@ test("retry renders on the target this server renders on, like a re-run", async 
   const child = findGeneration((await retry(parent.id, session, double)).id);
 
   assert.equal(child?.parent_id, parent.id);
-  assert.equal(child?.recipe.target, providerTarget());
+  assert.equal(child?.recipe.target, comfyTarget().kind);
 });
 
 test("a blank seed and prompt are fixed defaults: the same choices are the same recipe, which a pre-render with those values matches", async () => {
@@ -492,7 +493,7 @@ test("rerun of a done generation made on another target renders a child with the
     recipe: {
       ...here.recipe,
       params: { ...here.recipe.params, seed: here.recipe.params.seed + 1_000_000 },
-      target: providerTarget() === "cloud" ? "selfhost" : "cloud",
+      target: comfyTarget().kind === "cloud" ? "selfhost" : "cloud",
     },
   });
 
@@ -506,7 +507,7 @@ test("rerun of a done generation made on another target renders a child with the
   assert.equal(child.reused, false);
   assert.equal(submits.length, 2);
   assert.equal(row?.parent_id, parent.id);
-  assert.equal(row?.recipe.target, providerTarget());
+  assert.equal(row?.recipe.target, comfyTarget().kind);
   assert.equal(row?.recipe.params.seed, parent.recipe.params.seed);
   assert.notEqual(row?.recipe_hash, parent.recipe_hash);
 });

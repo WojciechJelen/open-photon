@@ -7,7 +7,6 @@ import test from "node:test";
 import { z } from "zod";
 
 import { generationEventSchema } from "../src/features/motionTransfer/contracts.ts";
-import type { Provider, ProviderJob } from "../src/features/motionTransfer/server/comfy.ts";
 import {
   streamDiagnostics,
   streamGeneration,
@@ -19,6 +18,7 @@ import {
   transition,
 } from "../src/features/motionTransfer/server/generations.ts";
 import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
+import type { Provider, ProviderJob } from "../src/shared/server/comfy-provider.ts";
 
 let seed = 0;
 

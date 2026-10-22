@@ -5,11 +5,6 @@ import { copyFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
 
-import type {
-  Provider,
-  ProviderJob,
-  ProviderOutput,
-} from "../src/features/motionTransfer/server/comfy.ts";
 import { finalize } from "../src/features/motionTransfer/server/finalize.ts";
 import {
   countInFlight,
@@ -21,6 +16,7 @@ import {
 import { runTool } from "../src/features/motionTransfer/server/media/probe.ts";
 import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
 import { findAsset, hashFile } from "../src/shared/server/assets.ts";
+import type { Provider, ProviderJob, ProviderOutput } from "../src/shared/server/comfy-provider.ts";
 import { database } from "../src/shared/server/db.server.ts";
 import { assetsDirectory } from "../src/shared/server/paths.ts";
 

@@ -211,7 +211,7 @@ export function SharePageView({ share }: { share: Share }) {
                 </Badge>
                 <a
                   className="underline underline-offset-4"
-                  href={`${REPOSITORY_URL}/blob/main/models.lock`}
+                  href={`${REPOSITORY_URL}/blob/main/src/features/motionTransfer/workflows/models.lock`}
                 >
                   Model sources and hashes
                 </a>

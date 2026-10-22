@@ -12,6 +12,12 @@ import {
 } from "../../../shared/server/access.server.ts";
 import { findAsset, findBySha256, type StoredAsset } from "../../../shared/server/assets.ts";
 import {
+  comfyProvider,
+  type Provider,
+  providerError,
+} from "../../../shared/server/comfy-provider.ts";
+import { comfyTarget } from "../../../shared/server/comfy-target.ts";
+import {
   inFlightMax,
   requesterKeys,
   returnToken,
@@ -22,7 +28,6 @@ import { generateInputSchema, generationSchema, MAX_CLIP_MS } from "../contracts
 import { buildGraph } from "../workflows/build-graph.ts";
 import { motionTransferModels, motionTransferWorkflow } from "../workflows/registry.ts";
 import { findCharacter } from "./characters.server.ts";
-import { comfyProvider, type Provider, providerError, providerTarget } from "./comfy.ts";
 import { finalize } from "./finalize.ts";
 import {
   countInFlight,
@@ -361,7 +366,7 @@ export async function generate(
           seed: input.seed ?? generateDefaults.seed,
           width: portrait ? 480 : 848,
         },
-        target: providerTarget(),
+        target: comfyTarget().kind,
         workflow: { id: "motion-transfer", sha256: motionTransferWorkflow.sha256, version: 1 },
       },
       session,
@@ -411,7 +416,7 @@ export async function retry(
 
   return submitChild(
     parent,
-    { ...parent.recipe, params: { ...parent.recipe.params, seed }, target: providerTarget() },
+    { ...parent.recipe, params: { ...parent.recipe.params, seed }, target: comfyTarget().kind },
     { admit, free: () => false, session },
     provider,
   );
@@ -439,7 +444,7 @@ export async function rerun(
 
   return submitChild(
     parent,
-    { ...parent.recipe, target: providerTarget() },
+    { ...parent.recipe, target: comfyTarget().kind },
     { admit, free: (existing) => existing.status === "done", session },
     provider,
   );

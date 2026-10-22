@@ -132,7 +132,7 @@ export const generationStatusSchema = z.enum([
  * - `interrupted`: the server stopped before sending the job; nothing was submitted.
  * - `unknown`: anything else, including an `unknown` row (the job may exist on Comfy).
  */
-export const generationErrorCodeSchema = z.enum([
+const generationErrorCodeSchema = z.enum([
   "provider_rejected",
   "provider_failed",
   "provider_unreachable",

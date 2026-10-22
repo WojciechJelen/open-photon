@@ -14,10 +14,10 @@ import {
 } from "../src/features/motionTransfer/server/generations.ts";
 import { isPublicRequest } from "../src/features/motionTransfer/server/public-access.ts";
 import { readShare } from "../src/features/motionTransfer/server/share.ts";
-import { workflowModelFiles } from "../src/features/motionTransfer/workflows/models.ts";
 import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
 import { hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
 import { database } from "../src/shared/server/db.server.ts";
+import { workflowModelFiles } from "../src/shared/server/models-lock.ts";
 
 /** Stores a committed file as an asset of `kind`. */
 async function store(file: string, kind: "image" | "poster" | "video") {

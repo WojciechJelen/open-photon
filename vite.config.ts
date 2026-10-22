@@ -29,6 +29,8 @@ const config = defineConfig({
     tailwindcss(),
     tanstackStart(),
     nitro({
+      // Runs before the server listens: bad Comfy config stops the process (`comfy-boot.ts`).
+      plugins: ["./src/shared/server/comfy-boot.ts"],
       preset: "node-server",
       traceDeps: ["@comfyorg/sdk*"],
     }),

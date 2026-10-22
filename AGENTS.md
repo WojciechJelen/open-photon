@@ -15,6 +15,15 @@ npx shadcn@latest add button
   migrations, asset store, uploads, media serving), and client helpers.
 - `src/components/ui/`: shadcn primitives only.
 - `src/routes/`: TanStack file routes; thin, they import from features and shared.
+- Comfy plumbing every feature shares lives in `src/shared/server/`: `comfy-target.ts` (Cloud
+  or self-host from `COMFY_BASE_URL`), `comfy-boot.ts` (Nitro boot check), `comfy-provider.ts`
+  (SDK transport), `comfy-assets.ts`, `workflow-graph.ts`, `models-lock.ts`, `comfy-workflows.ts`.
+- A runtime workflow is `src/features/<feature>/workflows/<id>.v<N>.json` plus its sibling
+  `<id>.v<N>.inputs.json`; its model pins are the sibling `models.lock`. `discoverWorkflows`
+  finds them; anything else under `workflows/` (nested exports, `*.api.json`) is ignored.
+- Both Dockerfiles package every feature's `workflows/` (the app image also `samples/`) without
+  per-feature lines; `npm run check:models` and `scripts/install-models.mjs` cover every
+  discovered workflow and every feature's lock.
 
 Files that Node loads in `test:server` (everything under a `server/` or `workflows/` folder,
 and what those import) use relative imports with the `.ts` extension; client code uses `#/`.

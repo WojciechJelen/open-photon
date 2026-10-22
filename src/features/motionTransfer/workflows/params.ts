@@ -1,14 +1,6 @@
 import { z } from "zod";
 
-/** The `core/ASSET` reference `Asset.asReference()` returns for an uploaded file. */
-const assetReferenceSchema = z.object({
-  __type: z.literal("core/ASSET"),
-  info: z.object({
-    file_path: z.string().optional(),
-    hash: z.string().optional(),
-    id: z.string().min(1),
-  }),
-});
+import { assetReferenceSchema } from "../../../shared/server/comfy-assets.ts";
 
 export const motionTransferParamsSchema = z.object({
   driving_video: assetReferenceSchema,

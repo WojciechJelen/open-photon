@@ -7,25 +7,13 @@ services:
       - path: .env
         required: false
     environment:
+      # Blank URL: Comfy Cloud, key required. A comfy-api-proxy URL: self-hosted, key optional.
       COMFY_API_KEY: ${COMFY_API_KEY:-}
-      COMFY_BASE_URL: ${COMFY_BASE_URL:-https://cloud.comfy.org}
+      COMFY_BASE_URL: ${COMFY_BASE_URL:-}
     ports:
       - "127.0.0.1:3030:3000"
     volumes:
       - sqlite-data:/app/data
     init: true
-  # Explicit target: docker compose --profile selfhost up --build selfhost
-  # Stop app first: these services publish the same local port.
-  selfhost:
-    extends:
-      service: app
-    profiles: [selfhost]
-    environment:
-      COMFY_BASE_URL: ${COMFY_BASE_URL:-http://host.docker.internal:8189}
-      # Empty for an SSH tunnel; otherwise the proxy's bearer token, never a Cloud key.
-      COMFY_API_KEY: ${COMFY_API_KEY:-}
-    volumes:
-      - selfhost-data:/app/data
 volumes:
-  selfhost-data:
   sqlite-data:
