@@ -3,7 +3,7 @@ import { comfyTarget } from "./comfy-target.ts";
 
 /**
  * A Nitro plugin (registered in `vite.config.ts`): it runs once as the server starts, before it
- * listens, while the app itself and its database load on the first request. Invalid Comfy config
+ * listens (the database is opened and seeded next, by `src/app/boot.ts`). Invalid Comfy config
  * throws here, so the process exits instead of failing a user's first Generate; so does
  * `COMFY_PROVIDER=fake` in a production server (`providerKind`).
  */

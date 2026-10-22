@@ -2,7 +2,7 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { isPublicAsset } from "../../features/motionTransfer/server/public-access.ts";
+import { isPublicAsset } from "../../app/server.ts";
 import { findAsset } from "./assets.ts";
 import { assetsDirectory } from "./paths.ts";
 

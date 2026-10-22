@@ -24,8 +24,8 @@ const access = createMiddleware().server(async ({ request, next }) => {
     result.response.headers.set("Cache-Control", "private, no-store, no-transform");
   }
 
-  // Share pages and the files they show may be indexed; nothing else.
-  const { isIndexable } = await import("#/features/motionTransfer/server/public-access");
+  // Share pages and the files they show may be indexed; nothing else (`src/app/server.ts`).
+  const { isIndexable } = await import("#/app/server");
 
   if (!isIndexable(new URL(request.url).pathname)) {
     result.response.headers.set("X-Robots-Tag", "noindex, nofollow");

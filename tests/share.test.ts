@@ -4,6 +4,7 @@ import "./temp-database.ts";
 import { copyFile, stat } from "node:fs/promises";
 import test from "node:test";
 
+import { isPublicRequest } from "../src/app/server.ts";
 import { listSampleCharacters } from "../src/features/motionTransfer/server/characters.server.ts";
 import { readResult } from "../src/features/motionTransfer/server/generate.ts";
 import {
@@ -12,7 +13,6 @@ import {
   markQueued,
   transition,
 } from "../src/features/motionTransfer/server/generations.ts";
-import { isPublicRequest } from "../src/features/motionTransfer/server/public-access.ts";
 import { readShare } from "../src/features/motionTransfer/server/share.ts";
 import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
 import { hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";

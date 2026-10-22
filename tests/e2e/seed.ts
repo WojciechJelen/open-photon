@@ -20,8 +20,12 @@ if (!path || existsSync(path)) {
   throw new Error(`The e2e seed needs DATABASE_PATH to name a new file, not ${path ?? "nothing"}`);
 }
 
-// Imported after that check, not statically: loading them opens (and migrates, and seeds) the
-// database.
+// Imported after that check, not statically: loading them opens (and migrates) the database.
+// The samples are seeded explicitly, as the server's boot does (`src/app/boot.ts`).
+const { seedDatabase } = await import("../../src/app/server.ts");
+
+seedDatabase();
+
 const { hashFile, incomingPath, storeAsset } = await import("../../src/shared/server/assets.ts");
 
 const { createGeneration, markQueued, transition } =
