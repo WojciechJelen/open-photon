@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -101,7 +101,7 @@ jobs:
           - image: open-photon
             dockerfile: Dockerfile
             arch: amd64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
           - image: open-photon
             dockerfile: Dockerfile
             arch: arm64
@@ -109,7 +109,7 @@ jobs:
           - image: open-photon-comfy
             dockerfile: selfhost/Dockerfile
             arch: amd64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     steps:
@@ -132,7 +132,7 @@ jobs:
 
   publish:
     needs: images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
