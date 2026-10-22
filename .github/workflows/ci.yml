@@ -42,7 +42,11 @@ jobs:
       - run: npm run check
       - run: npm run check:privacy
       - name: Install FFmpeg for the probe and trim tests
-        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends ffmpeg
+        timeout-minutes: 5
+        run: |
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::https::Timeout=30 install --yes --no-install-recommends ffmpeg
       - run: npm run test:server
       - name: Install Chromium for the browser tests
         run: npx playwright install --with-deps chromium
@@ -89,7 +93,6 @@ jobs:
         run: docker rm --force --volumes open-photon-memory || true
 
   images:
-    needs: verify
     if: github.event_name == 'workflow_dispatch' && inputs.publish
     permissions:
       contents: read
@@ -131,7 +134,7 @@ jobs:
           docker push "$image"
 
   publish:
-    needs: images
+    needs: [verify, images]
     runs-on: ubuntu-24.04
     permissions:
       contents: read

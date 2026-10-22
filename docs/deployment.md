@@ -22,9 +22,9 @@ GPU boot downloads roughly 26 GB of models; every boot verifies their hashes.
 ## Publishing images
 
 Run the GitHub Actions **CI** workflow with `publish=true` and `version` matching
-`package.json`. After verification, native AMD64 and ARM64 runners build the app;
-an AMD64 runner builds the GPU image. Only when all builds succeed are both version
-tags published to GHCR. Set each package's visibility to **Public** on its first
+`package.json`. Native AMD64 and ARM64 runners build the app;
+an AMD64 runner builds the GPU image. Only when verification and all builds succeed
+are both version tags published to GHCR. Set each package's visibility to **Public** on its first
 publication so users and Runpod can pull without registry credentials.
 
 Keep the app image in `compose.yaml`, the GPU image in `selfhost/runpod-template.json`,
