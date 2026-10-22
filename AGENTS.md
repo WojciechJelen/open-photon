@@ -16,7 +16,7 @@ npx shadcn@latest add button
 - `src/components/ui/`: shadcn primitives only.
 - `src/routes/`: TanStack file routes; thin, they import from features and shared.
 - Comfy plumbing every feature shares lives in `src/shared/server/`: `comfy-target.ts` (Cloud
-  or self-host from `COMFY_BASE_URL`), `comfy-boot.ts` (Nitro boot check), `comfy-provider.ts`
+  from `COMFY_API_KEY`, or self-host from `COMFY_BASE_URL` + `COMFY_PROXY_TOKEN`), `comfy-boot.ts` (Nitro boot check), `comfy-provider.ts`
   (SDK transport), `comfy-assets.ts`, `workflow-graph.ts`, `models-lock.ts`, `comfy-workflows.ts`.
 - A runtime workflow is `src/features/<feature>/workflows/<id>.v<N>.json` plus its sibling
   `<id>.v<N>.inputs.json`; its model pins are the sibling `models.lock`. `discoverWorkflows`

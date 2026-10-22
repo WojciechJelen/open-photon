@@ -13,7 +13,7 @@ COMFY_API_KEY=your-cloud-key
 
 ## Runpod
 
-1. Deploy the **Open Photon** GPU template on [Runpod](https://console.runpod.io/deploy).
+1. Deploy the [Open Photon template on Runpod](https://console.runpod.io/deploy?template=iqcvzqgt1q).
    Use an NVIDIA GPU with **32 GB VRAM or more** and a **CUDA 13-compatible driver**.
    Set `PROXY_TOKEN` to a long random secret. The template supplies the GPU image,
    port `8189` and persistent storage at `/workspace`.
