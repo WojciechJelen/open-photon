@@ -2,7 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 
 /**
  * In dev, Nitro hands what a browser fetches for `<video>` and `<img>` (`Sec-Fetch-Dest: video`,
@@ -23,7 +23,9 @@ const mediaThroughApp: Plugin = {
   name: "open-photon:media-through-app",
 };
 
-const config = defineConfig({
+// The dev server's port: `PORT` from the environment or `.env` (default 3030), so worktrees run
+// side by side. The built server reads `PORT` itself at runtime.
+const config = defineConfig(({ mode }) => ({
   plugins: [
     mediaThroughApp,
     tailwindcss(),
@@ -37,7 +39,8 @@ const config = defineConfig({
     viteReact(),
   ],
   resolve: { tsconfigPaths: true },
+  server: { port: Number(loadEnv(mode, process.cwd(), "").PORT || 3030) },
   ssr: { external: ["@comfyorg/sdk"] },
-});
+}));
 
 export default config;

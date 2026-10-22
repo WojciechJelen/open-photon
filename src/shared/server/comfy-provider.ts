@@ -2,6 +2,7 @@ import { Comfy, ComfyError, IdempotencyKeyReuse, type Job, type Output } from "@
 import { z } from "zod";
 
 import { type AssetReference, assetReferenceSchema } from "./comfy-assets.ts";
+import { fakeProvider } from "./comfy-provider.fake.ts";
 import { comfyTarget } from "./comfy-target.ts";
 import type { WorkflowGraph } from "./workflow-graph.ts";
 
@@ -35,12 +36,53 @@ function sdk() {
   return client;
 }
 
-export const comfyProvider: Provider = {
+const sdkProvider: Provider = {
   job: (id) => sdk().jobs.get(id),
   submit: async (graph, idempotencyKey) =>
     (await sdk().submit(sdk().workflows.fromJson(graph), { idempotencyKey })).id,
   upload: async (path) =>
     assetReferenceSchema.parse(await sdk().assets.fromFile(path).asReference()),
+};
+
+// `vite build` replaces `import.meta.env.PROD` with `true`; under plain Node (`test:server`, the
+// scripts) `import.meta.env` does not exist, and in `vite dev` it is `false`.
+const builtServer = import.meta.env?.PROD === true;
+
+/**
+ * Which provider `COMFY_PROVIDER` selects: unset (or `comfy`) is Comfy through the SDK; `fake`
+ * is the in-process fake (`comfy-provider.fake.ts`) for development and tests, refused by a built
+ * server (`npm run build` output, the image) and whenever `NODE_ENV` is `production`. Any other
+ * value throws. `comfy-boot.ts` calls it at startup.
+ */
+export function providerKind(env: Record<string, string | undefined>, built = builtServer) {
+  const value = env.COMFY_PROVIDER?.trim() || "comfy";
+
+  if (value !== "comfy" && value !== "fake") {
+    throw new Error(`COMFY_PROVIDER must be "comfy" or "fake", not "${value}".`);
+  }
+
+  if (value === "fake" && (built || env.NODE_ENV === "production")) {
+    throw new Error(
+      "COMFY_PROVIDER=fake is for development and tests only; a production server refuses it.",
+    );
+  }
+
+  return value;
+}
+
+let selected: Provider | undefined;
+
+function selectedProvider() {
+  selected ??= providerKind(process.env) === "fake" ? fakeProvider : sdkProvider;
+
+  return selected;
+}
+
+/** The provider `COMFY_PROVIDER` selects (`providerKind`), resolved on first use. */
+export const comfyProvider: Provider = {
+  job: (id) => selectedProvider().job(id),
+  submit: (graph, idempotencyKey) => selectedProvider().submit(graph, idempotencyKey),
+  upload: (path) => selectedProvider().upload(path),
 };
 
 type ProviderError = {

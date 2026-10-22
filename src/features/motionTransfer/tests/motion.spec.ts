@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import { count, open, seededResult } from "./e2e/session.ts";
+import { count, open, seededResult } from "../../../../tests/e2e/session.ts";
 
 const upload = (page: Page) => page.getByLabel("Upload a clip");
 
