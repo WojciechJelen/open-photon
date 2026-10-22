@@ -41,6 +41,11 @@ jobs:
       - run: npm run check:open-weights
       - run: npm run check
       - run: npm run check:privacy
+      - name: Verify GPU proxy links behind a gateway
+        run: |
+          python3 -m venv /tmp/proxy-test
+          /tmp/proxy-test/bin/pip install comfy-api-proxy==0.1.6
+          /tmp/proxy-test/bin/python -m unittest discover -s tests -p '*_test.py'
       - name: Install FFmpeg for the probe and trim tests
         timeout-minutes: 5
         run: |

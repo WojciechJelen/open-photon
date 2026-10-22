@@ -64,16 +64,17 @@ Set in `.env` (Compose and `npm run check:comfy` read it) or in the process envi
 
 ### Self-host image
 
-Set on the GPU container (the RunPod template sets them from [`selfhost/runpod-template.json`](../selfhost/runpod-template.json)).
+Set on the GPU container. The [Runpod template](../selfhost/runpod-template.json) uses these defaults; supply `PROXY_TOKEN` when deploying.
 
-| Variable | Default | RunPod template | Meaning |
-| --- | --- | --- | --- |
-| `PROXY_TOKEN` | none | supplied by the operator | Bearer the proxy requires on `/api/v2/*`; the app's `COMFY_PROXY_TOKEN`. Required unless `PROXY_HOST=127.0.0.1`. |
-| `PROXY_HOST` | `0.0.0.0` | default | Address the proxy binds on port 8189; `127.0.0.1` keeps it local (SSH tunnel). |
-| `MODELS_DIR` | `/workspace/models` | `/workspace/models` | Weights in ComfyUI's `models/` layout (`<directory>/<file>`, as the locks name them: `vae/`, `loras/`, …). |
-| `COMFYUI_DATA_DIR` | `/workspace/comfyui` | default | ComfyUI's `input/` and `output/`. |
-| `PROXY_STATE_DIR` | `/workspace/comfy-api-proxy` | `/workspace/comfy-api-proxy` | The proxy's job, idempotency and asset records. |
-| `MAX_UPLOAD_MB` | `128` | `128` | Per-file upload limit of the proxy and of ComfyUI behind it. Keep it at least the app's 128 MiB limit. |
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `PROXY_TOKEN` | none | Bearer the proxy requires on `/api/v2/*`; the app's `COMFY_PROXY_TOKEN`. Required unless `PROXY_HOST=127.0.0.1`. |
+| `PROXY_PUBLIC_URL` | automatic on Runpod | Public HTTP(S) origin used for job and output links. On Runpod, derived from `RUNPOD_POD_ID`; set it explicitly behind another TLS gateway. Client-supplied forwarded headers are ignored. |
+| `PROXY_HOST` | `0.0.0.0` | Address the proxy binds on port 8189; `127.0.0.1` keeps it local (SSH tunnel). |
+| `MODELS_DIR` | `/workspace/models` | Weights in ComfyUI's `models/` layout (`<directory>/<file>`, as the locks name them: `vae/`, `loras/`, …). |
+| `COMFYUI_DATA_DIR` | `/workspace/comfyui` | ComfyUI's `input/` and `output/`. |
+| `PROXY_STATE_DIR` | `/workspace/comfy-api-proxy` | The proxy's job, idempotency and asset records. |
+| `MAX_UPLOAD_MB` | `128` | Per-file upload limit of the proxy and of ComfyUI behind it. Keep it at least the app's 128 MiB limit. |
 
 ## Troubleshooting
 
@@ -135,7 +136,8 @@ The container stops before it serves 8189, with one of these as the last lines:
 ## Where things live
 
 - [docs/selfhost.md](selfhost.md): the GPU image's behavior, known risks, the proof run and how to record another, manual setup on any GPU box (including the SSH tunnel).
-- [DEPLOYMENT-QA-TEST.md](../DEPLOYMENT-QA-TEST.md): the step-by-step test plan for this deployment config on both targets.
+- [deployment-verification.md](deployment-verification.md): live release tests for Cloud and Runpod, image digests and resource cleanup.
+- [DEPLOYMENT-QA-TEST.md](../DEPLOYMENT-QA-TEST.md): historical test plan and results for the pre-release configuration.
 - [.claude/skills/add-new-feature/SKILL.md](../.claude/skills/add-new-feature/SKILL.md): adding a feature that runs on both targets, including a new model.
 - `src/features/<feature>/workflows/models.lock`: each feature's model pins, beside its runtime workflows (`<id>.v<N>.json` with `<id>.v<N>.inputs.json`). Motion Transfer's: [src/features/motionTransfer/workflows/models.lock](../src/features/motionTransfer/workflows/models.lock).
 - [README.md](../README.md): what the app does, its API, access codes, limits, verification and CI.

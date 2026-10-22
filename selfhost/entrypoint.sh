@@ -15,6 +15,7 @@ PROXY_STATE_DIR=${PROXY_STATE_DIR:-/workspace/comfy-api-proxy}
 # The proxy's limit is per file in MiB and allows the multipart envelope on top; it forwards each
 # file to ComfyUI's /upload/image, whose own default is 100 MiB, so ComfyUI gets the same cap.
 MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-128}
+export PROXY_TOKEN PROXY_HOST PROXY_STATE_DIR MAX_UPLOAD_MB
 
 COMFYUI_DIR=/opt/ComfyUI
 
@@ -98,13 +99,8 @@ if ! kill -0 "$comfyui" 2>/dev/null; then
   exited ComfyUI "$comfyui"
 fi
 
-proxy_args=(--comfyui http://127.0.0.1:8188 --comfyui-base-dir "$COMFYUI_DIR"
-  --host "$PROXY_HOST" --port 8189 --max-upload-mb "$MAX_UPLOAD_MB" --state-dir "$PROXY_STATE_DIR")
-if [[ -n $PROXY_TOKEN ]]; then
-  proxy_args+=(--token "$PROXY_TOKEN")
-fi
 echo "Serving the Comfy API v2 on $PROXY_HOST:8189 (auth: $([[ -n $PROXY_TOKEN ]] && echo bearer || echo none))"
-/opt/venv/comfy-api-proxy/bin/comfy-api-proxy run "${proxy_args[@]}" &
+/opt/venv/comfy-api-proxy/bin/python selfhost/proxy.py &
 proxy=$!
 pids+=("$proxy")
 

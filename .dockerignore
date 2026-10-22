@@ -9,3 +9,4 @@ playwright-report
 .env*
 work
 docs/priv
+**/__pycache__

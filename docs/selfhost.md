@@ -4,18 +4,18 @@ Reference for the GPU side of a self-hosted Open Photon: the [`selfhost/`](../se
 
 ## Deploy
 
-Deploying it (RunPod walkthrough, any other GPU host), the app's variables, sizing and troubleshooting: [deployment reference](deployment.md).
+Image-only Runpod setup: [SETUP.md](../SETUP.md). Other GPU hosts, variables, sizing and troubleshooting: [deployment reference](deployment.md).
 
 ## Image settings
 
-The image's variables, defaults and RunPod template values: [Deployment reference, "Self-host image"](deployment.md#self-host-image).
+The image's variables and defaults: [Deployment reference, "Self-host image"](deployment.md#self-host-image).
 
 At start, `selfhost/entrypoint.sh` runs, in order:
 
 1. `node scripts/install-models.mjs "$MODELS_DIR"`: installs the aggregate of every feature's `models.lock` (two features pinning the same `directory/file` differently fail before any download), downloads what is missing and hash-verifies every file, every boot.
 2. ComfyUI on `127.0.0.1:8188` with `--models-directory "$MODELS_DIR"`, `--input-directory` and `--output-directory` under `$COMFYUI_DATA_DIR`, and `--max-upload-size $((MAX_UPLOAD_MB + 1))` (ComfyUI's default is 100 MiB).
 3. Once ComfyUI serves `/object_info`: `node scripts/check-models-lock.mjs --definitions <object_info>`, which checks every runtime workflow's node classes and that every locked file is among ComfyUI's loader choices.
-4. `comfy-api-proxy run` on `$PROXY_HOST:8189` with `--comfyui http://127.0.0.1:8188`, `--comfyui-base-dir` (it only gates model-file uploads; outputs come through ComfyUI's `/view`), `--max-upload-mb "$MAX_UPLOAD_MB"`, `--state-dir "$PROXY_STATE_DIR"`, and `--token "$PROXY_TOKEN"` when that is set.
+4. `selfhost/proxy.py` serves the upstream `comfy-api-proxy` on `$PROXY_HOST:8189`, preserving its bearer authentication and browser-origin guard. It uses `/opt/ComfyUI`, the configured upload limit and persistent state directory. Job and output links use the public Runpod HTTPS origin derived from `RUNPOD_POD_ID`, or an explicit `PROXY_PUBLIC_URL` on another host; forwarded headers cannot change that origin.
 
 ComfyUI listens on loopback port 8188 only; port 8189 is the only one the template exposes. The proxy serves at most 8 event streams at once. The container stops when ComfyUI or the proxy stops, and passes a stop signal to both.
 
@@ -27,7 +27,7 @@ ComfyUI listens on loopback port 8188 only; port 8189 is the only one the templa
 
 ## Verify
 
-Proof run: [selfhost-proof-2026-10-21](selfhost-proof-2026-10-21/README.md) (its numbers are the README proof row). To record and verify another render the same way:
+Published-image verification: [Docker release tests](deployment-verification.md). Earlier manual proof: [selfhost-proof-2026-10-21](selfhost-proof-2026-10-21/README.md) (its numbers are the README proof row). To record and verify another render the same way:
 
 ### Record and verify one render
 

@@ -20,3 +20,4 @@ work/
 !.env.example
 docs/priv/
 .fallow/
+__pycache__/

@@ -1,5 +1,10 @@
 # Deployment QA test plan
 
+Historical test plan and results for the pre-release configuration (2026-10-22).
+Its overloaded `COMFY_API_KEY` and REST v1 template examples describe that version.
+For current deployment instructions use [SETUP.md](SETUP.md); the release verification
+is recorded separately in [docs/deployment-verification.md](docs/deployment-verification.md).
+
 A step-by-step plan to test Open Photon's deployment configuration on both targets: Comfy Cloud and a self-hosted ComfyUI behind `comfy-api-proxy` on RunPod. Run the phases in order. Record every result in the [results table](#results-table) and finish with the [teardown checklist](#teardown-checklist).
 
 ## Purpose and scope

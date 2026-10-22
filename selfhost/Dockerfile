@@ -61,6 +61,7 @@ COPY src/shared/server/comfy-workflows.ts \
 # Every feature's workflows/: its runtime workflows and the models.lock beside them.
 COPY --parents src/features/*/workflows ./
 COPY --chmod=755 selfhost/entrypoint.sh ./selfhost/entrypoint.sh
+COPY selfhost/proxy.py ./selfhost/proxy.py
 
 # Weights, ComfyUI's inputs/outputs and the proxy's job records go under /workspace, where Runpod
 # mounts the pod's volume (entrypoint.sh: MODELS_DIR, COMFYUI_DATA_DIR, PROXY_STATE_DIR).
@@ -68,4 +69,4 @@ COPY --chmod=755 selfhost/entrypoint.sh ./selfhost/entrypoint.sh
 LABEL org.opencontainers.image.source="https://github.com/WojciechJelen/open-photon" \
   org.opencontainers.image.description="Open Photon self-hosted Comfy target: ComfyUI behind comfy-api-proxy (API v2) on 8189"
 EXPOSE 8189
-ENTRYPOINT ["tini", "--", "/opt/open-photon/selfhost/entrypoint.sh"]
+ENTRYPOINT ["tini", "-s", "--", "/opt/open-photon/selfhost/entrypoint.sh"]

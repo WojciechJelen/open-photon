@@ -195,7 +195,7 @@ applies the same rule at pod boot before any download. New recipes record
 - Provider: `comfyProvider` from `src/shared/server/comfy-provider.ts`; take
   `provider: Provider = comfyProvider` so tests pass a double.
 - Target: record `target: comfyTarget().kind` (`src/shared/server/comfy-target.ts`) in the recipe.
-  Never read `COMFY_BASE_URL` or `COMFY_API_KEY` yourself.
+  Never read `COMFY_BASE_URL`, `COMFY_API_KEY` or `COMFY_PROXY_TOKEN` yourself.
 - Recipe: a strict zod schema hashed canonically, like `server/recipe.ts`: input file SHA-256s,
   `models`, params without asset references, `target`, `workflow { id, sha256, version }`.
 - Output: `job.getOutputs(<your output node>)`, stored with `storeAsset`
@@ -236,12 +236,12 @@ unrun row is reported as "not verified on <target>", never as passing.
 | `npm run test:server` (and `npm run test:e2e` for UI) | all pass |
 | `npm run check:models` | your `<feature>/<id>.v1: … 0 missing` line |
 | `npm run check:open-weights` | `… 0 forbidden` |
-| `COMFY_BASE_URL= COMFY_API_KEY=<cloud key> npm run check:comfy` | `comfy target=cloud …`, `OK: reachable and authorized …` |
-| `COMFY_BASE_URL=https://<pod-id>-8189.proxy.runpod.net COMFY_API_KEY=<PROXY_TOKEN> npm run check:comfy` | `comfy target=selfhost …`, `OK: …` |
+| `COMFY_BASE_URL= COMFY_PROXY_TOKEN= COMFY_API_KEY=<cloud key> npm run check:comfy` | `comfy target=cloud …`, `OK: reachable and authorized …` |
+| `COMFY_API_KEY= COMFY_BASE_URL=https://<pod-id>-8189.proxy.runpod.net COMFY_PROXY_TOKEN=<PROXY_TOKEN> npm run check:comfy` | `comfy target=selfhost …`, `OK: …` |
 | Pod from a `selfhost/` image built after your change | log has your `<feature>/<id>.v1: … 0 missing` line and `Serving the Comfy API v2 on 0.0.0.0:8189 (auth: bearer)` |
 | One real render through the app on Cloud | done; recipe `target: cloud`; credits recorded |
 | One real render on that pod | done; recipe `target: selfhost`; VRAM recorded with the `nvidia-smi` command in `docs/selfhost.md` |
-| `DEPLOYMENT-QA-TEST.md` | the cases your change touches pass |
+| `docs/deployment-verification.md` | record the release checks your change touches |
 
 `scripts/verify-selfhost.mjs` checks Motion Transfer generations only; check your recipe's
 `target`, workflow SHA-256 and model pins against your registry by hand. Then update `SETUP.md`
