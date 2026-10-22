@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { buildGraph } from "../src/features/motionTransfer/workflows/build-graph.ts";
 import { motionTransferParamsSchema } from "../src/features/motionTransfer/workflows/params.ts";
 import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
-import { type WorkflowGraph, workflowGraphSchema } from "../src/shared/server/workflow-graph.ts";
+import {
+  buildGraph,
+  type WorkflowGraph,
+  workflowGraphSchema,
+} from "../src/shared/server/workflow-graph.ts";
 
 const { graph: template, inputsMap } = motionTransferWorkflow;
 

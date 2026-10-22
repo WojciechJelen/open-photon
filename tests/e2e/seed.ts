@@ -6,12 +6,12 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { copyFile, stat, writeFile } from "node:fs/promises";
 
-import { probe } from "../../src/features/motionTransfer/server/media/probe.ts";
 import {
   motionTransferModels,
   motionTransferWorkflow,
 } from "../../src/features/motionTransfer/workflows/registry.ts";
 import { comfyTarget } from "../../src/shared/server/comfy-target.ts";
+import { probe } from "../../src/shared/server/media/probe.ts";
 import { accessCodePath, QUEUED_JOB_ID, SEEDED_JOB_ID } from "./session.ts";
 
 const path = process.env.DATABASE_PATH;

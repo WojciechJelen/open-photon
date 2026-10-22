@@ -11,7 +11,8 @@ import {
   markUnknown,
   transition,
 } from "../src/features/motionTransfer/server/generations.ts";
-import { type Recipe, recipeHash } from "../src/features/motionTransfer/server/recipe.ts";
+import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
+import { recipeHash } from "../src/shared/server/generation/recipe-hash.ts";
 
 let seed = 0;
 

@@ -1,0 +1,32 @@
+[
+  {
+    "source": "data/app.sqlite generations 7bd84813-b310-4ba2-845f-cbadfc1de392 (failed)",
+    "recipe_hash": "f47099f603ea059c7487d69eceeb63328737c79263cf7d663cee41d58321677e",
+    "recipe": "{\"inputs\":{\"driving_video_sha256\":\"affc8c474a68b5c17c9f38d80afc689606577ac0951a95097d33f13006c90bd8\",\"reference_image_sha256\":\"978ece40869b571fbac430f560a8d4f9174aa0acbdebd074957a070dc480b97f\"},\"models\":[],\"params\":{\"fragment_length\":81,\"height\":848,\"prompt\":\"Dead-port check\",\"seed\":1,\"width\":480},\"target\":\"selfhost\",\"workflow\":{\"id\":\"motion-transfer\",\"sha256\":\"ef8b31e822968f27fd80409d7158a6d7c2ca46cf96b8814427ad15b180a3b1a9\",\"version\":1}}"
+  },
+  {
+    "source": "data/app.sqlite generations 43931af2-fb54-46a0-80ab-67b53fdea6d5 (done)",
+    "recipe_hash": "6ef768fdab4cc2ad98196bdc4ab78e6d551ee06f9308fb95b9e4cba09c66e77f",
+    "recipe": "{\"inputs\":{\"driving_video_sha256\":\"affc8c474a68b5c17c9f38d80afc689606577ac0951a95097d33f13006c90bd8\",\"reference_image_sha256\":\"978ece40869b571fbac430f560a8d4f9174aa0acbdebd074957a070dc480b97f\"},\"models\":[],\"params\":{\"fragment_length\":81,\"height\":848,\"prompt\":\"Character Description: The pink-haired woman from the reference image\\nBackground description: A sunlit rooftop garden at noon\",\"seed\":20261020,\"width\":480},\"target\":\"cloud\",\"workflow\":{\"id\":\"motion-transfer\",\"sha256\":\"ef8b31e822968f27fd80409d7158a6d7c2ca46cf96b8814427ad15b180a3b1a9\",\"version\":1}}"
+  },
+  {
+    "source": "data/app.sqlite generations d9d7dd34-caa7-4cc8-a622-2d3ab7f602ac (failed)",
+    "recipe_hash": "7d19286a4cd248670c555851c6bb077e287c3eab294e896847c6d5f7f36f4528",
+    "recipe": "{\"inputs\":{\"driving_video_sha256\":\"affc8c474a68b5c17c9f38d80afc689606577ac0951a95097d33f13006c90bd8\",\"reference_image_sha256\":\"978ece40869b571fbac430f560a8d4f9174aa0acbdebd074957a070dc480b97f\"},\"models\":[],\"params\":{\"fragment_length\":81,\"height\":848,\"prompt\":\"Dead-port check\",\"seed\":225784249144144,\"width\":480},\"target\":\"selfhost\",\"workflow\":{\"id\":\"motion-transfer\",\"sha256\":\"ef8b31e822968f27fd80409d7158a6d7c2ca46cf96b8814427ad15b180a3b1a9\",\"version\":1}}"
+  },
+  {
+    "source": "angle, no model pins: hashed by recipeHash at 37a7a0b",
+    "recipe_hash": "612c6be75525dca7fa55e6a001aa4f1b96852526af3f3c9214d53d0cebd463cf",
+    "recipe": "{\"inputs\":{\"driving_video_sha256\":\"affc8c474a68b5c17c9f38d80afc689606577ac0951a95097d33f13006c90bd8\",\"reference_image_sha256\":\"978ece40869b571fbac430f560a8d4f9174aa0acbdebd074957a070dc480b97f\"},\"models\":[],\"params\":{\"fragment_length\":81,\"height\":848,\"prompt\":\"Character Description: The pink-haired woman from the reference image\\nBackground description: A sunlit rooftop garden at noon Profile view: the camera sees the subject from the side.\",\"seed\":20261020,\"width\":480},\"target\":\"cloud\",\"workflow\":{\"id\":\"motion-transfer\",\"sha256\":\"ef8b31e822968f27fd80409d7158a6d7c2ca46cf96b8814427ad15b180a3b1a9\",\"version\":1},\"angle\":\"profile\"}"
+  },
+  {
+    "source": "model pins, no angle: hashed by recipeHash at 37a7a0b",
+    "recipe_hash": "c778996e4a0c43077d233321357c4d770cdd0462d618ea9253911005f33175e1",
+    "recipe": "{\"inputs\":{\"driving_video_sha256\":\"affc8c474a68b5c17c9f38d80afc689606577ac0951a95097d33f13006c90bd8\",\"reference_image_sha256\":\"978ece40869b571fbac430f560a8d4f9174aa0acbdebd074957a070dc480b97f\"},\"models\":[{\"file\":\"wan_animate_2_int8_convrot.safetensors\",\"license\":\"Apache-2.0\",\"sha256\":\"0580ecdd65e47e97c30df9670d13a6c4a131d26de5a1faf2ccc78392d5167584\"},{\"file\":\"lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors\",\"license\":\"Apache-2.0\",\"sha256\":\"85c4a61c30e0497aa44b91d93a893b624708461a56fe5485183b28fa07e2dfb3\"},{\"file\":\"umt5_xxl_fp8_e4m3fn_scaled.safetensors\",\"license\":\"Apache-2.0\",\"sha256\":\"c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68\"},{\"file\":\"clip_vision_h.safetensors\",\"license\":\"Apache-2.0\",\"sha256\":\"64a7ef761bfccbadbaa3da77366aac4185a6c58fa5de5f589b42a65bcc21f161\"},{\"file\":\"Wan2_1_VAE_bf16.safetensors\",\"license\":\"Apache-2.0\",\"sha256\":\"1ab9a32cc2c740f6e39d80d367ce5dcc28db8c71b79b28670546b8973e9d75f9\"}],\"params\":{\"fragment_length\":81,\"height\":848,\"prompt\":\"Character Description: The pink-haired woman from the reference image\\nBackground description: A sunlit rooftop garden at noon\",\"seed\":20261020,\"width\":480},\"target\":\"selfhost\",\"workflow\":{\"id\":\"motion-transfer\",\"sha256\":\"ef8b31e822968f27fd80409d7158a6d7c2ca46cf96b8814427ad15b180a3b1a9\",\"version\":1}}"
+  },
+  {
+    "source": "model pins and an angle: hashed by recipeHash at 37a7a0b",
+    "recipe_hash": "509d77ea8c315e7e003f75893eb659632b81ee02ee0c1eb1be1b631d4b185ed9",
+    "recipe": "{\"inputs\":{\"driving_video_sha256\":\"affc8c474a68b5c17c9f38d80afc689606577ac0951a95097d33f13006c90bd8\",\"reference_image_sha256\":\"978ece40869b571fbac430f560a8d4f9174aa0acbdebd074957a070dc480b97f\"},\"models\":[{\"file\":\"wan_animate_2_int8_convrot.safetensors\",\"license\":\"Apache-2.0\",\"sha256\":\"0580ecdd65e47e97c30df9670d13a6c4a131d26de5a1faf2ccc78392d5167584\"},{\"file\":\"lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors\",\"license\":\"Apache-2.0\",\"sha256\":\"85c4a61c30e0497aa44b91d93a893b624708461a56fe5485183b28fa07e2dfb3\"},{\"file\":\"umt5_xxl_fp8_e4m3fn_scaled.safetensors\",\"license\":\"Apache-2.0\",\"sha256\":\"c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68\"},{\"file\":\"clip_vision_h.safetensors\",\"license\":\"Apache-2.0\",\"sha256\":\"64a7ef761bfccbadbaa3da77366aac4185a6c58fa5de5f589b42a65bcc21f161\"},{\"file\":\"Wan2_1_VAE_bf16.safetensors\",\"license\":\"Apache-2.0\",\"sha256\":\"1ab9a32cc2c740f6e39d80d367ce5dcc28db8c71b79b28670546b8973e9d75f9\"}],\"params\":{\"fragment_length\":81,\"height\":848,\"prompt\":\"Character Description: The pink-haired woman from the reference image\\nBackground description: A sunlit rooftop garden at noon\",\"seed\":777,\"width\":480},\"target\":\"cloud\",\"workflow\":{\"id\":\"motion-transfer\",\"sha256\":\"ef8b31e822968f27fd80409d7158a6d7c2ca46cf96b8814427ad15b180a3b1a9\",\"version\":1},\"angle\":\"three-quarter\"}"
+  }
+]

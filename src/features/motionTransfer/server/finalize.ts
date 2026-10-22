@@ -6,6 +6,7 @@ import {
   type Provider,
   type ProviderOutput,
 } from "../../../shared/server/comfy-provider.ts";
+import { probe, runTool } from "../../../shared/server/media/probe.ts";
 import {
   countFinalizeAttempt,
   findGeneration,
@@ -13,7 +14,6 @@ import {
   markFinalizing,
   transition,
 } from "./generations.ts";
-import { probe, runTool } from "./media/probe.ts";
 
 /** motion-transfer.v1's SaveVideo node; its MP4 (with the driving clip's audio) is the result. */
 const OUTPUT_NODE = "246";

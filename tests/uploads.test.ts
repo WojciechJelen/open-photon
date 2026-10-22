@@ -5,9 +5,9 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import test, { after } from "node:test";
 
-import { runTool } from "../src/features/motionTransfer/server/media/probe.ts";
 import { trimAsset, uploadVideo } from "../src/features/motionTransfer/server/videos.server.ts";
 import { database } from "../src/shared/server/db.server.ts";
+import { runTool } from "../src/shared/server/media/probe.ts";
 import { assetsDirectory } from "../src/shared/server/paths.ts";
 import { MAX_UPLOAD_BYTES } from "../src/shared/server/upload.server.ts";
 

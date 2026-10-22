@@ -1,7 +1,7 @@
 import { z } from "zod";
 
+import { exitedNonzero, frameRate, probe, runTool } from "../../../../shared/server/media/probe.ts";
 import { MIN_CLIP_MS } from "../../contracts.ts";
-import { exitedNonzero, frameRate, probe, runTool } from "./probe.ts";
 
 /**
  * The shortest cut that counts as 3 s: 3 s less one frame, because whole frames cannot always

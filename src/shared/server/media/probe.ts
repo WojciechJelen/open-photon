@@ -3,8 +3,6 @@ import { promisify } from "node:util";
 
 import { z } from "zod";
 
-import { MIN_CLIP_MS, type VideoRejection } from "../../contracts.ts";
-
 const execute = promisify(execFile);
 
 /**
@@ -128,17 +126,8 @@ export async function probe(path: string, signal?: AbortSignal): Promise<MediaIn
   };
 }
 
-export type VideoFile = {
-  ext: string;
-  mime: string;
-  durationMs: number;
-  fps: number | null;
-  hasAudio: boolean;
-  height: number;
-  width: number;
-};
-
-function videoContainer(info: MediaInfo) {
+/** The container of a video file by its content: MP4, QuickTime or WebM; `null` for anything else. */
+export function videoContainer(info: MediaInfo) {
   // ffprobe reads MP4 and QuickTime with one demuxer; the major brand `qt` marks QuickTime.
   if (info.formats.includes("mp4")) {
     return info.brand === "qt"
@@ -152,35 +141,6 @@ function videoContainer(info: MediaInfo) {
   }
 
   return null;
-}
-
-/**
- * The upload rules: an MP4, QuickTime or WebM file with a video stream (`no_video` otherwise)
- * of at least 3 s (`too_short`). Longer than 8 s is accepted; the caller trims it.
- */
-export function classifyVideo(
-  info: MediaInfo | null,
-): { file: VideoFile } | { reason: VideoRejection } {
-  const container = info && videoContainer(info);
-
-  if (!info?.video || !container || info.durationMs === null) {
-    return { reason: "no_video" };
-  }
-
-  if (info.durationMs < MIN_CLIP_MS) {
-    return { reason: "too_short" };
-  }
-
-  return {
-    file: {
-      ...container,
-      durationMs: info.durationMs,
-      fps: info.video.fps,
-      hasAudio: info.hasAudio,
-      height: info.video.height,
-      width: info.video.width,
-    },
-  };
 }
 
 const imageFormats = [

@@ -13,6 +13,7 @@ import {
   type StoredAsset,
   storeAsset,
 } from "../../../shared/server/assets.ts";
+import { probe } from "../../../shared/server/media/probe.ts";
 import { assetsDirectory } from "../../../shared/server/paths.ts";
 import { handleUpload, UploadError } from "../../../shared/server/upload.server.ts";
 import {
@@ -21,7 +22,7 @@ import {
   uploadedVideoSchema,
   type VideoRejection,
 } from "../contracts.ts";
-import { classifyVideo, probe } from "./media/probe.ts";
+import { classifyVideo } from "./media/clip.ts";
 import { shortestCutMs, trimVideo } from "./media/trim.ts";
 
 const rejections: Record<VideoRejection, string> = {

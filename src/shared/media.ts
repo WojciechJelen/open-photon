@@ -1,6 +1,6 @@
 import type { Asset } from "./contracts.ts";
 
-// The extension each stored MIME type is saved under (`src/features/motionTransfer/server/media/probe.ts`); `/media/*`
+// The extension each stored MIME type is saved under (`src/shared/server/media/probe.ts`); `/media/*`
 // answers only to the stored file's own. A Map: the key is an asset's runtime `mime` string.
 const extensions = new Map([
   ["image/jpeg", "jpg"],

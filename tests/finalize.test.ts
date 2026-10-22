@@ -13,11 +13,11 @@ import {
   markQueued,
   transition,
 } from "../src/features/motionTransfer/server/generations.ts";
-import { runTool } from "../src/features/motionTransfer/server/media/probe.ts";
 import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
 import { findAsset, hashFile } from "../src/shared/server/assets.ts";
 import type { Provider, ProviderJob, ProviderOutput } from "../src/shared/server/comfy-provider.ts";
 import { database } from "../src/shared/server/db.server.ts";
+import { runTool } from "../src/shared/server/media/probe.ts";
 import { assetsDirectory } from "../src/shared/server/paths.ts";
 
 let seed = 0;

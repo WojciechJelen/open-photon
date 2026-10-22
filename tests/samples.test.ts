@@ -9,12 +9,13 @@ import {
   markQueued,
   transition,
 } from "../src/features/motionTransfer/server/generations.ts";
-import { classifyVideo, probe } from "../src/features/motionTransfer/server/media/probe.ts";
+import { classifyVideo } from "../src/features/motionTransfer/server/media/clip.ts";
 import { seedSamples } from "../src/features/motionTransfer/server/samples.ts";
 import { readSelection, readStudio } from "../src/features/motionTransfer/server/selection.ts";
 import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
 import { findAsset, hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
 import { database } from "../src/shared/server/db.server.ts";
+import { probe } from "../src/shared/server/media/probe.ts";
 import { assetsDirectory } from "../src/shared/server/paths.ts";
 
 function count(sql: string) {
