@@ -6,6 +6,7 @@ import { Button } from "#/components/ui/button";
 import type { WizardSearch } from "#/features/motionTransfer/wizard";
 import { AccessStatus } from "#/shared/components/access-code-dialog";
 import { BrandLogo, BrandMark, Hud } from "#/shared/components/brand";
+import { SiteNavigation } from "#/shared/components/site-navigation";
 
 /** One step of the stepper: where it stands, and the wizard screen it opens, if it opens one. */
 export type HeaderStep = {
@@ -179,6 +180,9 @@ export function MotionTransferHeader({
           ))}
         </div>
       </header>
+      <div className="border-b px-4 py-1 sm:px-8">
+        <SiteNavigation />
+      </div>
     </>
   );
 }

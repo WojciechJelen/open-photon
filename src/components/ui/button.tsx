@@ -30,6 +30,7 @@ const buttonVariants = cva(
         default: "h-11 px-5 has-[>svg]:px-4",
         xs: "h-11 gap-1 px-3 text-xs",
         sm: "h-11 gap-1.5 px-4 text-[13px] has-[>svg]:px-3.5",
+        nav: "h-11 gap-1 px-2 text-[13px] sm:gap-1.5 sm:px-3.5 sm:text-sm",
         lg: "h-13.5 px-7 text-[15px] has-[>svg]:px-6",
         // Text that reads like a link but keeps a 44 px touch target.
         inline: "h-11 px-1 text-[13px]",

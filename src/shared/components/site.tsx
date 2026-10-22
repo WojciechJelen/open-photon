@@ -1,9 +1,9 @@
-import { Link } from "@tanstack/react-router";
 import { GithubIcon } from "lucide-react";
 
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { BrandMark, REPOSITORY_URL, StatusDot } from "#/shared/components/brand";
+import { SiteNavigation } from "#/shared/components/site-navigation";
 
 const footerLink =
   "inline-flex min-h-11 items-center text-sm text-soft-foreground underline decoration-edge-strong underline-offset-3 hover:text-foreground hover:decoration-brand";
@@ -19,41 +19,16 @@ export function OpenWeightsBadge() {
 }
 
 /**
- * The header of the studio's public pages: the mark, the main navigation when `nav` is set
- * (Studio, Motion Transfer, All tools), and `children` at the end.
+ * The header of the studio's public pages: the mark, category navigation and page actions.
  */
-export function SiteHeader({
-  children,
-  nav = false,
-}: {
-  children: React.ReactNode;
-  nav?: boolean;
-}) {
+export function SiteHeader({ children, nav = true }: { children: React.ReactNode; nav?: boolean }) {
   return (
     <header className="flex min-h-16 flex-wrap items-center gap-x-5 gap-y-1 border-b px-4 py-2.5 sm:px-8">
       <BrandMark />
       {nav && (
-        <nav aria-label="Main" className="order-last flex w-full gap-1 sm:order-none sm:w-auto">
-          <Link
-            aria-current="page"
-            className="inline-flex min-h-11 items-center rounded-full bg-foreground/7 px-3.5 text-sm font-medium text-foreground"
-            to="/"
-          >
-            Studio
-          </Link>
-          <Link
-            className="inline-flex min-h-11 items-center rounded-full px-3.5 text-sm font-medium text-soft-foreground hover:bg-foreground/5 hover:text-foreground"
-            to="/motionTransfer"
-          >
-            Motion Transfer
-          </Link>
-          <a
-            className="inline-flex min-h-11 items-center rounded-full px-3.5 text-sm font-medium text-soft-foreground hover:bg-foreground/5 hover:text-foreground"
-            href="#tools"
-          >
-            All tools
-          </a>
-        </nav>
+        <div className="order-last w-full lg:order-none lg:w-auto">
+          <SiteNavigation />
+        </div>
       )}
       <div className="ml-auto flex flex-wrap items-center gap-3">{children}</div>
     </header>
