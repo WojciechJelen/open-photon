@@ -11,6 +11,10 @@ then run `npm ci` and `npm run dev`. To build the app image yourself:
 docker build -t open-photon:local .
 ```
 
+The GPU launcher tests use Python 3.12 with `comfy-api-proxy==0.1.6` installed:
+`python -m unittest discover -s tests -p '*_test.py'`. CI creates an isolated environment
+for these tests; running the published app requires only Docker.
+
 ## Sizing
 
 The app image supports Linux AMD64 and ARM64. The GPU image requires an AMD64 NVIDIA
