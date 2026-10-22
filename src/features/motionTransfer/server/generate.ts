@@ -17,6 +17,7 @@ import {
   providerError,
 } from "../../../shared/server/comfy-provider.ts";
 import { comfyTarget } from "../../../shared/server/comfy-target.ts";
+import { recipeHash } from "../../../shared/server/generation/recipe-hash.ts";
 import {
   inFlightMax,
   requesterKeys,
@@ -24,8 +25,8 @@ import {
   takeToken,
 } from "../../../shared/server/limits.ts";
 import { assetsDirectory } from "../../../shared/server/paths.ts";
+import { buildGraph } from "../../../shared/server/workflow-graph.ts";
 import { generateInputSchema, generationSchema, MAX_CLIP_MS } from "../contracts.ts";
-import { buildGraph } from "../workflows/build-graph.ts";
 import { motionTransferModels, motionTransferWorkflow } from "../workflows/registry.ts";
 import { findCharacter } from "./characters.server.ts";
 import { finalize } from "./finalize.ts";
@@ -43,7 +44,7 @@ import {
   transition,
 } from "./generations.ts";
 import { anglePresets, generateDefaults } from "./presets.ts";
-import { type Recipe, recipeHash } from "./recipe.ts";
+import { type Recipe, recipeSchema } from "./recipe.ts";
 import { publicAsset, sampleMotionTitle, sourceClip, visibleCharacter } from "./shot.ts";
 
 /**
@@ -214,7 +215,7 @@ async function submitRecipe(
   provider: Provider,
   admit: Admit,
 ) {
-  const hash = recipeHash(recipe);
+  const hash = recipeHash(recipeSchema.parse(recipe));
 
   /**
    * What the recipe gets now: an existing generation (`reused`), or the code that pays for a new

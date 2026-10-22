@@ -4,9 +4,10 @@ import type { SQLOutputValue } from "node:sqlite";
 import { z } from "zod";
 
 import { database } from "../../../shared/server/db.server.ts";
+import { recipeHash } from "../../../shared/server/generation/recipe-hash.ts";
 import { generationSchema, type generationStatusSchema } from "../contracts.ts";
 import { motionTransferParamsSchema } from "../workflows/params.ts";
-import { type Recipe, recipeHash, recipeSchema } from "./recipe.ts";
+import { type Recipe, recipeSchema } from "./recipe.ts";
 
 type GenerationStatus = z.infer<typeof generationStatusSchema>;
 
@@ -99,7 +100,7 @@ export function createGeneration({
       recipe.workflow.id,
       recipe.workflow.version,
       z.encode(recipeColumn, recipe),
-      recipeHash(recipe),
+      recipeHash(recipeSchema.parse(recipe)),
       randomUUID(),
       recipe.target,
       accessCodeId ?? null,

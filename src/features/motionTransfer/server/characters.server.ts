@@ -5,9 +5,9 @@ import { z } from "zod";
 
 import { storeAsset } from "../../../shared/server/assets.ts";
 import { database } from "../../../shared/server/db.server.ts";
+import { classifyImage, probe } from "../../../shared/server/media/probe.ts";
 import { handleUpload, UploadError } from "../../../shared/server/upload.server.ts";
 import { characterSchema } from "../contracts.ts";
-import { classifyImage, probe } from "./media/probe.ts";
 
 const storedCharacterSchema = characterSchema.extend({
   is_sample: z.union([z.literal(0), z.literal(1)]).transform((value) => value === 1),
