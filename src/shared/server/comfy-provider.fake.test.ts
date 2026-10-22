@@ -5,6 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
+import { IdempotencyKeyReuse } from "@comfyorg/sdk";
+
 import { fakeProvider } from "./comfy-provider.fake.ts";
 import { providerError, providerKind } from "./comfy-provider.ts";
 import type { WorkflowGraph } from "./workflow-graph.ts";
@@ -44,7 +46,21 @@ test("a fake success reports progress, succeeds and outputs the fixture bytes pe
 
   const id = await fakeProvider.submit(graph("a dancer"), "key-success");
 
-  assert.equal(await fakeProvider.submit(graph("a dancer"), "key-success"), id);
+  // Keys are single-use: a second submit is refused as Comfy refuses it, whatever its graph, and
+  // the first job keeps its scenario and outputs (checked below).
+  await assert.rejects(
+    fakeProvider.submit(
+      { "9": { class_type: "CLIPTextEncode", inputs: { text: "[fake:provider_failed]" } } },
+      "key-success",
+    ),
+    (error) => {
+      assert.ok(error instanceof IdempotencyKeyReuse);
+      assert.deepEqual([error.code, error.httpStatus], ["idempotency_key_reuse", 422]);
+      assert.equal(providerError(error).code, "unknown");
+
+      return true;
+    },
+  );
 
   const job = await fakeProvider.job(id);
   const events = [];
