@@ -1,222 +1,86 @@
 # Open Photon
 
-[![Open weights CI](https://github.com/WojciechJelen/open-photon/actions/workflows/ci.yml/badge.svg)](https://github.com/WojciechJelen/open-photon/actions/workflows/ci.yml)
+[![CI](https://github.com/WojciechJelen/open-photon/actions/workflows/ci.yml/badge.svg)](https://github.com/WojciechJelen/open-photon/actions/workflows/ci.yml)
 
-Motion Transfer: film yourself moving, pick a character, and get a video of the character doing the same, rendered with the open-weights Wan Animate 2 workflow on Comfy. TanStack Start v1 with typed routes, SQLite, the Comfy SDK, streamed uploads and video byte ranges.
+Turn a short motion clip and a character image into a video of that character doing
+the same motion. Open Photon runs the open-weights Wan Animate 2 workflow on Comfy
+Cloud or your own GPU, with side-by-side playback, downloadable results, share
+pages and reproducible recipes.
 
-Start is pinned to `1.169.3`; the registry does not publish an exact `1.0.0`. The app uses Tailwind 4, shadcn components, and Node's built-in SQLite module. Node 24 and FFmpeg are included in the production image.
+Built with TanStack Start, React, Tailwind, shadcn, SQLite and the Comfy SDK.
+Browsing samples is public; uploads and new generations require an access code.
+New renders use your Comfy Cloud credits or your self-hosted GPU.
 
-Docs: <https://open-photon-docs.vercel.app> ([source](https://github.com/WojciechJelen/open-photon-docs)).
+## Getting started
 
-## Run
+### Choose a rendering backend
 
-Quick start on Comfy Cloud:
+Save **one** of these configurations in `.env`:
 
-```sh
-cp .env.example .env    # then set COMFY_API_KEY in .env
-docker compose up -d
-docker compose exec app node scripts/mint-code.mjs me 20   # once it is up: an access code
+**Comfy Cloud:** create a [Comfy Cloud](https://cloud.comfy.org) API key with workflow
+access and credits.
+
+```dotenv
+COMFY_API_KEY=your-cloud-key
 ```
 
-The app is then on <http://localhost:3030>. Image-only setup for Comfy Cloud or Runpod: [SETUP.md](SETUP.md). Development and configuration: [deployment reference](docs/deployment.md).
+**Runpod:** deploy the [Open Photon template](https://console.runpod.io/deploy?template=iqcvzqgt1q)
+on an NVIDIA GPU with **32 GB VRAM or more** and a **CUDA 13-compatible driver**.
+Set `PROXY_TOKEN` to a long random secret. The template supplies the GPU image,
+port `8189` and persistent storage at `/workspace`. Wait for `Serving the Comfy API v2`
+in the logs; the first boot downloads approximately 26 GB of models. Then save:
 
-The app opens on the studio home, with Motion Transfer as its live tool (the others are marked Soon). Motion Transfer is a wizard at `/motionTransfer`, one decision per screen. Step 1 picks the motion: a grid of looping, muted sample clips, or an upload of your own (3–8 s; a longer clip opens a trim dialog). Step 2 picks the character: a sample, or a photo you upload, confirming the likeness consent under its preview. Step 3, optional, directs the shot (angle, look, seed), and Generate opens step 4, the render, at `/g/<id>`. The step and both picks are in the URL (`/motionTransfer?step=<motion|character|direct>&motion=<asset id>&character=<character id>`), so a reload, Back and Forward and a shared link keep them; a step whose picks are missing shows the furthest one it can reach, and an old `/?motion=…&character=…` link redirects to the wizard. There are no accounts, so an uploaded character is listed only while the URL names it. The workflow, its provenance and its input map are described in [src/features/motionTransfer/workflows/README.md](src/features/motionTransfer/workflows/README.md).
-
-Choosing samples is open to anyone. Uploads and new generations need an access code (the quick start's last command; see "Access codes"); enter it when the app asks.
-
-## Open-weights checks and self-hosting
-
-[src/features/motionTransfer/workflows/models.lock](src/features/motionTransfer/workflows/models.lock) pins the five files loaded by `motion-transfer.v1.json` to immutable Hugging Face URLs, SHA-256 hashes and the Comfy-Org repack's declared Apache-2.0 license; each feature keeps its pins beside its workflows. New recipes include the pins. The Docker image includes every feature's workflows and lock; historical recipes retain their original model data.
-
-```sh
-npm run check:models        # motionTransfer/motion-transfer.v1: 5 model files, 5 locked, 0 missing
-                            # 5 distinct model files across 1 feature lock, 0 conflicts
-npm run check:open-weights  # scans every feature's workflows, including nested UI subgraphs
-node scripts/check-open-weights.mjs tests/fixtures/partner-node.json  # must exit 1
+```dotenv
+COMFY_BASE_URL=https://POD_ID-8189.proxy.runpod.net
+COMFY_PROXY_TOKEN=the-same-secret-as-PROXY_TOKEN
 ```
 
-CI runs both checks and the negative-control tests. The forbidden patterns are in [scripts/forbidden-nodes.json](scripts/forbidden-nodes.json). With ComfyUI's `object_info` JSON available, pass `--definitions <file>` to also reject nodes marked `api_node: true`. Unknown node names without definitions are checked against the patterns; the gate does not audit arbitrary custom-node Python code.
+Leave `COMFY_API_KEY` unset for Runpod. Stop the pod when unused; terminate it to
+remove its pod storage too. Separately created network volumes continue billing.
 
-To render on your own GPU instead of Comfy Cloud, run the published GPU image on a Runpod pod or a compatible GPU host and point the app at it: [SETUP.md](SETUP.md). The self-hosted proof (set up by hand on RunPod, as in the [docs/selfhost.md](docs/selfhost.md) appendix):
+### Run locally from source
 
-| GPU | Workflow variant | Resolution | Clip seconds | Peak VRAM MiB | Submission to done seconds | Evidence |
-| --- | --- | --- | --- | --- | --- | --- |
-| RTX 5090, 32 GB | int8 base + lightx2v distillation LoRA, 6 steps | 480×848 | 5.016584 | 31,066 | 158.717 | [2026-10-21 report, recipe, GPU samples and MP4](docs/selfhost-proof-2026-10-21/README.md) |
-
-The first self-hosted render reached `done` through the app with `target: selfhost`, the unchanged workflow and SDK adapter, and all five model files verified against the lock. Timing includes cold model loading. Browser playback completed with audio enabled; the decoded audio matches the driving clip (0.995 waveform correlation after AAC re-encoding). The optional non-LoRA base variant has not been measured.
-
-## Credits
-
-Credits per 5 s 480×848 render (distilled: lightx2v LoRA, 6 steps, int8 model): **≈17.5 credits** ($0.083 at 211 credits per dollar), for 64.9 s of GPU execution. Measured on 2026-10-19 from the workspace balance (`GET https://cloud.comfy.org/api/billing/usage/timeseries`, `summary.balance`) before and after one job, and again (≈17.7 credits) for the Step 4.1 generation; the base variant is not measured yet.
-
-## Generating
-
-`POST /api/generate` (JSON body `generateInputSchema` in `src/features/motionTransfer/contracts.ts`; `src/features/motionTransfer/server/generate.ts`) takes a stored 3–8 s video asset (`motion_asset_id`: a sample motion's clip, an upload or a cut), a character (`character_id`), and optionally a prompt, a seed and an angle. **It submits a real GPU job and uses Comfy credits.** It answers 201 `{ id, reused: false }` for a submitted generation, 200 `{ id, reused: true }` for an existing one, 400 for a malformed body, and `{ error, reason }` with the status of a refusal: 404 for a missing clip or character, 422 for a clip that is unprobed or longer than 8 s or an uploaded character without consent, 401 `access_required` and 403 `code_exhausted` (see "Access codes"), 429 `rate_limited` and 503 `queue_full` (with `retry_after` and `Retry-After`; see "Rate limits and the in-flight cap"). Then, in this order:
-
-1. It builds the recipe (workflow id, version and SHA-256, the parameters, the SHA-256 of both input files, the target) and its `recipe_hash`. If a generation with that hash is done, or still on its way, it returns that generation's id with `reused: true` and submits nothing. Without an access session it returns only a done pre-rendered sample generation (`is_prerendered`); anything else is a 401.
-2. It takes a token from the generate rate limit and checks the in-flight cap; then it inserts a `preparing` row with a fresh idempotency key and the session's access code (`access_code_id`), which counts it.
-3. It uploads both files to Comfy (content-addressed) and stores their references in `provider_inputs`.
-4. It builds the graph with `buildGraph` and submits it with the row's idempotency key.
-5. It stores the Comfy job id the moment `submit()` returns, and the row becomes `queued`.
-
-The portrait size is 480×848 (848×480 for a landscape clip), `fragment_length` 81. A blank seed or prompt takes the app defaults in `src/features/motionTransfer/workflows/defaults.json` (read once at start, like `src/features/motionTransfer/workflows/angles.json` and the workflow itself): the seed `20261019` and a neutral description ("The character from the reference image, as it appears there. Background as in the reference image."), both stored in the recipe. The seed is fixed rather than random so that the same choices are the same recipe: picking them again reuses the result instead of paying for another render, and a pre-rendered sample × sample (Step 9.2) rendered with the defaults is what a blank form finds. Only "Retry with a new seed" draws a random one. The template's own prompt (a cartoon character in a white room) is never used; its pose prompt (node `672:585`) is, see `src/features/motionTransfer/workflows/README.md`. An `angle` (`front`, `three-quarter`, `profile`; **placeholder phrasings** in `src/features/motionTransfer/workflows/angles.json` until the angle benchmark has run) appends its phrasing to the prompt and is stored as the recipe's `angle`, so both change the `recipe_hash`; a recipe without one hashes as before. `GET /api/generations/:id` returns the generation (`generationSchema`; 400 for a malformed id, 404 for an unknown one).
-
-The wizard's third step is the generate form: the reshoot angle ("As filmed" or a preset, each a card with a top-down camera diagram, marked Beta while the phrasings are placeholders), an optional look (appearance and background, up to 500 characters, with starter chips that add a phrase; blank is the default), and the seed under "Advanced" (blank: the fixed default). It is checked against `generateInputSchema` in the browser: an invalid form (a seed that is not a whole number, a look over 500 characters) says why and never calls the server. Generate opens `/g/<id>`; a reused recipe opens the same page, a done one straight to its result. That page streams the generation's events and shows the named stages (preparing, queued, rendering, finishing) with Comfy's percent, never a time estimate, and the page's own link: the render goes on on Comfy whether or not the page is open. A failed generation explains its `error_code` in plain words and offers what the API can do: "Retry with a new seed" (`POST /api/generations/:id/retry`, which opens the child; a child links back to its parent), "Re-run same recipe", and "Change the shot" (the wizard with the same picks); an `unknown` one explains why it is not retried. A done one shows the compare player (side by side or swipe, one transport), Download, the share link, "Make another take" (the wizard with the motion or the character kept) and the recipe. Leaving a page cancels its uploads and trims in flight, and closing the trim dialog cancels its cut; a request the page has left never changes the selection or navigates. A refused clip or photo upload says why until another motion or character is chosen.
-
-The wizard's header shows the access status up front. Without an access session, an action that needs one (an upload of a clip or a photo, a generation that is not a pre-rendered sample, a retry) opens the access-code dialog instead of sending anything; after the code it carries on with the same file or the same choices, on the same page. The selection in the URL, the angle, look and seed stay as they were. When a pre-rendered sample take exists, the dialog links to it as the free way in.
-
-A done generation shows the source clip and the result on one clock: the result is the master, the source (muted, so the result's audio plays once) follows its play, pause, seeks and stalls, and one button and one scrubber control both. Below 640 px the result lies over the source and a swipe slider uncovers it. "Download MP4" saves the result; "Same motion, another character" and "Same character, another motion" open `/` with only `?motion=` or only `?character=` set.
-
-`GET /api/generations/:id/events` streams the generation as server-sent events (`generationEventSchema`): a snapshot of the row, then one per change Comfy reports (`running`, progress), with a `: ping` comment every 15 s so proxies keep the connection open. Headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache, no-transform` (the access middleware leaves it on event streams) and `X-Accel-Buffering: no`. A `done`, `failed` or `unknown` generation gets one snapshot and the stream ends without a Comfy call. When Comfy cannot be asked (unreachable, timed out or an error answer) the stored snapshot has still gone first; a `provider_unavailable` event follows with the row unchanged, then the stream ends cleanly (200, never an error) with `retry:` 5 s, doubling for each failure in a row up to 60 s (counted through the event id the browser sends back as `Last-Event-ID`; a snapshot resets it), and the browser reconnects after that delay. `/g/:id` then shows the stored status as the last known one, with a notice. Closing the request aborts the SDK subscription; the job continues on Comfy. 400 for a malformed id, 404 for an unknown one.
-
-When the event stream ends, and on every `GET /api/generations/:id` of a `queued`, `running` or `finalizing` row, `finalize` (`src/features/motionTransfer/server/finalize.ts`) asks Comfy for the job (`jobs.get` is the source of truth; elapsed time never completes a job). A job that is not complete leaves the row as it is; a failed, cancelled or expired one fails it. A succeeded one is downloaded (output `246`, which already carries the driving clip's audio, so nothing is muxed), probed, hashed and stored as a `provider_output` asset, a JPEG poster is cut at 0.5 s (the first frame for a shorter output) and stored as a `poster` asset, and the row becomes `done` with `final_asset_id` and `poster_asset_id`. One finalize per generation runs at a time in the process; concurrent callers share it. Comfy's completion moves the row to `finalizing` in one conditional update from `queued` or `running`, so the event stream marking it `running` at the same moment cannot make it fail. A failed download, probe or poster leaves the row `finalizing`, counts `finalize_attempts` and stores `finalize_attempted_at`; reads within 30 s × the failures so far return the row without asking Comfy or downloading again, a later read tries again, and the third failure fails the row with `finalize_failed` and a message naming the Comfy job id, which stays valid (its output is in the Comfy account's history). A failed row no longer holds an in-flight place. Comfy's signed output URLs last about 6 hours, so a result is re-hosted the first time anyone looks after it finished.
-
-Opening `/g/:id` never waits for Comfy: the page renders the stored row at once, and its event stream (which ends in `finalize`) brings in a result Comfy finished while nobody was watching.
-
-`POST /api/generations/:id/retry` retries a `failed` generation: it creates a child (`parent_id` = `:id`) with the same recipe except a fresh random seed, on the target this server renders on now (as a re-run), and submits it through the same path as `generate` (201 `{ id, reused }`). **It submits a real GPU job**, so it always needs an access session. It answers 409 for a generation that is not `failed` (including `unknown`: see below), 404 for an unknown id, 400 for a malformed one, and 429 `rate_limited` or 503 `queue_full` as `generate` does (re-run too).
-
-## Recipes and re-runs
-
-Every generation page (and every share page) has a "Recipe" panel, collapsed until opened, that shows the stored recipe: the workflow id, version and SHA-256, the five model files with SHA-256 and licenses from the feature's `models.lock` (older recipes keep their original empty model list), every parameter (prompt, seed, size, `fragment_length`) and the reshoot angle, the SHA-256 of the motion clip and of the character image, and the target (Comfy Cloud or self-hosted ComfyUI, from the Cloud key or proxy configuration). `GET /api/generations/:id/recipe.json` returns the same recipe as JSON (`recipeSchema` in `src/features/motionTransfer/server/recipe.ts`; its `workflow.sha256` is the one in `src/features/motionTransfer/workflows/README.md`); 400 for a malformed id, 404 for an unknown one.
-
-"Re-run recipe" (on a done or failed generation) calls `POST /api/generations/:id/rerun`: the generation's recipe again, seed included, on the target this server renders on now. It goes through the same reuse as `generate`. With the target unchanged the recipe hash is the parent's, so a done parent comes back as it is: 200 `{ id: <the parent>, reused: true }`, no new row, nothing submitted, and the page says the result is already this one. Re-running is free unless something in the recipe changed, and that answer needs no access session. A failed parent, or a parent made on the other target, gets a child (`parent_id` = `:id`, same seed) that is submitted like any generation (201): **that submits a real GPU job**, and needs a session (401 `access_required` without one). A child that kept its parent's seed says it is a re-run of the earlier generation; one with a new seed, that it is a retry. 409 when the workflow file has changed since the recipe was made, 404 for an unknown id, 400 for a malformed one.
-
-## Share pages
-
-A generation gets its `share_slug` when it becomes done: 16 random hex characters (64 bits; migration 005 gave one to the rows done before). Its page shows the link (`<origin>/r/<slug>`) with a copy button and "Open share page". `/r/:slug` is rendered on the server from the stored row: the result as a muted looping video with its poster, the source clip, the model files and licenses recorded in its recipe (older renders show filenames without retroactively claiming verified pins), and "Use this motion with my character", which opens the wizard's character step with that motion picked (`/motionTransfer?step=character&motion=<source asset id>`; open to anyone, like the rest of the wizard; the access code is asked for when the visitor uploads or generates). An unknown slug is an HTTP 404.
-
-The page's `<head>` carries Open Graph tags for link previews: `og:title`, `og:description`, `og:type` (`video.other`), `og:url`, `og:image` (the poster, with its size), `og:video` (the MP4, with `og:video:type`, `og:video:width` and `og:video:height`; `og:video:secure_url` when the URL is HTTPS) and `twitter:card` `summary_large_image` (a `player` card needs an embeddable player page, which the app does not have). Every URL in them is absolute: it starts with `PUBLIC_APP_URL` when that is set (a deployment behind a proxy must set it to its public HTTPS origin, for example `https://photon.example`), otherwise with the origin of the request, which is right for local development.
-
-Share pages open without the access code, so social sites can read them, and search engines may index them: they and the files they show are the only responses without `X-Robots-Tag: noindex, nofollow`. The share link on `/g/:id` says so: anyone with it sees the result and the clip it was made from. So do the files a share page shows: a done generation's result, its poster and its source clip, served with `Cache-Control: public`, like the sample clips and images (each of the three lookups has a partial index, migration 007). Every other file (uploads, cuts, character photos, unshared results) needs an access session; see "Access codes".
-
-## Generation state and recovery
-
-A generation goes `preparing → queued → running → finalizing → done | failed`. A failed row has an `error_code` (listed on `generationErrorCodeSchema`) and a readable `error_message`. A Comfy answer that refuses the request, or a connection that never reaches Comfy, fails the row; nothing was rendered.
-
-**`unknown`** is the crash window. If the server stops, or the submit request times out or breaks, after the graph may have reached Comfy but before the job id was stored, nobody knows whether Comfy is rendering it. Comfy's idempotency keys are single-use, without replay, and Comfy Cloud has no job list to look the key up in (`listJobs` returns 501). So the row becomes `unknown`, and the app never submits it again: not on the next read, not as a reuse of its recipe, and not as a retry (`POST /api/generations/:id/retry` answers 409 and points here). What to do: look for a job created at the row's `created_at` in your Comfy Cloud account. If you find one, its output is in your Comfy history. Either way, start a new generation with another seed. An `unknown` row is still returned for its recipe for 24 hours, while Comfy keeps its idempotency key and the job may be rendering; after that the same recipe can be generated again. A `preparing` row left by a stopped server is settled on its next read or the next `generate` of its recipe: `unknown` if its files were uploaded (the submit may have been sent), else `failed` with `interrupted` (nothing was sent, so that `generate` submits a fresh generation).
-
-Run one app instance against this SQLite volume: the row lock for a running submit lives in the process.
-
-The database defaults to `data/app.sqlite`; override with `DATABASE_PATH`. Uploaded, trimmed, sample and generated files live in `assets/` next to the database (`data/assets/<sha256>.<ext>`), one row each in the `assets` table.
-
-The app opens one SQLite connection per process (WAL, `busy_timeout` 5000 ms, foreign keys on). When the server first loads its database module, it applies each `src/shared/server/migrations/NNN-name.sql` not yet recorded in the `migrations` table, each in its own transaction. Add a schema change as the next numbered file; never edit an applied one. Migration 007 dropped three columns nothing wrote a meaningful value to (`generations.kind`, `output_asset_id` and `client_hash`), added `finalize_attempted_at`, filled `motion_id` (the sample motion a generation's driving clip is; `createGeneration` sets it) and indexed the share lookups; `assets.license_ref` stays empty, reserved for Step 9.1. The production image copies the directory next to `.output`.
-
-Right after the migrations, in one transaction, it seeds the samples, each upserted by slug: the characters of `src/features/motionTransfer/samples/characters/manifest.json` (`is_sample = 1`, `origin = 'generated'`) with their PNGs stored as `sample` assets, and the motions of `src/features/motionTransfer/samples/motions/manifest.json` (the `motions` table, with license and attribution) with their clips stored as `sample` video assets. A motion's manifest entry carries what ffprobe reads from its clip (`tests/samples.test.ts` checks it), so seeding needs no FFmpeg. So a fresh clone, a test database or a new Railway volume has the samples before its first query, and a changed manifest reaches existing databases on the next start; seeding again changes nothing. `node scripts/seed-samples.mjs` opens the database the same way and prints the counts. The production image copies `src/features/motionTransfer/samples/`. The three character PNGs are placeholder gradients made with FFmpeg's `gradients` source; Klein-generated samples replace them later. The one sample motion, `street-dance.mp4`, is the template's driving clip (`fixtures/wan/driving.mp4`, `street_dance_drive.mp4` from the MIT-licensed [Comfy-Org/workflow_templates](https://github.com/Comfy-Org/workflow_templates/tree/7d8ed32f0bf6b8d52129976535422d6f518fe463)); the licensed motion library replaces it in Step 9.1.
-
-## Uploads and video routes
-
-`POST /api/uploads` streams one multipart video (field `file`) through Busboy to a hidden temporary file in the assets directory, hashing it with SHA-256 on the way. The file limit is 128 MiB, with 64 KiB additional multipart overhead; a request that declares more gets 413 before anything is written. Interrupted and rejected uploads remove partial files.
-
-`ffprobe` then decides what the file is; the filename and declared type are ignored. FFmpeg and ffprobe always run with `-protocol_whitelist file`, so a crafted upload (or output) cannot make them open a URL or another protocol. MP4, QuickTime and WebM files with a video stream of at least 3 s are accepted; anything else is a 422 with `reason` `no_video` or `too_short`, and leaves no file and no row. An accepted file moves to `<sha256>.<ext>` and gets an `assets` row (`role: upload`, with width and height as displayed, duration, frame rate and `has_audio`). The same bytes uploaded again return the stored row with 200 instead of 201.
-
-A clip over 8 s is kept whole, and the response's `trimmed` field carries its first 8 s as a `trimmed` asset (video and audio, `source_asset_id` pointing at the upload). `POST /api/assets/:id/trim` with `{ "start_ms", "duration_ms" }` (3–8 s; a body over 4 KiB is a 400) cuts another range. A cut that starts on a keyframe is a stream copy; any other cut is re-encoded to H.264 and AAC. Either way the audio stays in sync, and the same cut returns the stored asset. The response contracts are documented in `src/features/motionTransfer/contracts.ts`.
-
-`POST /api/characters` takes an image (field `image`) and `consent=true`, the uploader's statement that they may use the likeness. Without consent it returns 422 `consent_required`, and a file that `ffprobe` does not read as PNG, JPEG or WebP returns 422 `not_image`; neither stores anything. Otherwise the image becomes an asset and a character with `origin: upload` and `consent_at` set. The same image returns the same character.
-
-On Node, uploads read the underlying HTTP request in flowing mode, so each chunk from Node's HTTP parser reaches the multipart parser as is, without the copies that a Web stream conversion or a paused `read()` would add. Each file chunk is hashed and written with `fs.write`, then its buffer is released (`ArrayBuffer.prototype.transfer(0)`) instead of waiting for garbage collection; only buffers the request delivered, and only when the chunk covers the whole buffer, are released. Upload memory is therefore bounded by the streams' 64 KiB high-water marks rather than by V8's collection timing, with no V8 flags. Standard Web requests use the streaming fallback. HTTP tests cover the stored bytes and hash, oversized chunked uploads returning 413, and disconnect cleanup.
-
-`GET` and `HEAD /media/<asset id>.<ext>` serve a stored asset (an upload, a cut, a sample image, a result or its poster) with its MIME type. The file is found by its id in the `assets` table, never by a path from the request: the extension must match the stored file, and anything else (another extension, an unknown id, `..`) is a 404. One byte range per request: `bytes=a-b`, `bytes=a-` and the suffix `bytes=-n` get 206 with `Content-Range`; a range that starts past the end (or `bytes=-0`) gets 416 with `Content-Range: bytes */<size>`; a header with several ranges, or a malformed one, is ignored and the whole file is sent with 200. Assets never change, so every answer carries `Cache-Control: max-age=31536000, immutable` and `ETag: "<sha256 of the file>"`; a matching `If-None-Match` gets 304, and `If-Range` keeps a range only while it names the same file. The cache is `public` for the files anyone may see (samples, and what a share page shows) and `private` (no shared cache may keep it) for everything behind the access code. `?download=1` adds `Content-Disposition: attachment; filename="open-photon-<first 8 characters of the asset id>.<ext>"`. In `npm run dev`, Nitro would hand `<video>` and `<img>` requests to Vite's static files; a dev-only plugin in `vite.config.ts` keeps `/media/*` on the app.
-
-### Upload size limit
-
-Videos and character images are limited to **128 MiB** per file (134,217,728 bytes; the request may add 64 KiB of multipart framing). Larger files get 413 and the UI says "This file is over 128 MiB." The limit is `MAX_UPLOAD_BYTES` in `src/shared/server/upload.server.ts`. Every upload passes through the app server and is stored on its local volume, so upload bandwidth, memory and disk are the app instance's.
-
-TODO: move uploads to the standard pattern for large files: the browser uploads straight to S3-compatible object storage (AWS S3, Cloudflare R2, Railway buckets, MinIO) through presigned URLs, using multipart uploads for large files, and the server only signs the upload and then validates the stored object (SHA-256, `ffprobe`, duration) before it creates the asset. The storage should be configured by whoever runs the repository through environment variables, for example `STORAGE_S3_ENDPOINT`, `STORAGE_S3_REGION`, `STORAGE_S3_BUCKET`, `STORAGE_S3_ACCESS_KEY_ID` and `STORAGE_S3_SECRET_ACCESS_KEY`, keeping today's local-volume storage when they are unset. That removes upload bytes from the app process and lets the 128 MiB limit be raised.
-
-## Verify
+Install Node.js 24+, npm 11.6.2 and FFmpeg (including `ffprobe`), then:
 
 ```sh
-npm run check
-npm run check:privacy
-npm run test:server
-npm run build
-npm run check:client
+git clone https://github.com/WojciechJelen/open-photon.git
+cd open-photon
+npm ci
+cp .env.example .env
+# Edit .env with the backend settings above.
+npm run dev
 ```
 
-Run the browser tests:
+Open [localhost:3030](http://localhost:3030). Once the app has initialized its
+database, run this in another terminal from the repository directory:
 
 ```sh
-npx playwright install chromium
-npm run test:e2e
+node --env-file=.env scripts/mint-code.mjs me 100
 ```
 
-Playwright starts its own dev server and never reuses a running one. It listens on `BASE_URL` (default `http://127.0.0.1:3032`; the port must be free), points Comfy at a dead port (`COMFY_BASE_URL=http://127.0.0.1:1`), so no test can submit a paid job, and uses a new database: `E2E_DATABASE_PATH`, by default a fresh temporary directory. `tests/e2e/seed.ts` refuses a database file that already exists, so the tests never read or change `data/app.sqlite`. It adds one `done` generation of the sample motion, its result and poster stored from `tests/fixtures/result-5s.mp4` (5 s, H.264 and AAC) and `tests/fixtures/result-poster.jpg`, and one `queued` generation that never moves on, and mints the run's access code; seeding needs FFmpeg's `ffprobe`. The server allows two generations in flight (`IN_FLIGHT_MAX=2`, as the seeded `queued` one takes a place) and 1000 uploads and generate requests a minute, since the whole run comes from one client with one code.
+Enter the printed access code in the app. `100` is its generation allowance.
 
-Check access and upload memory in a dedicated container, using the native image built above (for Colima, use `--context colima` and set `MEMORY_DOCKER_CONTEXT=colima`). Both scripts sign in with `ACCESS_CODE`, a code minted in that container:
+### Run the containerized app
+
+Install Docker and create `.env` with the backend settings above. No repository
+clone, Node installation or local build is needed. The same published app image
+supports both backends on Linux AMD64 and ARM64:
 
 ```sh
-docker run -d --name open-photon-memory --init \
-  -e ENABLE_DEBUG=1 -p 127.0.0.1:3031:3000 open-photon:latest
-curl -fsS -o /dev/null http://127.0.0.1:3031/healthz   # opens and migrates its database
-export ACCESS_CODE=$(docker exec open-photon-memory node scripts/mint-code.mjs memory 5)
-BASE_URL=http://127.0.0.1:3031 node scripts/verify-access.mjs
-MEMORY_DOCKER_CONTEXT=default MEMORY_CONTAINER=open-photon-memory \
-  BASE_URL=http://127.0.0.1:3031 node scripts/verify-upload-memory.mjs
-docker rm --force --volumes open-photon-memory
+docker run -d --name open-photon --init \
+  --env-file .env \
+  -p 127.0.0.1:3030:3000 \
+  -v open-photon-data:/app/data \
+  ghcr.io/wojciechjelen/open-photon:0.1.0
 ```
 
-The upload-memory script requires an explicit container and HTTP address, restarts that container, and runs six transfers without Comfy credentials. It retains the 64 MiB limits for anonymous-memory growth, application RSS growth, and sampled array-buffer peaks; failures return a nonzero exit code. The report in `work/upload-memory.json` includes the image and Docker host architecture. Measurements depend on the container environment and sampling interval. Historical simulation and detailed measurement records are private; simulated jobs are not evidence of real generation.
-
-`tests/wizard.spec.ts` covers the wizard (step gating and the stepper, a tile toggled from the keyboard, Back and Forward, a reload, the slate's Change links, the old `/` links, the access dialog carrying Generate on, the header's access status, the phone layout); `tests/access.spec.ts` covers the wizard without a session (the samples play; choosing a clip to upload opens the code dialog before anything is sent, a wrong code is refused, the right one uploads that clip and keeps the chosen character); `tests/app.spec.ts` a generation's page opened without a session (a wrong code is refused, the right one opens the page first asked for) and the generation routes' answers to malformed and unknown ids; `tests/motion.spec.ts` the motion step (sample previews, the trim dialog for a 12 s clip, closing it during a cut, leaving the page during an upload, too short and no video, an upload over the rate limit, an unknown id in the URL); `tests/character.spec.ts` the character step (both ids in the URL across a reload, the consent checkbox gating an upload, a non-image refused inline, an unknown id); `tests/generate.spec.ts` the generate step and `/g/:id` (an invalid form sends no `POST /api/generate`, a dead-port generation shows `failed` with the reason and Retry opens its failed child, which links back to its parent and to the same choices; with both places in flight taken Generate shows `queue_full` on the form, stays on the wizard and adds no generation; a running generation shows its stream's progress and opens the stream again after a reload; a finished one opens no stream; an unknown id is a 404 page); `tests/compare.spec.ts` the compare player on the seeded result (both videos playing within 500 ms of Play, the source within 0.1 s of a seek of the result, the scrubber, the end and Replay, `206` responses for both videos, only the result unmuted, the swipe slider on a 390 px screen); `tests/remix.spec.ts` the download (saved as `open-photon-<id>.mp4`) and the two remix buttons (each keeps exactly one of `motion` and `character`). The tests find controls by role and accessible name and assert states, not wording. `tests/e2e/seed.ts` mints the run's access code with `scripts/mint-code.mjs` into the scratch database, and `tests/e2e/sign-in.setup.ts` signs in with it once per run (`POST /api/session`) and shares the session; the anonymous tests start without it. No browser test submits a paid job.
-
-`tests/share.spec.ts` covers share pages: the raw HTML of `/r/<slug>` fetched without a session (no JavaScript) carries the Open Graph tags with absolute URLs, the video they name answers a range with 206 and the poster with 200, the page and the video carry no `X-Robots-Tag` while the picker, `/g/:id` and a private photo say `noindex`, an unknown slug is a 404; an uploaded character photo, the generation API and `/g/:id` stay closed to a visitor without a session; in a browser without a session the result and source loop muted and "Use this motion with my character" opens the wizard's character step with the shared clip playing; `/g/:id` shows the share link and opens the page.
-
-`tests/recipe.spec.ts` covers the recipe: `recipe.json`'s `workflow.sha256` is the workflow file's, the panel on `/g/:id` and on the share page is closed until opened and closes again, and "Re-run recipe" on the seeded done generation (seeded on the server's own target) stays on that page and adds no generation.
-
-## Railway staging
-
-Staging is public to browse; uploads and generation need an access code. Railway builds the repository's Dockerfile in the `open-photon` project, `staging` environment. It runs one replica in Europe with a 1 CPU / 1 GB RAM limit and a 5 GB volume mounted at `/app/data`. Keep one replica while SQLite and output collection use local storage.
-
-Runtime variables are `PORT=3000`, `HOST=0.0.0.0`, `DATABASE_PATH=/app/data/app.sqlite`, `COMFY_BASE_URL=https://cloud.comfy.org`, `PUBLIC_APP_URL` (the deployment's public HTTPS origin: share pages build their absolute Open Graph URLs from it), `CLIENT_IP_HEADER=X-Real-IP` (Railway's edge sets that header to the client's address; see "Rate limits and the in-flight cap") and `IN_FLIGHT_MAX` (the Comfy plan's concurrency: 1 on Standard, the default). Set `COMFY_API_KEY` as a service secret; leave `ENABLE_DEBUG` unset. Access codes live in the database on the volume, not in a variable: after a deploy is healthy, mint one in the running service (for example with `railway ssh`, then `node scripts/mint-code.mjs judges 50`).
-
-Railway mounts volumes as root. `RAILWAY_RUN_UID=0` starts the entrypoint as root so it can create and assign the database directory to `node`, then `gosu` replaces it with the app running as UID 1000. Ordinary Docker runs still default to `USER node`. Existing files must already be writable by `node`; startup does not recursively change ownership of stored assets.
-
-Railway service settings select the Dockerfile builder, check `/healthz` with a 120-second health-check timeout, and restart on failure up to three times. The volume and runtime secrets also remain Railway configuration. We do not use the deprecated `railway.toml` format. The Dockerfile intentionally has no `VOLUME` instruction because Railway rejects it; local runs must explicitly mount storage as shown above.
-
-Railway's edge has no request-timeout setting to change. A response may run for up to 15 minutes while data keeps flowing and is closed after 5 minutes without any; a request body must finish uploading within 5 minutes ([Railway's limits](https://docs.railway.com/networking/public-networking/specs-and-limits)). The event streams' `: ping` every 15 s keeps them open; a generation still running when its stream reaches 15 minutes gets a new stream from the browser's `EventSource` reconnect. A changed variable takes effect only with a new deployment (`railway redeploy`): `railway restart` keeps the variables the deployment started with.
-
-Proof on the staging deployment (Step 7.3, deployed with `railway up` from local `main`; the GitHub source stays connected): with `ENABLE_DEBUG=1` for the test only and a session cookie, `curl -sN --max-time 320 <host>/api/debug/heartbeat` stayed open until curl's own limit (exit 28) with `200`, `text/event-stream`, `no-cache, no-transform` and `X-Accel-Buffering: no`, the opening comment at 0 s and 21 `: ping` lines at 15, 30, …, 315 s. A `Range: bytes=1000-1999` request for an uploaded clip answered `206` `bytes 1000-1999/86526`, and one for a sample clip without a session `206`.
-
-## Continuous integration and deployment
-
-[CI](.github/workflows/ci.yml) runs on every `main` push and pull request, and can be started manually. It installs from the lockfile, checks types, lint, formatting, unused code and duplication, checks private paths across Git history, runs server tests and the browser tests (each with codes minted into its own scratch database), builds the Linux AMD64 image (including its client-secret scan), mints a code in the container and runs the access check (`scripts/verify-access.mjs`) and the six-upload memory check on the native x86 runner. The container starts with a fresh root-owned volume, and CI checks that the app runs as UID 1000 and can write SQLite on that volume. CI uses no Comfy secrets and submits no paid jobs.
-
-Railway follows `main` with **Wait for CI** enabled. Each push must pass GitHub Actions before Railway builds and deploys the Dockerfile; failed checks block that deployment. Main-branch CI runs are not canceled by newer pushes. Pull-request checks do not deploy to staging. A successful Railway deployment must pass the HTTP health check before becoming active.
-
-`npm run check:privacy` requires a full Git checkout. It rejects tracked private paths and their historical document locations. Local notes belong in `docs/priv/`, which is excluded from both Git and the Docker context. An ignore rule cannot remove files already committed; run the privacy check before the first push as well as in CI.
-
-## SDK and secrets
-
-The SDK runs only in server modules. Vite externalizes it; Nitro traces the package into production output. `.env*` is excluded from Git and the Docker context. Every image build uses a dummy key and scans `.output/public` for credential configuration names and the canary value.
-
-With `ENABLE_DEBUG=1`, `GET /api/debug/streams` reports the event-stream counters (`active`, opened, completed, request aborts, cancellations) and the process memory, and `GET /api/debug/heartbeat` opens an event stream that sends nothing but the heartbeat until the client closes it (through the same writer, headers and `: ping` as a generation's stream), to check that a proxy keeps a long stream open; without it both routes are a 404. Both need a session. Leave it unset outside diagnostics.
-
-The Vite/Nitro build still emits upstream `use client` warnings.
-
-## Access codes
-
-Uploads and generation need an access code; choosing samples does not. Codes live in the `access_codes` table (migration 006): a label, the most generations the code may start (`max_generations`), how many it has (`used`), and the SHA-256 of the code, never the code itself. Mint one on the database the app uses (it must have started once, so the database exists and is migrated):
+Open [localhost:3030](http://localhost:3030), then create an access code:
 
 ```sh
-node scripts/mint-code.mjs <label> <max generations>                    # local: DATABASE_PATH or data/app.sqlite
-docker exec open-photon node scripts/mint-code.mjs judges 50            # the Docker container's volume
+docker exec open-photon node scripts/mint-code.mjs me 100
 ```
 
-It prints a fresh 24-character code (144 random bits) once. A lost code cannot be shown again: mint another. Revoke one with `sqlite3 <database> "UPDATE access_codes SET revoked_at = datetime() WHERE label = '<label>'"`; its sessions end at once.
-
-`POST /api/session` with `{ "code": "…" }` answers 204 and sets the session cookie, or 401 `invalid_code`; `/access` is the same exchange as a plain HTML form, for a page opened without a session, and returns to its `next` parameter when that is a path on this site, else to `/`. Wrong codes (both kinds of login) are limited per client, `LOGIN_RATE_LIMIT` a minute (default 10), and across the instance, `LOGIN_TOTAL_RATE_LIMIT` a minute (default 300, a backstop against many clients at once), then 429 with `Retry-After`; a right code costs nothing, so one client guessing cannot lock out anyone else (the client is found as for the other rate limits, see "Rate limits and the in-flight cap"). The cookie (`photon_access`) is HttpOnly, `SameSite=Lax`, `Secure` in production and on HTTPS, and lasts 12 hours. It holds the code's id, its expiry and an HMAC of both keyed with the code's stored hash: no server secret is needed, sessions survive restarts, and revoking the code ends them.
-
-Open without a session: the studio home `/`, the Motion Transfer wizard (`/motionTransfer` and its data, including the sample clips and images), share pages (`/r/<slug>`) and the media they show, `/healthz`, static assets, and the page and API of a pre-rendered sample generation (`is_prerendered = 1`, the sample × sample matrix). `POST /api/generate` and `POST /api/generations/:id/rerun` are reachable too, but only answer with a result that already exists (a done pre-rendered sample, or a done generation's own result); anything that would render is a 401 `access_required`. Everything else needs a session: uploads, cuts, character photos, `POST /api/generations/:id/retry`, and the page, API, event stream and recipe of every other generation. A page opened without one redirects to `/access?next=<that page>`; an API answers 401 `{ error, reason: "access_required" }`, on which the app opens its access-code dialog. The guard is the global request middleware (`src/start.ts`, `src/shared/server/access.server.ts`, the list in `src/features/motionTransfer/server/public-access.ts`); server function calls pass it to the global function middleware, which lets a request without a session call only the functions listed in `publicServerFns` (the wizard's, the studio home's, the share page's, and `/g/:id`'s, which checks access itself) and answers 401 `access_required` for any other, so a new server function needs a session unless it is added to that list. The list matches paths the way the router does (fixed parts in any letter case, one trailing slash or none), so an alias of a public URL is public and an alias of any other URL is not. A wizard link that names an upload keeps it without a session: the page says the clip or photo is the visitor's own and offers the code dialog to show it, and Generate sends it as it is and asks for the code then.
-
-Each generation records the code that started it (`access_code_id`). `used` counts a generation from the moment its row is stored, and gives the count back if it fails before Comfy took it (`preparing → failed`: an upload or submit Comfy refused or never received, or a server stopped before sending it); a generation Comfy accepted, or may have (`unknown`), stays counted, and a reused result never counts. So with Comfy unreachable nothing is used up. When `used` reaches `max_generations`, `generate`, retry and re-run refuse anything that would render with 403 `code_exhausted`.
-
-This is a shared preview gate: anyone with a code can spend Comfy credits up to its maximum. Protected pages and media are private; share pages, their media and the samples are public. The deployment URL previously appeared in this README; removing it does not erase Git history or make it secret.
-
-## Rate limits and the in-flight cap
-
-A public link must not drain the credits, so two more checks stand in front of Comfy (`src/shared/server/limits.ts`):
-
-- **Rate limits**: token buckets in memory, one per client and one per access code. Uploads, cuts and character photos (`POST /api/uploads`, `/api/assets/:id/trim`, `/api/characters`) take a token from both before the body is read, `UPLOAD_RATE_LIMIT` a minute (default 10); their route handlers take it (`uploadRefusal`), so every URL the router sends to them counts, in any letter case or with a trailing slash. `POST /api/generate`, `…/retry` and `…/rerun` take one from both for every answer except an existing result, refusals included (a malformed body, a missing clip, no code), `GENERATE_RATE_LIMIT` a minute (default 3). A reused result (a pre-rendered sample, a re-run of a done generation, a recipe already done or on its way) never takes one and is never refused; one found only after waiting for a full cap (another request started that recipe meanwhile) gives its token back. Each bucket holds its limit and refills at that rate; an empty one is a 429 `{ error, reason: "rate_limited", retry_after }` with `Retry-After` in seconds, and no row is created. The buckets live in this one process (they restart empty) and at most 10,000 are kept, idle ones dropped first.
-- **In-flight cap**: at most `IN_FLIGHT_MAX` generations (default 1, Comfy Cloud Standard's one concurrent workflow; 0 refuses every new one) may be `preparing`, `queued`, `running` or `finalizing` at once, counted from the database (`unknown` ones are not). When a new generation finds it full, the five oldest of those rows are brought up to date first, as `GET /api/generations/:id` does (a row a stopped server left `preparing` is settled, a job Comfy finished or failed is finalized), waiting at most 5 s for Comfy, so a generation nobody watches any more does not hold its place. If it is still full the answer is a 503 `{ error, reason: "queue_full", retry_after: 30 }` with `Retry-After`, and no row is created. A reused result is returned whatever the cap.
-
-The client is the address in the `CLIENT_IP_HEADER` request header when that is set, which must be a header the proxy in front of the app sets itself (on Railway, `X-Real-IP`); when it is unset the connection's own address is used and `X-Forwarded-For` and the like are ignored, since any client can send them. Only a SHA-256 of the address is kept. The generate form shows a refusal under the button ("Queue full", "Too many generation requests", with the wait), the clip upload shows "Slow down" with the wait, and the photo upload, the trim dialog, Retry and Re-run show the server's message.
+The volume keeps results and access codes across container replacement. From a
+source checkout, you can instead use `docker compose up -d` and
+`docker compose exec app node scripts/mint-code.mjs me 100` with the same `.env`.
+Compose uses its own persistent volume.

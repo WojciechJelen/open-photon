@@ -69,7 +69,7 @@ export class GenerateError extends Error {
 }
 
 const UNKNOWN_MESSAGE =
-  "Comfy may have accepted this generation before its job id was saved, so it is never submitted again automatically. See the README, “Generation state and recovery”.";
+  "Comfy may have accepted this generation before its job id was saved, so it is never submitted again automatically. Check your rendering backend for a job created at that time before starting a new generation with another seed.";
 
 // Seeds Retry draws stay below 2^48, the largest range `randomInt` draws from.
 const SEED_RANGE = 2 ** 48 - 1;
@@ -397,7 +397,7 @@ export async function retry(
   if (parent.status === "unknown") {
     throw new GenerateError(
       409,
-      "Comfy may still be rendering this generation, so it is not retried. See the README, “Generation state and recovery”, then start a new generation.",
+      "Comfy may still be rendering this generation, so it is not retried. Check your rendering backend for a job created at that time before starting a new generation with another seed.",
     );
   }
 

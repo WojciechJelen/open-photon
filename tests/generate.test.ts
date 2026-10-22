@@ -364,7 +364,7 @@ test("an unknown generation is returned for its recipe for a day, then the recip
   assert.equal(submits.length, 1);
 });
 
-test("retry refuses an unknown generation with 409 and a pointer to the README", async () => {
+test("retry refuses an unknown generation with 409 and recovery instructions", async () => {
   const unknown = await generate(
     input(),
     session,
@@ -377,7 +377,7 @@ test("retry refuses an unknown generation with 409 and a pointer to the README",
   await assert.rejects(retry(unknown.id, session, double), (error) => {
     assert.ok(error instanceof GenerateError);
     assert.equal(error.status, 409);
-    assert.match(error.message, /README/);
+    assert.match(error.message, /Check your rendering backend/);
 
     return true;
   });

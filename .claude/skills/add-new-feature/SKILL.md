@@ -12,7 +12,7 @@ into your plan. "Stop and ask" = report what you found and ask the user; no work
 
 ## 0. Read first, then choose the generation lifecycle
 
-Read `AGENTS.md` (binding), `SETUP.md`, `docs/selfhost.md`, `docs/parallel-feature-foundation.md`,
+Read `AGENTS.md` (binding), `SETUP.md`, `docs/priv/selfhost.md`, `docs/priv/parallel-feature-foundation.md`,
 the reference `src/features/motionTransfer/` (files named below) and its routes
 `src/routes/motionTransfer.tsx`, `api.generate.ts`, `api.generations.*`.
 
@@ -39,7 +39,7 @@ Motion Transfer's own (not reusable as is):
 | Recipe schema and hash | `server/recipe.ts` | `params` are MT's |
 | Public pages and server functions | `server/public-access.ts` | app-wide allowlist that lives in MT |
 
-Planned in `docs/parallel-feature-foundation.md`, **not available**: a shared generation service
+Planned in `docs/priv/parallel-feature-foundation.md`, **not available**: a shared generation service
 (`generations.submit`/`submitMany`), durable queue and scheduler, named outputs with media kinds,
 versioned recipes, namespaced migrations, feature seeders, feature-local test discovery, a fake
 provider, a client tool catalog, import-boundary CI. Never write code against them.
@@ -127,7 +127,7 @@ src/routes/<path>.tsx     thin: imports from the feature and shared only
      work/object-info.json` checks classes and files for every workflow.
    - Core, but only in a newer ComfyUI: stop and ask. A bump changes `COMFYUI_COMMIT` for every
      feature; every runtime workflow must pass again and the self-host proof is re-run
-     (`docs/selfhost.md`, "Record and verify one render"). Update every doc that quotes `7a28332`.
+     (`docs/priv/selfhost.md`, "Record and verify one render"). Update every doc that quotes `7a28332`.
    - Partner/API node (`api_node: true`, or matching `scripts/forbidden-nodes.json`): not allowed.
      Never edit `forbidden-nodes.json` to pass. Redesign with open nodes or stop and ask.
    - Custom node (a `custom_nodes/` package): unsupported. The image installs core only and the
@@ -240,8 +240,8 @@ unrun row is reported as "not verified on <target>", never as passing.
 | `COMFY_API_KEY= COMFY_BASE_URL=https://<pod-id>-8189.proxy.runpod.net COMFY_PROXY_TOKEN=<PROXY_TOKEN> npm run check:comfy` | `comfy target=selfhost …`, `OK: …` |
 | Pod from a `selfhost/` image built after your change | log has your `<feature>/<id>.v1: … 0 missing` line and `Serving the Comfy API v2 on 0.0.0.0:8189 (auth: bearer)` |
 | One real render through the app on Cloud | done; recipe `target: cloud`; credits recorded |
-| One real render on that pod | done; recipe `target: selfhost`; VRAM recorded with the `nvidia-smi` command in `docs/selfhost.md` |
-| `docs/deployment-verification.md` | record the release checks your change touches |
+| One real render on that pod | done; recipe `target: selfhost`; VRAM recorded with the `nvidia-smi` command in `docs/priv/selfhost.md` |
+| `docs/priv/deployment-verification.md` | record the release checks your change touches |
 
 `scripts/verify-selfhost.mjs` checks Motion Transfer generations only; check your recipe's
 `target`, workflow SHA-256 and model pins against your registry by hand. Then update `SETUP.md`

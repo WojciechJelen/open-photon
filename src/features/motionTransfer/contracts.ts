@@ -108,7 +108,7 @@ export type AngleChoice = { id: string; label: string };
 /**
  * `preparing → queued → running → finalizing → done | failed`. `unknown`: the server stopped
  * between sending the job to Comfy and saving its id, so Comfy may be rendering it; such a row
- * is never submitted again (README, "Generation state and recovery").
+ * is never submitted again (docs/priv/motion-transfer.md, "Generation state and recovery").
  */
 export const generationStatusSchema = z.enum([
   "preparing",
