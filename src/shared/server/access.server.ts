@@ -2,10 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { z } from "zod";
 
-import {
-  isPublicRequest,
-  publicServerFns,
-} from "../../features/motionTransfer/server/public-access.ts";
+import { isPublicRequest, isPublicServerFn } from "../../app/server.ts";
 import { findAccessCode, findAccessCodeById } from "./access-codes.ts";
 import { accessPage, accessUrl } from "./access-page.server.ts";
 import { requesterKeys, returnToken, takeToken } from "./limits.ts";
@@ -174,12 +171,12 @@ export function uploadRefusal(request: Request, now = Date.now) {
 
 /**
  * The server-function guard, `src/start.ts`'s global function middleware, which knows the
- * function being called (`serverFnMeta`): `undefined` for one in `publicServerFns` or a request
- * with a session, else a 401 `access_required`. So a new server function needs a session unless
- * it is added to that list on purpose.
+ * function being called (`serverFnMeta`): `undefined` for one a feature declares public
+ * (`isPublicServerFn`, `src/app/server.ts`) or a request with a session, else a 401
+ * `access_required`. So a new server function needs a session unless its feature declares it.
  */
 export function serverFnRefusal(request: Request, meta: { filename: string; name: string }) {
-  return Object.hasOwn(publicServerFns, `${meta.filename}#${meta.name}`) || readSession(request)
+  return isPublicServerFn(`${meta.filename}#${meta.name}`) || readSession(request)
     ? undefined
     : refusal(401, "Enter an access code to do this.", "access_required");
 }

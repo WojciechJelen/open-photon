@@ -12,6 +12,12 @@ process.env.DATABASE_PATH = join(directory, "test.sqlite");
 
 after(() => rmSync(directory, { force: true, recursive: true }));
 
+// Opened (and migrated) only now that `DATABASE_PATH` names it, so imported here rather than
+// statically: then seeded with the samples, as the server's boot does (`src/app/boot.ts`).
+const { seedDatabase } = await import("../src/app/server.ts");
+
+seedDatabase();
+
 /**
  * Mints an access code for `max` generations in this test file's database with
  * `scripts/mint-code.mjs`, as an operator does, and returns the code it prints. The database must

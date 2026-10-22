@@ -11,7 +11,7 @@ import {
 
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import type { PickableCharacter, SampleMotion } from "#/features/motionTransfer/contracts";
+import type { PickableCharacter, SampleMotion } from "#/features/motionTransfer/api";
 import type { SampleTake } from "#/features/studio/components/studio-hero";
 import { Hud, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";

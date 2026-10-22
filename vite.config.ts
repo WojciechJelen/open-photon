@@ -31,8 +31,9 @@ const config = defineConfig(({ mode }) => ({
     tailwindcss(),
     tanstackStart(),
     nitro({
-      // Runs before the server listens: bad Comfy config stops the process (`comfy-boot.ts`).
-      plugins: ["./src/shared/server/comfy-boot.ts"],
+      // Run in order before the server listens: bad Comfy config stops the process
+      // (`comfy-boot.ts`); then the database is opened, migrated and seeded (`src/app/boot.ts`).
+      plugins: ["./src/shared/server/comfy-boot.ts", "./src/app/boot.ts"],
       preset: "node-server",
       traceDeps: ["@comfyorg/sdk*"],
     }),

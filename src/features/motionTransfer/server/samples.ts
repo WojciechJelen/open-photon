@@ -170,9 +170,9 @@ ON CONFLICT (slug) DO UPDATE SET title = excluded.title,
 /**
  * Upserts the samples by slug: the characters of `src/features/motionTransfer/samples/characters/manifest.json`, each with
  * its PNG as a `sample` asset, and the motions of `src/features/motionTransfer/samples/motions/manifest.json`, each with its
- * clip as a `sample` video asset. `db.server.ts` runs it in one transaction every time it opens
- * the database, right after the migrations, so every database has the samples before its first
- * query; running it again changes nothing.
+ * clip as a `sample` video asset. Motion Transfer's seeder: `src/app/server.ts` (`seedDatabase`)
+ * runs it in one transaction at every server start, before the first request, and wherever a
+ * database is prepared without the server; running it again changes nothing.
  */
 export function seedSamples(database: DatabaseSync) {
   const now = new Date().toISOString();

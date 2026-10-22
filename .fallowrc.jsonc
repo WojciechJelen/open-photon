@@ -3,8 +3,9 @@
   "entry": [
     // TanStack Start discovers global request middleware by convention.
     "src/start.ts",
-    // A Nitro plugin, named by path in vite.config.ts.
+    // Nitro plugins, named by path in vite.config.ts.
     "src/shared/server/comfy-boot.ts",
+    "src/app/boot.ts",
     // Run by hand or from CI, not imported.
     "scripts/*.mjs",
     // Compile-time route inference tripwire; only tsgo reads it.
