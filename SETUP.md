@@ -85,13 +85,18 @@ node scripts/mint-code.mjs me 20       # after the first page load has created d
 
 The GPU side is one image, [`selfhost/`](selfhost/): ComfyUI `7a28332` (0.42.0) behind `comfy-api-proxy` 0.1.6 on port 8189, with every feature's locked weights. What it does at boot, its known risks and how to verify a render: [docs/selfhost.md](docs/selfhost.md).
 
-1. Build and push the image from the repository root to a registry RunPod can pull from:
+1. Build and push the image from the repository root. The image is public on GHCR under the repository's owner, tagged with the repository commit it was built from (the tag identifies the ComfyUI pin and every feature's lock together; a feature that adds a workflow changes the image without changing `selfhost/Dockerfile`):
 
    ```sh
-   IMAGE=<registry>/open-photon-comfy:7a28332
+   IMAGE=ghcr.io/wojciechjelen/open-photon-comfy:$(git rev-parse --short HEAD)
    docker build --platform linux/amd64 -f selfhost/Dockerfile -t "$IMAGE" .
+   echo "$GHCR_TOKEN" | docker login ghcr.io -u wojciechjelen --password-stdin   # a PAT with write:packages
    docker push "$IMAGE"
    ```
+
+   To build on an x86 GitHub Actions runner instead, run the **Publish Comfy image** workflow (`.github/workflows/publish-comfy.yml`) with `workflow_dispatch`, or push a `comfy-*` tag. It uses the repository's `GITHUB_TOKEN` with `packages: write`, so no PAT is needed. The published image tag is still the repository commit's short SHA; the workflow summary records the image and digest. On the first publish, change the GHCR package's visibility to **Public** in its package settings; linking it to a public repository does not make the package public automatically.
+
+   The image holds no secrets (weights download at boot, the token arrives as `PROXY_TOKEN`), so keep the package public: RunPod then pulls without a registry credential, and GHCR does not rate-limit anonymous pulls of public packages. Building under emulation on an Apple Silicon Docker VM is slow for a ~10 GB image; an x86 GitHub Actions runner (like the CI job that builds the app image) is the practical builder.
 
 2. Create a RunPod secret named `open_photon_proxy_token` (Console → Secrets) holding a long random value, for example from `openssl rand -hex 32`. Keep the value: it is the app's `COMFY_API_KEY`.
 
@@ -103,7 +108,7 @@ The GPU side is one image, [`selfhost/`](selfhost/): ComfyUI `7a28332` (0.42.0) 
        -H "Authorization: Bearer $RUNPOD_API_KEY" -H 'Content-Type: application/json' --data @-
    ```
 
-   For a private registry, add its `containerRegistryAuthId` to the JSON the same way. Note the returned template `id`.
+   For a private package, create a RunPod registry credential (GHCR username and a PAT with `read:packages`) and add its `containerRegistryAuthId` to the JSON the same way. Note the returned template `id`.
 
 4. Create a network volume and a pod from the template. The network volume keeps the weights for the next pod; without one, the pod's own volume keeps them until the pod is deleted.
 

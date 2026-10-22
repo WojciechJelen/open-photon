@@ -1,0 +1,39 @@
+name: Publish Comfy image
+
+on:
+  push:
+    tags: ["comfy-*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-comfy-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Build and push the commit's GPU image
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          test "$(uname -m)" = x86_64
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/open-photon-comfy:$(git rev-parse --short HEAD)"
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build --platform linux/amd64 -f selfhost/Dockerfile \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" -t "$IMAGE" .
+          docker push "$IMAGE"
+          DIGEST=$(docker image inspect "$IMAGE" --format '{{index .RepoDigests 0}}')
+          printf 'Image: %s\n\nDigest: %s\n' "$IMAGE" "$DIGEST" >> "$GITHUB_STEP_SUMMARY"
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io
