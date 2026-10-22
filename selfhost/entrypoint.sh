@@ -4,7 +4,7 @@
 # process stops, and passes a stop signal to both.
 set -euo pipefail
 
-# The app sends this as COMFY_API_KEY. Required unless the proxy stays on loopback (an SSH tunnel).
+# The app sends this as COMFY_PROXY_TOKEN. Required unless the proxy stays on loopback (an SSH tunnel).
 PROXY_TOKEN=${PROXY_TOKEN:-}
 PROXY_HOST=${PROXY_HOST:-0.0.0.0}
 # The model directory in ComfyUI's own layout (<directory>/<file>, as each models.lock names them).
@@ -20,7 +20,7 @@ COMFYUI_DIR=/opt/ComfyUI
 
 if [[ -z $PROXY_TOKEN && $PROXY_HOST != 127.0.0.1 ]]; then
   echo "PROXY_TOKEN is required when the proxy listens on $PROXY_HOST." \
-    "Set it (the app's COMFY_API_KEY), or PROXY_HOST=127.0.0.1 to serve on loopback only." >&2
+    "Set it (the app's COMFY_PROXY_TOKEN), or PROXY_HOST=127.0.0.1 to serve on loopback only." >&2
   exit 64
 fi
 

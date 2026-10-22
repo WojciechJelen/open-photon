@@ -40,7 +40,8 @@ export default defineConfig({
   webServer: {
     command: `node --experimental-strip-types tests/e2e/seed.ts && npx vite dev --host ${hostname} --port ${port} --strictPort`,
     env: {
-      COMFY_API_KEY: "e2e-placeholder-not-a-key",
+      COMFY_API_KEY: "",
+      COMFY_PROXY_TOKEN: "e2e-placeholder-not-a-key",
       COMFY_BASE_URL: "http://127.0.0.1:1",
       DATABASE_PATH: process.env.E2E_DATABASE_PATH,
       GENERATE_RATE_LIMIT: "1000",

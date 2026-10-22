@@ -22,6 +22,7 @@ COPY --from=build --chown=node:node /app/src/shared/server/migrations ./src/shar
 COPY --from=build --chown=node:node /app/scripts/mint-code.mjs ./scripts/mint-code.mjs
 COPY --chmod=755 scripts/container-entrypoint.sh /usr/local/bin/open-photon-entrypoint
 RUN mkdir /app/data && chown node:node /app/data
+LABEL org.opencontainers.image.source="https://github.com/WojciechJelen/open-photon"
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s \

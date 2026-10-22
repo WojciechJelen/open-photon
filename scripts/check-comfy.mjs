@@ -1,4 +1,4 @@
-// Checks that the Comfy deployment `COMFY_BASE_URL` names is reachable and accepts `COMFY_API_KEY`:
+// Checks that the configured Comfy deployment is reachable and accepts its Cloud key or proxy token:
 // `npm run check:comfy` (the environment, then `.env`). One read of a job id that cannot exist,
 // at the path the SDK the app uses calls; prints no secrets. Exits 0 only on OK.
 import { randomUUID } from "node:crypto";
@@ -65,7 +65,9 @@ try {
   } else if (response.status === 401 || response.status === 403) {
     throw new Error(
       `wrong or missing token: ${target.baseUrl} answered ${response.status}${code ? ` (${code})` : ""}. ` +
-        `Set COMFY_API_KEY to ${target.kind === "cloud" ? "a valid Comfy Cloud API key" : "the comfy-api-proxy --token"}.`,
+        (target.kind === "cloud"
+          ? "Set COMFY_API_KEY to a valid Comfy Cloud API key."
+          : "Set COMFY_PROXY_TOKEN to the comfy-api-proxy --token."),
     );
   } else if (response.status === 404) {
     // ComfyUI's native server answers 404 for `/api/v2/*`, as does any server at a wrong path.

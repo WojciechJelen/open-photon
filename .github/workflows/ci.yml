@@ -5,6 +5,15 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish app and GPU images after verification
+        type: boolean
+        default: false
+      version:
+        description: Image version (must match package.json)
+        type: string
+        default: "0.1.0"
 
 permissions:
   contents: read
@@ -50,7 +59,7 @@ jobs:
           test "$(uname -m)" = x86_64
           docker run -d --name open-photon-memory --init --user 0 \
             --mount type=volume,destination=/app/data,volume-nocopy \
-            -e ENABLE_DEBUG=1 -p 127.0.0.1:3031:3000 open-photon:ci
+            -e ENABLE_DEBUG=1 -e COMFY_BASE_URL=http://127.0.0.1:1 -p 127.0.0.1:3031:3000 open-photon:ci
           # The first request opens (and migrates) the database; then mint a code on the volume.
           for attempt in $(seq 60); do curl -fsS -o /dev/null "$BASE_URL/healthz" && break; sleep 1; done
           ACCESS_CODE=$(docker exec --user node open-photon-memory node scripts/mint-code.mjs ci 5)
@@ -78,3 +87,70 @@ jobs:
       - name: Remove upload test container and its temporary volume
         if: always()
         run: docker rm --force --volumes open-photon-memory || true
+
+  images:
+    needs: verify
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: open-photon
+            dockerfile: Dockerfile
+            arch: amd64
+            runner: ubuntu-latest
+          - image: open-photon
+            dockerfile: Dockerfile
+            arch: arm64
+            runner: ubuntu-24.04-arm
+          - image: open-photon-comfy
+            dockerfile: selfhost/Dockerfile
+            arch: amd64
+            runner: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build and publish architecture image
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          IMAGE: ${{ matrix.image }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          image="ghcr.io/${OWNER,,}/$IMAGE:build-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$ARCH"
+          docker build --platform "linux/$ARCH" --file "$DOCKERFILE" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" --tag "$image" .
+          docker push "$image"
+
+  publish:
+    needs: images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Publish matching version tags
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          test "$VERSION" = "$(node -p 'require("./package.json").version')"
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          repository="ghcr.io/${OWNER,,}/open-photon"
+          build="build-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          docker buildx imagetools create --tag "$repository:$VERSION" \
+            "$repository:$build-amd64" "$repository:$build-arm64"
+          docker buildx imagetools create --tag "$repository-comfy:$VERSION" \
+            "$repository-comfy:$build-amd64"

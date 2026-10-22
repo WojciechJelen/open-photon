@@ -1,6 +1,7 @@
 import { BASE_URL_ENV_VAR, COMFY_CLOUD_BASE_URL } from "@comfyorg/sdk";
 
 const API_KEY_ENV_VAR = "COMFY_API_KEY";
+const PROXY_TOKEN_ENV_VAR = "COMFY_PROXY_TOKEN";
 
 /**
  * Where generations run. `kind` is a recipe's `target`; `apiKey` is the bearer the SDK sends
@@ -13,9 +14,8 @@ export type ComfyTarget =
 const stripTrailingSlashes = (value: string) => value.replace(/\/+$/, "");
 
 /**
- * The target `COMFY_BASE_URL` and `COMFY_API_KEY` name: Comfy Cloud when the URL is blank or Comfy
- * Cloud's, any other deployment (a comfy-api-proxy) otherwise. Pure; throws an Error with an
- * operator-readable message on invalid config, and never puts the key in it.
+ * A Cloud key selects Cloud; a proxy URL without a Cloud key selects self-hosting. Proxy auth
+ * uses its own token so a Cloud credential can never be sent to a different deployment.
  *
  * The SDK has no base URL option and reads `COMFY_BASE_URL` itself at `new Comfy()`. These checks
  * mirror its own (http(s), no query or fragment, every trailing slash stripped, Cloud = same
@@ -24,22 +24,25 @@ const stripTrailingSlashes = (value: string) => value.replace(/\/+$/, "");
 export function resolveComfyTarget(env: Record<string, string | undefined>): ComfyTarget {
   const raw = env[BASE_URL_ENV_VAR]?.trim() || COMFY_CLOUD_BASE_URL;
   const apiKey = env[API_KEY_ENV_VAR]?.trim() || undefined;
+  const proxyToken = env[PROXY_TOKEN_ENV_VAR]?.trim() || undefined;
   let url: URL;
 
   try {
     url = new URL(raw);
   } catch {
-    throw new Error(`${BASE_URL_ENV_VAR} is not a URL: ${JSON.stringify(raw)}`);
+    throw new Error(`${BASE_URL_ENV_VAR} must be an http(s) URL.`);
   }
 
   if (
     (url.protocol !== "http:" && url.protocol !== "https:") ||
     url.search !== "" ||
     url.hash !== "" ||
+    url.username !== "" ||
+    url.password !== "" ||
     /[?#]/.test(raw)
   ) {
     throw new Error(
-      `${BASE_URL_ENV_VAR} must be an http(s) URL with no query or fragment, such as https://<host>:8189, not ${JSON.stringify(raw)}`,
+      `${BASE_URL_ENV_VAR} must be an http(s) URL without credentials, a query or a fragment.`,
     );
   }
 
@@ -50,12 +53,24 @@ export function resolveComfyTarget(env: Record<string, string | undefined>): Com
     url.origin !== cloud.origin ||
     stripTrailingSlashes(url.pathname) !== stripTrailingSlashes(cloud.pathname)
   ) {
-    return { apiKey, baseUrl, kind: "selfhost" };
+    if (apiKey) {
+      throw new Error(
+        `${API_KEY_ENV_VAR} selects Comfy Cloud and cannot be combined with a proxy ${BASE_URL_ENV_VAR}. Unset it and use ${PROXY_TOKEN_ENV_VAR} for proxy authentication.`,
+      );
+    }
+
+    return { apiKey: proxyToken, baseUrl, kind: "selfhost" };
+  }
+
+  if (proxyToken) {
+    throw new Error(
+      `${PROXY_TOKEN_ENV_VAR} requires a self-hosted ${BASE_URL_ENV_VAR}; it cannot be used with Comfy Cloud.`,
+    );
   }
 
   if (!apiKey) {
     throw new Error(
-      `${API_KEY_ENV_VAR} is not set. Comfy Cloud (${COMFY_CLOUD_BASE_URL}, used while ${BASE_URL_ENV_VAR} is unset) requires an API key; set ${BASE_URL_ENV_VAR} to a self-hosted comfy-api-proxy to use a deployment that does not.`,
+      `Set ${API_KEY_ENV_VAR} for Comfy Cloud, or ${BASE_URL_ENV_VAR} and ${PROXY_TOKEN_ENV_VAR} for a self-hosted comfy-api-proxy.`,
     );
   }
 

@@ -64,5 +64,8 @@ COPY --chmod=755 selfhost/entrypoint.sh ./selfhost/entrypoint.sh
 
 # Weights, ComfyUI's inputs/outputs and the proxy's job records go under /workspace, where Runpod
 # mounts the pod's volume (entrypoint.sh: MODELS_DIR, COMFYUI_DATA_DIR, PROXY_STATE_DIR).
+# The source label ties the GHCR package to the repository (visibility and the package page follow it).
+LABEL org.opencontainers.image.source="https://github.com/WojciechJelen/open-photon" \
+  org.opencontainers.image.description="Open Photon self-hosted Comfy target: ComfyUI behind comfy-api-proxy (API v2) on 8189"
 EXPOSE 8189
 ENTRYPOINT ["tini", "--", "/opt/open-photon/selfhost/entrypoint.sh"]

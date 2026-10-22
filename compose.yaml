@@ -1,15 +1,15 @@
 services:
   app:
-    build: .
-    platform: linux/amd64
+    image: ghcr.io/wojciechjelen/open-photon:0.1.0
     # The optional settings in `.env` (see `.env.example`) reach the app too.
     env_file:
       - path: .env
         required: false
     environment:
-      # Blank URL: Comfy Cloud, key required. A comfy-api-proxy URL: self-hosted, key optional.
+      # Cloud key OR proxy URL and token; never send a Cloud key to a proxy.
       COMFY_API_KEY: ${COMFY_API_KEY:-}
       COMFY_BASE_URL: ${COMFY_BASE_URL:-}
+      COMFY_PROXY_TOKEN: ${COMFY_PROXY_TOKEN:-}
     ports:
       - "127.0.0.1:3030:3000"
     volumes:

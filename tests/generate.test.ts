@@ -47,6 +47,10 @@ process.env.CLIENT_IP_HEADER = "X-Client";
 
 // Recipes record this server's target. A self-hosted dead port, as in the e2e tests: no key is
 // needed, and the doubles below stand in for Comfy, so nothing can reach it.
+process.env.COMFY_API_KEY = "";
+
+process.env.COMFY_PROXY_TOKEN = "";
+
 process.env.COMFY_BASE_URL = "http://127.0.0.1:1";
 
 const form = new FormData();

@@ -14,11 +14,11 @@ Quick start on Comfy Cloud:
 
 ```sh
 cp .env.example .env    # then set COMFY_API_KEY in .env
-docker compose up --build
+docker compose up -d
 docker compose exec app node scripts/mint-code.mjs me 20   # once it is up: an access code
 ```
 
-The app is then on <http://localhost:3030>. Full setup for Comfy Cloud and self-hosting (prerequisites, running without Docker, RunPod, every variable, troubleshooting): [SETUP.md](SETUP.md).
+The app is then on <http://localhost:3030>. Image-only setup for Comfy Cloud or Runpod: [SETUP.md](SETUP.md). Development and configuration: [deployment reference](docs/deployment.md).
 
 The app opens on the studio home, with Motion Transfer as its live tool (the others are marked Soon). Motion Transfer is a wizard at `/motionTransfer`, one decision per screen. Step 1 picks the motion: a grid of looping, muted sample clips, or an upload of your own (3–8 s; a longer clip opens a trim dialog). Step 2 picks the character: a sample, or a photo you upload, confirming the likeness consent under its preview. Step 3, optional, directs the shot (angle, look, seed), and Generate opens step 4, the render, at `/g/<id>`. The step and both picks are in the URL (`/motionTransfer?step=<motion|character|direct>&motion=<asset id>&character=<character id>`), so a reload, Back and Forward and a shared link keep them; a step whose picks are missing shows the furthest one it can reach, and an old `/?motion=…&character=…` link redirects to the wizard. There are no accounts, so an uploaded character is listed only while the URL names it. The workflow, its provenance and its input map are described in [src/features/motionTransfer/workflows/README.md](src/features/motionTransfer/workflows/README.md).
 
@@ -37,7 +37,7 @@ node scripts/check-open-weights.mjs tests/fixtures/partner-node.json  # must exi
 
 CI runs both checks and the negative-control tests. The forbidden patterns are in [scripts/forbidden-nodes.json](scripts/forbidden-nodes.json). With ComfyUI's `object_info` JSON available, pass `--definitions <file>` to also reject nodes marked `api_node: true`. Unknown node names without definitions are checked against the patterns; the gate does not audit arbitrary custom-node Python code.
 
-To render on your own GPU instead of Comfy Cloud, run the [`selfhost/`](selfhost/) image on a RunPod pod or any GPU host and point the app at it: [SETUP.md](SETUP.md). The self-hosted proof (set up by hand on RunPod, as in the [docs/selfhost.md](docs/selfhost.md) appendix):
+To render on your own GPU instead of Comfy Cloud, run the published GPU image on a Runpod pod or a compatible GPU host and point the app at it: [SETUP.md](SETUP.md). The self-hosted proof (set up by hand on RunPod, as in the [docs/selfhost.md](docs/selfhost.md) appendix):
 
 | GPU | Workflow variant | Resolution | Clip seconds | Peak VRAM MiB | Submission to done seconds | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |

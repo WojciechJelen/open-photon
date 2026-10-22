@@ -4,11 +4,11 @@ Reference for the GPU side of a self-hosted Open Photon: the [`selfhost/`](../se
 
 ## Deploy
 
-Deploying it (RunPod walkthrough, any other GPU host), the app's variables, sizing and troubleshooting: [SETUP.md](../SETUP.md).
+Deploying it (RunPod walkthrough, any other GPU host), the app's variables, sizing and troubleshooting: [deployment reference](deployment.md).
 
 ## Image settings
 
-The image's variables, defaults and RunPod template values: [SETUP.md, "Self-host image"](../SETUP.md#self-host-image).
+The image's variables, defaults and RunPod template values: [Deployment reference, "Self-host image"](deployment.md#self-host-image).
 
 At start, `selfhost/entrypoint.sh` runs, in order:
 
@@ -21,7 +21,7 @@ ComfyUI listens on loopback port 8188 only; port 8189 is the only one the templa
 
 ## Known risks
 
-- **RunPod's HTTP proxy closes slow connections** ([RunPod's port documentation](https://docs.runpod.io/pods/configuration/expose-ports)); what that does to a render: [SETUP.md, Troubleshooting](../SETUP.md#runpods-proxy-cuts-streams-after-100-s). The alternative is to expose 8189 as a TCP port on a pod with a public IP (`http://<ip>:<external port>`); that connection is plain HTTP, so the bearer token travels unencrypted.
+- **RunPod's HTTP proxy closes slow connections** ([RunPod's port documentation](https://docs.runpod.io/pods/configuration/expose-ports)); what that does to a render: [Deployment reference, Troubleshooting](deployment.md#runpods-proxy-cuts-streams-after-100-s). The alternative is to expose 8189 as a TCP port on a pod with a public IP (`http://<ip>:<external port>`); that connection is plain HTTP, so the bearer token travels unencrypted.
 - **Self-hosted recipes dedupe across hosts.** A recipe's hash includes its `target` (`selfhost`) but not the host, so two self-hosted pods with the same pinned weights reuse each other's results. That is intended: the workflow and the weights are pinned, so the recipe is the same.
 - **32 GB is close to the measured peak** (the proof row in [README](../README.md#open-weights-checks-and-self-hosting)). A smaller GPU, or a larger resolution than 480×848, may run out of VRAM.
 
@@ -60,7 +60,7 @@ The image automates these steps; they are how the 2026-10-21 proof was set up by
 
 ### Pod requirements
 
-- One NVIDIA GPU sized as in [SETUP.md, "Sizing"](../SETUP.md#sizing), with no other workload running. The proof used one GeForce RTX 5090 on official template `wgd3p4n4o6`, image `runpod/comfyui:1.3.3-comfyuiv0.30.0-cuda13.0`, with a 150 GB container disk and 100 GB persistent volume. Its bundled ComfyUI 0.30.0 lacks the required Wan Animate 2 and loop nodes; update it before generating. ComfyUI core must include `WanAnimate2ToVideo`, `WanAnimate2Cache`, and the loop nodes in the workflow. The preflight below checks all required node classes.
+- One NVIDIA GPU sized as in [Deployment reference, "Sizing"](deployment.md#sizing), with no other workload running. The proof used one GeForce RTX 5090 on official template `wgd3p4n4o6`, image `runpod/comfyui:1.3.3-comfyuiv0.30.0-cuda13.0`, with a 150 GB container disk and 100 GB persistent volume. Its bundled ComfyUI 0.30.0 lacks the required Wan Animate 2 and loop nodes; update it before generating. ComfyUI core must include `WanAnimate2ToVideo`, `WanAnimate2Cache`, and the loop nodes in the workflow. The preflight below checks all required node classes.
 - At least 80 GB persistent disk for ComfyUI, its environment, approximately 26 GB of weights and outputs. Use 100 GB if the fused distilled or non-LoRA base variants will also be measured.
 - Node 24+ for the repository scripts and Python 3.10+ for `comfy-api-proxy`.
 
@@ -95,7 +95,7 @@ git checkout --detach 7a28332047b6af638dc6c7f72ef3481a718769fd
 
 Stop the template's existing `main.py` process before starting the updated core with `.venv-cu128/bin/python main.py --listen 127.0.0.1 --port 8188`. The template keeps SSH alive when ComfyUI exits. Install Node 24 outside `/workspace` (for example `/opt/open-photon-node`); this template's persistent filesystem rejects archive ownership changes, so extract it with `tar --no-same-owner`.
 
-Start ComfyUI on loopback port 8188. The proxy refuses to bind `0.0.0.0` without a token, so in the shell that will run it set `export PROXY_TOKEN="$(openssl rand -hex 32)"` first and keep the value for the app's `COMFY_API_KEY` (never paste it into logs or evidence). Then run from this repository on the GPU host:
+Start ComfyUI on loopback port 8188. The proxy refuses to bind `0.0.0.0` without a token, so in the shell that will run it set `export PROXY_TOKEN="$(openssl rand -hex 32)"` first and keep the value for the app's `COMFY_PROXY_TOKEN` (never paste it into logs or evidence). Then run from this repository on the GPU host:
 
 ```sh
 mkdir -p work
@@ -110,7 +110,7 @@ python3 -m venv /opt/open-photon-proxy
   --max-upload-mb 128 --state-dir /workspace/open-photon-proxy-state
 ```
 
-Keep the proxy process running. The persistent state directory preserves the proxy's job and idempotency records. If ComfyUI lacks node classes, update it and restart before submitting. The graph uses ComfyUI core nodes; adding a paid partner node is not a workaround. The [proxy documentation](https://github.com/Comfy-Org/comfy-api-proxy#cli-reference) describes its flags. Expose port 8189, then point the app at it as in [SETUP.md](../SETUP.md) (set the two variables, `npm run check:comfy`).
+Keep the proxy process running. The persistent state directory preserves the proxy's job and idempotency records. If ComfyUI lacks node classes, update it and restart before submitting. The graph uses ComfyUI core nodes; adding a paid partner node is not a workaround. The [proxy documentation](https://github.com/Comfy-Org/comfy-api-proxy#cli-reference) describes its flags. Expose port 8189, then point the app at it as in [deployment reference](deployment.md) (set the two variables, `npm run check:comfy`).
 
 ### Loopback alternative: an SSH tunnel
 
@@ -120,7 +120,7 @@ The proof kept the proxy on loopback and reached it through an SSH tunnel, so no
 ssh -N -L 127.0.0.1:8189:127.0.0.1:8189 -p <ssh-port> root@<pod-host>
 ```
 
-A native `npm run dev` then uses `COMFY_BASE_URL=http://127.0.0.1:8189` and a blank `COMFY_API_KEY`. The Compose app reaches the tunnel at `COMFY_BASE_URL=http://host.docker.internal:8189` from Docker Desktop; Colima may require `host.lima.internal` instead.
+A native `npm run dev` then uses `COMFY_BASE_URL=http://127.0.0.1:8189` and a blank `COMFY_PROXY_TOKEN`. The Compose app reaches the tunnel at `COMFY_BASE_URL=http://host.docker.internal:8189` from Docker Desktop; Colima may require `host.lima.internal` instead.
 
 ## Model provenance
 
