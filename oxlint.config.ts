@@ -53,14 +53,15 @@ export default defineConfig({
   },
   overrides: [
     {
-      // .mjs verification scripts run on Node with its globals.
+      // .mjs verification scripts run on Node with its globals, as do the tests.
       env: { node: true },
-      files: ["scripts/**", "tests/**"],
+      files: ["scripts/**", "tests/**", "src/**/*.test.ts", "src/features/*/tests/**"],
     },
     {
       // Asserting on raw response shapes is what these tests exist to do, and
-      // node:test owns the promise returned by each `test()` call.
-      files: ["tests/**"],
+      // node:test owns the promise returned by each `test()` call. Feature-local tests
+      // (`src/**/*.test.ts`, `src/features/*/tests/`) follow the same rules.
+      files: ["tests/**", "src/**/*.test.ts", "src/features/*/tests/**"],
       rules: {
         "anti-slop/no-runtime-typeof": "off",
         "typescript/no-floating-promises": "off",

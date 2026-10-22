@@ -19,16 +19,15 @@ process.env.E2E_DATABASE_PATH ??= join(
   "app.sqlite",
 );
 
+const signedIn = { dependencies: ["sign-in"], use: { storageState: storageStatePath() } };
+
 export default defineConfig({
   fullyParallel: false,
   projects: [
     { name: "sign-in", testMatch: "e2e/sign-in.setup.ts" },
-    {
-      dependencies: ["sign-in"],
-      name: "chromium",
-      testMatch: "**/*.spec.ts",
-      use: { storageState: storageStatePath() },
-    },
+    { ...signedIn, name: "chromium", testMatch: "**/*.spec.ts" },
+    // Each feature's own browser tests, under `src/features/<feature>/tests/`.
+    { ...signedIn, name: "features", testDir: "./src/features", testMatch: "*/tests/*.spec.ts" },
   ],
   testDir: "./tests",
   timeout: 60_000,
