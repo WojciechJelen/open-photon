@@ -109,32 +109,48 @@ test("a favorite keeps the time it was first marked until it is unmarked; sample
   assertRefused(() => setFavorite(crypto.randomUUID(), true), 404, "not_found");
 });
 
-test("the library lists the workspace's characters, favorites first, then the newest; samples only on request, last", async () => {
+test("the library lists the workspace's characters, the newest first, a favorite too; samples only on request", async () => {
   const older = await uploadedCharacter("Older");
   const newer = await generatedCharacter("A newer one");
   const favorite = await uploadedCharacter("Favorite");
 
-  setFavorite(favorite.id, true);
+  // Apart by a second each, whatever the clock's resolution.
+  for (const [index, { id }] of [older, newer, favorite].entries()) {
+    database
+      .prepare("UPDATE characters SET created_at = ? WHERE id = ?")
+      .run(`2099-01-01T00:00:0${index}.000Z`, id);
+  }
+
+  setFavorite(older.id, true);
 
   const library = listCharacters({ includeSamples: false }).map(({ id }) => id);
 
   assert.ok(listCharacters({ includeSamples: false }).every(({ is_sample }) => !is_sample));
-  assert.equal(library[0], favorite.id);
-  assert.ok(library.indexOf(newer.id) < library.indexOf(older.id));
-
-  const all = listCharacters({ includeSamples: true });
-  const samples = all.filter(({ is_sample }) => is_sample);
-
+  assert.deepEqual(library.slice(0, 3), [favorite.id, newer.id, older.id]);
   assert.deepEqual(
-    all.map(({ id }) => id),
-    [...library, ...samples.map(({ id }) => id)],
+    listCharacters({ favorites: true, includeSamples: false }).map(({ id }) => id),
+    [older.id],
   );
   assert.deepEqual(
-    samples.map(({ title }) => title),
+    listCharacters({ includeSamples: false, query: "NEWER" }).map(({ id }) => id),
+    [newer.id],
+  );
+
+  const all = listCharacters({ includeSamples: true });
+
+  assert.deepEqual(
+    all.filter(({ is_sample }) => !is_sample).map(({ id }) => id),
+    library,
+  );
+  assert.deepEqual(
+    all
+      .filter(({ is_sample }) => is_sample)
+      .map(({ title }) => title)
+      .sort(),
     ["Placeholder blue", "Placeholder green", "Placeholder orange"],
   );
 
-  setFavorite(favorite.id, false);
+  setFavorite(older.id, false);
 });
 
 test("without a session, a page shows a sample or a shared generation's character, never an uploaded likeness", async () => {

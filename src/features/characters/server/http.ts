@@ -5,14 +5,40 @@ import { readJsonBody } from "../../../shared/server/access.server.ts";
 import { storeAsset } from "../../../shared/server/assets.ts";
 import { classifyImage, probe } from "../../../shared/server/media/probe.ts";
 import { handleUpload, UploadError } from "../../../shared/server/upload.server.ts";
-import { characterPatchSchema } from "../contracts.ts";
+import {
+  type CharacterList,
+  characterListQuerySchema,
+  characterPatchSchema,
+} from "../contracts.ts";
 import {
   CharacterError,
   createFromUpload,
   getCharacter,
+  listCharacters,
   renameCharacter,
   setFavorite,
 } from "./repository.ts";
+
+/**
+ * `GET /api/characters`; the contract is documented on `characterListQuerySchema` (the access
+ * guard answers 401 `access_required` without a session). The list is `listCharacters`'.
+ */
+export function listLibrary(request: Request) {
+  const query = characterListQuerySchema.safeParse(
+    Object.fromEntries(new URL(request.url).searchParams),
+  );
+
+  if (!query.success) {
+    return Response.json({ error: z.prettifyError(query.error) }, { status: 400 });
+  }
+
+  const { favorites, q, samples } = query.data;
+  const list: CharacterList = {
+    characters: listCharacters({ favorites, includeSamples: samples, query: q }),
+  };
+
+  return Response.json(list, { headers: { "Cache-Control": "private, no-store" } });
+}
 
 /** `POST /api/characters`; the contract is documented on `characterSchema`. */
 export function uploadCharacter(request: ServerRequest) {

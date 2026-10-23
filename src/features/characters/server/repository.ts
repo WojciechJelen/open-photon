@@ -70,18 +70,35 @@ export function getCharacter(id: string) {
 }
 
 /**
- * The workspace library: every character that is not a sample, favorites first (most recently
- * marked first), then the newest; with `includeSamples`, the samples follow, favorites first too,
- * then by title. Characters whose image is not stored are left out.
+ * The workspace library, most recent first (`created_at`, then `id`, both descending): every
+ * character that is not a sample and, with `includeSamples`, the samples too. `favorites` keeps
+ * only the favorites; `query` (case-insensitive) only the characters whose title or prompt
+ * contains it. Characters whose image is not stored are left out.
  */
-export function listCharacters({ includeSamples }: { includeSamples: boolean }) {
+export function listCharacters({
+  favorites = false,
+  includeSamples,
+  query = "",
+}: {
+  favorites?: boolean;
+  includeSamples: boolean;
+  query?: string;
+}) {
+  const needle = query.toLocaleLowerCase();
+
   return database
     .prepare(
-      `SELECT * FROM characters WHERE is_sample = 0 OR ?
-      ORDER BY is_sample, favorite_at IS NULL, favorite_at DESC,
-        CASE WHEN is_sample = 1 THEN title END, created_at DESC, rowid DESC`,
+      `SELECT * FROM characters WHERE (is_sample = 0 OR ?) AND (favorite_at IS NOT NULL OR NOT ?)
+      ORDER BY created_at DESC, id DESC`,
     )
-    .all(Number(includeSamples))
+    .all(Number(includeSamples), Number(favorites))
+    .filter(
+      ({ prompt, title }) =>
+        needle === "" ||
+        [title, prompt].some(
+          (text) => typeof text === "string" && text.toLocaleLowerCase().includes(needle),
+        ),
+    )
     .flatMap((row) => summarize(row) ?? []);
 }
 
