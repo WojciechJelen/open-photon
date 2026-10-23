@@ -49,9 +49,9 @@ export function byteRange(header: string, size: number) {
  * `If-None-Match` gets 304. Only what anyone may see (samples and what a share page shows,
  * `isPublicAsset`) may sit in shared caches (`public`); everything else is behind the access code
  * (`private`). `?download=1` asks the browser to save it, as `ai-generated-<first 8 of the
- * id>.<ext>` for what a workflow produced (an output, or the poster cut from one: everything this
- * app generates is AI-generated, which the FLUX Kommunity licence asks to disclose) and as
- * `open-photon-<first 8 of the id>.<ext>` for anything else (an upload, a cut of one, a sample).
+ * id>.<ext>` for an image a workflow produced (the FLUX Kommunity licence asks that AI-generated
+ * images be disclosed as such) and as `open-photon-<first 8 of the id>.<ext>` for anything else
+ * (a Motion Transfer video and its poster, an upload, a cut of one, a sample).
  */
 export async function serveMedia(request: Request, filename: string) {
   const match = /^([0-9a-f-]{36})\.([a-z0-9]+)$/.exec(filename);
@@ -92,11 +92,11 @@ export async function serveMedia(request: Request, filename: string) {
   headers.set("Content-Type", asset.mime);
 
   if (new URL(request.url).searchParams.get("download") === "1") {
-    const generated = ["provider_output", "poster", "final"].includes(asset.role);
+    const generatedImage = asset.kind === "image" && asset.role === "provider_output";
 
     headers.set(
       "Content-Disposition",
-      `attachment; filename="${generated ? "ai-generated" : "open-photon"}-${asset.id.slice(0, 8)}.${match?.[2]}"`,
+      `attachment; filename="${generatedImage ? "ai-generated" : "open-photon"}-${asset.id.slice(0, 8)}.${match?.[2]}"`,
     );
   }
 

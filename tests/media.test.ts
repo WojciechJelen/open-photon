@@ -163,7 +163,7 @@ test("?download=1 serves the file as an attachment with a file name, and only th
   await inline.body?.cancel();
 });
 
-test("a generated file downloads as ai-generated-<id>, an upload as open-photon-<id>", async () => {
+test("a generated image downloads as ai-generated-<id>; a generated video and an upload as open-photon-<id>", async () => {
   const temporary = await incomingPath();
   await copyFile("tests/fixtures/fake-output.png", temporary);
 
@@ -183,6 +183,23 @@ test("a generated file downloads as ai-generated-<id>, an upload as open-photon-
   });
 
   const upload = await storeVideo();
+  const video = await incomingPath();
+  await copyFile("tests/fixtures/fake-output.mp4", video);
+
+  const { asset: take } = await storeAsset(video, {
+    bytes: (await stat(video)).size,
+    duration_ms: null,
+    ext: "mp4",
+    fps: null,
+    has_audio: null,
+    height: null,
+    kind: "video",
+    mime: "video/mp4",
+    role: "provider_output",
+    sha256: await hashFile(video),
+    source_asset_id: null,
+    width: null,
+  });
 
   const disposition = async (filename: string) => {
     const answer = await serveMedia(
@@ -202,5 +219,9 @@ test("a generated file downloads as ai-generated-<id>, an upload as open-photon-
   assert.equal(
     await disposition(`${upload.id}.mp4`),
     `attachment; filename="open-photon-${upload.id.slice(0, 8)}.mp4"`,
+  );
+  assert.equal(
+    await disposition(`${take.id}.mp4`),
+    `attachment; filename="open-photon-${take.id.slice(0, 8)}.mp4"`,
   );
 });
