@@ -28,7 +28,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Studio() {
-  const { characters, motions, sampleTake } = Route.useLoaderData();
+  const { characters, motions, sampleTake, wall } = Route.useLoaderData();
 
   return (
     <div className="relative isolate">
@@ -40,7 +40,7 @@ function Studio() {
         <GithubButton label="Star on GitHub" />
       </SiteHeader>
       <main>
-        <StudioHero characters={characters} motions={motions} take={sampleTake} />
+        <StudioHero characters={characters} motions={motions} wall={wall} />
         <StudioTools characters={characters} motions={motions} take={sampleTake} />
         <BuiltOpen />
       </main>

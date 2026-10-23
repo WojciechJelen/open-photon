@@ -10,7 +10,7 @@ import { findGeneration } from "./generations.ts";
 import { generateDefaults } from "./presets.ts";
 import { isPublicAsset } from "./public-access.ts";
 import type { Recipe } from "./recipe.ts";
-import { findSampleTake, findSampleTakeId, publicAsset } from "./shot.ts";
+import { findSampleTake, findSampleTakeId, listPrerenderedTakes, publicAsset } from "./shot.ts";
 
 const motionRowSchema = z.object({
   attribution: z.string(),
@@ -136,13 +136,15 @@ export function readSelection(
 }
 
 /**
- * What the studio home `/` shows: the sample motions and characters, and the pre-rendered sample
- * take (`findSampleTake`) when there is one. Public, like the samples and the take.
+ * What the studio home `/` shows: the sample motions and characters, the pre-rendered sample
+ * take (`findSampleTake`) when there is one, and every pre-rendered take for the result wall
+ * (`listPrerenderedTakes`). Public, like the samples and the takes.
  */
 export function readStudio() {
   return {
     characters: listSampleCharacters(),
     motions: listSampleMotions(),
     sampleTake: findSampleTake(),
+    wall: listPrerenderedTakes(),
   };
 }
