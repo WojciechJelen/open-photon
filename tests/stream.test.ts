@@ -6,19 +6,20 @@ import test from "node:test";
 
 import { z } from "zod";
 
-import { generationEventSchema } from "../src/features/motionTransfer/contracts.ts";
-import {
-  streamDiagnostics,
-  streamGeneration,
-} from "../src/features/motionTransfer/server/generation-stream.ts";
+import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
+import { motionTransferDefinition } from "../src/features/motionTransfer/workflows/definition.ts";
+import { generationEventSchema } from "../src/shared/contracts.ts";
+import type { Provider, ProviderJob } from "../src/shared/server/comfy-provider.ts";
 import {
   createGeneration,
   findGeneration,
   markQueued,
   transition,
-} from "../src/features/motionTransfer/server/generations.ts";
-import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
-import type { Provider, ProviderJob } from "../src/shared/server/comfy-provider.ts";
+} from "../src/shared/server/generation/generations.ts";
+import { streamDiagnostics, streamGeneration } from "../src/shared/server/generation/stream.ts";
+
+// The rows here are Motion Transfer's, on Comfy Cloud.
+const cloud = { kind: "cloud", origin: null } as const;
 
 let seed = 0;
 
@@ -33,7 +34,10 @@ function queued() {
     workflow: { id: "motion-transfer", sha256: "c".repeat(64), version: 1 },
   };
 
-  return markQueued(createGeneration({ recipe }).id, randomUUID());
+  return markQueued(
+    createGeneration(motionTransferDefinition, { recipe, target: cloud }).id,
+    randomUUID(),
+  );
 }
 
 /** A provider whose job stays subscribed until the stream aborts it; records that subscription. */

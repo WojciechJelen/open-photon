@@ -90,3 +90,18 @@ export function comfyTarget() {
 
   return target;
 }
+
+/**
+ * The non-secret identity of the endpoint a generation runs on, as `generations.target` and
+ * `target_origin` record it: Cloud (`origin` null: there is one), or a self-hosted proxy by the
+ * origin of its `COMFY_BASE_URL` (scheme, host and port; never a key or token). Only the endpoint
+ * a job was submitted to knows it, so a server whose target changed must not ask another one.
+ */
+export type ProviderTarget = { kind: ComfyTarget["kind"]; origin: string | null };
+
+/** This server's `ProviderTarget`, from `comfyTarget()`. */
+export function providerTarget(): ProviderTarget {
+  const { baseUrl, kind } = comfyTarget();
+
+  return { kind, origin: kind === "selfhost" ? new URL(baseUrl).origin : null };
+}

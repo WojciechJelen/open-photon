@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { generationIdParam } from "#/features/motionTransfer/server/generate";
-import { findGeneration } from "#/features/motionTransfer/server/generations";
+import { findGeneration } from "#/shared/server/generation/generations";
+import { generationIdParam } from "#/shared/server/generation/http";
 
 /** The generation's stored recipe (`recipeSchema`): what made it, and what a re-run submits again. */
 export const Route = createFileRoute("/api/generations/$generationId/recipe.json")({

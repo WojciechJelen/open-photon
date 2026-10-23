@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import { generationSchema } from "../src/features/motionTransfer/contracts.ts";
+import { generationSchema } from "../src/shared/contracts.ts";
 import {
   addQueuedGeneration,
   count,

@@ -10,7 +10,7 @@ import {
   motionTransferModels,
   motionTransferWorkflow,
 } from "../../src/features/motionTransfer/workflows/registry.ts";
-import { comfyTarget } from "../../src/shared/server/comfy-target.ts";
+import { comfyTarget, providerTarget } from "../../src/shared/server/comfy-target.ts";
 import { probe } from "../../src/shared/server/media/probe.ts";
 import { accessCodePath, QUEUED_JOB_ID, SEEDED_JOB_ID } from "./session.ts";
 
@@ -29,7 +29,10 @@ seedDatabase();
 const { hashFile, incomingPath, storeAsset } = await import("../../src/shared/server/assets.ts");
 
 const { createGeneration, markQueued, transition } =
-  await import("../../src/features/motionTransfer/server/generations.ts");
+  await import("../../src/shared/server/generation/generations.ts");
+
+const { motionTransferDefinition } =
+  await import("../../src/features/motionTransfer/workflows/definition.ts");
 
 const { readSelection } = await import("../../src/features/motionTransfer/server/selection.ts");
 
@@ -92,7 +95,7 @@ const poster = await storeFixture("tests/fixtures/result-poster.jpg", {
  * the server renders on (its `COMFY_BASE_URL`), so re-running its recipe finds it.
  */
 const seedGeneration = (seed: number, providerJobId: string) => {
-  const { id } = createGeneration({
+  const { id } = createGeneration(motionTransferDefinition, {
     characterId: character.id,
     recipe: {
       inputs: { driving_video_sha256: clip.sha256, reference_image_sha256: character.image.sha256 },
@@ -101,6 +104,7 @@ const seedGeneration = (seed: number, providerJobId: string) => {
       target: comfyTarget().kind,
       workflow: { id: "motion-transfer", sha256: motionTransferWorkflow.sha256, version: 1 },
     },
+    target: providerTarget(),
   });
 
   markQueued(id, providerJobId);
@@ -112,10 +116,7 @@ const done = seedGeneration(1, SEEDED_JOB_ID);
 
 transition(done, "queued", "finalizing");
 
-transition(done, "finalizing", "done", {
-  final_asset_id: video.id,
-  poster_asset_id: poster.id,
-});
+transition(done, "finalizing", "done", { outputs: { poster: poster.id, video: video.id } });
 
 // One generation still `queued`, for a page that follows its event stream. Comfy at the dead
 // port never moves it on.

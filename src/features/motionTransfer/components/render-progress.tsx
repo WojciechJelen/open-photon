@@ -2,9 +2,9 @@ import { cn } from "cn";
 import { CheckIcon, ShieldCheckIcon, TriangleAlertIcon } from "lucide-react";
 
 import { Progress } from "#/components/ui/progress";
-import type { GenerationSnapshot } from "#/features/motionTransfer/contracts";
 import { Hud } from "#/shared/components/brand";
 import { CopyField } from "#/shared/components/copy-field";
+import type { GenerationSnapshot } from "#/shared/contracts";
 
 const stages = [
   {

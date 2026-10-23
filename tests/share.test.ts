@@ -7,17 +7,21 @@ import test from "node:test";
 import { isPublicRequest } from "../src/app/server.ts";
 import { listSampleCharacters } from "../src/features/motionTransfer/server/characters.server.ts";
 import { readResult } from "../src/features/motionTransfer/server/generate.ts";
+import { readShare } from "../src/features/motionTransfer/server/share.ts";
+import { motionTransferDefinition } from "../src/features/motionTransfer/workflows/definition.ts";
+import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
+import { hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
+import { database } from "../src/shared/server/db.server.ts";
 import {
   createGeneration,
   findGeneration,
   markQueued,
   transition,
-} from "../src/features/motionTransfer/server/generations.ts";
-import { readShare } from "../src/features/motionTransfer/server/share.ts";
-import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
-import { hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
-import { database } from "../src/shared/server/db.server.ts";
+} from "../src/shared/server/generation/generations.ts";
 import { workflowModelFiles } from "../src/shared/server/models-lock.ts";
+
+// The rows here are Motion Transfer's, on Comfy Cloud.
+const cloud = { kind: "cloud", origin: null } as const;
 
 /** Stores a committed file as an asset of `kind`. */
 async function store(file: string, kind: "image" | "poster" | "video") {
@@ -50,7 +54,7 @@ const poster = await store("tests/fixtures/result-poster.jpg", "poster");
 
 /** A queued generation of `drivingVideo` and the character image, as `generate` records one. */
 function queued(drivingVideo: { sha256: string }, seed: number) {
-  const { id } = createGeneration({
+  const { id } = createGeneration(motionTransferDefinition, {
     recipe: {
       inputs: {
         driving_video_sha256: drivingVideo.sha256,
@@ -61,6 +65,7 @@ function queued(drivingVideo: { sha256: string }, seed: number) {
       target: "cloud",
       workflow: { id: "motion-transfer", sha256: motionTransferWorkflow.sha256, version: 1 },
     },
+    target: cloud,
   });
 
   return markQueued(id, `job-${id}`);
@@ -71,10 +76,7 @@ function done(seed: number) {
   const { id } = queued(source, seed);
   transition(id, "queued", "finalizing");
 
-  return transition(id, "finalizing", "done", {
-    final_asset_id: result.id,
-    poster_asset_id: poster.id,
-  });
+  return transition(id, "finalizing", "done", { outputs: { poster: poster.id, video: result.id } });
 }
 
 test("a generation gets an unguessable share slug when it becomes done, and only then", () => {
@@ -83,7 +85,7 @@ test("a generation gets an unguessable share slug when it becomes done, and only
   assert.equal(findGeneration(id)?.share_slug, null);
   assert.equal(transition(id, "queued", "finalizing").share_slug, null);
 
-  const first = transition(id, "finalizing", "done", { final_asset_id: result.id }).share_slug;
+  const first = transition(id, "finalizing", "done", { outputs: { video: result.id } }).share_slug;
   const second = done(2).share_slug;
 
   assert.match(first ?? "", /^[0-9a-f]{16}$/);
@@ -154,7 +156,7 @@ test("a share page names a sample character, with its public image, and never an
     [sample.id, sample.title],
     [String(upload.id), null],
   ] as const) {
-    const { id } = createGeneration({
+    const { id } = createGeneration(motionTransferDefinition, {
       characterId,
       recipe: {
         inputs: {
@@ -166,12 +168,13 @@ test("a share page names a sample character, with its public image, and never an
         target: "cloud",
         workflow: { id: "motion-transfer", sha256: motionTransferWorkflow.sha256, version: 1 },
       },
+      target: cloud,
     });
 
     markQueued(id, `job-${id}`);
     transition(id, "queued", "finalizing");
 
-    const slug = transition(id, "finalizing", "done", { final_asset_id: result.id }).share_slug;
+    const slug = transition(id, "finalizing", "done", { outputs: { video: result.id } }).share_slug;
 
     assert.equal(
       readShare(slug ?? "", "https://photon.example")?.character?.title ?? null,
@@ -182,7 +185,7 @@ test("a share page names a sample character, with its public image, and never an
 
 /** A done, shared generation of `source` by `characterId`; returns its id and share slug. */
 function doneBy(characterId: string, seed: number) {
-  const { id } = createGeneration({
+  const { id } = createGeneration(motionTransferDefinition, {
     characterId,
     recipe: {
       inputs: {
@@ -194,14 +197,14 @@ function doneBy(characterId: string, seed: number) {
       target: "cloud",
       workflow: { id: "motion-transfer", sha256: motionTransferWorkflow.sha256, version: 1 },
     },
+    target: cloud,
   });
 
   markQueued(id, `job-${id}`);
   transition(id, "queued", "finalizing");
 
   const { share_slug } = transition(id, "finalizing", "done", {
-    final_asset_id: result.id,
-    poster_asset_id: poster.id,
+    outputs: { poster: poster.id, video: result.id },
   });
 
   return { id, slug: share_slug ?? "" };

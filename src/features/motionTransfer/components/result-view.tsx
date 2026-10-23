@@ -17,12 +17,13 @@ import {
 import { RecipePanel } from "#/features/motionTransfer/components/recipe-panel";
 import type { ChildState } from "#/features/motionTransfer/components/render-ended";
 import { ShareLink } from "#/features/motionTransfer/components/share-link";
-import type { GenerationSnapshot, PickableCharacter } from "#/features/motionTransfer/contracts";
+import type { PickableCharacter } from "#/features/motionTransfer/contracts";
 import type { Recipe } from "#/features/motionTransfer/server/recipe";
 import type { WizardSearch } from "#/features/motionTransfer/wizard";
 import { Hud } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
 import { OpenWeightsBadge } from "#/shared/components/site";
+import type { GenerationSnapshot } from "#/shared/contracts";
 import type { Asset } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { retry, startChild } from "#/features/motionTransfer/server/generate";
+import { startChild } from "#/shared/server/generation/http";
+import { retry } from "#/shared/server/generation/service";
 
 export const Route = createFileRoute("/api/generations/$generationId/retry")({
   server: {

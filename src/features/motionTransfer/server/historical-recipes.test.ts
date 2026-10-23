@@ -1,3 +1,5 @@
+// The definition's module opens the database: this test gets its own, outside `data/`.
+import "../../../../tests/temp-database.ts";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -5,7 +7,7 @@ import test from "node:test";
 import { z } from "zod";
 
 import { recipeHash } from "../../../shared/server/generation/recipe-hash.ts";
-import { recipeSchema } from "./recipe.ts";
+import { motionTransferDefinition } from "../workflows/definition.ts";
 
 /**
  * Recipes as `generations.recipe` stores them, with the `recipe_hash` stored beside them: real rows
@@ -28,6 +30,8 @@ test("every historical recipe shape still decodes and hashes to its recorded rec
   assert.ok(fixtures.length >= 4);
 
   for (const { recipe, recipe_hash, source } of fixtures) {
-    assert.equal(recipeHash(recipeSchema.parse(JSON.parse(recipe))), recipe_hash, source);
+    const decoded = motionTransferDefinition.recipeSchema.parse(JSON.parse(recipe));
+
+    assert.equal(recipeHash(decoded), recipe_hash, source);
   }
 });

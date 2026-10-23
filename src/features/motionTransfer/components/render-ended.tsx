@@ -2,8 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { CircleAlertIcon, RotateCwIcon } from "lucide-react";
 
 import { Button } from "#/components/ui/button";
-import type { GenerationSnapshot } from "#/features/motionTransfer/contracts";
 import type { WizardSearch } from "#/features/motionTransfer/wizard";
+import type { GenerationSnapshot } from "#/shared/contracts";
 
 type ErrorCode = NonNullable<GenerationSnapshot["error_code"]>;
 

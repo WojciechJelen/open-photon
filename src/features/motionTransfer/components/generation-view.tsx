@@ -16,15 +16,16 @@ import {
 } from "#/features/motionTransfer/components/render-ended";
 import { RenderProgress, stageTitle } from "#/features/motionTransfer/components/render-progress";
 import { ResultView } from "#/features/motionTransfer/components/result-view";
-import {
-  generationEventSchema,
-  type GenerationSnapshot,
-} from "#/features/motionTransfer/contracts";
 import { loadResult } from "#/features/motionTransfer/generate.functions";
 import type { WizardSearch } from "#/features/motionTransfer/wizard";
 import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
 import { Hud, PageGlow, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
+import {
+  generationEventSchema,
+  generationReceiptSchema,
+  type GenerationSnapshot,
+} from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 import { callApi } from "#/shared/requests";
 import { duration } from "#/shared/timecode";
@@ -254,7 +255,7 @@ export function GenerationView({ data }: { data: Result }) {
     setChild({ action, state: "running" });
 
     const answer = await callApi(
-      z.object({ id: z.uuid() }),
+      generationReceiptSchema,
       `/api/generations/${generation.id}/${action}`,
       { method: "POST" },
     );

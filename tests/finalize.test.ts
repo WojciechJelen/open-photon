@@ -5,20 +5,24 @@ import { copyFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
 
-import { finalize } from "../src/features/motionTransfer/server/finalize.ts";
+import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
+import { motionTransferDefinition } from "../src/features/motionTransfer/workflows/definition.ts";
+import { findAsset, hashFile } from "../src/shared/server/assets.ts";
+import type { Provider, ProviderJob, ProviderOutput } from "../src/shared/server/comfy-provider.ts";
+import { database } from "../src/shared/server/db.server.ts";
+import { finalize } from "../src/shared/server/generation/finalize.ts";
 import {
   countInFlight,
   createGeneration,
   findGeneration,
   markQueued,
   transition,
-} from "../src/features/motionTransfer/server/generations.ts";
-import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
-import { findAsset, hashFile } from "../src/shared/server/assets.ts";
-import type { Provider, ProviderJob, ProviderOutput } from "../src/shared/server/comfy-provider.ts";
-import { database } from "../src/shared/server/db.server.ts";
+} from "../src/shared/server/generation/generations.ts";
 import { runTool } from "../src/shared/server/media/probe.ts";
 import { assetsDirectory } from "../src/shared/server/paths.ts";
+
+// The rows here are Motion Transfer's, on Comfy Cloud.
+const cloud = { kind: "cloud", origin: null } as const;
 
 let seed = 0;
 
@@ -33,7 +37,10 @@ function running() {
     workflow: { id: "motion-transfer", sha256: "c".repeat(64), version: 1 },
   };
 
-  const { id } = markQueued(createGeneration({ recipe }).id, randomUUID());
+  const { id } = markQueued(
+    createGeneration(motionTransferDefinition, { recipe, target: cloud }).id,
+    randomUUID(),
+  );
 
   return transition(id, "queued", "running");
 }
