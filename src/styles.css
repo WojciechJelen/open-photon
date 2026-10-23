@@ -201,17 +201,17 @@
 }
 
 /* The compare player's frames fit the viewport with the transport under them: a portrait frame is
-   at most the viewport's height less the page's header, heading row and transport (`--stage-chrome`,
-   taller on a phone, where the heading and the view toggle stack), so at most 9/16 of that wide
-   (and never over 28.75rem, alone in the swipe view); a side-by-side pair, twice that and the gap
-   between them. */
+   at most the viewport's height less the page's header and its navigation row, heading row and
+   transport (`--stage-chrome`, taller on a phone, where the heading and the view toggle stack), so
+   at most 9/16 of that wide (and never over 28.75rem, alone in the swipe view); a side-by-side
+   pair, twice that and the gap between them. */
 :root {
-  --stage-chrome: 18.5rem;
+  --stage-chrome: 21.875rem;
 }
 
 @media (width < 40rem) {
   :root {
-    --stage-chrome: 20rem;
+    --stage-chrome: 23.375rem;
   }
 }
 
