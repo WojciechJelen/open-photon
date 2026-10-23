@@ -2,7 +2,7 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { type GenerationEvent, generationSchema } from "../../contracts.ts";
 import { comfyProvider, type Provider } from "../comfy-provider.ts";
-import { finalize } from "./finalize.ts";
+import { askable, finalize } from "./finalize.ts";
 import { findGeneration, type Generation, markRunning } from "./generations.ts";
 import { settleAbandoned } from "./service.ts";
 
@@ -60,6 +60,13 @@ async function* generationUpdates(
   }
 
   if (row.provider_job_id === null || !["queued", "running", "finalizing"].includes(row.status)) {
+    return;
+  }
+
+  // Another endpoint than the job's own cannot say anything about it (`askable`).
+  if (!askable(row, provider)) {
+    yield { generation: row, kind: "provider_unavailable" };
+
     return;
   }
 
