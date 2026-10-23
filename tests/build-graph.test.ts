@@ -6,6 +6,7 @@ import { motionTransferParamsSchema } from "../src/features/motionTransfer/workf
 import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
 import {
   buildGraph,
+  inputsMapSchema,
   type WorkflowGraph,
   workflowGraphSchema,
 } from "../src/shared/server/workflow-graph.ts";
@@ -111,6 +112,21 @@ test("a param bound to several fields sets each, and any one naming the wrong cl
         { width: 768 },
       ),
     /width expects KSampler at node 2, found Flux2Scheduler/,
+  );
+});
+
+test("an empty binding list is refused by the map schema and by the binder itself", () => {
+  const graph = workflowGraphSchema.parse({
+    "1": { class_type: "EmptyFlux2LatentImage", inputs: { batch_size: 1, height: 1, width: 1 } },
+  });
+
+  assert.equal(
+    inputsMapSchema(["width"]).safeParse({ inputs: { width: [] }, workflow: "x" }).success,
+    false,
+  );
+  assert.throws(
+    () => buildGraph(graph, { inputs: { width: [] }, workflow: "x" }, { width: 768 }),
+    /width is not mapped/,
   );
 });
 
