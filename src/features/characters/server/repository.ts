@@ -92,14 +92,11 @@ export function listCharacters({
       ORDER BY created_at DESC, id DESC`,
     )
     .all(Number(includeSamples), Number(favorites))
+    .flatMap((row) => summarize(row) ?? [])
     .filter(
       ({ prompt, title }) =>
-        needle === "" ||
-        [title, prompt].some(
-          (text) => typeof text === "string" && text.toLocaleLowerCase().includes(needle),
-        ),
-    )
-    .flatMap((row) => summarize(row) ?? []);
+        needle === "" || [title, prompt].some((text) => text?.toLocaleLowerCase().includes(needle)),
+    );
 }
 
 /** The sample characters (the picker's), by title. */

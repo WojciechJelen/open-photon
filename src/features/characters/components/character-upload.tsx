@@ -24,13 +24,13 @@ type UploadState =
   // the character chosen when it came: choosing another one clears it.
   | { kind: "rejected"; photo: Photo | null; refusal: Refusal; selectedId: string | undefined };
 
-/** What a refusal says first, by its reason. */
-const refusalTitles: Record<string, string> = {
-  consent_required: "Consent needed",
-  not_image: "Not an image",
-  rate_limited: "Too many uploads",
-  too_large: "Too large",
-};
+/** What a refusal says first, by its `reason` (a string the API answers with). */
+const refusalTitles = new Map([
+  ["consent_required", "Consent needed"],
+  ["not_image", "Not an image"],
+  ["rate_limited", "Too many uploads"],
+  ["too_large", "Too large"],
+]);
 
 /**
  * Adds a photo to the workspace library: pick a PNG, JPEG or WebP, tick the likeness consent
@@ -178,8 +178,8 @@ export function CharacterUpload({
         <p className="flex items-start gap-2 text-sm text-destructive-foreground" role="alert">
           <TriangleAlertIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
           <span>
-            {refusal.reason && refusalTitles[refusal.reason] && (
-              <strong className="font-semibold">{refusalTitles[refusal.reason]}. </strong>
+            {refusal.reason && refusalTitles.has(refusal.reason) && (
+              <strong className="font-semibold">{refusalTitles.get(refusal.reason)}. </strong>
             )}
             {refusal.message}
           </span>

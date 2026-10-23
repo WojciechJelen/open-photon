@@ -51,6 +51,7 @@ test("an uploaded photo asks for consent once, under its preview; with it the ch
   await expect(submit).toBeEnabled();
   await submit.click();
   await expect(page).toHaveURL(new RegExp(`character=${uuid}$`));
+
   // The library picker lists the new photo, picked, as an untitled upload of the workspace.
   const picked = page.getByRole("list", { name: "Characters" }).getByRole("button", {
     pressed: true,

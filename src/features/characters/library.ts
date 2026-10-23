@@ -24,6 +24,10 @@ const librarySearchSchema = z.object({
   selected: z.uuid().optional().catch(undefined),
 });
 
+export type LibrarySearch = z.output<typeof librarySearchSchema> & {
+  draft: DraftSnapshot | undefined;
+};
+
 /**
  * `/characters`' search: `q` (the search box), `favorites` (the favorites only), `selected` (the
  * character to focus, as the builder's save names it) and `draft`, the composer draft Motion
@@ -31,13 +35,14 @@ const librarySearchSchema = z.object({
  * character), so a motion and direction picked before survive to "Animate". What does not
  * validate is dropped, like a mangled link's draft.
  */
-export function validateLibrarySearch(search: Record<string, unknown>): LibrarySearch {
+export function validateLibrarySearch(search: {
+  draft?: unknown;
+  favorites?: unknown;
+  q?: unknown;
+  selected?: unknown;
+}): LibrarySearch {
   return { ...librarySearchSchema.parse(search), draft: carriedDraft(search.draft) };
 }
-
-export type LibrarySearch = z.output<typeof librarySearchSchema> & {
-  draft: DraftSnapshot | undefined;
-};
 
 /**
  * Where "Animate" goes: the Motion Transfer wizard on `draft` with this character picked; with a

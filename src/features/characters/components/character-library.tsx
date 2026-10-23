@@ -1,11 +1,4 @@
-import {
-  KeyRoundIcon,
-  RotateCcwIcon,
-  SearchIcon,
-  SparklesIcon,
-  StarIcon,
-  UsersIcon,
-} from "lucide-react";
+import { KeyRoundIcon, RotateCcwIcon, SparklesIcon, StarIcon, UsersIcon } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { Badge } from "#/components/ui/badge";
@@ -141,8 +134,8 @@ export function CharacterLibrary({
             onUnlock={askForCode}
           />
         ) : (
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-            <div className="flex min-w-0 flex-col gap-5">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+            <div className="flex min-w-0 flex-1 flex-col gap-5">
               <Toolbar
                 favorites={favorites ?? false}
                 onFavorites={(next) => onSearch({ favorites: next || undefined })}
@@ -167,7 +160,7 @@ export function CharacterLibrary({
               />
             </div>
             <CharacterUpload
-              className="order-first lg:order-none"
+              className="order-first lg:order-none lg:w-80 lg:shrink-0"
               submitLabel="Add to library"
               hold={access.hold}
               onUploaded={(character) => {
@@ -238,13 +231,8 @@ function Toolbar({
       <label className="sr-only" htmlFor={id}>
         Search characters
       </label>
-      <div className="relative min-w-0 flex-1 basis-56">
-        <SearchIcon
-          aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
-        />
+      <div className="min-w-0 flex-1 basis-56">
         <Input
-          className="pl-10"
           id={id}
           maxLength={200}
           onChange={(event) => setText(event.target.value)}
