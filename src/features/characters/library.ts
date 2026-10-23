@@ -147,6 +147,43 @@ export function originLabel(character: CharacterIdentity) {
   return character.origin === "upload" ? "Uploaded" : "AI-generated";
 }
 
+/**
+ * What each character of one list is called to assistive technology, by id: its title, or, for
+ * one without a title, what it is, where it came from and when it was added (in UTC, so the
+ * server and the browser render the same words), numbered when two untitled ones would still
+ * read the same. The rename, favorite and animate controls of a card or tile say which character
+ * they act on with it.
+ */
+export function accessibleNames(
+  characters: readonly Pick<
+    CharacterSummary,
+    "created_at" | "id" | "is_sample" | "origin" | "title"
+  >[],
+) {
+  const named = characters.map((character) => {
+    if (character.title) {
+      return [character.id, character.title] as const;
+    }
+
+    const added = `${character.created_at.slice(0, 10)} ${character.created_at.slice(11, 16)} UTC`;
+    const origin = character.origin === "upload" ? "uploaded" : "AI-generated";
+
+    return [character.id, `${characterName(character)}, ${origin} ${added}`] as const;
+  });
+
+  const seen = new Map<string, number>();
+
+  return new Map(
+    named.map(([id, name]) => {
+      const count = (seen.get(name) ?? 0) + 1;
+
+      seen.set(name, count);
+
+      return [id, count === 1 ? name : `${name} (${count})`];
+    }),
+  );
+}
+
 /** A model file's name without its extension, as the provenance line shows it. */
 export function modelName(file: string) {
   return file.replace(/\.(safetensors|gguf|ckpt|pt|bin)$/i, "");

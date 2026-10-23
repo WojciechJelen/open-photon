@@ -153,6 +153,37 @@ test("an upload without consent, or of a file that is not an image, is refused a
   expect(count("characters")).toBe(characters + 1);
 });
 
+test("untitled characters' cards and controls have names that tell them apart", async ({
+  page,
+  request,
+}) => {
+  const first = await uploadThroughApi(request);
+  const second = await uploadThroughApi(request);
+
+  await open(page, "/characters");
+
+  const labels = await Promise.all(
+    [first, second].map((character) =>
+      grid(page).locator(`[data-character-id="${character.id}"]`).getAttribute("aria-label"),
+    ),
+  );
+
+  expect(labels[0]).not.toBe(labels[1]);
+
+  for (const label of labels) {
+    expect(label).toMatch(/^Untitled photo, uploaded \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC/);
+
+    for (const control of [`Rename ${label}`, `Animate ${label}`, `Add ${label} to favorites`]) {
+      await expect(
+        page.getByRole(control.startsWith("Animate") ? "link" : "button", {
+          exact: true,
+          name: control,
+        }),
+      ).toHaveCount(1);
+    }
+  }
+});
+
 test("a character is renamed in a dialog, 1–80 characters, and keeps its name after a reload", async ({
   page,
   request,
@@ -164,8 +195,12 @@ test("a character is renamed in a dialog, 1–80 characters, and keeps its name 
 
   const added = grid(page).locator(`[data-character-id="${character.id}"]`);
 
-  await expect(added).toHaveAttribute("aria-label", "Untitled photo");
-  await added.getByRole("button", { name: "Rename Untitled photo" }).click();
+  // Untitled: named by what it is and when it was added, so its controls say which one they act on.
+  await expect(added).toHaveAttribute(
+    "aria-label",
+    /^Untitled photo, uploaded \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC( \(\d+\))?$/,
+  );
+  await added.getByRole("button", { name: /^Rename Untitled photo, uploaded / }).click();
 
   const dialog = page.getByRole("dialog", { name: "Rename character" });
   const field = dialog.getByLabel("Name");
