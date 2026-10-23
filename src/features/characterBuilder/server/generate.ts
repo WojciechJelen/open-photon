@@ -2,8 +2,10 @@ import type { Session } from "../../../shared/server/access.server.ts";
 import { comfyProvider, type Provider } from "../../../shared/server/comfy-provider.ts";
 import { answer, readInput } from "../../../shared/server/generation/http.ts";
 import { type Admit, submit } from "../../../shared/server/generation/service.ts";
-import type { CharacterGenerationInput } from "../contracts.ts";
-import { characterGenerationDefinition } from "../workflows/definition.ts";
+import {
+  characterGenerationDefinition,
+  type PromptInput as CharacterGenerationInput,
+} from "../workflows/definition.ts";
 
 /**
  * Starts a character generation (`characterGenerationDefinition`) for `session` through the
@@ -28,7 +30,7 @@ export function generateCharacter(
 }
 
 /**
- * `POST /api/character-generations` with a JSON `characterGenerationInputSchema` body and an
+ * `POST /api/character-generations` with a JSON `PromptInput` body (the FLUX.2 definition's) and an
  * optional `request_key` (a UUID): `generateCharacter`, answered by `answer` as
  * `POST /api/generate` is (201 `{ id, reused: false }`, 202 `{ id, reused: false, status:
  * "waiting", position }` in line, 200 `{ id, reused: true }`, the `GenerateError` statuses, 429
