@@ -81,7 +81,14 @@ test("seeding deletes a sample character the manifest no longer lists, and keeps
   const retired = crypto.randomUUID();
   const kept = crypto.randomUUID();
 
-  insert.run(retired, "placeholder-blue", "Placeholder blue", sample.image.id, 1, sample.created_at);
+  insert.run(
+    retired,
+    "placeholder-blue",
+    "Placeholder blue",
+    sample.image.id,
+    1,
+    sample.created_at,
+  );
   insert.run(kept, null, "Mine", sample.image.id, 0, sample.created_at);
   seedDatabase();
 

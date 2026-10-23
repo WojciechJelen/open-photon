@@ -310,9 +310,7 @@ export function seededResult() {
 /** A seeded sample character (`arthur`): its id and its image's asset id. */
 export function sampleCharacter() {
   const row = query((database) =>
-    database
-      .prepare("SELECT id, image_asset_id FROM characters WHERE slug = 'arthur'")
-      .get(),
+    database.prepare("SELECT id, image_asset_id FROM characters WHERE slug = 'arthur'").get(),
   );
 
   return { id: String(row?.id), imageAssetId: String(row?.image_asset_id) };
