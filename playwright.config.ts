@@ -47,6 +47,9 @@ export default defineConfig({
       DATABASE_PATH: process.env.E2E_DATABASE_PATH,
       GENERATE_RATE_LIMIT: "1000",
       IN_FLIGHT_MAX: "2",
+      // Nitro's dev server takes `PORT` over Vite's `--port`: a worktree's own `PORT` would leave
+      // `baseURL` unanswered.
+      PORT: port,
       UPLOAD_RATE_LIMIT: "1000",
     },
     reuseExistingServer: false,
