@@ -7,6 +7,7 @@ import { characterCaptionDefinition } from "../features/characterBuilder/workflo
 import { characterGenerationDefinition } from "../features/characterBuilder/workflows/definition.ts";
 import { charactersAccess } from "../features/characters/server/public-access.ts";
 import { seedSampleCharacters } from "../features/characters/server/seed.ts";
+import { exploreAccess } from "../features/explore/server/public-access.ts";
 import { motionTransferAccess } from "../features/motionTransfer/server/public-access.ts";
 import { seedSampleMotions } from "../features/motionTransfer/server/samples.ts";
 import { motionTransferDefinition } from "../features/motionTransfer/workflows/definition.ts";
@@ -19,7 +20,14 @@ import { transaction } from "../shared/server/migrate.ts";
 
 /** The composed access rules (`createAccessPolicy`); anything no feature declares is private. */
 export const { isIndexable, isPublicAsset, isPublicRequest, isPublicServerFn } = createAccessPolicy(
-  [generationAccess, studioAccess, charactersAccess, characterBuilderAccess, motionTransferAccess],
+  [
+    generationAccess,
+    studioAccess,
+    charactersAccess,
+    characterBuilderAccess,
+    motionTransferAccess,
+    exploreAccess,
+  ],
 );
 
 // The workflows the generation service runs (`workflows`, `src/shared/server/generation/`), found

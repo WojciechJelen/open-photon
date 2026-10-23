@@ -19,6 +19,8 @@ import { Route as ApiShareOriginRouteImport } from './routes/api.share-origin'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as CharactersIndexRouteImport } from './routes/characters.index'
 import { Route as CharactersNewRouteImport } from './routes/characters.new'
+import { Route as ExploreIndexRouteImport } from './routes/explore.index'
+import { Route as ExploreSlugRouteImport } from './routes/explore.$slug'
 import { Route as GGenerationIdRouteImport } from './routes/g.$generationId'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
@@ -82,6 +84,16 @@ const CharactersIndexRoute = CharactersIndexRouteImport.update({
 const CharactersNewRoute = CharactersNewRouteImport.update({
   id: '/characters/new',
   path: '/characters/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploreIndexRoute = ExploreIndexRouteImport.update({
+  id: '/explore/',
+  path: '/explore/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploreSlugRoute = ExploreSlugRouteImport.update({
+  id: '/explore/$slug',
+  path: '/explore/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GGenerationIdRoute = GGenerationIdRouteImport.update({
@@ -173,10 +185,12 @@ export interface FileRoutesByFullPath {
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/characters/new': typeof CharactersNewRoute
+  '/explore/$slug': typeof ExploreSlugRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
   '/characters/': typeof CharactersIndexRoute
+  '/explore/': typeof ExploreIndexRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
@@ -199,10 +213,12 @@ export interface FileRoutesByTo {
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/characters/new': typeof CharactersNewRoute
+  '/explore/$slug': typeof ExploreSlugRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
   '/characters': typeof CharactersIndexRoute
+  '/explore': typeof ExploreIndexRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
@@ -226,10 +242,12 @@ export interface FileRoutesById {
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/characters/new': typeof CharactersNewRoute
+  '/explore/$slug': typeof ExploreSlugRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
   '/characters/': typeof CharactersIndexRoute
+  '/explore/': typeof ExploreIndexRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
@@ -254,10 +272,12 @@ export interface FileRouteTypes {
     | '/api/share-origin'
     | '/api/uploads'
     | '/characters/new'
+    | '/explore/$slug'
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
     | '/characters/'
+    | '/explore/'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
@@ -280,10 +300,12 @@ export interface FileRouteTypes {
     | '/api/share-origin'
     | '/api/uploads'
     | '/characters/new'
+    | '/explore/$slug'
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
     | '/characters'
+    | '/explore'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
@@ -306,10 +328,12 @@ export interface FileRouteTypes {
     | '/api/share-origin'
     | '/api/uploads'
     | '/characters/new'
+    | '/explore/$slug'
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
     | '/characters/'
+    | '/explore/'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
@@ -333,10 +357,12 @@ export interface RootRouteChildren {
   ApiShareOriginRoute: typeof ApiShareOriginRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   CharactersNewRoute: typeof CharactersNewRoute
+  ExploreSlugRoute: typeof ExploreSlugRoute
   GGenerationIdRoute: typeof GGenerationIdRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
   RSlugRoute: typeof RSlugRoute
   CharactersIndexRoute: typeof CharactersIndexRoute
+  ExploreIndexRoute: typeof ExploreIndexRoute
   ApiDebugHeartbeatRoute: typeof ApiDebugHeartbeatRoute
   ApiDebugStreamsRoute: typeof ApiDebugStreamsRoute
   ApiGenerationsGenerationIdRoute: typeof ApiGenerationsGenerationIdRouteWithChildren
@@ -413,6 +439,20 @@ declare module '@tanstack/react-router' {
       path: '/characters/new'
       fullPath: '/characters/new'
       preLoaderRoute: typeof CharactersNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore/': {
+      id: '/explore/'
+      path: '/explore'
+      fullPath: '/explore/'
+      preLoaderRoute: typeof ExploreIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore/$slug': {
+      id: '/explore/$slug'
+      path: '/explore/$slug'
+      fullPath: '/explore/$slug'
+      preLoaderRoute: typeof ExploreSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/g/$generationId': {
@@ -578,10 +618,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiShareOriginRoute: ApiShareOriginRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   CharactersNewRoute: CharactersNewRoute,
+  ExploreSlugRoute: ExploreSlugRoute,
   GGenerationIdRoute: GGenerationIdRoute,
   MediaFilenameRoute: MediaFilenameRoute,
   RSlugRoute: RSlugRoute,
   CharactersIndexRoute: CharactersIndexRoute,
+  ExploreIndexRoute: ExploreIndexRoute,
   ApiDebugHeartbeatRoute: ApiDebugHeartbeatRoute,
   ApiDebugStreamsRoute: ApiDebugStreamsRoute,
   ApiGenerationsGenerationIdRoute: ApiGenerationsGenerationIdRouteWithChildren,
