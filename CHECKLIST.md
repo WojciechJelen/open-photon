@@ -7,6 +7,15 @@ Current setup is in [README.md](README.md#getting-started).
 
 ## Deployment evidence after the Docker simplification
 
+- **October 23, image `0.2.0`:** the published self-host image (digest `b7d55526…`, source
+  `723614c`) on a Runpod A40: first boot downloaded and verified all nine files (43.4 GB,
+  the three gated FLUX 3 files included) in 5 min 17 s and served 9 min 15 s after creation; a
+  restart downloaded nothing and served again after 4 min 23 s. Through the app: caption
+  `7ac084c7…` 26.6 s, 6,601 MiB; image `77508bc1…` 31.9 s, 10,653 MiB; Motion Transfer
+  `506a2964…` 255.9 s, 38,935 MiB (device totals); `verify-selfhost.mjs` passed all three.
+  About $0.21 of pod time. Details: `src/features/characterBuilder/workflows/README.md`,
+  "Self-host".
+
 - **October 23 follow-up:** exact published images retested from source `27bc330`.
   Fresh RTX 5090 32 GB boot, restart without downloads, controlled SSE recovery and
   Cloud/Runpod results on one database passed. The 5-second GPU render took 167.820 s,
