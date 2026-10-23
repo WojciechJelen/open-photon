@@ -4,9 +4,18 @@
 // composer's slot contracts and server-function types. The wizard owns its URL: another feature
 // opens it on a draft with `draftHref`, never by holding its state. Slot components are mounted
 // in `src/app/composer-slots.ts`; test fixtures are in `tests/fixtures.ts`.
+//
+// Carrying the draft through another page (the character library `/characters`, the builder
+// `/characters/new`): a link there carries the shot in one search member, `draft`
+// (`carryDraft(draft)`: `{ draft }`, a JSON object in the URL); the page decodes it with
+// `draft: carriedDraft(search.draft)` in its `validateSearch` (validated like `parseDraft`,
+// without step and character); "Animate" goes back with
+// `draftHref(withCharacter(draft ?? {}, characterId))`, keeping the motion and the direction.
 export type { SampleMotion } from "./contracts.ts";
 
 export {
+  carriedDraft,
+  carryDraft,
   defaultDirection,
   type Direction,
   draftHref,
@@ -22,6 +31,7 @@ export {
 export type { loadStudio } from "./selection.functions.ts";
 
 export type {
+  CharacterPickerProps,
   ComposerSlots,
   DirectGenerationActionsProps,
   DirectionEditorProps,

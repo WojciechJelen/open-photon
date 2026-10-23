@@ -23,6 +23,7 @@ import {
 } from "#/features/motionTransfer/draft";
 import type { loadSelection } from "#/features/motionTransfer/selection.functions";
 import type {
+  CharacterPickerProps,
   DirectGenerationActionsProps,
   DirectionEditorProps,
 } from "#/features/motionTransfer/slots";
@@ -37,6 +38,8 @@ import { useAccessCode } from "#/shared/use-access-code";
 type Selection = Awaited<ReturnType<typeof loadSelection>>;
 
 type WizardProps = {
+  /** Fills the Character step's picker slot (`src/app/composer-slots.ts`). */
+  characterPicker: ComponentType<CharacterPickerProps>;
   /** The draft shown: the URL's of `/motionTransfer`, validated by `motionTransferDraftSchema`. */
   draft: MotionTransferDraft;
   /** Fills the Direct step's direction editor slot (`src/app/composer-slots.ts`). */
@@ -71,6 +74,7 @@ export function MotionTransferWizard(props: WizardProps) {
 }
 
 function Wizard({
+  characterPicker,
   draft,
   directionEditor,
   generationActions: GenerationActions,
@@ -319,8 +323,10 @@ function Wizard({
                 character={character}
                 characterId={characterChoice}
                 characters={characters}
+                draft={snapshotDraft({ ...shot, character: undefined })}
                 hold={access.hold}
                 onPick={(id) => void pickCharacter(id)}
+                picker={characterPicker}
                 release={release}
                 signedIn={signedIn}
               />
