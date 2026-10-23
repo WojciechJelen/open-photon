@@ -133,8 +133,8 @@ test.describe("without a session", () => {
       page,
       `/motionTransfer?step=direct&motion=${sourceAssetId}&character=${characterId}`,
     );
-    await page.getByRole("button", { name: "Neon street at night" }).click();
-    await expect(page.getByLabel("Look")).toHaveValue(/neon-lit/);
+    await page.getByRole("button", { exact: true, name: "Neon street" }).click();
+    await expect(page.getByLabel("Prompt sent")).toContainText("neon-lit");
     await slate(page).getByRole("button", { name: "Generate" }).click();
 
     const dialog = page.getByRole("dialog", { name: "Enter your access code" });

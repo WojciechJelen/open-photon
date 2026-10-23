@@ -11,8 +11,8 @@ import { type Field, fieldMessages } from "#/features/motionTransfer/use-generat
 import type { Refusal } from "#/shared/requests";
 
 /**
- * Step 3, direct the shot (optional): the direction editor (`directionEditor`, by default the
- * look: `DefaultDirectionEditor`), and the seed under Advanced. It is the form Generate submits
+ * Step 3, direct the shot (optional): the direction editor (`directionEditor`, the looks
+ * feature's `LookEditor` in the app), and the seed under Advanced. It is the form Generate submits
  * (`formId`); the generation actions live in the slate.
  */
 export function DirectStep({

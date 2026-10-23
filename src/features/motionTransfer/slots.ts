@@ -46,8 +46,9 @@ export type CharacterPickerProps = {
 
 /**
  * The Direct step's direction editor, controlled: it shows `value` and reports every edit as the
- * whole next direction. The seed stays under the step's Advanced; the default edits the look
- * (`DefaultDirectionEditor`).
+ * whole next direction, which the wizard writes to its URL. The seed stays under the step's
+ * Advanced; the app mounts the looks feature's `LookEditor` (a description, curated looks, and
+ * the prompt they compose).
  */
 export type DirectionEditorProps = {
   /** The fields the last Generate found wrong, to mark as invalid. */

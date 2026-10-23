@@ -43,6 +43,10 @@ There are none. Until DEV-282 the Direct step offered three reshoot angles (`fro
 
 The recipe schema keeps an optional `angle` so the recipes of takes made with a preset still parse and hash as they did; their `params.prompt` ends with the old phrasing. "Change the shot" and the remixes take it off again (`directionOf` in `server/selection.ts` holds every phrasing ever shipped), so such a take's look opens as it was typed, blank if it was blank. New recipes have no `angle`, and `POST /api/generate` ignores one an old client still sends.
 
+## Looks
+
+The Direct step's look editor (`src/features/looks/`, DEV-291) appends fixed fragments to `prompt`; the recipe stores the composed text, never a look id. The [look benchmark of 2026-10-23](../../../../docs/look-benchmark-2026-10-23/index.md) (the `maya` sample × `street-dance`, seed `20261019`, a blank-look baseline and nine fragments, one Cloud take each) found that a background fragment naming another scene replaces the reference image's backdrop and its light (a neon street at night, a sunny beach; a white studio, close to the photo's own backdrop, changed nothing), while lighting and color/style fragments (golden hour, low-key, neon glow, noir, vintage film, teal and orange) leave the take visibly unchanged: the reference image fixes its light and colors. The editor offers the two backgrounds as reliable and the lighting and color/style options as experimental.
+
 ## App defaults
 
 [`defaults.json`](defaults.json) holds what `prepareRecipe` ([`definition.ts`](definition.ts)) uses for a field the user leaves blank: a neutral `prompt` (the character and background of the reference image; the form shows it as the description's placeholder) and a fixed `seed`, so the same choices make the same recipe and reuse its result. Both land in the recipe like given values. The template's own `672:582` text ("Cartoon character lost", an empty white room) is never sent.

@@ -277,16 +277,20 @@ Carrying the draft through another page (the library `/characters`, the builder
 Slots (`src/features/motionTransfer/slots.ts`): `characterPicker` (`CharacterPickerProps`:
 `characters` the loader has, `character`, `characterId`, `onPick`, `hold`, `release`,
 `signedIn`, and `draft`, the shot without its character, for links that carry it),
-`directionEditor` (`DirectionEditorProps`: `value`, `onChange`), `directGenerationActions`
-(`DirectGenerationActionsProps`) and `resultGenerationActions` (`ResultGenerationActionsProps`),
-both receiving an immutable `DraftSnapshot`. Defaults: `DefaultCharacterPicker` (the upload tile,
-the visitor's own photo and the samples; the Character step keeps its intro and tips around the
-slot), `DefaultDirectionEditor`, `GenerateButton`, `RerunButton`. They are filled in one place,
-`src/app/composer-slots.ts`, which mounts the library's `LibraryCharacterPicker` in
+`directionEditor` (`DirectionEditorProps`: `value`, `onChange`; the wizard writes every edit to
+its URL's `prompt` and `seed`, replacing the history entry, so a reload keeps it),
+`directGenerationActions` (`DirectGenerationActionsProps`) and `resultGenerationActions`
+(`ResultGenerationActionsProps`), both receiving an immutable `DraftSnapshot`. Defaults:
+`DefaultCharacterPicker` (the upload tile, the visitor's own photo and the samples; the Character
+step keeps its intro and tips around the slot), `GenerateButton`, `RerunButton`. They are filled
+in one place, `src/app/composer-slots.ts`, which mounts the library's `LibraryCharacterPicker` in
 `characterPicker` and gives it and the library page (`/characters`) `createCharacterHref`: the
-builder, `/characters/new`, carrying the draft. The studio (`/`) links Motion Transfer and both
-character tools ("Describe a character", "Character library"); the main navigation's Image ›
-Create character and Library › Characters open them.
+builder, `/characters/new`, carrying the draft; and the looks feature's `LookEditor`
+(`src/features/looks/`, DEV-291) in `directionEditor`: a description plus curated backgrounds,
+lighting and color/style looks, composed into the one `prompt` the draft carries (benchmark:
+`docs/look-benchmark-2026-10-23/`). The studio (`/`) links Motion Transfer and both character
+tools ("Describe a character", "Character library"); the main navigation's Image › Create
+character and Library › Characters open them.
 
 ### Import boundaries
 
