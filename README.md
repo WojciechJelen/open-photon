@@ -12,15 +12,60 @@ one and render it with the open-weights FLUX 3 Image Klein (`/characters/new`), 
 upload a photo with the person's consent, then find and animate it from
 `/characters`.
 
+<p align="center">
+  <img src="docs/readme/maya-street-dance.gif" height="300" alt="A take side by side: the Street dance driving clip on the left, the Maya character doing the same dance on the right">
+  <img src="docs/readme/maya-character-and-take.jpg" height="300" alt="Left: the Maya character as FLUX 3 Image Klein rendered her from a description; right: a frame of her Wan Animate 2 take">
+</p>
+<p align="center"><sub>Left: a take's side-by-side download, driving clip | result (cropped, as a GIF).
+Right: a character FLUX 3 Image Klein rendered from a one-line description, beside a frame of
+Wan Animate 2 animating her. Both from the pre-rendered sample take on the home page;
+<a href="docs/readme/README.md">how they were cut</a>.</sub></p>
+
 Built with TanStack Start, React, Tailwind, shadcn, SQLite and the Comfy SDK.
 Browsing samples is public; uploads and new generations require an access code.
 Opened a link that already contains a code? You're in.
 New renders use your Comfy Cloud credits or your self-hosted GPU.
 
+**Try it:** [open-photon-staging.up.railway.app](https://open-photon-staging.up.railway.app/).
+The home page's result wall, the samples and every share page open without a code. Judges: use
+the link in the submission form; it signs you in and opens the character builder
+(`/characters/new`).
+
 An unfinished experiment in pinning performance beats, not part of the app, lives in
 `src/features/motion-score/`.
 
+## Numbers
+
+One 5-second 480×848 Motion Transfer take, one caption, one 768×1344 character image. The RTX 5090
+(Oct 21) and A40 `0.2.0` jobs were each the first of their models on the pod, so model loading is
+included.
+
+| Workflow | Backend | Submit → done | Peak VRAM | Cost | Source |
+| --- | --- | --- | --- | --- | --- |
+| Motion Transfer (Wan Animate 2) | Comfy Cloud | 64.9 s execution (direct submit); 70.6–115.7 s through the app, side-by-side stitch included (6 takes) | not observable | ≈ 8.3 ¢ ($0.083, 17.5 credits) | [CHECKLIST](CHECKLIST.md) 1.6, DEV-280 |
+| Motion Transfer (Wan Animate 2) | Runpod RTX 5090 32 GB | 158.7 s (Oct 21); 167.8 s (image `0.1.0`, Oct 23) | 31,066 MiB; 31,426 MiB | pod time | [CHECKLIST](CHECKLIST.md) 8.3, Oct 23 follow-up |
+| Motion Transfer (Wan Animate 2) | Runpod A40 48 GB | 255.9 s (image `0.2.0`); 149.1 s (image `0.1.0`) | 38,935 MiB (`0.2.0`) | ≈ $0.04 of pod time at $0.59/h | [self-host proof](docs/selfhost-proof-2026-10-23/README.md) |
+| Caption (FLUX 3 prompt upsampler) | Comfy Cloud | 5.0 s | not observable | ≈ 0.08 ¢ | [character workflows](src/features/characterBuilder/workflows/README.md#measurements-comfy-cloud-2026-10-23) |
+| Caption (FLUX 3 prompt upsampler) | Runpod A40 48 GB | 26.6 s | 6,601 MiB | pod time | [self-host proof](docs/selfhost-proof-2026-10-23/README.md) |
+| Character image (FLUX 3 Image Klein) | Comfy Cloud | 14.3 s | not observable | ≈ 0.8 ¢ | [character workflows](src/features/characterBuilder/workflows/README.md#measurements-comfy-cloud-2026-10-23) |
+| Character image (FLUX 3 Image Klein) | Runpod A40 48 GB | 31.9 s | 10,653 MiB | pod time | [self-host proof](docs/selfhost-proof-2026-10-23/README.md) |
+
+Cloud cost is the account balance before and after a take; VRAM is the whole-device `nvidia-smi`
+peak while the job ran. The whole A40 run (boot, model download, three jobs, restart) cost about
+$0.21 of pod time.
+
 ## Getting started
+
+Quick run with the published image (`.env` holds one backend from the next section):
+
+```sh
+docker run -d --name open-photon --init --env-file .env -p 127.0.0.1:3030:3000 \
+  -v open-photon-data:/app/data ghcr.io/wojciechjelen/open-photon:0.2.0
+# Open http://localhost:3030 once, then print an access code:
+docker exec open-photon node scripts/mint-code.mjs me 100
+```
+
+Details, and a run from source, below.
 
 ### Choose a rendering backend
 
@@ -122,6 +167,59 @@ BASE_URL=http://127.0.0.1:3000 ACCESS_CODE=<code> node scripts/prerender-samples
 Run it where the database is (in the container: `docker exec open-photon …`). Each
 take is a Wan Animate 2 render billed to your backend; a second run submits nothing.
 
+## Every model and tool
+
+Models (pinned by file, revision and SHA-256 in the two locks below):
+
+- **Wan Animate 2** (int8, `wan_animate_2_int8_convrot`): the video model; moves the character
+  image the way the person in the driving clip moves.
+- **lightx2v distillation LoRA** (`lightx2v_I2V_14B_480p_cfg_step_distill_rank64`): lets Wan
+  Animate 2 render in 6 steps at CFG 1 instead of a full sampling schedule.
+- **UMT5-XXL** (fp8): Wan's text encoder; encodes the take's prompt.
+- **CLIP-ViT-H** (`clip_vision_h`): encodes the character image so the take keeps its identity.
+- **Wan 2.1 VAE**: encodes the clip and character into Wan's latent space and decodes the result
+  to frames.
+- **FLUX 3 Image Klein** (distilled, int8): the image model; renders a caption into the character
+  image, 16 steps.
+- **Qwen3-VL-4B** (int8): FLUX 3's text encoder; turns the caption into the conditioning the
+  image model reads.
+- **Qwen3.5-9B FLUX 3 prompt upsampler** (w4a8): expands a short description into the full
+  caption the user reviews and may edit.
+- **FLUX 2 VAE**: decodes FLUX 3's latents to the PNG.
+
+Tools:
+
+- **ComfyUI 0.42** + **comfy-api-proxy** (self-host): run the workflow graphs on your GPU and
+  serve them as the Comfy API v2 behind a bearer token.
+- **Comfy Cloud** + **`@comfyorg/sdk`**: run the same graphs on Comfy's GPUs; the SDK uploads
+  inputs, submits, follows progress and downloads outputs for both backends.
+- **FFmpeg**: probes and trims uploaded clips, cuts posters, and stitches the 9:16 side-by-side
+  download.
+- **Node 24** + **`node:sqlite`**: the server, and the database of generations, recipes, assets and
+  access codes.
+- **TanStack Start**: the React app, its routes, server functions and server-side rendering.
+- **Runpod**: the GPU pod template that runs the self-host image.
+- **Railway**: hosts the live app.
+
+## Open weights
+
+The Open Weights Only claim rests on two things: no partner nodes and no closed APIs. Every graph
+uses ComfyUI core nodes, and every file it loads is pinned to an immutable Hugging Face revision
+URL and SHA-256 in one of two locks:
+[`motionTransfer/workflows/models.lock`](src/features/motionTransfer/workflows/models.lock) (five
+files, Apache-2.0) and
+[`characterBuilder/workflows/models.lock`](src/features/characterBuilder/workflows/models.lock)
+(four files). `npm run check:models` fails when a workflow loads a file no lock pins, or a pin has
+a mutable URL or a bad hash; `npm run check:open-weights` scans every feature's workflows,
+subgraphs included, for partner and API nodes ([`scripts/forbidden-nodes.json`](scripts/forbidden-nodes.json)).
+CI runs both on every pull request and push to `main`, and its server tests plant a partner node
+([`tests/fixtures/partner-node.json`](tests/fixtures/partner-node.json)) that the check must
+reject by name ([`tests/open-weights.test.ts`](tests/open-weights.test.ts)). The same graphs and
+weights run on your own GPU: [`docs/selfhost-proof-2026-10-23/`](docs/selfhost-proof-2026-10-23/README.md)
+holds the A40 run's boot log, GPU memory samples, recipes, outputs and `verify-selfhost.mjs`
+report. Open does not mean OSI here: the FLUX 3 Image Klein transformer is open weights under the
+FLUX Kommunity License, not an OSI licence; every other file is Apache-2.0.
+
 ## Models and licences
 
 | Feature | Model | Licence |
@@ -143,3 +241,9 @@ private to the workspace until its owner checks it and chooses "Publish & copy l
 it its public share page. Whether that is enough for your deployment, and whether you are a
 Qualifying User, is yours to judge: read the licence before deploying. Exact files, revisions,
 hashes and the workflow's origin: `src/features/characterBuilder/workflows/README.md`.
+
+## How it was built
+
+[`AGENTS.md`](AGENTS.md) is the rulebook the coding agents worked to (layout, import boundaries,
+the generation queue, toolchain). [`CHECKLIST.md`](CHECKLIST.md) is the build log: every step with
+its evidence, including each paid render and what it cost.
