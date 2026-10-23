@@ -1,6 +1,7 @@
 // The character builder end to end against the fake provider (the `fake` Playwright project):
-// describe → enhance → edit the caption → generate → preview → save → animate, and a failed
-// image recovered by editing its caption. The fake provider answers a caption with
+// describe → enhance → edit the caption → generate → preview → save → animate, a failed image
+// recovered by editing its caption, and publishing an image (the builder's and a library card's
+// "Publish & copy link"). The fake provider answers a caption with
 // `tests/fixtures/fake-output.txt` and an image with `tests/fixtures/fake-output.png`; a graph
 // carrying `[fake:provider_failed]` fails.
 import { readFileSync } from "node:fs";
@@ -30,6 +31,27 @@ const images = "generations WHERE workflow_id = 'character-generation'";
 
 function searchId(page: Page, name: "caption" | "image" | "saved") {
   return new URL(page.url()).searchParams.get(name);
+}
+
+/** A new image of a hand-written `caption` on the builder, shown once done; its generation id. */
+async function generateImage(page: Page, caption: string) {
+  await open(page, "/characters/new");
+  await page.getByLabel("Description", { exact: true }).fill("A street performer");
+  await page.getByRole("button", { name: "Write the caption myself" }).click();
+  await page.getByLabel("Your caption").fill(caption);
+  await page.getByRole("button", { name: "Generate character" }).click();
+  await expect(page.getByRole("img", { name: /AI-generated character/ })).toBeVisible({
+    timeout: 30_000,
+  });
+
+  return searchId(page, "image") ?? "";
+}
+
+/** A generation's share slug as stored; `null` while it is not published. */
+function slugOf(id: string) {
+  const slug = scalar(`SELECT share_slug FROM generations WHERE id = '${id}'`);
+
+  return typeof slug === "string" ? slug : null;
 }
 
 test("describe, enhance, edit, generate, save and animate with the motion the visitor came with", async ({
@@ -287,4 +309,76 @@ test("a caption or image whose status is unknown is never sent again from the pa
   await expect(page.getByRole("alert")).toContainText("The image's status is unknown");
   expect(searchId(page, "image")).toBe(unknownImage);
   expect(countOf(images)).toBe(beforeImages + 1);
+});
+
+test("an image stays private until Publish & copy link, then anyone opens its share page; a library card publishes its own", async ({
+  browser,
+  page,
+}) => {
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+
+  const run = crypto.randomUUID().slice(0, 8);
+  const imageId = await generateImage(page, `A juggler ${run}, full body, plain background.`);
+
+  // Done, and private: no share page until its owner publishes it, which the page explains.
+  expect(slugOf(imageId)).toBeNull();
+  await expect(
+    page.getByText(
+      "Publishing makes this AI-generated image public at a share link; check it first.",
+    ),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Publish & copy link" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Published" })).toHaveText(
+    "Published. Link copied to the clipboard.",
+  );
+
+  const link = await page.getByLabel("Share link", { exact: true }).inputValue();
+
+  expect(link).toMatch(/^http:\/\/[^/]+\/r\/[0-9a-f]{16}$/);
+  expect(link.endsWith(`/r/${slugOf(imageId)}`)).toBe(true);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(link);
+
+  // Anyone: the share page, which says the image is AI-generated.
+  const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const visitor = await anonymous.newPage();
+  const response = await visitor.goto(new URL(link).pathname);
+
+  expect(response?.status()).toBe(200);
+  await expect(visitor).toHaveTitle("AI-generated image · Open Photon");
+  await expect(visitor.getByRole("img", { name: /AI-generated image/ })).toBeVisible();
+  await anonymous.close();
+
+  // Read again, it is published, with the same link.
+  await page.reload();
+  await expect(page.getByRole("status").filter({ hasText: "Published" })).toHaveText("Published", {
+    timeout: 30_000,
+  });
+  await expect(page.getByLabel("Share link", { exact: true })).toHaveValue(link);
+
+  // A saved character of an image nobody published: its library card publishes it.
+  const title = `Juggler ${run}`;
+  const otherId = await generateImage(page, `A second juggler ${run}, full body.`);
+
+  await page.getByLabel("Name (optional)").fill(title);
+  await page.getByRole("button", { name: "Save to library" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved to the library" })).toBeVisible();
+  await open(page, `/characters?q=${run}`);
+
+  const card = page.getByRole("article", { name: title });
+  const published = card.getByRole("status").filter({ hasText: "Published" });
+
+  await card.getByRole("button", { name: `Publish & copy link: ${title}` }).click();
+  await expect(published).toBeVisible();
+  expect(slugOf(otherId)).toMatch(/^[0-9a-f]{16}$/);
+
+  const cardLink = card.getByRole("textbox", { name: `Share link: ${title}` });
+
+  await expect(cardLink).toHaveValue(new RegExp(`/r/${slugOf(otherId)}$`));
+
+  // Read again: "Published" and its link, no publish button.
+  await page.reload();
+  await expect(published).toHaveText("Published", { timeout: 30_000 });
+  await expect(cardLink).toHaveValue(new RegExp(`/r/${slugOf(otherId)}$`));
+  await expect(card.getByRole("button", { name: /Publish & copy link/ })).toHaveCount(0);
 });

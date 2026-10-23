@@ -135,7 +135,9 @@ function enhancedSource(id: string, caption: string): CharacterGenerationRecipe[
  * (`SaveImage` `9`). The caption is stored and sent exactly as given; the graph never runs the
  * upsampler (`characterCaptionDefinition` does, as its own generation). Scalar-only: nothing is
  * uploaded. The seed is resolved once (a random one when the input has none) and the size
- * defaults to `defaults.json`'s, so the recipe holds every value the graph is built from.
+ * defaults to `defaults.json`'s, so the recipe holds every value the graph is built from. A done
+ * image stays private until its owner publishes it (`publish: "on-request"`): the FLUX Kommunity
+ * licence asks for outputs to be reviewed (or filtered) before they are distributed.
  */
 export const characterGenerationDefinition: WorkflowDefinition<
   CharacterGenerationInput,
@@ -176,6 +178,7 @@ export const characterGenerationDefinition: WorkflowDefinition<
     },
   }),
   promptOf: (recipe) => recipe.caption,
+  publish: "on-request",
   // A recipe made with another workflow file cannot be rendered again by this one.
   rebase: (recipe, { seed, target }) =>
     recipe.workflow.sha256 === imageWorkflow.sha256

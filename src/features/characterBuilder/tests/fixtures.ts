@@ -101,7 +101,8 @@ export const imageGenerationFixture: GenerationSnapshot = Object.freeze(
     parent_id: null,
     poster_asset_id: null,
     progress: 100,
-    share_slug: "1a2b3c4d5e6f7a8b",
+    // A character image stays private until its owner publishes it.
+    share_slug: null,
     status: "done",
     submitted_at: "2026-10-23T10:01:02.000Z",
   }),
@@ -132,6 +133,7 @@ export const savedCharacterFixture: CharacterSummary = Object.freeze(
       ],
       workflow: { id: CHARACTER_GENERATION_WORKFLOW, sha256: "d".repeat(64), version: 1 },
     },
+    share_slug: null,
     slug: null,
     title: "Street musician",
     updated_at: null,

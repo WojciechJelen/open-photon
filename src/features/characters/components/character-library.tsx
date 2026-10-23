@@ -158,7 +158,8 @@ export function CharacterLibrary({
             <span>
               One library for this installation, shared by everyone who has an access code here:
               they all see, rename and animate the same characters. Uploaded photos are shown only
-              with a code; a generated character's image is also on its generation's share page.
+              with a code; a generated character's image is public only once someone here publishes
+              it.
             </span>
           </p>
           {search.draft?.motion && (
@@ -191,6 +192,7 @@ export function CharacterLibrary({
                 draft={search.draft}
                 favorites={favorites ?? false}
                 onFavorite={(character) => void toggleFavorite(character)}
+                onPublished={(character, slug) => replace({ ...character, share_slug: slug })}
                 onRename={startRename}
                 onRetry={reload}
                 pendingFavorite={pendingFavorite}
@@ -309,6 +311,7 @@ function Results({
   draft,
   favorites,
   onFavorite,
+  onPublished,
   onRename,
   onRetry,
   pendingFavorite,
@@ -319,6 +322,7 @@ function Results({
   draft: LibrarySearch["draft"];
   favorites: boolean;
   onFavorite: (character: CharacterSummary) => void;
+  onPublished: (character: CharacterSummary, slug: string) => void;
   onRename: (character: CharacterSummary) => void;
   onRetry: () => void;
   pendingFavorite: string | null;
@@ -423,6 +427,7 @@ function Results({
                 favoritePending={pendingFavorite === character.id}
                 label={labels.get(character.id) ?? ""}
                 onFavorite={() => onFavorite(character)}
+                onPublished={(slug) => onPublished(character, slug)}
                 onRename={() => onRename(character)}
                 ref={character.id === selected ? selectedCard : undefined}
                 selected={character.id === selected}

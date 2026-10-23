@@ -85,6 +85,9 @@ test("a done image generation run through the fake provider is saved once: its o
     models: [],
     workflow: imageRecipe(prompt, 42).workflow,
   });
+  // The test workflow publishes on done: its share page is the character's.
+  assert.match(character.share_slug ?? "", /^[0-9a-f]{16}$/);
+  assert.equal(character.share_slug, (await readGeneration(id))?.share_slug);
   assert.deepEqual(getCharacter(character.id), character);
   assert.equal(count("generation_id = ?", id), 1);
 });

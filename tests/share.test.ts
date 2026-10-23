@@ -139,7 +139,7 @@ test("a share page reads its done generation with absolute media URLs; any other
   }
 });
 
-test("a share page names a sample character, with its public image, and never an uploaded one", () => {
+test("a share page names a sample character, with its public image, and never an uploaded one, and says when the character is AI-generated", () => {
   const [sample] = listSampleCharacters();
   const now = new Date().toISOString();
 
@@ -152,9 +152,10 @@ test("a share page names a sample character, with its public image, and never an
 
   assert.ok(sample && upload);
 
-  for (const [characterId, expected] of [
-    [sample.id, sample.title],
-    [String(upload.id), null],
+  // A sample character is an AI-generated image; an uploaded photo is not.
+  for (const [characterId, expected, generated] of [
+    [sample.id, sample.title, true],
+    [String(upload.id), null, false],
   ] as const) {
     const { id } = createGeneration(motionTransferDefinition, {
       characterId,
@@ -176,10 +177,10 @@ test("a share page names a sample character, with its public image, and never an
 
     const slug = transition(id, "finalizing", "done", { outputs: { video: result.id } }).share_slug;
 
-    assert.equal(
-      readShare(slug ?? "", "https://photon.example")?.character?.title ?? null,
-      expected,
-    );
+    const share = readShare(slug ?? "", "https://photon.example");
+
+    assert.equal(share?.character?.title ?? null, expected);
+    assert.equal(share?.characterGenerated, generated);
   }
 });
 

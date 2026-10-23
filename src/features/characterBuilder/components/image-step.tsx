@@ -33,6 +33,7 @@ import {
   withCharacter,
 } from "#/features/motionTransfer/api";
 import { Viewfinder } from "#/shared/components/brand";
+import { PublishLink } from "#/shared/components/publish-link";
 import type { GenerationSnapshot } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 import { isFinished } from "#/shared/use-live-generation";
@@ -66,9 +67,9 @@ const headingId = "builder-image-title";
 
 /**
  * Step 3: the image. Its progress while it renders; why it failed and what to do; then the
- * picture with the caption and seed it was made from, a download, and the explicit "Save to
- * library". Once saved: open it in the library, or animate it (Motion Transfer, with the draft
- * the visitor came with).
+ * picture with the caption and seed it was made from, a download, the explicit "Save to library"
+ * and "Publish & copy link" (it stays private until then). Once saved: open it in the library, or
+ * animate it (Motion Transfer, with the draft the visitor came with).
  */
 export function ImageStep(props: Props) {
   return (
@@ -213,6 +214,9 @@ function LiveImage(props: Props & { initial: GenerationSnapshot }) {
       </figure>
       <div className="flex min-w-0 flex-1 flex-col gap-6">
         <SaveCharacter {...props} generationId={generation.id} />
+        <div className="rounded-2xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-5">
+          <PublishLink generationId={generation.id} slug={generation.share_slug} />
+        </div>
         {props.notice}
         <dl
           aria-label="Made with"

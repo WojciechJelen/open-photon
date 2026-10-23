@@ -1,5 +1,3 @@
-import { getRequest } from "@tanstack/react-start/server";
-
 import { mediaUrl } from "../../../shared/media.ts";
 import { readOutputs } from "../../../shared/server/generation/generations.ts";
 import { workflowModelFiles } from "../../../shared/server/models-lock.ts";
@@ -10,22 +8,15 @@ import { COMPARE_OUTPUT } from "./media/compare.ts";
 import { sampleMotionTitle, sourceClip } from "./shot.ts";
 
 /**
- * The origin absolute links (Open Graph tags, the share link) start with: `PUBLIC_APP_URL` when
- * set, which a deployment behind a proxy needs, else the origin of the request being served.
- */
-export function publicOrigin() {
-  return new URL(process.env.PUBLIC_APP_URL ?? getRequest().url).origin;
-}
-
-/**
  * What `/r/:slug` shows of a Motion Transfer generation, or `null` for a slug no done one has: its
  * named outputs (`outputs`; the result and its poster as `final` and `poster`, with absolute URLs
  * from `origin` for the Open Graph tags, and its side-by-side as `compare`, `null` when its stitch
  * failed) and the source clip with its sample title if it is one,
  * the character as a visitor without a session may see it (`visibleCharacter`: a sample's, never
- * an uploaded photo), the recipe, and the model files the recipe's workflow loads, with their
- * licenses once `models.lock` pins them (`null` when the stored workflow file is no longer the
- * recipe's).
+ * an uploaded photo), whether that character is an AI-generated image (`characterGenerated`, said
+ * even when its image stays private), the recipe, and the model files the recipe's workflow
+ * loads, with their licenses once `models.lock` pins them (`null` when the stored workflow file is
+ * no longer the recipe's).
  */
 export function readShare(slug: string, origin: string) {
   const row = /^[0-9a-f]{16}$/.test(slug) ? findShared(slug) : null;
@@ -50,6 +41,7 @@ export function readShare(slug: string, origin: string) {
   return {
     character: visibleCharacter(character, false),
     compare: outputs.find(({ name }) => name === COMPARE_OUTPUT)?.asset ?? null,
+    characterGenerated: character?.origin === "generated",
     final,
     finishedAt: row.finished_at,
     models,

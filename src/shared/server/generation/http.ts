@@ -4,7 +4,9 @@ import type { GenerationReceipt } from "../../contracts.ts";
 import { readJsonBody, readSession, type Session } from "../access.server.ts";
 import { comfyProvider, type Provider } from "../comfy-provider.ts";
 import { requesterKeys, returnToken, takeToken } from "../limits.ts";
+import { publicOrigin } from "../public-origin.ts";
 import { GenerateError } from "./errors.ts";
+import { publishGeneration } from "./generations.ts";
 import type { Admit } from "./service.ts";
 
 /**
@@ -138,4 +140,31 @@ export function generationIdParam(value: string) {
   const id = z.uuid().safeParse(value);
 
   return id.success ? id.data : Response.json({ error: "Invalid generation ID" }, { status: 400 });
+}
+
+/**
+ * `POST /api/generations/:id/publish` (no body): publishes a done generation
+ * (`publishGeneration`) and answers 200 `generationPublicationSchema`, its `share_slug` and the
+ * absolute `url` of its share page (`publicOrigin`), the same whether it was published now or
+ * before; 400 for a malformed id, else the refusal's status with `{ error, reason }`. Not public:
+ * the access guard answers 401 without a session.
+ */
+export function handlePublish(request: Request, value: string) {
+  const id = generationIdParam(value);
+
+  if (id instanceof Response) {
+    return id;
+  }
+
+  try {
+    const slug = publishGeneration(id);
+
+    return Response.json({ share_slug: slug, url: `${publicOrigin(request.url)}/r/${slug}` });
+  } catch (error) {
+    if (!(error instanceof GenerateError)) {
+      throw error;
+    }
+
+    return Response.json({ error: error.message, reason: error.reason }, { status: error.status });
+  }
 }

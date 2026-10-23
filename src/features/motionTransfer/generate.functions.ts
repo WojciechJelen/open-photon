@@ -22,7 +22,7 @@ export const loadResult = createServerFn({ method: "GET" })
     const { accessUrl } = await import("#/shared/server/access-page.server");
     const { readResult } = await import("#/features/motionTransfer/server/generate");
     const { readGenerationResult } = await import("#/shared/server/generation/pages");
-    const { publicOrigin } = await import("#/features/motionTransfer/server/share");
+    const { publicOrigin } = await import("#/shared/server/public-origin");
     const signedIn = readSession(getRequest()) !== null;
     const motionTransfer = readResult(data, signedIn);
     const other = motionTransfer ? null : readGenerationResult(data);
@@ -35,7 +35,7 @@ export const loadResult = createServerFn({ method: "GET" })
       throw redirect({ href: accessUrl(`/g/${result.generation.id}`), reloadDocument: true });
     }
 
-    return result && { ...result, origin: publicOrigin(), signedIn };
+    return result && { ...result, origin: publicOrigin(getRequest().url), signedIn };
   });
 
 /**
@@ -46,9 +46,11 @@ export const loadResult = createServerFn({ method: "GET" })
 export const loadShare = createServerFn({ method: "GET" })
   .validator(z.string())
   .handler(async ({ data }) => {
-    const { publicOrigin, readShare } = await import("#/features/motionTransfer/server/share");
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const { readShare } = await import("#/features/motionTransfer/server/share");
     const { readGenerationShare } = await import("#/shared/server/generation/pages");
-    const origin = publicOrigin();
+    const { publicOrigin } = await import("#/shared/server/public-origin");
+    const origin = publicOrigin(getRequest().url);
     const motionTransfer = readShare(data, origin);
     const other = motionTransfer ? null : readGenerationShare(data, origin);
 

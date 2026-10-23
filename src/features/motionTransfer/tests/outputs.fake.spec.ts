@@ -1,12 +1,16 @@
 import { expect, test } from "@playwright/test";
 
 import { expectCurrentCategory, open } from "../../../../tests/e2e/session.ts";
-import { generationReceiptSchema, generationSchema } from "../../../shared/contracts.ts";
+import {
+  generationPublicationSchema,
+  generationReceiptSchema,
+  generationSchema,
+} from "../../../shared/contracts.ts";
 
-// On the fake provider's server (project `fake`): a character image's result page `/g/:id` and
-// public share page `/r/:slug`, which show it by its outputs whatever workflow made it, say it is
-// AI-generated (the FLUX Kommunity licence asks for it), its download is named so, and the main
-// navigation marks Image current there, not Video.
+// On the fake provider's server (project `fake`): a character image's result page `/g/:id` and,
+// once its owner publishes it, its public share page `/r/:slug`, which show it by its outputs
+// whatever workflow made it, say it is AI-generated (the FLUX Kommunity licence asks for it), its
+// download is named so, and the main navigation marks Image current there, not Video.
 test("an image output says it is AI-generated on its result and share pages, and downloads as ai-generated-<id>", async ({
   browser,
   page,
@@ -53,11 +57,24 @@ test("an image output says it is AI-generated on its result and share pages, and
   );
   await expectCurrentCategory(page, "Image");
 
+  // Private until published: no share page.
+  expect(generation.share_slug).toBeNull();
+
+  const published = await request.post(`/api/generations/${receipt.id}/publish`);
+  const { share_slug } = generationPublicationSchema.parse(await published.json());
+
+  expect(published.status()).toBe(200);
+
   // Its share page, to anyone: the label and the alt text, and nothing of its caption.
   const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
   const visitor = await anonymous.newPage();
 
-  await open(visitor, `/r/${generation.share_slug}`);
+  await open(visitor, `/r/${share_slug}`);
+  await expect(visitor).toHaveTitle("AI-generated image · Open Photon");
+  await expect(visitor.locator('meta[property="og:title"]')).toHaveAttribute(
+    "content",
+    "AI-generated image · Open Photon",
+  );
   await expect(visitor.getByText("AI-generated image", { exact: true })).toBeVisible();
   await expect(
     visitor.getByRole("img", { name: "AI-generated image, made with Open Photon" }),

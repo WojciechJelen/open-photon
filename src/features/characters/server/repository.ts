@@ -5,7 +5,11 @@ import { z } from "zod";
 
 import { findAsset } from "../../../shared/server/assets.ts";
 import { database } from "../../../shared/server/db.server.ts";
-import { isSharedOutput, readOutputs } from "../../../shared/server/generation/generations.ts";
+import {
+  findGeneration,
+  isSharedOutput,
+  readOutputs,
+} from "../../../shared/server/generation/generations.ts";
 import { readGenerationProvenance } from "../../../shared/server/generation/provenance.ts";
 import {
   type CharacterProvenance,
@@ -41,7 +45,10 @@ const storedCharacterSchema = characterSchema.extend({
   updated_at: z.iso.datetime().nullable(),
 });
 
-/** The row with its image; `null` when the image is not stored (a database once without FKs). */
+/**
+ * The row with its image and, for one saved from a generation, that generation's `share_slug`;
+ * `null` when the image is not stored (a database once without FKs).
+ */
 function summarize(row: Record<string, SQLOutputValue> | undefined): CharacterSummary | null {
   if (row === undefined) {
     return null;
@@ -50,7 +57,14 @@ function summarize(row: Record<string, SQLOutputValue> | undefined): CharacterSu
   const character = storedCharacterSchema.parse(row);
   const image = findAsset(character.image_asset_id);
 
-  return image ? characterSummarySchema.parse({ ...character, image }) : null;
+  const shareSlug =
+    character.generation_id === null
+      ? null
+      : (findGeneration(character.generation_id)?.share_slug ?? null);
+
+  return image
+    ? characterSummarySchema.parse({ ...character, image, share_slug: shareSlug })
+    : null;
 }
 
 /** A character that must exist, as it is stored now. */

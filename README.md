@@ -124,6 +124,11 @@ grants non-commercial use (§2.a(i)); running it in production to generate outpu
 use is granted only to Qualifying Users (§2.a(ii): you and your affiliates under US$5M gross
 annualized revenue), and only if you filter outputs for unlawful, unsafe or infringing content or
 review them before distribution (§2.e(i)), and disclose that outputs are AI-generated to the
-extent applicable law requires (§2.e(ii)). Open Photon itself implements neither filtering nor a
-disclosure. Read the licence before deploying. Exact files, revisions, hashes and
-the workflow's origin: `src/features/characterBuilder/workflows/README.md`.
+extent applicable law requires (§2.e(ii)). What Open Photon does: it discloses (a generated image
+is labelled AI-generated wherever the app shows it, an image's share page is titled "AI-generated
+image", image downloads are named `ai-generated-…`, and a Motion Transfer share page says when its
+character is AI-generated); it runs no content filter; and a generated character image stays
+private to the workspace until its owner checks it and chooses "Publish & copy link", which gives
+it its public share page. Whether that is enough for your deployment, and whether you are a
+Qualifying User, is yours to judge: read the licence before deploying. Exact files, revisions,
+hashes and the workflow's origin: `src/features/characterBuilder/workflows/README.md`.

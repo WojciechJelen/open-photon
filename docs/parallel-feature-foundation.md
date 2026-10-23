@@ -47,6 +47,7 @@ one per workflow version, owned by its feature (`src/features/motionTransfer/wor
 | `seedOf`, `rebase(recipe, { seed, target })` | The recipe's seed, and the recipe a re-run (same seed) or retry (new seed) renders on the current target; `null` when the workflow file changed. |
 | `promptOf` (optional) | The text prompt, read as provenance when a generated character is saved. |
 | `shareRecipe` (optional) | What the public share page `/r/:slug` (`readGenerationShare`) shows of the recipe; without it, the stored recipe. The character image leaves out the enhanced caption, a private text output. |
+| `publish` (optional) | When a done generation with a file output gets its share page: `"on-done"` (the default, Motion Transfer) as it becomes done; `"on-request"` (the character image) only when its owner publishes it (`publishGeneration`, `POST /api/generations/:id/publish`). |
 
 The registry is `workflows` in the same file: `src/app/server.ts` sets the composed definitions
 with `workflows.compose([...])`; tests add theirs with `workflows.register`. Duplicate
@@ -78,6 +79,8 @@ Client-safe contracts are in `src/shared/contracts.ts`:
 
 - `generationReceiptSchema`: `{ id, reused }`, plus `status: "waiting"` and `position` when the
   generation waits in line.
+- `generationPublicationSchema`: `{ share_slug, url }`, the answer to
+  `POST /api/generations/:id/publish`.
 - `generationStatusSchema`: `waiting → preparing → queued → running → finalizing → done`, or
   `failed`, `unknown` (the provider may have the job; never resubmitted), `cancelled` (a waiting
   row taken out of line).
@@ -121,15 +124,28 @@ name, downloads them in order and stores the first that is not blank byte for by
 (`provider_failed`, no finalize retries). The fake provider answers a `SaveText` node with
 `tests/fixtures/fake-output.txt`.
 
-A done generation gets a `share_slug` (`/r/<slug>`) unless every output it stored is a text.
-`generationAccess` (`src/shared/server/generation/public-access.ts`) makes public: share pages,
-exactly the file outputs of done generations that have a share page (`isSharedOutput`; a text
-asset never is), and the pages and API of pre-rendered samples. `readOutputs` (what `/g/:id`,
-`/r/:slug` and `createFromGeneration` read) returns file outputs only, so a text-only generation
-has no share page and shows no output on its result page. Inputs are not public through it:
-Motion Transfer's declaration adds the source clip its share page shows; uploaded character
-images stay private. Every `/r/<slug>` and `/media/<id>.<ext>` URL that existed before the
-backfill still answers.
+A done generation gets a `share_slug` (`/r/<slug>`) as it becomes done unless every output it
+stored is a text, or its workflow publishes on request (`publish: "on-request"`): such a
+generation (a character image) stays private until its owner checks it and publishes it, the
+review before distribution the FLUX Kommunity licence asks for (§2.e(i); no content filter runs).
+`POST /api/generations/:id/publish` (no body; a session is needed) does that in one write
+(`publishGeneration` in `generations.ts`, `handlePublish` in `http.ts`) and answers 200
+`{ share_slug, url }` (`url` from `PUBLIC_APP_URL`, else the request's origin), the same slug
+again when it is published already (Motion Transfer's included); 404 `not_found`, 409 `not_done`,
+`no_file` (every output is a text) or `not_publishable` (its workflow publishes on done, so a
+missing slug is never added on request). The builder's image and a generated character's library
+card offer it as "Publish & copy link" (`PublishLink`, `src/shared/components/`); a character's
+summary carries its generation's `share_slug`. `generationAccess`
+(`src/shared/server/generation/public-access.ts`) makes public: share pages, exactly the file
+outputs of done generations that have a share page (`isSharedOutput`; a text asset never is), and
+the pages and API of pre-rendered samples. Assets are stored once by content, so the same bytes
+published by one generation are public for every generation that has them. `readOutputs` (what
+`/g/:id`, `/r/:slug` and `createFromGeneration` read) returns file outputs only, so a text-only
+generation has no share page and shows no output on its result page. Inputs are not public
+through it: Motion Transfer's declaration adds the source clip its share page shows; uploaded
+character images stay private, and a generated character's image only shows on a take's share
+page once its own generation is published (`visibleCharacter`). Every `/r/<slug>` and
+`/media/<id>.<ext>` URL that existed before the backfill still answers.
 
 An image a workflow produces is disclosed as AI-generated wherever it is shown (the FLUX
 Kommunity licence asks for it): `GeneratedImage` (`src/shared/components/`) shows an image output
@@ -138,7 +154,10 @@ share card's `og:image:alt`) and Download, and `?download=1` names an image outp
 `ai-generated-<id>.<ext>`, a `final` asset a generation lists as an output
 `open-photon-<id>-<output name>.<ext>` (Motion Transfer's `compare`:
 `open-photon-<id>-compare.mp4`), and anything else `open-photon-<id>.<ext>`, Motion
-Transfer's videos and posters included. Neither shows a recipe's enhanced caption.
+Transfer's videos and posters included. An image's share page is titled "AI-generated image ·
+Open Photon" (`<title>`, `og:title`), and a Motion Transfer share page says "The character is
+AI-generated." when its character's origin is `generated` (`characterGenerated` of `readShare`),
+even when that image is private. Neither shows a recipe's enhanced caption.
 
 ### Provider target identity
 
