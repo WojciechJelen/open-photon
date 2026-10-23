@@ -25,6 +25,8 @@ import type { ResultGenerationActionsProps } from "#/features/motionTransfer/slo
 import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
 import { Hud, PageGlow, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
+import { GeneratedImage } from "#/shared/components/generated-image";
+import { OpenWeightsBadge, SiteHeader } from "#/shared/components/site";
 import { generationReceiptSchema, type GenerationSnapshot } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 import { callApi } from "#/shared/requests";
@@ -207,11 +209,11 @@ function resultAssets(result: Result | null) {
 
 /**
  * `/g/:id` of a generation of a workflow other than Motion Transfer, by the media of its outputs:
- * its status as its event stream reports it and, once done, each image output (an image
- * generation has no poster and no video). A done snapshot lists its outputs
- * (`generationSchema`), stored with its status in one write, so done is final here: a
- * generation whose outputs are all text (a caption) shows that it has no file to show, never
- * the text.
+ * its status as its event stream reports it and, once done, each image output, labelled
+ * AI-generated, with Download (an image generation has no poster and no video). A done snapshot
+ * lists its outputs (`generationSchema`), stored with its status in one write, so done is final
+ * here: a generation whose outputs are all text (a caption) shows that it has no file to show,
+ * never the text.
  */
 function OutputsView({ data }: { data: OutputsResult }) {
   const live = useLiveGeneration(data.generation);
@@ -224,6 +226,11 @@ function OutputsView({ data }: { data: OutputsResult }) {
   return (
     <div className="relative isolate min-h-svh">
       <PageGlow />
+      <SiteHeader>
+        <span className="hidden sm:inline-flex">
+          <OpenWeightsBadge />
+        </span>
+      </SiteHeader>
       <main className="mx-auto flex w-full max-w-150 flex-col gap-6 px-4 pt-10 pb-18 sm:px-8">
         <p
           aria-label="Generation status"
@@ -240,14 +247,7 @@ function OutputsView({ data }: { data: OutputsResult }) {
           {live.providerUnavailable && " · Comfy is not answering"}
         </p>
         {images.map(({ asset, name }) => (
-          <img
-            alt={`Result: ${name}`}
-            className="w-full rounded-3xl border bg-screen"
-            height={asset.height ?? undefined}
-            key={name}
-            src={mediaUrl(asset)}
-            width={asset.width ?? undefined}
-          />
+          <GeneratedImage asset={asset} download key={name} />
         ))}
         {status === "done" && images.length === 0 && (
           <p className="text-sm text-soft-foreground">This generation has no image to show here.</p>
