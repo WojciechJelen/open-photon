@@ -135,6 +135,7 @@ grants non-commercial use (§2.a(i)); running it in production to generate outpu
 use is granted only to Qualifying Users (§2.a(ii): you and your affiliates under US$5M gross
 annualized revenue), and only if you filter outputs for unlawful, unsafe or infringing content or
 review them before distribution (§2.e(i)), and disclose that outputs are AI-generated to the
-extent applicable law requires (§2.e(ii)). Open Photon itself implements neither filtering nor a
-disclosure. Read the licence before deploying. Exact files, revisions, hashes and
+extent applicable law requires (§2.e(ii)). Open Photon implements no output filtering; it labels
+image outputs and generated characters' images "AI-generated image" (a visible label on `/g` and
+`/r`, alt text elsewhere). Read the licence before deploying. Exact files, revisions, hashes and
 the workflow's origin: `src/features/characterBuilder/workflows/README.md`.
