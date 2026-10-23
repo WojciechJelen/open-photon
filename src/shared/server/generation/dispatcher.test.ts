@@ -25,14 +25,14 @@ import {
 } from "./generations.ts";
 import { submit, submitMany } from "./service.ts";
 
-// `comfyProvider` (the default of every call below) is the fake, each job running for 5 × 50 ms
-// after its submit, so a place in flight stays taken while a request looks (`refreshInFlight`).
-// The target still resolves, as the fake needs (`.env.example`): a self-hosted dead port, so
-// nothing could reach a real Comfy. One generation in flight at a time.
+// `comfyProvider` (the default of every call below) is the fake, its jobs done once submitted;
+// a test that needs the place in flight to stay taken holds its jobs running (`gated`). The
+// target still resolves, as the fake needs (`.env.example`): a self-hosted dead port, so nothing
+// could reach a real Comfy. One generation in flight at a time.
 const environment = {
   COMFY_API_KEY: "",
   COMFY_BASE_URL: "http://127.0.0.1:1",
-  COMFY_FAKE_STEP_MS: "50",
+  COMFY_FAKE_STEP_MS: "0",
   COMFY_PROVIDER: "fake",
   COMFY_PROXY_TOKEN: "",
   GENERATION_DISPATCH_MS: "20",
@@ -68,20 +68,39 @@ async function until(ready: () => boolean, what: string) {
   }
 }
 
-/** The fake provider, recording the prompt of each graph it is sent, in order. */
-function recording() {
+/**
+ * The fake provider, recording the prompt of each graph it is sent, in order, and reporting every
+ * job `running` (no outputs) until `release()`: a place in flight stays taken however long a
+ * request takes to look (`refreshInFlight`), with no timing to race.
+ */
+function gated() {
   const prompts: string[] = [];
+  let held = true;
 
   const provider: Provider = {
     ...comfyProvider,
+    job: async (id) => {
+      const job = await comfyProvider.job(id);
+
+      return held ? { ...job, getOutputs: () => [], status: "running" } : job;
+    },
     submit: (graph, key) => {
-      prompts.push(String(graph["2"]?.inputs.text));
+      const text = graph["2"]?.inputs.text;
+
+      assert.equal(typeof text, "string");
+      prompts.push(typeof text === "string" ? text : "");
 
       return comfyProvider.submit(graph, key);
     },
   };
 
-  return { prompts, provider };
+  return {
+    prompts,
+    provider,
+    release: () => {
+      held = false;
+    },
+  };
 }
 
 /** A row as a stopped server left it, made directly (`createGeneration`, claimed by this process). */
@@ -141,7 +160,7 @@ async function restart(ids: string[]) {
 }
 
 test("with one place in flight, five generations complete in order with no event stream open, one provider submit each", async () => {
-  const { prompts, provider } = recording();
+  const { prompts, provider, release } = gated();
   const before = fakeProvider.calls.submit;
   const prompt = (index: number) => `In order ${index}`;
   const receipts: GenerationReceipt[] = [];
@@ -161,6 +180,8 @@ test("with one place in flight, five generations complete in order with no event
       ["waiting", 4],
     ],
   );
+
+  release();
 
   const dispatcher = startDispatcher({ provider });
 
@@ -191,19 +212,22 @@ test("with one place in flight, five generations complete in order with no event
 });
 
 test("a generation waits in line behind those before it, even when a place opens before the dispatcher runs", async () => {
-  const blocker = await submit(imageDefinition, { prompt: "Holds the place" }, { scope });
-  const waiting = await submit(imageDefinition, { prompt: "First in line" }, { scope });
+  const { provider, release } = gated();
+  const blocker = await submit(imageDefinition, { prompt: "Holds the place" }, { provider, scope });
+  const waiting = await submit(imageDefinition, { prompt: "First in line" }, { provider, scope });
 
   assert.deepEqual([waiting.status, waiting.position], ["waiting", 1]);
 
   // The place opens, but the line is not empty: a new request does not overtake it.
   transition(blocker.id, "queued", "failed", { error_code: "provider_failed" });
 
-  const later = await submit(imageDefinition, { prompt: "Second in line" }, { scope });
+  const later = await submit(imageDefinition, { prompt: "Second in line" }, { provider, scope });
 
   assert.deepEqual([later.status, later.position], ["waiting", 2]);
 
-  const dispatcher = startDispatcher();
+  release();
+
+  const dispatcher = startDispatcher({ provider });
 
   try {
     await until(
@@ -225,8 +249,19 @@ test("a stopped dispatcher claims nothing more", async () => {
 
   await dispatcher.stop();
 
-  const blocker = await submit(imageDefinition, { prompt: "After the stop, first" }, { scope });
-  const waiting = await submit(imageDefinition, { prompt: "After the stop, second" }, { scope });
+  const { provider } = gated();
+
+  const blocker = await submit(
+    imageDefinition,
+    { prompt: "After the stop, first" },
+    { provider, scope },
+  );
+
+  const waiting = await submit(
+    imageDefinition,
+    { prompt: "After the stop, second" },
+    { provider, scope },
+  );
 
   transition(blocker.id, "queued", "failed", { error_code: "provider_failed" });
 
@@ -463,4 +498,113 @@ test("a request key returns the generation it made without resolving the input a
     reason: "request_key_conflict",
     status: 409,
   });
+
+  // Its place in flight is free again for the tests below.
+  transition(first.id, "queued", "failed", { error_code: "provider_failed" });
+});
+
+test("every item's answer is kept under its key: a repeated request with a cancelled item and its duplicate stores and charges nothing", () => {
+  const requestKey = crypto.randomUUID();
+  const items = [{ prompt: "Twice in one request" }, { prompt: "Twice in one request" }];
+  const first = submitMany(imageDefinition, items, { requestKey, scope });
+
+  assert.deepEqual(
+    first.map(({ reused }) => reused),
+    [false, true],
+  );
+  cancelWaiting(first[0]?.id ?? "");
+
+  const before = { rows: rows(), used: used() };
+  const again = submitMany(imageDefinition, items, { requestKey, scope });
+
+  assert.deepEqual(
+    again.map(({ id, reused }) => [id, reused]),
+    first.map(({ id, reused }) => [id, reused]),
+  );
+  assert.deepEqual({ rows: rows(), used: used() }, before);
+});
+
+test("two requests with one key while the cap is refreshed: one stores a generation and pays, the other gets it back; another code's key is refused after the wait too", async () => {
+  const { provider, release } = gated();
+
+  const blocker = await submit(
+    imageDefinition,
+    { prompt: "Holds the place, keyed" },
+    { provider, scope },
+  );
+
+  const requestKey = crypto.randomUUID();
+  const before = { rows: rows(), used: used() };
+  let admitted = 0;
+
+  const admit = () => {
+    admitted++;
+  };
+
+  // Two seeds, as two blank-seed requests draw: the key, not the recipe, decides.
+  const [one, two] = await Promise.all([
+    submit(
+      imageDefinition,
+      { prompt: "Keyed, raced", seed: 1 },
+      { admit, provider, requestKey, scope },
+    ),
+    submit(
+      imageDefinition,
+      { prompt: "Keyed, raced", seed: 2 },
+      { admit, provider, requestKey, scope },
+    ),
+  ]);
+
+  assert.deepEqual(two, one);
+  assert.equal(one?.status, "waiting");
+  assert.deepEqual(
+    { admitted, rows: rows(), used: used() },
+    { admitted: 1, rows: before.rows + 1, used: before.used + 1 },
+  );
+
+  const other = { free: () => false, session: { codeId: findAccessCode(mintCode(5))?.id ?? "" } };
+
+  await assert.rejects(
+    submit(
+      imageDefinition,
+      { prompt: "Keyed, raced", seed: 1 },
+      { provider, requestKey, scope: other },
+    ),
+    { reason: "request_key_conflict", status: 409 },
+  );
+
+  release();
+  cancelWaiting(one?.id ?? "");
+  transition(blocker.id, "queued", "failed", { error_code: "provider_failed" });
+});
+
+test("a provider that cannot be reached is asked less and less often, and its row keeps its state and download attempts", async () => {
+  let calls = 0;
+
+  const unreachable: Provider = {
+    ...comfyProvider,
+    job: (id) => {
+      calls += id === `job-${row.id}` ? 1 : 0;
+
+      return Promise.reject(new TypeError("fetch failed"));
+    },
+  };
+
+  const row = createGeneration(imageDefinition, {
+    recipe: imageRecipe("Comfy is down", 7),
+    target: providerTarget(),
+  });
+
+  markQueued(row.id, `job-${row.id}`);
+
+  const dispatcher = startDispatcher({ intervalMs: 20, provider: unreachable });
+
+  // Fifteen 20 ms polls: without a backoff each would ask; with it, the waits double from 20 ms.
+  await delay(300);
+  await dispatcher.stop();
+
+  assert.ok(calls >= 2 && calls <= 7, `asked ${calls} times`);
+  assert.deepEqual([statusOf(row.id), findGeneration(row.id)?.finalize_attempts], ["queued", 0]);
+
+  transition(row.id, "queued", "failed", { error_code: "provider_failed" });
 });
