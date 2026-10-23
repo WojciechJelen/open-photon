@@ -2,7 +2,6 @@ import { randomInt } from "node:crypto";
 import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
-import { workflows } from "../../../app/server.ts";
 import { generationSchema } from "../../contracts.ts";
 import { findAccessCodeById } from "../access-codes.ts";
 import type { Session } from "../access.server.ts";
@@ -12,7 +11,7 @@ import { comfyProvider, type Provider, providerError } from "../comfy-provider.t
 import { providerTarget } from "../comfy-target.ts";
 import { inFlightMax } from "../limits.ts";
 import { assetsDirectory } from "../paths.ts";
-import type { WorkflowDefinition, WorkflowRecipe } from "./definition.ts";
+import { type WorkflowDefinition, type WorkflowRecipe, workflows } from "./definition.ts";
 import { GenerateError } from "./errors.ts";
 import { finalize } from "./finalize.ts";
 import {
