@@ -16,16 +16,14 @@ const directory = args.find((arg) => arg !== "--verify-only");
 if (!directory)
   throw new Error("Usage: node scripts/install-models.mjs /path/to/ComfyUI/models [--verify-only]");
 
-// A Hugging Face token (`HF_TOKEN`) for gated repositories: Black Forest Labs' FLUX 3 Image Klein
-// files need an account that accepted the FLUX Kommunity License on the model page. It is sent to
-// huggingface.co only; its CDN redirects are followed without it.
+// The one gated repository a lock pins: Black Forest Labs' FLUX 3 Image Klein files need a Hugging
+// Face account that accepted the FLUX Kommunity License on the model page, and its token
+// (`HF_TOKEN`). The token is sent to that repository's URLs only, never to the public ones; fetch
+// drops `Authorization` on a redirect to another origin (the CDN), so it stays on huggingface.co.
+const GATED_REPOSITORY = "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/";
 const hfToken = process.env.HF_TOKEN?.trim() || undefined;
 
-function downloadHeaders(url) {
-  return hfToken && new URL(url).hostname === "huggingface.co"
-    ? { Authorization: `Bearer ${hfToken}` }
-    : {};
-}
+const isGated = (url) => url.startsWith(GATED_REPOSITORY);
 
 // Every feature's models.lock (the one beside its runtime workflows), merged; a workflow that loads
 // models without a lock, or a file two features pin differently, stops here, before any download.
@@ -73,14 +71,14 @@ for (const model of models) {
 
   try {
     const response = await fetch(model.url, {
-      headers: downloadHeaders(model.url),
+      headers: hfToken && isGated(model.url) ? { Authorization: `Bearer ${hfToken}` } : {},
       signal: AbortSignal.timeout(3_600_000),
     });
 
-    if (response.status === 401 || response.status === 403)
+    if (isGated(model.url) && (response.status === 401 || response.status === 403))
       throw new Error(
         `Model download refused (HTTP ${response.status}): ${model.file} is in a gated repository. ` +
-          `Accept its licence on ${model.url.split("/resolve/")[0]} and set HF_TOKEN to a token of that account.`,
+          `Accept the FLUX Kommunity License on ${GATED_REPOSITORY.slice(0, -1)} and set HF_TOKEN to a token of that account.`,
       );
 
     if (!response.ok || !response.body)

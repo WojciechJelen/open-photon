@@ -133,9 +133,9 @@ export type CharacterCaptionRecipe = z.output<typeof recipeSchema>;
  * The caption enhancement, `character-caption.v1`, for the generation service: the description and
  * controls compiled into a request (`compileCharacterRequest`, recomputed here, never taken from a
  * client) and expanded by FLUX 3's prompt upsampler into one full caption, the text output
- * `caption` (`SaveText` `18:13`). Scalar-only, so no upload. The upsampler decodes greedily (top_k
- * 1, as BFL's card and Comfy's template set it), so the seed, resolved once and recorded, does not
- * change the caption: the same request gives the same caption.
+ * `caption` (`SaveText` `18:13`). Scalar-only, so no upload. The upsampler samples with Comfy's
+ * template settings, whose top_k 1 keeps only the most likely token, so the seed, resolved once
+ * and recorded, does not change the caption: the same request gives the same caption.
  */
 export const characterCaptionDefinition: WorkflowDefinition<
   CharacterCaptionInput,
