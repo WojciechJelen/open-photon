@@ -19,10 +19,11 @@ import {
   createGeneration,
   findGeneration,
   type Generation,
+  markQueued,
   markSubmitting,
   transition,
 } from "./generations.ts";
-import { submit } from "./service.ts";
+import { submit, submitMany } from "./service.ts";
 
 // `comfyProvider` (the default of every call below) is the fake, each job running for 5 × 50 ms
 // after its submit, so a place in flight stays taken while a request looks (`refreshInFlight`).
@@ -331,6 +332,115 @@ test("recovery in this process: a never-sent preparing row goes back in line whe
   assert.equal(statusOf(second.id), "unknown");
 
   cancelWaiting(first.id);
+});
+
+test("submitMany checks every item first: one invalid item stores nothing and charges nothing", () => {
+  const before = { rows: rows(), used: used() };
+
+  assert.throws(
+    () =>
+      submitMany(imageDefinition, [{ prompt: "Fine" }, { prompt: "" }, { prompt: "Also fine" }], {
+        requestKey: crypto.randomUUID(),
+        scope,
+      }),
+    { reason: "invalid_input", status: 422 },
+  );
+  assert.deepEqual({ rows: rows(), used: used() }, before);
+});
+
+test("submitMany with quota for two of three new items stores nothing", () => {
+  const small = mintCode(2);
+  const smallScope = { free: () => false, session: { codeId: findAccessCode(small)?.id ?? "" } };
+  const before = rows();
+
+  assert.throws(
+    () =>
+      submitMany(
+        imageDefinition,
+        [{ prompt: "Quota one" }, { prompt: "Quota two" }, { prompt: "Quota three" }],
+        { requestKey: crypto.randomUUID(), scope: smallScope },
+      ),
+    { reason: "code_exhausted", status: 403 },
+  );
+  assert.equal(rows(), before);
+  assert.equal(used(small), 0);
+});
+
+test("submitMany stores every new item in line at once; the same request key returns the same receipts and stores nothing", () => {
+  const requestKey = crypto.randomUUID();
+  const items = [{ prompt: "Batch one" }, { prompt: "Batch two" }, { prompt: "Batch three" }];
+  const before = { rows: rows(), used: used() };
+  let admitted = 0;
+
+  const admit = () => {
+    admitted++;
+  };
+
+  const receipts = submitMany(imageDefinition, items, { admit, requestKey, scope });
+
+  assert.equal(rows(), before.rows + 3);
+  assert.equal(used(), before.used + 3);
+  assert.equal(admitted, 1);
+  assert.deepEqual(
+    receipts.map(({ position, reused, status }) => [reused, status, position]),
+    [
+      [false, "waiting", 1],
+      [false, "waiting", 2],
+      [false, "waiting", 3],
+    ],
+  );
+  assert.deepEqual(
+    receipts.map(({ id }) => {
+      const row = findGeneration(id);
+
+      return [row?.request_key, row?.batch_key];
+    }),
+    items.map((_, index) => [`${requestKey}#${index}`, requestKey]),
+  );
+
+  const repeated = submitMany(imageDefinition, items, { admit, requestKey, scope });
+
+  assert.deepEqual(repeated, receipts);
+  assert.equal(rows(), before.rows + 3);
+  assert.equal(used(), before.used + 3);
+  assert.equal(admitted, 1);
+
+  for (const { id } of receipts) {
+    cancelWaiting(id);
+  }
+
+  assert.equal(used(), before.used);
+});
+
+test("a reused result inside a request costs nothing and takes no place in line, nor does an item repeating another", () => {
+  const done = createGeneration(imageDefinition, {
+    accessCodeId: session.codeId,
+    recipe: imageRecipe("Already made", 7),
+    target: providerTarget(),
+  });
+
+  markQueued(done.id, `job-${done.id}`);
+  transition(done.id, "queued", "finalizing");
+  transition(done.id, "finalizing", "done");
+
+  const before = { rows: rows(), used: used() };
+
+  const receipts = submitMany(
+    imageDefinition,
+    [{ prompt: "Already made" }, { prompt: "Made once" }, { prompt: "Made once" }],
+    { requestKey: crypto.randomUUID(), scope },
+  );
+
+  assert.deepEqual(receipts[0], { id: done.id, reused: true });
+  assert.deepEqual(
+    receipts.map(({ reused }) => reused),
+    [true, false, true],
+  );
+  assert.equal(receipts[2]?.id, receipts[1]?.id);
+  assert.equal(rows(), before.rows + 1);
+  assert.equal(used(), before.used + 1);
+
+  cancelWaiting(receipts[1]?.id ?? "");
 });
 
 test("a request key returns the generation it made without resolving the input again; another code's request with it is a 409", async () => {

@@ -2,6 +2,8 @@ import { randomInt } from "node:crypto";
 import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
+import { z } from "zod";
+
 import type { GenerationReceipt } from "../../contracts.ts";
 import { findAccessCodeById } from "../access-codes.ts";
 import type { Session } from "../access.server.ts";
@@ -9,7 +11,9 @@ import { findBySha256 } from "../assets.ts";
 import type { AssetReference } from "../comfy-assets.ts";
 import { comfyProvider, type Provider, providerError } from "../comfy-provider.ts";
 import { providerTarget } from "../comfy-target.ts";
+import { database } from "../db.server.ts";
 import { inFlightMax } from "../limits.ts";
+import { transaction } from "../migrate.ts";
 import { assetsDirectory } from "../paths.ts";
 import {
   type PreparedRecipe,
@@ -498,6 +502,133 @@ export async function submit<Input, Recipe extends WorkflowRecipe>(
   });
 
   return submitRecipe(definition, prepared, options);
+}
+
+/**
+ * Starts every item of one request at once, or none. Each item is checked against the
+ * definition's input schema first: any invalid item is a 422 `invalid_input` naming it, and
+ * nothing is stored. Then, in one `BEGIN IMMEDIATE` transaction, each item resolves its recipe
+ * and is either an existing generation (`reused`: the same recipe done or on its way, or an
+ * earlier item of this request; never charged, never in line twice) or new. The access code must
+ * afford every new one (`used + new <= max_generations`, else the request's 403
+ * `code_exhausted`), then they are all stored `waiting`, in order, for the dispatcher, each with
+ * `request_key = <requestKey>#<index>` and `batch_key = <requestKey>`: the same request again
+ * returns the same generations and stores nothing. A refusal anywhere stores nothing. `admit`
+ * (one rate-limit token for the request) runs once, only when something new is stored. Refunds
+ * are a single generation's: a `waiting` row cancelled, or one that fails before the provider
+ * took it.
+ */
+export function submitMany<Input, Recipe extends WorkflowRecipe>(
+  definition: WorkflowDefinition<Input, Recipe>,
+  inputs: readonly unknown[],
+  {
+    admit = admitAll,
+    provider = comfyProvider,
+    requestKey,
+    scope,
+  }: Omit<SubmitOptions, "requestKey"> & { requestKey: string },
+): GenerationReceipt[] {
+  if (inputs.length === 0) {
+    throw new GenerateError(422, "A request needs at least one item.", "invalid_input");
+  }
+
+  const items = inputs.map((input, index) => {
+    const parsed = definition.inputSchema.safeParse(input);
+
+    if (!parsed.success) {
+      throw new GenerateError(
+        422,
+        `Item ${index + 1} is not a valid input: ${z.prettifyError(parsed.error)}`,
+        "invalid_input",
+      );
+    }
+
+    return parsed.data;
+  });
+
+  const target = targetOf(provider);
+
+  return transaction(database, () => {
+    // The new rows to store, by recipe hash, each with the first item that asked for it.
+    const fresh = new Map<string, { key: string; prepared: PreparedRecipe<Recipe> }>();
+
+    type Planned =
+      | { made: Generation }
+      | { existing: Generation }
+      | { hash: string; reused: boolean };
+
+    const plan = items.map((input, index): Planned => {
+      const key = `${requestKey}#${index}`;
+      const made = findByRequestKey(definition.id, key);
+
+      if (made) {
+        return { made };
+      }
+
+      const prepared = definition.prepareRecipe(input, { target });
+      const { hash, recipe } = hashRecipe(definition, prepared.recipe);
+
+      inputFiles(definition, recipe);
+
+      const existing = existingFor(definition, hash);
+
+      if (existing && (scope.session || scope.free(existing))) {
+        return { existing };
+      }
+
+      // An item with the recipe of an earlier new one gets that one's row, as a reused result.
+      if (fresh.has(hash)) {
+        return { hash, reused: true };
+      }
+
+      fresh.set(hash, { key, prepared: { ...prepared, recipe } });
+
+      return { hash, reused: false };
+    });
+
+    const stored = new Map<string, Omit<Generation, "recipe">>();
+
+    if (fresh.size > 0) {
+      const code = payingCode(scope, fresh.size);
+
+      refuseWhenClosed();
+      admit();
+
+      for (const [hash, { key, prepared }] of fresh) {
+        stored.set(
+          hash,
+          createGeneration(definition, {
+            accessCodeId: code.id,
+            batchKey: requestKey,
+            characterId: prepared.characterId,
+            motionId: prepared.motionId,
+            recipe: prepared.recipe,
+            requestKey: key,
+            status: "waiting",
+            target,
+          }),
+        );
+      }
+    }
+
+    return plan.map((item) => {
+      if ("made" in item) {
+        return replayed(item.made, scope);
+      }
+
+      if ("existing" in item) {
+        return receiptOf(item.existing, true);
+      }
+
+      const row = stored.get(item.hash);
+
+      if (!row) {
+        throw new Error(`No row was stored for recipe ${item.hash}`);
+      }
+
+      return receiptOf(row, item.reused);
+    });
+  });
 }
 
 /**
