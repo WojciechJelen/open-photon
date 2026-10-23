@@ -102,8 +102,15 @@ export async function readJsonBody<T>(request: Request, schema: z.ZodType<T>, li
   return body.success ? { data: body.data } : { error: z.prettifyError(body.error) };
 }
 
-/** The code a login carries: the `/access` form's `code` field, or `POST /api/session`'s `{ code }`. */
-async function readCode(request: Request, form: boolean) {
+/**
+ * The code a login carries: the `/access` form's `code` field, `POST /api/session`'s `{ code }`,
+ * or a link's `GET /access?code=`.
+ */
+async function readCode(request: Request, kind: "form" | "json" | "link") {
+  if (kind === "link") {
+    return new URL(request.url).searchParams.get("code");
+  }
+
   const type = request.headers.get("Content-Type") ?? "";
   const body = await readLimitedBody(request, 4096);
 
@@ -111,7 +118,7 @@ async function readCode(request: Request, form: boolean) {
     return null;
   }
 
-  if (form) {
+  if (kind === "form") {
     return type.startsWith("application/x-www-form-urlencoded")
       ? new URLSearchParams(body).get("code")
       : null;
@@ -194,10 +201,11 @@ export function serverFnRefusal(request: Request, meta: { filename: string; name
 
 /**
  * The access guard, the global request middleware (`src/start.ts`). `/access` (the code form, for
- * a page opened without a session) and `POST /api/session` (`{ code }` → 204, for the app's own
- * inline form) exchange a code for the session cookie; both pay into the same login limits. A
- * request with a session goes on. One without a session goes on only if `isPublicRequest` lets
- * it (an allowlist: a URL it does not know, an alias of a public one included, needs the code);
+ * a page opened without a session, and `GET /access?code=<code>&next=<path>`, a link that signs
+ * in on opening) and `POST /api/session` (`{ code }` → 204, for the app's own inline form)
+ * exchange a code for the session cookie; all three pay into the same login limits. A request
+ * with a session goes on. One without a session goes on only if `isPublicRequest` lets it (an
+ * allowlist: a URL it does not know, an alias of a public one included, needs the code);
  * otherwise a page asked for redirects to `/access?next=<it>` and anything else is a 401.
  */
 export function createAccessGuard(
@@ -213,7 +221,7 @@ export function createAccessGuard(
    * then from the instance's (`LOGIN_TOTAL_RATE_LIMIT`, default 300); a right code gives both
    * back, so only wrong codes count, and one client guessing cannot lock out anyone else.
    */
-  async function login(request: Request, form: boolean) {
+  async function login(request: Request, kind: "form" | "json" | "link") {
     const client = requesterKeys(request, null);
     const instance = ["instance"];
     const wait = takeToken("login", client, now());
@@ -230,7 +238,7 @@ export function createAccessGuard(
       return { status: 429 as const, retryAfter: busy };
     }
 
-    const supplied = await readCode(request, form);
+    const supplied = await readCode(request, kind);
     const code = supplied ? findAccessCode(supplied) : null;
 
     if (!code) {
@@ -261,15 +269,23 @@ export function createAccessGuard(
     if (url.pathname === "/access") {
       const next = nextPath(url);
 
-      if (request.method === "GET") {
+      const link = request.method === "GET";
+
+      if (link && !url.searchParams.get("code")) {
         return page(next);
       }
 
-      if (request.method !== "POST") {
+      if (!link && request.method !== "POST") {
         return respond("Method not allowed", 405, { Allow: "GET, POST" });
       }
 
-      const result = await login(request, true);
+      // A link that carries the code (`?code=`) signs in like the form, unless the visitor
+      // already is; a wrong one shows the form (200), whose action drops `code`, so no loop.
+      if (link && readSession(request, now)) {
+        return respond("", 303, { Location: next });
+      }
+
+      const result = await login(request, link ? "link" : "form");
 
       if (result.status === 429) {
         return respond(`Too many attempts. Try again in ${result.retryAfter} s.`, 429, {
@@ -278,7 +294,7 @@ export function createAccessGuard(
       }
 
       return result.status === 401
-        ? page(next, "Incorrect access code. Please try again.", 401)
+        ? page(next, "Incorrect access code. Please try again.", link ? 200 : 401)
         : respond("", 303, { Location: next, "Set-Cookie": result.cookie });
     }
 
@@ -287,7 +303,7 @@ export function createAccessGuard(
         return respond("Method not allowed", 405, { Allow: "POST" });
       }
 
-      const result = await login(request, false);
+      const result = await login(request, "json");
 
       if (result.status === 429) {
         return refusal(

@@ -191,6 +191,37 @@ test.describe("without a session", () => {
     await expect(tile).toHaveAttribute("data-reason", "rate_limited");
     await expect(tile.getByRole("alert")).toContainText("Too many uploads");
   });
+
+  test("on a phone, a link that carries the code lands on the builder signed in; reopened, it asks nothing", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+
+    const link = `/access?code=${encodeURIComponent(accessCode())}&next=%2Fcharacters%2Fnew`;
+    const landed = async () => {
+      await expect(page).toHaveURL(
+        (url) => url.pathname === "/characters/new" && url.search === "",
+      );
+      await expect(page.getByRole("heading", { name: "Describe your character" })).toBeVisible();
+      await expect(page.getByText("Code active")).toBeVisible();
+    };
+
+    await open(page, link);
+    await landed();
+    expect((await page.context().cookies()).map((cookie) => cookie.name)).toEqual([
+      "photon_access",
+    ]);
+
+    await open(page, link);
+    await landed();
+
+    // A wrong code: the form with the error, still at the builder's `next`, and no session.
+    await page.context().clearCookies();
+    await page.goto("/access?code=not-the-code&next=%2Fcharacters%2Fnew");
+    await expect(page.getByRole("status")).toHaveText("Incorrect access code. Please try again.");
+    await expect(page.getByLabel("Access code")).toBeVisible();
+    expect(await page.context().cookies()).toEqual([]);
+  });
 });
 
 test("uploads are limited at every URL the router sends to them: any letter case, a trailing slash", async ({
