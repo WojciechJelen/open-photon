@@ -51,9 +51,16 @@ export const SEEDED_JOB_ID = "e2e-seeded-job";
 /** The provider job id of the `queued` generation `seed.ts` adds; no provider ever saw it. */
 export const QUEUED_JOB_ID = "e2e-queued-job";
 
-/** Runs `use` on the e2e server's database (`playwright.config.ts`), read-only unless `write`. */
-function query<T>(use: (database: DatabaseSync) => T, write = false) {
-  const database = new DatabaseSync(process.env.E2E_DATABASE_PATH ?? "", { readOnly: !write });
+/**
+ * Runs `use` on an e2e server's database (`playwright.config.ts`), read-only unless `write`: the
+ * dead-port server's by default, the fake provider's with `E2E_FAKE_DATABASE_PATH`.
+ */
+function query<T>(
+  use: (database: DatabaseSync) => T,
+  write = false,
+  databasePath = process.env.E2E_DATABASE_PATH ?? "",
+) {
+  const database = new DatabaseSync(databasePath, { readOnly: !write });
 
   try {
     return use(database);
@@ -62,10 +69,12 @@ function query<T>(use: (database: DatabaseSync) => T, write = false) {
   }
 }
 
-/** Counts rows in the e2e server's database. */
-export function count(sql: string) {
-  return query((database) =>
-    Number(database.prepare(`SELECT count(*) AS count FROM ${sql}`).get()?.count),
+/** Counts rows in an e2e server's database (the dead-port server's by default). */
+export function count(sql: string, databasePath?: string) {
+  return query(
+    (database) => Number(database.prepare(`SELECT count(*) AS count FROM ${sql}`).get()?.count),
+    false,
+    databasePath,
   );
 }
 
@@ -105,11 +114,15 @@ export function addQueuedGeneration() {
 }
 
 /** Deletes the generation `id` and its outputs' rows (a test's own, never a seeded one). */
-function removeGeneration(id: string) {
-  query((database) => {
-    database.prepare("DELETE FROM generation_outputs WHERE generation_id = ?").run(id);
-    database.prepare("DELETE FROM generations WHERE id = ?").run(id);
-  }, true);
+function removeGeneration(id: string, databasePath?: string) {
+  query(
+    (database) => {
+      database.prepare("DELETE FROM generation_outputs WHERE generation_id = ?").run(id);
+      database.prepare("DELETE FROM generations WHERE id = ?").run(id);
+    },
+    true,
+    databasePath,
+  );
 }
 
 /**
@@ -217,64 +230,72 @@ export function finishGeneration(id: string) {
 /**
  * Adds, for each sample character (by title), a done pre-rendered take with the seeded result and
  * poster, as `scripts/prerender-samples.mjs` leaves one after finalize: its outputs, a share slug
- * and `is_prerendered = 1`. Returns them (title, id, share slug) and a function that removes them.
+ * and `is_prerendered = 1`, in the database at `databasePath` (the dead-port server's by
+ * default). Returns them (title, id, share slug) and a function that removes them.
  */
-export function addPrerenderedTakes() {
-  const takes = query((database) =>
-    database
-      .prepare(
-        `SELECT characters.id AS character_id, characters.title, assets.sha256
-        FROM characters JOIN assets ON assets.id = characters.image_asset_id
-        WHERE characters.is_sample = 1 ORDER BY characters.title`,
-      )
-      .all()
-      .map((row) => ({
-        characterId: String(row.character_id),
-        id: randomUUID(),
-        imageSha256: String(row.sha256),
-        shareSlug: randomUUID().replaceAll("-", "").slice(0, 16),
-        title: String(row.title),
-      })),
+export function addPrerenderedTakes(databasePath?: string) {
+  const takes = query(
+    (database) =>
+      database
+        .prepare(
+          `SELECT characters.id AS character_id, characters.title, assets.sha256
+          FROM characters JOIN assets ON assets.id = characters.image_asset_id
+          WHERE characters.is_sample = 1 ORDER BY characters.title`,
+        )
+        .all()
+        .map((row) => ({
+          characterId: String(row.character_id),
+          id: randomUUID(),
+          imageSha256: String(row.sha256),
+          shareSlug: randomUUID().replaceAll("-", "").slice(0, 16),
+          title: String(row.title),
+        })),
+    false,
+    databasePath,
   );
 
-  query((database) => {
-    for (const take of takes) {
-      database
-        .prepare(
-          `INSERT INTO generations (id, character_id, workflow_id, workflow_version, recipe,
-            recipe_hash, idempotency_key, provider_job_id, target, target_origin, status, progress,
-            final_asset_id, poster_asset_id, share_slug, is_prerendered, created_at, submitted_at,
-            finished_at)
-          SELECT ?, ?, workflow_id, workflow_version,
-            json_set(recipe, '$.inputs.reference_image_sha256', ?), ?, ?, ?, target,
-            target_origin, 'done', 100, final_asset_id, poster_asset_id, ?, 1, created_at,
-            submitted_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-          FROM generations WHERE provider_job_id = ?`,
-        )
-        .run(
-          take.id,
-          take.characterId,
-          take.imageSha256,
-          createHash("sha256").update(take.id).digest("hex"),
-          randomUUID(),
-          `e2e-prerendered-${take.id}`,
-          take.shareSlug,
-          SEEDED_JOB_ID,
-        );
-      database
-        .prepare(
-          `INSERT INTO generation_outputs (generation_id, name, asset_id)
-          SELECT ?, name, asset_id FROM generation_outputs
-          WHERE generation_id = (SELECT id FROM generations WHERE provider_job_id = ?)`,
-        )
-        .run(take.id, SEEDED_JOB_ID);
-    }
-  }, true);
+  query(
+    (database) => {
+      for (const take of takes) {
+        database
+          .prepare(
+            `INSERT INTO generations (id, character_id, workflow_id, workflow_version, recipe,
+              recipe_hash, idempotency_key, provider_job_id, target, target_origin, status,
+              progress, final_asset_id, poster_asset_id, share_slug, is_prerendered, created_at,
+              submitted_at, finished_at)
+            SELECT ?, ?, workflow_id, workflow_version,
+              json_set(recipe, '$.inputs.reference_image_sha256', ?), ?, ?, ?, target,
+              target_origin, 'done', 100, final_asset_id, poster_asset_id, ?, 1, created_at,
+              submitted_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+            FROM generations WHERE provider_job_id = ?`,
+          )
+          .run(
+            take.id,
+            take.characterId,
+            take.imageSha256,
+            createHash("sha256").update(take.id).digest("hex"),
+            randomUUID(),
+            `e2e-prerendered-${take.id}`,
+            take.shareSlug,
+            SEEDED_JOB_ID,
+          );
+        database
+          .prepare(
+            `INSERT INTO generation_outputs (generation_id, name, asset_id)
+            SELECT ?, name, asset_id FROM generation_outputs
+            WHERE generation_id = (SELECT id FROM generations WHERE provider_job_id = ?)`,
+          )
+          .run(take.id, SEEDED_JOB_ID);
+      }
+    },
+    true,
+    databasePath,
+  );
 
   return {
     remove: () => {
       for (const { id } of takes) {
-        removeGeneration(id);
+        removeGeneration(id, databasePath);
       }
     },
     takes,

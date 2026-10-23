@@ -11,7 +11,9 @@ reproducible recipes. Characters come from a workspace library: describe
 one and render it with the open-weights FLUX 3 Image Klein (`/characters/new`), or
 upload a photo with the person's consent, then find and animate it from
 `/characters`. Motion presets (`/presets`) start a take from a ready-made motion, look and
-seed, each shown by a real example render: add a character and generate.
+seed, each shown by a real example render: add a character and generate. Explore (`/explore`)
+shows the finished sample takes with their source, result and recipe, and remakes any of them
+with your own character.
 
 **Try it:** [open-photon-staging.up.railway.app](https://open-photon-staging.up.railway.app/). The
 home page, the samples and every share page open without a code. Judges: use the link in the

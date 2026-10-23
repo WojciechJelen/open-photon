@@ -7,6 +7,7 @@ import { characterCaptionDefinition } from "../features/characterBuilder/workflo
 import { characterGenerationDefinition } from "../features/characterBuilder/workflows/definition.ts";
 import { charactersAccess } from "../features/characters/server/public-access.ts";
 import { seedSampleCharacters } from "../features/characters/server/seed.ts";
+import { exploreAccess } from "../features/explore/server/public-access.ts";
 import { motionTransferAccess } from "../features/motionTransfer/server/public-access.ts";
 import { seedSampleMotions } from "../features/motionTransfer/server/samples.ts";
 import { motionTransferDefinition } from "../features/motionTransfer/workflows/definition.ts";
@@ -27,6 +28,7 @@ export const { isIndexable, isPublicAsset, isPublicRequest, isPublicServerFn } =
     characterBuilderAccess,
     motionTransferAccess,
     presetsAccess,
+    exploreAccess,
   ],
 );
 

@@ -22,6 +22,8 @@ import { Route as BatchesIndexRouteImport } from './routes/batches.index'
 import { Route as BatchesBatchIdRouteImport } from './routes/batches.$batchId'
 import { Route as CharactersIndexRouteImport } from './routes/characters.index'
 import { Route as CharactersNewRouteImport } from './routes/characters.new'
+import { Route as ExploreIndexRouteImport } from './routes/explore.index'
+import { Route as ExploreSlugRouteImport } from './routes/explore.$slug'
 import { Route as GGenerationIdRouteImport } from './routes/g.$generationId'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
 import { Route as PresetsIndexRouteImport } from './routes/presets.index'
@@ -104,6 +106,16 @@ const CharactersIndexRoute = CharactersIndexRouteImport.update({
 const CharactersNewRoute = CharactersNewRouteImport.update({
   id: '/characters/new',
   path: '/characters/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploreIndexRoute = ExploreIndexRouteImport.update({
+  id: '/explore/',
+  path: '/explore/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploreSlugRoute = ExploreSlugRouteImport.update({
+  id: '/explore/$slug',
+  path: '/explore/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GGenerationIdRoute = GGenerationIdRouteImport.update({
@@ -218,12 +230,14 @@ export interface FileRoutesByFullPath {
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
   '/characters/new': typeof CharactersNewRoute
+  '/explore/$slug': typeof ExploreSlugRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
   '/batches/': typeof BatchesIndexRoute
   '/characters/': typeof CharactersIndexRoute
+  '/explore/': typeof ExploreIndexRoute
   '/presets/': typeof PresetsIndexRoute
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
@@ -251,12 +265,14 @@ export interface FileRoutesByTo {
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
   '/characters/new': typeof CharactersNewRoute
+  '/explore/$slug': typeof ExploreSlugRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
   '/batches': typeof BatchesIndexRoute
   '/characters': typeof CharactersIndexRoute
+  '/explore': typeof ExploreIndexRoute
   '/presets': typeof PresetsIndexRoute
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
@@ -285,12 +301,14 @@ export interface FileRoutesById {
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
   '/characters/new': typeof CharactersNewRoute
+  '/explore/$slug': typeof ExploreSlugRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
   '/batches/': typeof BatchesIndexRoute
   '/characters/': typeof CharactersIndexRoute
+  '/explore/': typeof ExploreIndexRoute
   '/presets/': typeof PresetsIndexRoute
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
@@ -320,12 +338,14 @@ export interface FileRouteTypes {
     | '/api/uploads'
     | '/batches/$batchId'
     | '/characters/new'
+    | '/explore/$slug'
     | '/g/$generationId'
     | '/media/$filename'
     | '/presets/$presetId'
     | '/r/$slug'
     | '/batches/'
     | '/characters/'
+    | '/explore/'
     | '/presets/'
     | '/api/batches/$batchId'
     | '/api/characters/$characterId'
@@ -353,12 +373,14 @@ export interface FileRouteTypes {
     | '/api/uploads'
     | '/batches/$batchId'
     | '/characters/new'
+    | '/explore/$slug'
     | '/g/$generationId'
     | '/media/$filename'
     | '/presets/$presetId'
     | '/r/$slug'
     | '/batches'
     | '/characters'
+    | '/explore'
     | '/presets'
     | '/api/batches/$batchId'
     | '/api/characters/$characterId'
@@ -386,12 +408,14 @@ export interface FileRouteTypes {
     | '/api/uploads'
     | '/batches/$batchId'
     | '/characters/new'
+    | '/explore/$slug'
     | '/g/$generationId'
     | '/media/$filename'
     | '/presets/$presetId'
     | '/r/$slug'
     | '/batches/'
     | '/characters/'
+    | '/explore/'
     | '/presets/'
     | '/api/batches/$batchId'
     | '/api/characters/$characterId'
@@ -420,12 +444,14 @@ export interface RootRouteChildren {
   ApiUploadsRoute: typeof ApiUploadsRoute
   BatchesBatchIdRoute: typeof BatchesBatchIdRoute
   CharactersNewRoute: typeof CharactersNewRoute
+  ExploreSlugRoute: typeof ExploreSlugRoute
   GGenerationIdRoute: typeof GGenerationIdRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
   PresetsPresetIdRoute: typeof PresetsPresetIdRoute
   RSlugRoute: typeof RSlugRoute
   BatchesIndexRoute: typeof BatchesIndexRoute
   CharactersIndexRoute: typeof CharactersIndexRoute
+  ExploreIndexRoute: typeof ExploreIndexRoute
   PresetsIndexRoute: typeof PresetsIndexRoute
   ApiDebugHeartbeatRoute: typeof ApiDebugHeartbeatRoute
   ApiDebugStreamsRoute: typeof ApiDebugStreamsRoute
@@ -525,6 +551,20 @@ declare module '@tanstack/react-router' {
       path: '/characters/new'
       fullPath: '/characters/new'
       preLoaderRoute: typeof CharactersNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore/': {
+      id: '/explore/'
+      path: '/explore'
+      fullPath: '/explore/'
+      preLoaderRoute: typeof ExploreIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore/$slug': {
+      id: '/explore/$slug'
+      path: '/explore/$slug'
+      fullPath: '/explore/$slug'
+      preLoaderRoute: typeof ExploreSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/g/$generationId': {
@@ -732,12 +772,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiUploadsRoute: ApiUploadsRoute,
   BatchesBatchIdRoute: BatchesBatchIdRoute,
   CharactersNewRoute: CharactersNewRoute,
+  ExploreSlugRoute: ExploreSlugRoute,
   GGenerationIdRoute: GGenerationIdRoute,
   MediaFilenameRoute: MediaFilenameRoute,
   PresetsPresetIdRoute: PresetsPresetIdRoute,
   RSlugRoute: RSlugRoute,
   BatchesIndexRoute: BatchesIndexRoute,
   CharactersIndexRoute: CharactersIndexRoute,
+  ExploreIndexRoute: ExploreIndexRoute,
   PresetsIndexRoute: PresetsIndexRoute,
   ApiDebugHeartbeatRoute: ApiDebugHeartbeatRoute,
   ApiDebugStreamsRoute: ApiDebugStreamsRoute,
