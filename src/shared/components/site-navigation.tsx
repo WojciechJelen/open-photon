@@ -15,7 +15,7 @@ type Tool = {
   description: string;
   icon: NavigationIconName;
   label: string;
-} & ({ to: "/motionTransfer" } | { disabled: true });
+} & ({ to: "/characters" | "/motionTransfer" } | { disabled: true });
 
 type NavigationEntry = { label: string } & ({ disabled: true } | { tools: Tool[] });
 
@@ -71,12 +71,11 @@ const navigation: NavigationEntry[] = [
   {
     label: "Library",
     tools: [
-      //TODO: https://linear.app/devs3/issue/DEV-293
       {
         description: "Find and reuse your workspace's characters.",
-        disabled: true,
         icon: "characters",
         label: "Characters",
+        to: "/characters",
       },
     ],
   },
@@ -100,8 +99,11 @@ function ToolDescription({ tool }: { tool: Tool }) {
 export function SiteNavigation() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
-  const motionTransfer =
-    pathname === "/motionTransfer" || pathname.startsWith("/g/") || pathname.startsWith("/r/");
+  // Each tool's pages: Motion Transfer's wizard and its takes' pages, the library's pages.
+  const inTool = (to: "/characters" | "/motionTransfer") =>
+    to === "/motionTransfer"
+      ? pathname === "/motionTransfer" || pathname.startsWith("/g/") || pathname.startsWith("/r/")
+      : pathname === to || pathname.startsWith(`${to}/`);
 
   return (
     <nav aria-label="Main" className="flex flex-wrap items-center gap-0.5 sm:gap-1">
@@ -121,7 +123,7 @@ export function SiteNavigation() {
           );
         }
 
-        const active = motionTransfer && entry.tools.some((tool) => "to" in tool);
+        const active = entry.tools.some((tool) => "to" in tool && inTool(tool.to));
 
         return (
           <DropdownMenu key={entry.label}>

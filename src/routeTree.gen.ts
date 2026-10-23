@@ -15,6 +15,7 @@ import { Route as ApiCharacterGenerationsRouteImport } from './routes/api.charac
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiGenerateRouteImport } from './routes/api.generate'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
+import { Route as CharactersIndexRouteImport } from './routes/characters.index'
 import { Route as GGenerationIdRouteImport } from './routes/g.$generationId'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
@@ -56,6 +57,11 @@ const ApiGenerateRoute = ApiGenerateRouteImport.update({
 const ApiUploadsRoute = ApiUploadsRouteImport.update({
   id: '/api/uploads',
   path: '/api/uploads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CharactersIndexRoute = CharactersIndexRouteImport.update({
+  id: '/characters/',
+  path: '/characters/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GGenerationIdRoute = GGenerationIdRouteImport.update({
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
+  '/characters/': typeof CharactersIndexRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
+  '/characters': typeof CharactersIndexRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
+  '/characters/': typeof CharactersIndexRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
+    | '/characters/'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
+    | '/characters'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
+    | '/characters/'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
@@ -259,6 +271,7 @@ export interface RootRouteChildren {
   GGenerationIdRoute: typeof GGenerationIdRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
   RSlugRoute: typeof RSlugRoute
+  CharactersIndexRoute: typeof CharactersIndexRoute
   ApiDebugHeartbeatRoute: typeof ApiDebugHeartbeatRoute
   ApiDebugStreamsRoute: typeof ApiDebugStreamsRoute
   ApiGenerationsGenerationIdRoute: typeof ApiGenerationsGenerationIdRouteWithChildren
@@ -307,6 +320,13 @@ declare module '@tanstack/react-router' {
       path: '/api/uploads'
       fullPath: '/api/uploads'
       preLoaderRoute: typeof ApiUploadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/characters/': {
+      id: '/characters/'
+      path: '/characters'
+      fullPath: '/characters/'
+      preLoaderRoute: typeof CharactersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/g/$generationId': {
@@ -440,6 +460,7 @@ const rootRouteChildren: RootRouteChildren = {
   GGenerationIdRoute: GGenerationIdRoute,
   MediaFilenameRoute: MediaFilenameRoute,
   RSlugRoute: RSlugRoute,
+  CharactersIndexRoute: CharactersIndexRoute,
   ApiDebugHeartbeatRoute: ApiDebugHeartbeatRoute,
   ApiDebugStreamsRoute: ApiDebugStreamsRoute,
   ApiGenerationsGenerationIdRoute: ApiGenerationsGenerationIdRouteWithChildren,
