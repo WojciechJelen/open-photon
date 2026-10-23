@@ -5,7 +5,7 @@ import { copyFile, stat } from "node:fs/promises";
 import test from "node:test";
 
 import { isPublicRequest } from "../src/app/server.ts";
-import { listSampleCharacters } from "../src/features/motionTransfer/server/characters.server.ts";
+import { listSampleCharacters } from "../src/features/characters/api.ts";
 import { readResult } from "../src/features/motionTransfer/server/generate.ts";
 import { readShare } from "../src/features/motionTransfer/server/share.ts";
 import { motionTransferDefinition } from "../src/features/motionTransfer/workflows/definition.ts";

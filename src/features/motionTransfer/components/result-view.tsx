@@ -4,6 +4,7 @@ import { type ComponentType, useState, useSyncExternalStore } from "react";
 
 import { Button } from "#/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
+import type { PickableCharacter } from "#/features/characters";
 import {
   type CompareView,
   ComparePlayer,
@@ -11,7 +12,6 @@ import {
 import { RecipePanel } from "#/features/motionTransfer/components/recipe-panel";
 import type { ChildState } from "#/features/motionTransfer/components/render-ended";
 import { ShareLink } from "#/features/motionTransfer/components/share-link";
-import type { PickableCharacter } from "#/features/motionTransfer/contracts";
 import type { DraftSnapshot, MotionTransferDraft } from "#/features/motionTransfer/draft";
 import type { Recipe } from "#/features/motionTransfer/server/recipe";
 import type { ResultGenerationActionsProps } from "#/features/motionTransfer/slots";

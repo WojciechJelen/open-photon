@@ -4,8 +4,8 @@ import { copyFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
 
+import { seedDatabase } from "../src/app/server.ts";
 import { classifyVideo } from "../src/features/motionTransfer/server/media/clip.ts";
-import { seedSamples } from "../src/features/motionTransfer/server/samples.ts";
 import { readSelection, readStudio } from "../src/features/motionTransfer/server/selection.ts";
 import { motionTransferDefinition } from "../src/features/motionTransfer/workflows/definition.ts";
 import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
@@ -29,7 +29,7 @@ function count(sql: string) {
 test("seeding the samples again leaves the same characters and motions", () => {
   assert.equal(count("characters WHERE is_sample = 1 AND origin = 'generated'"), 3);
   assert.equal(count("motions"), 1);
-  seedSamples(database);
+  seedDatabase();
   assert.equal(count("characters WHERE is_sample = 1 AND origin = 'generated'"), 3);
   assert.equal(count("motions"), 1);
   assert.equal(count("assets WHERE role = 'sample'"), 4);

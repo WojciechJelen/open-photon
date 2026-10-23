@@ -89,7 +89,7 @@ export const parseDraft = draftDecoder.parse.bind(draftDecoder);
  * with it, without touching the wizard.
  *
  * "Animate this character" (DEV-294) is `draftHref({ character: id, motion })`: the character's
- * id (a row of the picker's `pickableCharacterSchema`), and the motion when the visitor came with
+ * id (a character of the characters feature, `getCharacter`), and the motion when the visitor came with
  * one picked. With a motion, the wizard opens on Direct; without one, on motion selection, with
  * the character kept (`shownStep`).
  */

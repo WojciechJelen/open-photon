@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { expect, test } from "@playwright/test";
 
-import { characterSchema } from "../src/features/motionTransfer/contracts.ts";
+import { characterSchema } from "../src/features/characters/index.ts";
 import { open, seededResult } from "./e2e/session.ts";
 
 /** No cookies: a visitor without the access code, such as a social site's crawler. */
@@ -54,13 +54,15 @@ test("the share page opens without the code, its Open Graph tags in the server-r
 
 test("everything else stays behind the access code", async ({ baseURL, playwright, request }) => {
   // A character photo uploaded with a session: never public, even once its generation is shared.
+  // Not the picker's reference photo, which `src/features/characters/tests/character.spec.ts`
+  // (a later project) expects to upload as new.
   const uploaded = await request.post("/api/characters", {
     multipart: {
       consent: "true",
       image: {
-        buffer: readFileSync("fixtures/wan/reference.png"),
+        buffer: readFileSync("tests/fixtures/fake-output.png"),
         mimeType: "image/png",
-        name: "reference.png",
+        name: "photo.png",
       },
     },
   });

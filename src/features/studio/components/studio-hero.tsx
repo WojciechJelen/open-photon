@@ -4,7 +4,8 @@ import { useState } from "react";
 
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import type { loadStudio, PickableCharacter, SampleMotion } from "#/features/motionTransfer/api";
+import type { PickableCharacter } from "#/features/characters";
+import type { loadStudio, SampleMotion } from "#/features/motionTransfer/api";
 import { Hud, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { LoopingVideo } from "#/shared/components/looping-video";
 import { mediaUrl } from "#/shared/media";
