@@ -16,6 +16,17 @@ const directory = args.find((arg) => arg !== "--verify-only");
 if (!directory)
   throw new Error("Usage: node scripts/install-models.mjs /path/to/ComfyUI/models [--verify-only]");
 
+// A Hugging Face token (`HF_TOKEN`) for gated repositories: Black Forest Labs' FLUX 3 Image Klein
+// files need an account that accepted the FLUX Kommunity License on the model page. It is sent to
+// huggingface.co only; its CDN redirects are followed without it.
+const hfToken = process.env.HF_TOKEN?.trim() || undefined;
+
+function downloadHeaders(url) {
+  return hfToken && new URL(url).hostname === "huggingface.co"
+    ? { Authorization: `Bearer ${hfToken}` }
+    : {};
+}
+
 // Every feature's models.lock (the one beside its runtime workflows), merged; a workflow that loads
 // models without a lock, or a file two features pin differently, stops here, before any download.
 const locks = new Map();
@@ -61,7 +72,16 @@ for (const model of models) {
   const hash = createHash("sha256");
 
   try {
-    const response = await fetch(model.url, { signal: AbortSignal.timeout(3_600_000) });
+    const response = await fetch(model.url, {
+      headers: downloadHeaders(model.url),
+      signal: AbortSignal.timeout(3_600_000),
+    });
+
+    if (response.status === 401 || response.status === 403)
+      throw new Error(
+        `Model download refused (HTTP ${response.status}): ${model.file} is in a gated repository. ` +
+          `Accept its licence on ${model.url.split("/resolve/")[0]} and set HF_TOKEN to a token of that account.`,
+      );
 
     if (!response.ok || !response.body)
       throw new Error(`Model download failed: HTTP ${response.status}`);

@@ -1,0 +1,15 @@
+{
+  "workflow": "character-caption.v1.json",
+  "inputs": {
+    "request": {
+      "node": "18:11",
+      "field": "prompt",
+      "class_type": "TextGenerate"
+    },
+    "seed": {
+      "node": "18:11",
+      "field": "sampling_mode.seed",
+      "class_type": "TextGenerate"
+    }
+  }
+}

@@ -4,28 +4,41 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
+import { z } from "zod";
+
 import type { ProviderTarget } from "../../../shared/server/comfy-target.ts";
 import { hashRecipe } from "../../../shared/server/generation/generations.ts";
 import { readModelsLock } from "../../../shared/server/models-lock.ts";
 import { workflowGraphSchema } from "../../../shared/server/workflow-graph.ts";
 import {
-  characterGenerationDefinition as definition,
-  type PromptInput as CharacterGenerationInput,
-} from "../workflows/definition.ts";
+  characterCaptionInputSchema,
+  characterGenerationInputSchema,
+  compileCharacterRequest,
+} from "../contracts.ts";
+import { characterCaptionDefinition as caption } from "../workflows/caption-definition.ts";
+import { characterGenerationDefinition as image } from "../workflows/definition.ts";
 
-const WORKFLOW_FILE = "src/features/characterBuilder/workflows/character-generation.v1.json";
-const bytes = readFileSync(WORKFLOW_FILE);
-const template = workflowGraphSchema.parse(JSON.parse(bytes.toString("utf8")));
-const lock = readModelsLock("src/features/characterBuilder/workflows/models.lock");
+const WORKFLOWS = "src/features/characterBuilder/workflows";
+const imageBytes = readFileSync(`${WORKFLOWS}/character-generation.v1.json`);
+const captionBytes = readFileSync(`${WORKFLOWS}/character-caption.v1.json`);
+const imageTemplate = workflowGraphSchema.parse(JSON.parse(imageBytes.toString("utf8")));
+const captionTemplate = workflowGraphSchema.parse(JSON.parse(captionBytes.toString("utf8")));
+const lock = readModelsLock(`${WORKFLOWS}/models.lock`);
 const cloud: ProviderTarget = { kind: "cloud", origin: null };
+const selfhost: ProviderTarget = { kind: "selfhost", origin: null };
+const sha256 = (bytes: Buffer | string) => createHash("sha256").update(bytes).digest("hex");
 
-/** The recipe `definition` prepares for a request body, parsed (and trimmed) as the route does. */
-function prepare(body: CharacterGenerationInput, target = cloud) {
-  return definition.prepareRecipe(definition.inputSchema.parse(body), { target }).recipe;
+/** The recipe a definition prepares for a request body, parsed (and trimmed) as its route does. */
+function prepareImage(body: z.input<typeof characterGenerationInputSchema>, target = cloud) {
+  return image.prepareRecipe(characterGenerationInputSchema.parse(body), { target }).recipe;
+}
+
+function prepareCaption(body: z.input<typeof characterCaptionInputSchema>, target = cloud) {
+  return caption.prepareRecipe(characterCaptionInputSchema.parse(body), { target }).recipe;
 }
 
 /** Every `node.field` of `graph` with its value, as JSON. */
-function fields(graph: typeof template) {
+function fields(graph: typeof imageTemplate) {
   return new Map(
     Object.entries(graph).flatMap(([id, node]) =>
       Object.entries(node.inputs).map(([field, value]) => [
@@ -36,193 +49,290 @@ function fields(graph: typeof template) {
   );
 }
 
-test("an input becomes a recipe with the defaults, the workflow's identity and its model pins", () => {
-  const recipe = prepare({ prompt: "  A knight in silver armour  ", seed: 5 });
+/** The `[node.field, value]` pairs of `graph` that differ from `template`. */
+function changed(template: typeof imageTemplate, graph: typeof imageTemplate) {
+  const before = fields(template);
+
+  return new Set([...fields(graph)].filter(([path, value]) => before.get(path) !== value));
+}
+
+const pin = (file: string) => {
+  const model = lock.models.find((entry) => entry.file === file);
+
+  assert.ok(model, `${file} is locked`);
+
+  return { file, license: model.license, sha256: model.sha256 };
+};
+
+test("a caption request becomes a recipe with the compiled request, the upsampler and the workflow's identity", () => {
+  const controls = { appearance: " Red curly hair ", outfit: "", style: "anime" as const };
+  const recipe = prepareCaption({ controls, description: "  A street musician ", seed: 3 });
+  const system = captionTemplate["18:14"]?.inputs.value;
 
   assert.deepEqual(recipe, {
-    models: [
-      {
-        file: "flux-2-klein-4b.safetensors",
-        license: "Apache-2.0",
-        sha256: "ec3d4e733a771f61c052fb4856c48b336c55eaf2c65487c2a1faeb9bbda7a343",
-      },
-      {
-        file: "qwen_3_4b.safetensors",
-        license: "Apache-2.0",
-        sha256: "6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
-      },
-      {
-        file: "flux2-vae.safetensors",
-        license: "Apache-2.0",
-        sha256: "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3",
-      },
-    ],
-    params: { height: 1344, prompt: "A knight in silver armour", seed: 5, width: 768 },
+    controls: { appearance: "Red curly hair", style: "anime" },
+    description: "A street musician",
+    models: [pin("qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors")],
+    request: compileCharacterRequest("A street musician", {
+      appearance: "Red curly hair",
+      style: "anime",
+    }),
+    seed: 3,
     target: "cloud",
-    workflow: {
-      id: "character-generation",
-      sha256: createHash("sha256").update(bytes).digest("hex"),
-      version: 1,
+    upsampler: {
+      model: "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+      settings: {
+        max_length: 3584,
+        min_p: 0,
+        mtp: "off",
+        presence_penalty: 1.5,
+        repetition_penalty: 1.05,
+        sampling_mode: "on",
+        temperature: 1,
+        thinking: false,
+        top_k: 1,
+        top_p: 0.95,
+        use_default_template: true,
+      },
+      system_prompt: system,
     },
+    workflow: { id: "character-caption", sha256: sha256(captionBytes), version: 1 },
   });
-  assert.equal(definition.workflowHash, recipe.workflow.sha256);
-  assert.deepEqual(definition.models, recipe.models);
-  assert.deepEqual(
-    lock.models.map(({ url }) => url.split("/").slice(3, 6).join("/")),
-    Array(3).fill("Comfy-Org/Flux-2-Klein-4B/resolve"),
+  assert.match(
+    z.string().parse(system),
+    /^You are the prompt upsampler of a text-to-image model\./,
   );
-  assert.equal(definition.promptOf?.(recipe), "A knight in silver armour");
-  assert.deepEqual(definition.assetInputs(recipe), {});
+  assert.equal(caption.workflowHash, recipe.workflow.sha256);
+  assert.deepEqual(caption.models, recipe.models);
+  assert.equal(caption.promptOf?.(recipe), recipe.request);
+  assert.deepEqual(caption.assetInputs(recipe), {});
 
-  const selfhosted = prepare(
-    { height: 1024, prompt: "x", seed: 1, width: 1024 },
-    { ...cloud, kind: "selfhost" },
-  );
-
-  assert.deepEqual(
-    [selfhosted.target, selfhosted.params],
-    ["selfhost", { height: 1024, prompt: "x", seed: 1, width: 1024 }],
+  // No controls, or only blank ones, are stored as none.
+  assert.equal(prepareCaption({ description: "x", seed: 1 }).controls, null);
+  assert.equal(
+    prepareCaption({ controls: { outfit: "  " }, description: "x", seed: 1 }).controls,
+    null,
   );
 });
 
-test("the same input is the same recipe hash, through a stored round trip; another seed or size is not", () => {
-  const recipe = prepare({ prompt: "A knight", seed: 5 });
-  const { hash } = hashRecipe(definition, recipe);
-  const stored = definition.recipeSchema.parse(JSON.parse(JSON.stringify(recipe)));
+test("the caption graph binds the request and the upsampler seed only and ends in SaveText", () => {
+  const recipe = prepareCaption({ description: "A knight", seed: 77 });
+  const graph = caption.buildGraph(recipe, {});
+
+  assert.deepEqual(
+    changed(captionTemplate, graph),
+    new Set([
+      ["18:11.prompt", JSON.stringify(recipe.request)],
+      ["18:11.sampling_mode.seed", "77"],
+    ]),
+  );
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(captionTemplate).map(([id, node]) => [id, node.class_type])),
+    {
+      "18:11": "TextGenerate",
+      "18:12": "CLIPLoader",
+      "18:13": "SaveText",
+      "18:14": "PrimitiveStringMultiline",
+    },
+  );
+  assert.deepEqual(captionTemplate["18:13"]?.inputs, {
+    filename_prefix: "character_caption",
+    format: "txt",
+    text: ["18:11", 0],
+  });
+  assert.equal(captionTemplate["18:12"]?.inputs.type, "flux3");
+  assert.deepEqual(caption.outputs, [{ media: "text", name: "caption", nodeId: "18:13" }]);
+});
+
+test("an image request without an enhancement keeps the client's provenance and the caption byte for byte", () => {
+  const text = "  A knight in silver armour,\n\tfull body — «ünïcode» ✓  ";
+
+  const recipe = prepareImage({
+    caption: text,
+    seed: 5,
+    source: { controls: { style: "realistic" }, description: " A knight " },
+  });
+
+  assert.deepEqual(recipe, {
+    caption: text,
+    height: 1344,
+    models: [
+      pin("flux3-image-klein-int8-convrot.safetensors"),
+      pin("qwen3vl_4b_int8_convrot.safetensors"),
+      pin("flux2-vae.safetensors"),
+    ],
+    seed: 5,
+    source: { controls: { style: "realistic" }, description: "A knight", enhancement: null },
+    target: "cloud",
+    width: 768,
+    workflow: { id: "character-generation", sha256: sha256(imageBytes), version: 1 },
+  });
+  assert.equal(image.workflowHash, recipe.workflow.sha256);
+  assert.deepEqual(image.models, recipe.models);
+  assert.equal(image.promptOf?.(recipe), text);
+  assert.equal(image.buildGraph(recipe, {})["18:4"]?.inputs.text, text);
+  assert.deepEqual(prepareImage({ caption: "x", seed: 1 }).source, {
+    controls: null,
+    description: null,
+    enhancement: null,
+  });
+  assert.deepEqual(
+    [prepareImage({ caption: "x", seed: 1 }, selfhost).target, image.assetInputs(recipe)],
+    ["selfhost", {}],
+  );
+});
+
+test("the same image request is the same recipe hash through a stored round trip; another caption, seed or size is not", () => {
+  const body = { caption: "A knight", seed: 5 };
+  const recipe = prepareImage(body);
+  const { hash } = hashRecipe(image, recipe);
+  const stored = image.recipeSchema.parse(JSON.parse(JSON.stringify(recipe)));
 
   assert.deepEqual(stored, recipe);
-  assert.equal(hashRecipe(definition, stored).hash, hash);
-  assert.equal(hashRecipe(definition, prepare({ prompt: "A knight", seed: 5 })).hash, hash);
-  assert.equal(
-    hashRecipe(definition, prepare({ height: 1344, prompt: "A knight", seed: 5, width: 768 })).hash,
-    hash,
-  );
+  assert.equal(hashRecipe(image, stored).hash, hash);
+  assert.equal(hashRecipe(image, prepareImage({ ...body, height: 1344, width: 768 })).hash, hash);
 
   for (const other of [
-    { prompt: "A knight", seed: 6 },
-    { prompt: "A knight", seed: 5, width: 832 },
-    { prompt: "A knight!", seed: 5 },
+    { caption: "A knight ", seed: 5 },
+    { caption: "A knight", seed: 6 },
+    { caption: "A knight", seed: 5, width: 832 },
+    { caption: "A knight", seed: 5, source: { description: "x" } },
   ]) {
-    assert.notEqual(hashRecipe(definition, prepare(other)).hash, hash);
+    assert.notEqual(hashRecipe(image, prepareImage(other)).hash, hash);
   }
 
-  assert.notEqual(hashRecipe(definition, { ...recipe, target: "selfhost" }).hash, hash);
-  assert.throws(() => definition.recipeSchema.parse({ ...recipe, angle: "front" }));
+  assert.notEqual(hashRecipe(image, { ...recipe, target: "selfhost" }).hash, hash);
+  assert.throws(() => image.recipeSchema.parse({ ...recipe, prompt: "x" }));
 });
 
 test("a request without a seed gets a random one, resolved once into its recipe", () => {
-  const recipe = prepare({ prompt: "A knight" });
-  const { seed } = recipe.params;
+  const recipe = prepareImage({ caption: "A knight" });
 
-  assert.ok(Number.isSafeInteger(seed) && seed >= 0);
-  assert.equal(definition.seedOf(recipe), seed);
-  assert.deepEqual(definition.buildGraph(recipe, {})["77:73"]?.inputs.noise_seed, seed);
-  assert.equal(
-    hashRecipe(definition, definition.recipeSchema.parse(structuredClone(recipe))).hash,
-    hashRecipe(definition, recipe).hash,
-  );
+  assert.ok(Number.isSafeInteger(recipe.seed) && recipe.seed >= 0);
+  assert.equal(image.seedOf(recipe), recipe.seed);
+  assert.equal(image.buildGraph(recipe, {})["18:7"]?.inputs.seed, recipe.seed);
 
-  const seeds = new Set(
-    Array.from({ length: 8 }, () => prepare({ prompt: "A knight" }).params.seed),
-  );
+  const seeds = new Set(Array.from({ length: 8 }, () => prepareImage({ caption: "x" }).seed));
 
   assert.ok(seeds.size > 1, "eight blank-seed requests drew one seed");
+  assert.ok(Number.isSafeInteger(prepareCaption({ description: "x" }).seed));
 });
 
-test("the input schema refuses an empty or long prompt, a fractional seed and sizes FLUX.2 cannot latent", () => {
+test("the input schemas refuse blank or long captions and descriptions and sizes FLUX cannot latent", () => {
   for (const body of [
     {},
-    { prompt: "   " },
-    { prompt: "x".repeat(1001) },
-    { prompt: "x", seed: 1.5 },
-    { prompt: "x", seed: -1 },
-    { prompt: "x", width: 770 },
-    { height: 496, prompt: "x" },
-    { height: 2064, prompt: "x" },
-    { image: "a.png", prompt: "x", strict: true, width: 1.5 },
+    { caption: "" },
+    { caption: " \n\t " },
+    { caption: "x".repeat(4001) },
+    { caption: "x", seed: 1.5 },
+    { caption: "x", seed: -1 },
+    { caption: "x", width: 770 },
+    { caption: "x", height: 496 },
+    { caption: "x", height: 2064 },
+    { caption: "x", source: { caption_generation_id: "not-a-uuid" } },
+    { caption: "x", source: { description: "x".repeat(1001) } },
   ]) {
-    assert.equal(definition.inputSchema.safeParse(body).success, false, JSON.stringify(body));
+    assert.equal(image.inputSchema.safeParse(body).success, false, JSON.stringify(body));
   }
 
-  assert.equal(definition.inputSchema.safeParse({ prompt: "x".repeat(1000) }).success, true);
+  assert.equal(image.inputSchema.safeParse({ caption: "x".repeat(4000) }).success, true);
+
+  for (const body of [
+    {},
+    { description: "  " },
+    { description: "x".repeat(1001) },
+    { controls: { style: "oil" }, description: "x" },
+    { controls: { outfit: "x".repeat(201) }, description: "x" },
+  ]) {
+    assert.equal(caption.inputSchema.safeParse(body).success, false, JSON.stringify(body));
+  }
 });
 
-test("the graph binds prompt, seed and size to literal fields of their classes and nothing else", () => {
-  const recipe = prepare({ height: 1216, prompt: "A knight", seed: 42, width: 832 });
-  const snapshot = structuredClone(template);
-  const graph = definition.buildGraph(recipe, {});
-  const before = fields(template);
-
-  const changed = [...fields(graph)].filter(([path, value]) => before.get(path) !== value);
+test("the image graph binds caption, seed and size to literal fields and never runs the upsampler", () => {
+  const recipe = prepareImage({ caption: "A knight", height: 1216, seed: 42, width: 832 });
+  const snapshot = structuredClone(imageTemplate);
+  const graph = image.buildGraph(recipe, {});
 
   assert.deepEqual(
-    new Set(changed),
+    changed(imageTemplate, graph),
     new Set([
-      ["77:74.text", JSON.stringify("A knight")],
-      ["77:73.noise_seed", "42"],
-      ["77:66.width", "832"],
-      ["77:66.height", "1216"],
-      ["77:62.width", "832"],
-      ["77:62.height", "1216"],
+      ["18:4.text", JSON.stringify("A knight")],
+      ["18:7.seed", "42"],
+      ["18:6.width", "832"],
+      ["18:6.height", "1216"],
     ]),
   );
-  assert.deepEqual(template, snapshot);
+  assert.deepEqual(imageTemplate, snapshot);
   assert.deepEqual(
-    Object.fromEntries(
-      ["77:74", "77:73", "77:66", "77:62", "78"].map((id) => [id, graph[id]?.class_type]),
-    ),
-    {
-      "77:62": "Flux2Scheduler",
-      "77:66": "EmptyFlux2LatentImage",
-      "77:73": "RandomNoise",
-      "77:74": "CLIPTextEncode",
-      "78": "SaveImage",
-    },
-  );
-  assert.deepEqual(definition.outputs, [{ media: "image", name: "image", nodeId: "78" }]);
-  assert.deepEqual(graph["78"]?.inputs.images, ["77:65", 0]);
-});
-
-test("the workflow is the distilled template's core nodes, without primitives, loading only locked files", () => {
-  assert.deepEqual(
-    [...new Set(Object.values(template).map(({ class_type }) => class_type))].sort(),
+    [...new Set(Object.values(imageTemplate).map(({ class_type }) => class_type))].sort(),
     [
-      "CFGGuider",
       "CLIPLoader",
       "CLIPTextEncode",
-      "ConditioningZeroOut",
       "EmptyFlux2LatentImage",
-      "Flux2Scheduler",
-      "KSamplerSelect",
-      "RandomNoise",
-      "SamplerCustomAdvanced",
+      "KSampler",
       "SaveImage",
       "UNETLoader",
       "VAEDecode",
       "VAELoader",
     ],
   );
-  assert.deepEqual(
-    [template["77:62"]?.inputs.steps, template["77:63"]?.inputs.cfg, template["77:61"]?.inputs],
-    [4, 1, { sampler_name: "euler" }],
-  );
-  assert.equal(template["77:71"]?.inputs.type, "flux2");
+  // The distilled checkpoint's defaults (Comfy's template, BFL's card): 16 steps, no guidance.
+  assert.deepEqual(imageTemplate["18:7"]?.inputs, {
+    cfg: 1,
+    denoise: 1,
+    latent_image: ["18:6", 0],
+    model: ["18:1", 0],
+    negative: ["18:5", 0],
+    positive: ["18:4", 0],
+    sampler_name: "euler",
+    scheduler: "simple",
+    seed: imageTemplate["18:7"]?.inputs.seed,
+    steps: 16,
+  });
+  assert.equal(imageTemplate["18:2"]?.inputs.type, "flux3");
+  assert.equal(imageTemplate["18:5"]?.inputs.text, "");
+  assert.deepEqual(image.outputs, [{ media: "image", name: "image", nodeId: "9" }]);
+  assert.deepEqual(graph["9"]?.inputs.images, ["18:8", 0]);
 });
 
-test("a re-run or retry keeps the recipe but its seed and target; another workflow file's recipe is refused", () => {
-  const recipe = prepare({ prompt: "A knight", seed: 5 });
-  const selfhost = { ...cloud, kind: "selfhost" as const };
+test("a re-run or retry keeps the caption and its source but the seed and target; another workflow file's recipe is refused", () => {
+  const recipe = prepareImage({ caption: "A knight", seed: 5, source: { description: "x" } });
 
-  assert.deepEqual(definition.rebase(recipe, { seed: 9, target: selfhost }), {
+  assert.deepEqual(image.rebase(recipe, { seed: 9, target: selfhost }), {
     ...recipe,
-    params: { ...recipe.params, seed: 9 },
+    seed: 9,
     target: "selfhost",
   });
   assert.equal(
-    definition.rebase(
+    image.rebase(
       { ...recipe, workflow: { ...recipe.workflow, sha256: "0".repeat(64) } },
       { seed: 9, target: cloud },
     ),
     null,
+  );
+
+  const enhanced = prepareCaption({ description: "A knight", seed: 5 });
+
+  assert.deepEqual(caption.rebase(enhanced, { seed: 8, target: cloud }), { ...enhanced, seed: 8 });
+});
+
+test("the lock pins FLUX 3 from Black Forest Labs' repository at one commit, with the FLUX Kommunity licence on the transformer", () => {
+  assert.deepEqual(
+    lock.models.map(({ file, license }) => [file, license]),
+    [
+      ["flux3-image-klein-int8-convrot.safetensors", "FLUX-Kommunity-1.0"],
+      ["qwen3vl_4b_int8_convrot.safetensors", "Apache-2.0"],
+      ["qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors", "Apache-2.0"],
+      ["flux2-vae.safetensors", "Apache-2.0"],
+    ],
+  );
+  assert.ok(
+    lock.models
+      .filter(({ file }) => file !== "flux2-vae.safetensors")
+      .every(({ url }) =>
+        url.startsWith(
+          "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/resolve/feef60b0aaf63a4773ace96636ebbcf43b881312/",
+        ),
+      ),
   );
 });

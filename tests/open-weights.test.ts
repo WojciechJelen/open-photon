@@ -27,7 +27,7 @@ test("the workflow's five models have immutable source URLs, hashes and licenses
   assert.equal(result.status, 0, result.output);
   assert.match(
     result.output,
-    /^motionTransfer\/motion-transfer\.v1: 5 model files, 5 locked, 0 missing$/m,
+    /^motionTransfer\/motion-transfer\.v1: 5 model files, 5 locked, 0 missing \(Apache-2\.0\)$/m,
   );
   assert.equal(motionTransferModels.length, 5);
 });

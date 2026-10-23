@@ -50,7 +50,9 @@ run() {
 }
 
 # Downloads what is missing and checks every file's SHA-256 against every feature's models.lock
-# (src/features/<feature>/workflows/models.lock); a mismatch or a conflicting pin stops.
+# (src/features/<feature>/workflows/models.lock); a mismatch or a conflicting pin stops. The FLUX 3
+# Image Klein files come from a gated repository: HF_TOKEN must belong to a Hugging Face account
+# that accepted the FLUX Kommunity License, or the first boot stops before ComfyUI starts.
 run node scripts/install-models.mjs "$MODELS_DIR"
 
 mkdir -p "$COMFYUI_DATA_DIR/input" "$COMFYUI_DATA_DIR/output" "$PROXY_STATE_DIR"
