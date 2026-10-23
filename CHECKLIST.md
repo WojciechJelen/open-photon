@@ -3,7 +3,7 @@
 Historical implementation log. Each checked item records evidence from that step,
 not a guarantee about the current checkout or published image. Old paths, commands,
 test counts and deployment settings below describe their original revisions.
-Current setup is in [README.md](README.md#getting-started).
+Current setup is in [README.md](README.md#setup).
 
 ## Deployment evidence after the Docker simplification
 

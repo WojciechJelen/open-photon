@@ -21,7 +21,8 @@ submission form; it signs you in and opens the character builder (`/characters/n
   <img src="docs/readme/maya-character-and-take.jpg" height="220" alt="Left: the Maya character as FLUX 3 Image Klein rendered her from a description; right: a frame of her Wan Animate 2 take">
 </p>
 <p align="center"><sub>Left: a take's side-by-side download, driving clip | result (cropped, as a GIF).
-Right: a character FLUX 3 Image Klein rendered from a one-line description, beside a frame of
+Right: a character FLUX 3 Image Klein rendered from a short description and three controls,
+expanded by the prompt upsampler, beside a frame of
 Wan Animate 2 animating her. Both from a pre-rendered sample take;
 <a href="docs/readme/README.md">how they were cut</a>.</sub></p>
 
@@ -31,7 +32,7 @@ Wan Animate 2 animating her. Both from a pre-rendered sample take;
 
 ### Run the containerized app
 
-Put one backend in `.env` ([Comfy Cloud or Runpod](#choose-a-rendering-backend)), then:
+With Docker installed, put one backend in `.env` ([Comfy Cloud or Runpod](#choose-a-rendering-backend)), then:
 
 ```sh
 docker run -d --name open-photon --init --env-file .env -p 127.0.0.1:3030:3000 \
@@ -48,7 +49,7 @@ One 5-second 480×848 Motion Transfer take, one caption, one 768×1344 character
 
 | Workflow | Backend | Submit → done | Peak VRAM | Cost |
 | --- | --- | --- | --- | --- |
-| Motion Transfer | Comfy Cloud | 70.6–115.7 s (6 takes) | — | ≈ 8.3 ¢ (17.5 credits) |
+| Motion Transfer | Comfy Cloud | 70.6–115.7 s (6 takes) | — | ≈ 8.2 ¢ (17.3 credits) |
 | Motion Transfer | RTX 5090 32 GB | 158.7 s (Oct 21); 167.8 s (`0.1.0`) | 31,066; 31,426 MiB | pod time |
 | Motion Transfer | A40 48 GB | 255.9 s (`0.2.0`); 149.1 s (`0.1.0`) | 38,935 MiB (`0.2.0`) | 255.9 s × $0.59/h ≈ $0.04 |
 | FLUX 3 caption | Comfy Cloud | 5.0 s | — | ≈ 0.08 ¢ |
@@ -56,18 +57,17 @@ One 5-second 480×848 Motion Transfer take, one caption, one 768×1344 character
 | FLUX 3 image | Comfy Cloud | 14.3 s | — | ≈ 0.8 ¢ |
 | FLUX 3 image | A40 48 GB | 31.9 s | 10,653 MiB | pod time |
 
-Sources: Cloud Motion Transfer cost and execution [CHECKLIST 1.6](CHECKLIST.md#phase-1--the-workflow-as-data), its times [DEV-280](CHECKLIST.md#sample-matrix-and-result-wall-dev-280); RTX 5090 [CHECKLIST 8.3](CHECKLIST.md#phase-8-open-weights-proof) (Oct 21) and the [Oct 23 follow-up](CHECKLIST.md#deployment-evidence-after-the-docker-simplification); A40 `0.2.0` and its pod rate the [self-host proof](docs/selfhost-proof-2026-10-23/README.md); A40 `0.1.0` [CHECKLIST](CHECKLIST.md#deployment-evidence-after-the-docker-simplification); FLUX 3 on Cloud the [character workflows README](src/features/characterBuilder/workflows/README.md#measurements-comfy-cloud-2026-10-23).
+Sources: Cloud Motion Transfer [DEV-280](CHECKLIST.md#sample-matrix-and-result-wall-dev-280), its direct-submit execution [CHECKLIST 1.6](CHECKLIST.md#phase-1--the-workflow-as-data); RTX 5090 [CHECKLIST 8.3](CHECKLIST.md#phase-8-open-weights-proof) (Oct 21) and the [Oct 23 follow-up](CHECKLIST.md#deployment-evidence-after-the-docker-simplification); A40 `0.2.0` and its pod rate the [self-host proof](docs/selfhost-proof-2026-10-23/README.md); A40 `0.1.0` [CHECKLIST](CHECKLIST.md#deployment-evidence-after-the-docker-simplification); FLUX 3 on Cloud the [character workflows README](src/features/characterBuilder/workflows/README.md#measurements-comfy-cloud-2026-10-23).
 
 Cloud Motion Transfer times are the six sample takes through the app, side-by-side stitch
-included; a direct submit's ComfyUI execution took 64.9 s. Cloud cost is the account balance before and
-after a job; Cloud VRAM is not observable. A40 VRAM is the whole-device `nvidia-smi` peak while
+included; a direct submit's ComfyUI execution took 64.9 s. Cloud cost is the account balance drop
+over the six takes, per take; Cloud VRAM is not observable. A40 VRAM is the whole-device `nvidia-smi` peak while
 the job ran. The RTX 5090 (Oct 21) and A40 `0.2.0` jobs were each the first of their models on
 the pod, so model loading is included. The whole A40 run (boot, model download, three jobs,
 restart) cost about $0.21 of pod time.
 
 ## Setup
 
-Built with TanStack Start, React, Tailwind, shadcn, SQLite and the Comfy SDK.
 Browsing samples is public; uploads and new generations require an access code.
 Opened a link that already contains a code? You're in.
 New renders use your Comfy Cloud credits or your self-hosted GPU.
