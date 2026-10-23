@@ -1,8 +1,10 @@
 // The looks catalog: the backgrounds, lighting and color/style looks the Direct step offers
 // (`components/look-editor.tsx`). Each option is a fixed prompt fragment, benchmarked on the real
-// Motion Transfer workflow (`docs/look-benchmark-2026-10-23/index.md`): the backgrounds changed the
-// take; the lighting and color phrasings did not visibly, so they are `experimental`, and a
-// background that asked for what the photo already showed (a white studio) was dropped. Client-safe
+// Motion Transfer workflow (`docs/look-benchmark-2026-10-23/index.md`, one character, one clip):
+// the sunny beach changed the take's background; the neon street did too, but the clip is itself
+// a neon street, so its description says so; the lighting and color phrasings did not visibly
+// change the take, so they are `experimental`, and a background that asked for what the photo
+// already showed (a white studio) was dropped. Client-safe
 // and loadable by Node (`npm run test:server`), so it holds no images: the previews are in
 // `components/previews.ts`.
 //
@@ -55,7 +57,8 @@ export const lookCatalog = {
   options: [
     {
       conflicts: ["golden-hour"],
-      description: "A city street at night, pink and blue signs on wet pavement.",
+      description:
+        "A city street at night, pink and blue signs on wet pavement. Tested only with a clip already filmed on such a street.",
       evidence: "reliable",
       fragment:
         "Background: a neon-lit city street at night, wet pavement reflecting pink and blue signs.",

@@ -16,6 +16,7 @@ import { lookPreviews } from "#/features/looks/components/previews";
 import {
   composeLook,
   type Look,
+  editDescription,
   pickedOptions,
   pickOption,
   readLook,
@@ -33,7 +34,7 @@ function isReliable(option: (typeof lookCatalog.options)[number]): option is Rel
 }
 
 const groupCopy: Record<LookGroup, { hint: string; title: string }> = {
-  background: { hint: "replaces the photo's background", title: "Background" },
+  background: { hint: "the scene behind the character", title: "Background" },
   lighting: { hint: "one at a time", title: "Lighting" },
   look: { hint: "one at a time", title: "Color & style" },
 };
@@ -77,6 +78,19 @@ export function LookEditor({ errors, onChange, value }: DirectionEditorProps) {
 
   const picked = pickedOptions(look.selection);
 
+  // A catalog fragment typed or pasted into the description becomes its pick.
+  const describe = (text: string) => {
+    const { dropped, found, look: next } = editDescription(look, text);
+
+    write(
+      next,
+      [
+        ...found.map(({ label }) => `${label} picked from your words.`),
+        ...dropped.map(({ label }) => `${label} removed: it does not combine with your words.`),
+      ].join(" "),
+    );
+  };
+
   const toggle = (option: LookOption) => {
     if (look.selection[option.group] === option.id) {
       write(removeGroup(look, option.group), `${option.label} removed.`);
@@ -118,7 +132,7 @@ export function LookEditor({ errors, onChange, value }: DirectionEditorProps) {
           aria-describedby={`${id}-count`}
           aria-invalid={errors.includes("prompt")}
           id={`${id}-description`}
-          onChange={(event) => write({ ...look, description: event.target.value })}
+          onChange={(event) => describe(event.target.value)}
           placeholder="Keep the character and the background from the photo."
           value={look.description}
         />
@@ -146,7 +160,8 @@ export function LookEditor({ errors, onChange, value }: DirectionEditorProps) {
               {allExperimental && (
                 <p className="text-sm text-muted-foreground">
                   In our benchmark these did not visibly change the take: Wan Animate 2 keeps the
-                  light and colors of the photo. A background brings its own light.
+                  light and colors of the photo. In the same test, a background change brought its
+                  own light.
                 </p>
               )}
             </div>
@@ -239,10 +254,10 @@ export function LookEditor({ errors, onChange, value }: DirectionEditorProps) {
         <p className="flex gap-2 text-sm text-muted-foreground">
           <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
           <span>
-            Looks are prompt guidance for Wan Animate 2. A background replaces the photo's; lighting
-            and color are experimental. The camera, the framing and the pose follow your motion
-            clip: no option changes the camera angle. The character keeps the photo's face and
-            outfit.
+            Looks are prompt guidance for Wan Animate 2. In our benchmark (one character, one clip),
+            a background replaced the photo's; lighting and color did not visibly change the take.
+            The camera, the framing and the pose follow your motion clip: no option changes the
+            camera angle. The character keeps the photo's face and outfit.
           </span>
         </p>
         <p aria-live="polite" className="sr-only" role="status">

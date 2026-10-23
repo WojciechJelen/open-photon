@@ -12,7 +12,14 @@ import {
   lookGroups,
   type LookOption,
 } from "../catalog.ts";
-import { composeLook, type Look, pickOption, readLook, removeGroup } from "../compose.ts";
+import {
+  composeLook,
+  editDescription,
+  type Look,
+  pickOption,
+  readLook,
+  removeGroup,
+} from "../compose.ts";
 
 function option(id: string): LookOption {
   const found = lookCatalog.options.find((candidate) => candidate.id === id);
@@ -210,4 +217,38 @@ test("a catalog change leaves a prompt composed before it as it was: the old fra
     selection: { look: noir.id },
   });
   assert.equal(composeLook(read, changed), before);
+});
+
+test("a fragment pasted into the description becomes its pick: picking it again adds no second copy, removing it leaves none", () => {
+  const pasted = `A dancer. ${beach.fragment}`;
+  const edit = editDescription({ description: "", selection: { lighting: golden.id } }, pasted);
+
+  assert.deepEqual(edit.found, [beach]);
+  assert.deepEqual(edit.dropped, []);
+  assert.deepEqual(edit.look, {
+    description: "A dancer.",
+    selection: { background: beach.id, lighting: golden.id },
+  });
+
+  // Clicking the picked tile again removes it, and the next click adds it back once.
+  const removed = removeGroup(edit.look, "background");
+
+  assert.equal(composeLook(removed), `A dancer. ${golden.fragment}`);
+
+  const again = pickOption(removed, beach.id).look;
+
+  assert.equal(composeLook(again).split(beach.fragment).length, 2);
+  assert.deepEqual(readLook(composeLook(again)), again);
+
+  // A pasted fragment is picked as a click would: it replaces its group's and drops a conflict.
+  const night = editDescription(edit.look, `A dancer. ${neon.fragment}`);
+
+  assert.deepEqual(night.look.selection, { background: neon.id });
+  assert.deepEqual(night.dropped, [golden]);
+
+  // Plain typing keeps every character and changes no pick.
+  assert.deepEqual(editDescription(edit.look, "A dancer,  twice.\n").look, {
+    ...edit.look,
+    description: "A dancer,  twice.\n",
+  });
 });

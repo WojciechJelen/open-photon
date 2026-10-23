@@ -30,6 +30,34 @@ function cut(text: string, at: number, fragment: string) {
 }
 
 /**
+ * `text` without any catalog fragment, each occurrence taken out with the space that joined it,
+ * and the options whose fragments it held, at most one per group: the catalog's first.
+ */
+function takeFragments(text: string, catalog: LookCatalog) {
+  const found: LookOption[] = [];
+  let rest = text;
+
+  for (const option of catalog.options) {
+    let at = rest.indexOf(option.fragment);
+
+    if (at === -1) {
+      continue;
+    }
+
+    if (!found.some(({ group }) => group === option.group)) {
+      found.push(option);
+    }
+
+    while (at !== -1) {
+      rest = cut(rest, at, option.fragment);
+      at = rest.indexOf(option.fragment);
+    }
+  }
+
+  return { found, rest };
+}
+
+/**
  * The look `prompt` holds. Every catalog fragment found in it is a pick and comes out of the
  * description, each occurrence with the space that joined it, so a fragment never shows twice;
  * when one group's fragments appear more than once, the catalog's first is the pick. What is left
@@ -39,31 +67,45 @@ function cut(text: string, at: number, fragment: string) {
  * description.
  */
 export function readLook(prompt: string, catalog: LookCatalog = lookCatalog): Look {
-  const selection: LookSelection = {};
-  let rest = prompt;
-
-  for (const option of catalog.options) {
-    let at = rest.indexOf(option.fragment);
-
-    if (at === -1) {
-      continue;
-    }
-
-    selection[option.group] ??= option.id;
-
-    while (at !== -1) {
-      rest = cut(rest, at, option.fragment);
-      at = rest.indexOf(option.fragment);
-    }
-  }
-
-  const picked = Object.keys(selection).length > 0;
+  const { found, rest } = takeFragments(prompt, catalog);
+  const selection: LookSelection = Object.fromEntries(found.map(({ group, id }) => [group, id]));
 
   const description =
-    picked && (rest === characterBase || rest === `${characterBase} ${backgroundBase}`) ? "" : rest;
+    found.length > 0 && (rest === characterBase || rest === `${characterBase} ${backgroundBase}`)
+      ? ""
+      : rest;
 
   return { description, selection };
 }
+
+/**
+ * `look` with the description typed or pasted as `text`. A catalog fragment in it is a pick, as
+ * a click on its tile would make it (`pickOption`: it replaces its group's, drops conflicting
+ * picks), and comes out of the description, so the description never holds a fragment: picking
+ * that option again cannot add it twice, and removing it leaves none behind. `found` names the
+ * options taken from the text.
+ */
+export function editDescription(
+  look: Look,
+  text: string,
+  catalog: LookCatalog = lookCatalog,
+): DescriptionEdit {
+  const { found, rest } = takeFragments(text, catalog);
+  const dropped: LookOption[] = [];
+  let next: Look = { ...look, description: rest };
+
+  for (const option of found) {
+    const picked = pickOption(next, option.id, catalog);
+
+    next = picked.look;
+    dropped.push(...picked.dropped);
+  }
+
+  return { dropped, found, look: next };
+}
+
+/** What `editDescription` gives: `pickOption`'s result and the options found in the text. */
+type DescriptionEdit = PickResult & { found: LookOption[] };
 
 /** The options `selection` names, in group order; an unknown id names none. */
 export function pickedOptions(

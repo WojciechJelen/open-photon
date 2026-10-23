@@ -66,8 +66,9 @@ const nextStep: Record<WizardStep, WizardStep> = {
  * Direct step's form while the wizard is open; it starts from the draft's direction fields over
  * the direction of the take the draft comes `from` ("Change the shot", the remixes), another
  * `from` opens the form afresh, and every edit is written to the URL's direction fields (the
- * history entry replaced), so a reload and the step links keep it. A direction field the URL
- * changes to (Back, Forward, a link) replaces the form's; one the URL leaves out keeps it. The
+ * history entry replaced), so a reload and the step links keep it. A URL whose direction fields
+ * the form did not write (Back, Forward, a link) starts the form again as a reload of it would:
+ * its fields over the `from` take's direction, else the default. The
  * access code is asked for by one dialog, which then carries on with what asked for it (an
  * upload, Generate).
  */
@@ -121,6 +122,8 @@ function Wizard({
   const seenFields = useRef(urlFields);
   const written = useRef<string[]>([]);
 
+  const startDirection = selection.direction ?? defaultDirection;
+
   useEffect(() => {
     const fields = { prompt: draft.prompt, seed: draft.seed };
     const key = fieldsKey(fields);
@@ -133,11 +136,14 @@ function Wizard({
     const own = written.current.indexOf(key);
 
     if (own === -1) {
-      setDirection((current) => startingDirection(fields, current));
+      // Not the form's own edit landing: the same URL must make the same take however it was
+      // reached, so resolve it as a fresh load does, not over what the form held before.
+      written.current = [];
+      setDirection(startingDirection(fields, startDirection));
     } else {
       written.current.splice(0, own + 1);
     }
-  }, [draft.prompt, draft.seed]);
+  }, [draft.prompt, draft.seed, startDirection]);
 
   const changeDirection = (next: Direction) => {
     setDirection(next);

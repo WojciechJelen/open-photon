@@ -46,6 +46,37 @@ test("the look editor is reachable by keyboard: Tab walks the tiles, Space and E
   await expect(page.getByText("no option changes the camera angle")).toBeVisible();
 });
 
+test("a look's own sentence pasted into the description becomes its pick: selecting it never doubles it, removing it leaves none behind", async ({
+  page,
+}) => {
+  await openDirect(page);
+
+  const beach = lookCatalog.options.find(({ id }) => id === "beach");
+  const fragment = beach?.fragment ?? "";
+  const sent = page.getByLabel("Prompt sent");
+  const copies = async () => ((await sent.textContent()) ?? "").split(fragment).length - 1;
+
+  await page.getByLabel("Look").focus();
+  await page.keyboard.insertText(`A dancer. ${fragment}`);
+
+  // The sentence moved from the words to the tile.
+  await expect(page.getByLabel("Look")).toHaveValue("A dancer.");
+  await expect(tile(page, "Sunny beach")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("status")).toHaveText("Sunny beach picked from your words.");
+  await expect(sent).toHaveText(`A dancer. ${fragment}`);
+
+  // Removing it removes the sentence; selecting it again adds it once.
+  await tile(page, "Sunny beach").click();
+  await expect(sent).toHaveText("A dancer.");
+  await tile(page, "Sunny beach").click();
+  await expect(sent).toHaveText(`A dancer. ${fragment}`);
+  expect(await copies()).toBe(1);
+  await page.getByRole("button", { name: "Remove Sunny beach" }).click();
+  await expect(sent).toHaveText("A dancer.");
+  expect(await copies()).toBe(0);
+  await expect(page.getByLabel("Look")).toHaveValue("A dancer.");
+});
+
 test.describe("on a phone", () => {
   test.use({ viewport: { height: 844, width: 390 } });
 
