@@ -65,6 +65,39 @@ assert.equal(anonymousGenerate.status, 404, "An unknown motion is refused before
 
 const Cookie = await accessCookie(base);
 
+// A link that carries the code signs in on opening and goes on to `next`; reopened with that
+// session, it only goes on. A wrong one shows the form, with no session.
+const link = `${base}/access?code=${encodeURIComponent(process.env.ACCESS_CODE)}&next=%2Fcharacters%2Fnew`;
+const linked = await fetch(link, { headers: { Accept: "text/html" }, redirect: "manual" });
+const linkCookie = linked.headers.get("Set-Cookie")?.split(";")[0];
+
+assert.equal(linked.status, 303, "A link with the code must sign in");
+assert.equal(linked.headers.get("Location"), "/characters/new");
+assert.ok(linkCookie, "A link with the code must issue a session cookie");
+
+const reopened = await fetch(link, {
+  headers: { Accept: "text/html", Cookie: linkCookie },
+  redirect: "manual",
+});
+
+assert.equal(reopened.status, 303);
+assert.equal(reopened.headers.get("Set-Cookie"), null, "Reopened signed in, the link only goes on");
+
+const builder = await fetch(`${base}/characters/new`, {
+  headers: { Accept: "text/html", Cookie: linkCookie },
+  redirect: "manual",
+});
+
+assert.equal(builder.status, 200, "The link's session opens the builder");
+
+const wrongLink = await fetch(`${base}/access?code=not-a-code&next=%2Fcharacters%2Fnew`, {
+  redirect: "manual",
+});
+
+assert.equal(wrongLink.status, 200);
+assert.equal(wrongLink.headers.get("Set-Cookie"), null, "A wrong link must not sign in");
+assert.ok((await wrongLink.text()).includes("Incorrect access code."));
+
 const invalid = await fetch(`${base}/api/generations/not-a-uuid`, { headers: { Cookie } });
 
 assert.equal(invalid.status, 400, "Authenticated invalid input reaches validation");
@@ -102,5 +135,5 @@ assert.equal(
 );
 
 console.log(
-  "Access verification passed: the picker is open, actions and private media need a session, login, CSRF, validation and private video ranges work. No paid jobs submitted.",
+  "Access verification passed: the picker is open, actions and private media need a session, login (form and ?code= link), CSRF, validation and private video ranges work. No paid jobs submitted.",
 );
