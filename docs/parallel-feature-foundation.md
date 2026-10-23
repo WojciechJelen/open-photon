@@ -98,14 +98,17 @@ is stored as downloaded (`kind: "image"`, no FFmpeg), a video as an MP4, and a `
 video also gets a JPEG still at 0.5 s (`src/shared/server/media/poster.ts`).
 
 A definition may also derive outputs from the stored ones (`deriveOutputs`), which finalize
-adds before the row is `done`, in the same write. Motion Transfer derives `compare`
-(`src/features/motionTransfer/server/media/compare.ts`): FFmpeg stacks the driving clip
-(left) and the result (right) at the result's height, frame by frame, scales them to 1080
-wide on a black 1080×1920 frame and copies the result's AAC audio (H.264 High, `yuv420p`,
-`+faststart`), stored as a `final` asset cut from the result. A derivation that throws is
-logged (`finalize.derive-failed`) and the row is done without it: it never fails the row nor
-counts toward the three finalize attempts. `scripts/backfill-compare.mjs` (by hand) adds it to
-takes finished before it existed (`deriveForDone`).
+adds before the row is `done`, in the same write; the row holds its place in flight while it
+runs, so a derivation bounds its own work. Motion Transfer derives `compare`
+(`src/features/motionTransfer/server/media/compare.ts`): FFmpeg puts the driving clip and the
+result frame by frame side by side (clip left, at the result's height) for a portrait result,
+or one above the other (clip on top, at the result's width) for a landscape one, scales the
+pair to fit a black 1080×1920 frame and copies the result's AAC audio (H.264 High, `yuv420p`,
+`+faststart`), stored as a `final` asset cut from the result; FFmpeg gets 60 s. A derivation
+that throws is logged (`finalize.derive-failed`) and the row is done without it: it never
+fails the row nor counts toward the three finalize attempts. `scripts/backfill-compare.mjs`
+(by hand, from the repository: the app image does not ship it) adds it to takes finished
+before it existed (`deriveForDone`).
 
 A `text` output is a text file the node saved: core `SaveText` (format `txt`). Comfy's jobs API
 (`GET /api/v2/jobs/:id`, Cloud and the self-host proxy alike) lists it as a `.txt` file (`type:
@@ -132,8 +135,9 @@ An image a workflow produces is disclosed as AI-generated wherever it is shown (
 Kommunity licence asks for it): `GeneratedImage` (`src/shared/components/`) shows an image output
 on `/g/:id` and `/r/:slug` with an "AI-generated image" label, alt text that says so (also the
 share card's `og:image:alt`) and Download, and `?download=1` names an image output
-`ai-generated-<id>.<ext>`, a `final` asset (Motion Transfer's `compare`)
-`open-photon-<id>-compare.<ext>`, and anything else `open-photon-<id>.<ext>`, Motion
+`ai-generated-<id>.<ext>`, a `final` asset a generation lists as an output
+`open-photon-<id>-<output name>.<ext>` (Motion Transfer's `compare`:
+`open-photon-<id>-compare.mp4`), and anything else `open-photon-<id>.<ext>`, Motion
 Transfer's videos and posters included. Neither shows a recipe's enhanced caption.
 
 ### Provider target identity

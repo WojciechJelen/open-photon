@@ -767,3 +767,16 @@ export function isSharedOutput(asset: StoredAsset) {
       .get(asset.id)?.shared === 1
   );
 }
+
+/**
+ * The name a generation lists this asset under among its outputs (the first by name if several
+ * do), or `null` when none does: what a file the server composed downloads as
+ * (`serveMedia`). One indexed lookup (`generation_outputs_asset`).
+ */
+export function outputNameOf(assetId: string) {
+  const row = database
+    .prepare("SELECT name FROM generation_outputs WHERE asset_id = ? ORDER BY name LIMIT 1")
+    .get(assetId);
+
+  return row ? z.object({ name: z.string() }).parse(row).name : null;
+}

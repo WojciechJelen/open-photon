@@ -163,7 +163,7 @@ test("?download=1 serves the file as an attachment with a file name, and only th
   await inline.body?.cancel();
 });
 
-test("a generated image downloads as ai-generated-<id>; a side-by-side as open-photon-<id>-compare; a generated video and an upload as open-photon-<id>", async () => {
+test("a generated image downloads as ai-generated-<id>; a generated video, an upload and a composed file no generation lists as open-photon-<id>", async () => {
   const temporary = await incomingPath();
   await copyFile("tests/fixtures/fake-output.png", temporary);
 
@@ -201,10 +201,12 @@ test("a generated image downloads as ai-generated-<id>; a side-by-side as open-p
     width: null,
   });
 
+  // A composed file is named after the output it is (`-compare`, tests/finalize.test.ts); listed
+  // as none, it has no suffix.
   const stitched = await incomingPath();
   await copyFile("tests/fixtures/result-5s.mp4", stitched);
 
-  const { asset: compare } = await storeAsset(stitched, {
+  const { asset: composed } = await storeAsset(stitched, {
     bytes: (await stat(stitched)).size,
     duration_ms: null,
     ext: "mp4",
@@ -243,7 +245,7 @@ test("a generated image downloads as ai-generated-<id>; a side-by-side as open-p
     `attachment; filename="open-photon-${take.id.slice(0, 8)}.mp4"`,
   );
   assert.equal(
-    await disposition(`${compare.id}.mp4`),
-    `attachment; filename="open-photon-${compare.id.slice(0, 8)}-compare.mp4"`,
+    await disposition(`${composed.id}.mp4`),
+    `attachment; filename="open-photon-${composed.id.slice(0, 8)}.mp4"`,
   );
 });

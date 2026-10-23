@@ -20,6 +20,10 @@ export const COMPARE_OUTPUT = "compare";
 const FRAME_WIDTH = 1080;
 const FRAME_HEIGHT = 1920;
 
+// How long FFmpeg may take: the take holds its place in flight (`IN_FLIGHT_MAX`) until the stitch
+// ends, and an 8 s take stitches in seconds.
+const STITCH_TIMEOUT_MS = 60_000;
+
 /** `value` rounded to the nearest even number of pixels, which 4:2:0 chroma needs. */
 function even(value: number) {
   return Math.max(2, 2 * Math.round(value / 2));
@@ -45,68 +49,81 @@ function videoOf(asset: StoredAsset | null, what: string) {
 
 /**
  * Stitches a done Motion Transfer take into one vertical MP4 and stores it (role `final`, cut from
- * the result): the driving clip (`recipe.inputs.driving_video_sha256`) on the left and the result
- * (`outputs.video`) on the right, both at the result's height, scaled together to 1080 wide and
- * centred on a black 1080×1920 frame. Wan renders frame N of the driving clip as frame N of the
- * result at the clip's rate, so both are timed by frame number at the result's rate; the clip lasts
- * as long as the result (a shorter driving clip holds its last frame) and carries the result's
- * audio as it is. H.264 High, `yuv420p`, `+faststart`: it plays in Chrome, Safari and iOS. Returns
- * the stored asset by output name (`COMPARE_OUTPUT`); throws when a file is missing or FFmpeg
- * fails.
+ * the result): the driving clip (`recipe.inputs.driving_video_sha256`) and the result
+ * (`outputs.video`) side by side for a portrait or square result, the clip on the left at the
+ * result's height, or one above the other for a landscape one, the clip on top at the result's
+ * width (side by side, a landscape pair would be a strip across the middle of the frame), scaled
+ * together to fit 1080×1920 and centred on it in black. Wan renders frame N of the driving clip as
+ * frame N of the result at the clip's rate, so both are timed by frame number at the result's
+ * rate; the clip lasts as long as the result (a shorter driving clip holds its last frame) and
+ * carries the result's audio as it is. H.264 High, `yuv420p`, `+faststart`: it plays in Chrome,
+ * Safari and iOS. Returns the stored asset by output name (`COMPARE_OUTPUT`); throws when a file is
+ * missing, FFmpeg fails or it takes over a minute (`STITCH_TIMEOUT_MS`).
  */
 export async function stitchCompare(recipe: Recipe, outputs: Readonly<Record<string, string>>) {
   const result = videoOf(findAsset(outputs.video ?? ""), "result");
   const source = videoOf(findBySha256(recipe.inputs.driving_video_sha256), "driving clip");
 
-  const sourceWidth = even((source.width * result.height) / source.height);
-  const scale = Math.min(FRAME_WIDTH / (sourceWidth + result.width), FRAME_HEIGHT / result.height);
-  const width = Math.min(FRAME_WIDTH, even((sourceWidth + result.width) * scale));
-  const height = Math.min(FRAME_HEIGHT, even(result.height * scale));
+  const stacked = result.width > result.height;
+  // The clip at the result's width when stacked, else at its height, in its own aspect ratio.
+  const sourceWidth = stacked ? result.width : even((source.width * result.height) / source.height);
+  const sourceHeight = stacked
+    ? even((source.height * result.width) / source.width)
+    : result.height;
+  const pairWidth = stacked ? result.width : sourceWidth + result.width;
+  const pairHeight = stacked ? sourceHeight + result.height : result.height;
+  const scale = Math.min(FRAME_WIDTH / pairWidth, FRAME_HEIGHT / pairHeight);
+  const width = Math.min(FRAME_WIDTH, even(pairWidth * scale));
+  const height = Math.min(FRAME_HEIGHT, even(pairHeight * scale));
   // Frame N of either input at N / fps, on one time base, so the two frames of a pair match.
   const byFrame = `settb=AVTB,setpts=N/(${result.fps}*TB)`;
 
   const graph = [
-    `[0:v]${byFrame},scale=${sourceWidth}:${result.height},setsar=1[source]`,
+    `[0:v]${byFrame},scale=${sourceWidth}:${sourceHeight},setsar=1[source]`,
     `[1:v]${byFrame},setsar=1[result]`,
-    `[source][result]hstack=inputs=2,scale=${width}:${height},` +
+    `[source][result]${stacked ? "vstack" : "hstack"}=inputs=2,scale=${width}:${height},` +
       `pad=${FRAME_WIDTH}:${FRAME_HEIGHT}:(ow-iw)/2:(oh-ih)/2:black,format=yuv420p[video]`,
   ].join(";");
 
   const file = await incomingPath();
 
   try {
-    await runTool("ffmpeg", [
-      "-i",
-      source.path,
-      "-i",
-      result.path,
-      "-filter_complex",
-      graph,
-      "-map",
-      "[video]",
-      "-map",
-      "1:a:0?",
-      "-t",
-      String(result.durationMs / 1000),
-      // At the result's rate, so the last frame lasts a frame too and the clip as long as the result.
-      "-r",
-      String(result.fps),
-      "-c:v",
-      "libx264",
-      "-profile:v",
-      "high",
-      "-preset",
-      "veryfast",
-      "-crf",
-      "20",
-      "-c:a",
-      "copy",
-      "-movflags",
-      "+faststart",
-      "-f",
-      "mp4",
-      file,
-    ]);
+    await runTool(
+      "ffmpeg",
+      [
+        "-i",
+        source.path,
+        "-i",
+        result.path,
+        "-filter_complex",
+        graph,
+        "-map",
+        "[video]",
+        "-map",
+        "1:a:0?",
+        "-t",
+        String(result.durationMs / 1000),
+        // At the result's rate, so the last frame lasts a frame too and the clip as long as the result.
+        "-r",
+        String(result.fps),
+        "-c:v",
+        "libx264",
+        "-profile:v",
+        "high",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "20",
+        "-c:a",
+        "copy",
+        "-movflags",
+        "+faststart",
+        "-f",
+        "mp4",
+        file,
+      ],
+      AbortSignal.timeout(STITCH_TIMEOUT_MS),
+    );
 
     const info = await probe(file);
 

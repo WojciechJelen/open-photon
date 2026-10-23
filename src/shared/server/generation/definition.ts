@@ -84,7 +84,10 @@ type RebaseContext = { seed: number; target: ProviderTarget };
  *   are all stored (`finalize`), by output name (Motion Transfer's side-by-side `compare`); it
  *   stores their assets itself and gets the decoded recipe and the stored asset ids by name. A
  *   declared output keeps its name. A derivation that throws is logged and the row is done
- *   without its outputs: it never fails the generation nor counts as a failed finalize.
+ *   without its outputs: it never fails the generation nor counts as a failed finalize. It runs
+ *   while the row is still `finalizing`, so the row holds its place in flight (`IN_FLIGHT_MAX`)
+ *   and is not `done` until it ends: bound its work with a timeout (Motion Transfer's stitch
+ *   gives up after 60 s).
  * - `seedOf`, `rebase`: the recipe's seed, and the recipe to render for a re-run or retry on the
  *   server's target now; `null` when this workflow can no longer render it (its file changed).
  * - `workflowHash`, `models`: the workflow file's SHA-256 and its model pins (`models.lock`).

@@ -94,8 +94,8 @@ export function ResultView({
 }: {
   character: PickableCharacter | null;
   child: ChildState;
-  /** The side-by-side's URL; `undefined` when its stitch failed. */
-  compare: string | undefined;
+  /** The side-by-side's URL; left out when its stitch failed. */
+  compare?: string;
   /** This take as a draft, for the generation actions. */
   draft: DraftSnapshot;
   final: Asset;
