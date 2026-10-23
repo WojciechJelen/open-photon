@@ -20,8 +20,11 @@ export const shareTitle = "Motion Transfer: one motion, another character";
 export const shareDescription =
   "The motion of one clip, performed by another character. Made with Open Photon on the Wan Animate 2 workflow.";
 
-/** What the share page of a generation of another workflow is called. */
-export const outputsShareTitle = "Made with Open Photon";
+/**
+ * What the share page of a generation of another workflow (an image) is called, `<title>` and
+ * `og:title` too: it says the image is AI-generated (the FLUX Kommunity licence asks for it).
+ */
+export const outputsShareTitle = "AI-generated image · Open Photon";
 
 export const outputsShareDescription =
   "An AI-generated image made with Open Photon, on open-weights ComfyUI workflows. Run it yourself.";
@@ -104,7 +107,18 @@ export function SharePageView({ share }: { share: Share }) {
  * the workflow loads, with a license only where the repository records one.
  */
 function MotionTransferSharePage({ share }: { share: Extract<Share, { view: "motionTransfer" }> }) {
-  const { character, compare, final, models, motionTitle, poster, recipe, source } = share;
+  const {
+    character,
+    characterGenerated,
+    compare,
+    final,
+    models,
+    motionTitle,
+    poster,
+    recipe,
+    source,
+  } = share;
+
   const portrait = (final.height ?? 0) >= (final.width ?? 0);
   const useMotion = { motion: source.id, step: "character" as const };
   const unpinned = models?.some(({ license }) => license === null) ?? false;
@@ -167,7 +181,10 @@ function MotionTransferSharePage({ share }: { share: Extract<Share, { view: "mot
                 another character.
               </span>
             </h1>
-            <p className="max-w-xl text-lg text-pretty text-soft-foreground">{shareDescription}</p>
+            <p className="max-w-xl text-lg text-pretty text-soft-foreground">
+              {shareDescription}
+              {characterGenerated && " The character is AI-generated."}
+            </p>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" variant="photon">
                 <Link search={useMotion} to="/motionTransfer">

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { assetSchema } from "../../shared/contracts.ts";
+import { assetSchema, shareSlugSchema } from "../../shared/contracts.ts";
 
 /**
  * A `characters` row as the API shows it. `POST /api/characters` takes multipart `image` (PNG,
@@ -45,11 +45,14 @@ export type CharacterProvenance = z.infer<typeof characterProvenanceSchema>;
  * A character of the workspace library, as every read of the characters feature returns it
  * (`getCharacter`, `listCharacters`, the writes): the row with its image, when it was marked a
  * favorite (`favorite_at`, `null` when it is not one), when it was last renamed or (un)favorited
- * (`updated_at`, `null` until then) and, for one saved from a generation, its `provenance`.
+ * (`updated_at`, `null` until then), for one saved from a generation its `provenance`, and the
+ * `share_slug` of that generation once it is published (`/r/<share_slug>`, which makes the image
+ * public; `null` until then, and for any other character).
  */
 export const characterSummarySchema = pickableCharacterSchema.extend({
   favorite_at: z.iso.datetime().nullable(),
   provenance: characterProvenanceSchema.nullable(),
+  share_slug: shareSlugSchema.nullable(),
   updated_at: z.iso.datetime().nullable(),
 });
 

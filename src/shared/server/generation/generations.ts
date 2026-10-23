@@ -22,7 +22,9 @@ import {
   recipeIdentitySchema,
   type WorkflowDefinition,
   type WorkflowRecipe,
+  workflows,
 } from "./definition.ts";
+import { GenerateError } from "./errors.ts";
 import { recipeHash } from "./recipe-hash.ts";
 
 type GenerationStatus = z.infer<typeof generationStatusSchema>;
@@ -577,11 +579,17 @@ type Outcome = Partial<Pick<Generation, "error_code" | "error_message">> & {
   outputs?: Readonly<Record<string, string>>;
 };
 
+/** A new share slug: 16 random hex characters, 64 bits nobody can guess. */
+function newShareSlug() {
+  return randomBytes(8).toString("hex");
+}
+
 /**
  * Moves a row from `from` to `to` if the state machine allows it and the row is still in `from`,
  * storing the error or the named outputs that come with the new status (`generation_outputs`).
- * A row that becomes `done` gets its `share_slug` (`/r/<slug>`): 16 random hex characters, 64
- * bits nobody can guess. The outputs `video` and `poster` are also kept in `final_asset_id` and
+ * A row that becomes `done` with a file output gets its `share_slug` (`/r/<slug>`, `newShareSlug`)
+ * unless its workflow publishes only on request (`publish: "on-request"`: `publishGeneration`
+ * gives it one later). The outputs `video` and `poster` are also kept in `final_asset_id` and
  * `poster_asset_id`, the columns that held them before outputs had names, for their readers. A
  * row goes back in line only through `releaseClaim`, which checks it was never submitted.
  */
@@ -599,11 +607,16 @@ export function transition(
 
   const outputs = Object.entries(outcome.outputs ?? {});
 
-  // A share page shows a file: a generation whose outputs are all text gets none.
+  // A share page shows a file: a generation whose outputs are all text gets none, and one whose
+  // workflow publishes on request gets it only then (a workflow no feature registers publishes
+  // on done, the default).
   const onlyText =
     outputs.length > 0 && outputs.every(([, assetId]) => findAsset(assetId)?.kind === "text");
 
-  const shareSlug = to === "done" && !onlyText ? randomBytes(8).toString("hex") : null;
+  const stored = to === "done" && !onlyText ? findGeneration(id) : null;
+
+  const shareSlug =
+    stored && workflows.find(stored)?.publish !== "on-request" ? newShareSlug() : null;
 
   const row = transaction(database, () => {
     const updated = parseRow(
@@ -779,4 +792,55 @@ export function outputNameOf(assetId: string) {
     .get(assetId);
 
   return row ? z.object({ name: z.string() }).parse(row).name : null;
+}
+
+/**
+ * Publishes a done generation of a workflow that publishes on request (`publish: "on-request"`),
+ * as its owner's choice after seeing it: gives it its share page (`/r/<share_slug>`), which makes
+ * its file outputs public (`isSharedOutput`), in one write; its slug. Idempotent: a generation
+ * that has a share page keeps it, and that slug is returned (two publishes at once give one).
+ * Refused with a `GenerateError`: 404 `not_found`; 409 `not_done`; 409 `no_file` when every
+ * output is a text (nothing a share page could show); 409 `not_publishable` when its workflow
+ * publishes on done (or no feature registers it).
+ */
+export function publishGeneration(id: string) {
+  const row = findGeneration(id);
+
+  if (!row) {
+    throw new GenerateError(404, "Generation not found.", "not_found");
+  }
+
+  if (row.share_slug) {
+    return row.share_slug;
+  }
+
+  if (row.status !== "done") {
+    throw new GenerateError(
+      409,
+      `Only a finished generation can be published; this one is ${row.status}.`,
+      "not_done",
+    );
+  }
+
+  if (readOutputs(id).length === 0) {
+    throw new GenerateError(409, "This generation has no image or video to publish.", "no_file");
+  }
+
+  if (workflows.find(row)?.publish !== "on-request") {
+    throw new GenerateError(
+      409,
+      "This generation's workflow publishes its results itself; it has no share page to add.",
+      "not_publishable",
+    );
+  }
+
+  const published = database
+    .prepare(
+      `UPDATE generations SET share_slug = coalesce(share_slug, ?)
+      WHERE id = ? AND status = 'done'
+      RETURNING share_slug`,
+    )
+    .get(newShareSlug(), id);
+
+  return z.string().parse(published?.share_slug);
 }

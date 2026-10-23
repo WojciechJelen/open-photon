@@ -157,7 +157,7 @@ test("without a session, a page shows a sample or a shared generation's characte
 
   assert.equal(visibleCharacter(upload, false), null);
   assert.deepEqual(visibleCharacter(sample, false), sample);
-  // Every done generation has a share page, which opens its outputs.
+  // The test workflow publishes a done generation on done, which opens its outputs.
   assert.deepEqual(visibleCharacter(generated, false), generated);
 
   for (const character of [upload, generated, sample]) {

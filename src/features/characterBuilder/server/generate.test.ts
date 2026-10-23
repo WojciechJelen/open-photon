@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { mintCode } from "../../../../tests/temp-database.ts";
+import { generationPublicationSchema } from "../../../shared/contracts.ts";
 import { findAccessCode } from "../../../shared/server/access-codes.ts";
 import { createAccessGuard } from "../../../shared/server/access.server.ts";
 import { findAsset } from "../../../shared/server/assets.ts";
@@ -13,9 +14,11 @@ import type { Provider } from "../../../shared/server/comfy-provider.ts";
 import { GenerateError } from "../../../shared/server/generation/errors.ts";
 import {
   findGeneration,
+  publishGeneration,
   readOutputs,
   snapshot,
 } from "../../../shared/server/generation/generations.ts";
+import { handlePublish } from "../../../shared/server/generation/http.ts";
 import {
   readGenerationResult,
   readGenerationShare,
@@ -23,7 +26,7 @@ import {
 import type { Json } from "../../../shared/server/generation/recipe-hash.ts";
 import { readGeneration, rerun, retry } from "../../../shared/server/generation/service.ts";
 import type { WorkflowGraph } from "../../../shared/server/workflow-graph.ts";
-import { getCharacter } from "../../characters/api.ts";
+import { createFromGeneration, getCharacter, visibleCharacter } from "../../characters/api.ts";
 import { characterCaptionDefinition } from "../workflows/caption-definition.ts";
 import { characterGenerationDefinition } from "../workflows/definition.ts";
 import {
@@ -160,6 +163,72 @@ test("a caption enhancement Comfy fails fails with provider_failed and stores no
   assert.deepEqual(row && snapshot(row).outputs, []);
 });
 
+// Before any test of this file publishes an image: the fake provider's images are one file, so
+// one published image makes that file public for every generation that has it.
+test("a character image stays private until its owner publishes it; publishing is idempotent and refuses what it cannot publish", async () => {
+  const id = await doneImage(`A private sculptor ${crypto.randomUUID()}`);
+  const image = readOutputs(id).find(({ name }) => name === "image")?.asset;
+  const media = `/media/${image?.id}.png`;
+  const get = (path: string) => new Request(`http://localhost${path}`);
+
+  const publish = (target: string, withSession = true) =>
+    post(`/api/generations/${target}/publish`, {}, withSession);
+
+  assert.ok(image);
+  assert.equal(findGeneration(id)?.share_slug, null);
+  assert.equal((await readGeneration(id))?.share_slug, null);
+  // Nothing public: no share page, and the file needs a session.
+  assert.equal((await guard(get(media)))?.status, 401);
+  // Without a session the access guard answers 401 before the handler runs.
+  assert.equal((await guard(publish(id, false)))?.status, 401);
+
+  // Saved to the library, it is the workspace's, not the public's.
+  const { character } = createFromGeneration({ generationId: id, outputName: "image" });
+
+  assert.equal(character.share_slug, null);
+  assert.equal(visibleCharacter(character, false), null);
+
+  const published = handlePublish(publish(id), id);
+  const { share_slug, url } = generationPublicationSchema.parse(await published.json());
+
+  assert.equal(published.status, 200);
+  assert.equal(url, `http://localhost/r/${share_slug}`);
+  assert.equal(findGeneration(id)?.share_slug, share_slug);
+  assert.equal(
+    readGenerationShare(share_slug, "https://photon.example")?.outputs[0]?.asset.id,
+    image.id,
+  );
+  // Now anyone may open the share page and the file.
+  assert.equal(await guard(get(media)), undefined);
+  assert.equal(await guard(get(`/r/${share_slug}`)), undefined);
+  assert.equal(getCharacter(character.id)?.share_slug, share_slug);
+  assert.equal(visibleCharacter(getCharacter(character.id), false)?.id, character.id);
+
+  // Again: the same slug.
+  const again = handlePublish(publish(id), id);
+
+  assert.deepEqual([again.status, await again.json()], [200, { share_slug, url }]);
+
+  // A caption (text only), an image not done, an unknown and a malformed id are refused.
+  const caption = await doneCaption(`A caption ${crypto.randomUUID()}`);
+  const failed = (await generateCharacter({ caption: "[fake:provider_failed] x" }, session)).id;
+
+  await readGeneration(failed);
+
+  for (const [target, status, reason] of [
+    [caption, 409, "no_file"],
+    [failed, 409, "not_done"],
+    [crypto.randomUUID(), 404, "not_found"],
+  ] as const) {
+    const refused = handlePublish(publish(target), target);
+
+    assert.deepEqual([refused.status, (await refused.json()).reason], [status, reason], target);
+  }
+
+  assert.equal(handlePublish(publish("x"), "x").status, 400);
+  assert.equal(findGeneration(caption)?.share_slug, null);
+});
+
 test("an image from an enhanced caption copies the enhancement's provenance, ignores the client's, and sends the caption byte for byte", async () => {
   const captionId = await doneCaption("A dancer in a red tank top");
 
@@ -217,10 +286,11 @@ test("an image from an enhanced caption copies the enhancement's provenance, ign
     assert.equal(done?.status, "done");
     assert.deepEqual([output?.name, output?.media], ["image", "image"]);
     assert.equal(findAsset(output?.asset.id ?? "")?.mime, "image/png");
-    assert.ok(done?.share_slug);
+    // Private until its owner publishes it.
+    assert.equal(done?.share_slug, null);
 
     // The public share page shows the rendered caption, never the enhanced one (a private text).
-    const shared = readGenerationShare(done.share_slug, "https://photon.example");
+    const shared = readGenerationShare(publishGeneration(id), "https://photon.example");
     const { enhancement } = recipe.source;
 
     assert.ok(enhancement);

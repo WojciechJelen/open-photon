@@ -8,6 +8,7 @@ import { CharacterImage } from "#/features/characters/components/character-image
 import type { CharacterSummary } from "#/features/characters/contracts";
 import { characterName, modelName, originLabel } from "#/features/characters/library";
 import { Viewfinder } from "#/shared/components/brand";
+import { PublishLink } from "#/shared/components/publish-link";
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
@@ -55,10 +56,11 @@ function Provenance({ character }: { character: CharacterSummary }) {
 /**
  * One character of the library: its image (a placeholder when it does not load), origin badge,
  * name (the title, or what it is), provenance, a favorite toggle, "Animate" (`animateHref`, to the
- * Motion Transfer wizard with it picked) and Rename (not for a sample, whose title is fixed).
- * `label` is what the card and its controls are called to assistive technology
- * (`accessibleNames`: an untitled one with its origin and when it was added). `selected` rings
- * it, as the character the page was opened on.
+ * Motion Transfer wizard with it picked) and Rename (not for a sample, whose title is fixed). One
+ * saved from a generation also has "Publish & copy link", or its share link once published
+ * (`onPublished` says when it is). `label` is what the card and its controls are called to
+ * assistive technology (`accessibleNames`: an untitled one with its origin and when it was added).
+ * `selected` rings it, as the character the page was opened on.
  */
 export function CharacterCard({
   animateHref,
@@ -66,6 +68,7 @@ export function CharacterCard({
   favoritePending,
   label,
   onFavorite,
+  onPublished,
   onRename,
   ref,
   selected,
@@ -75,6 +78,7 @@ export function CharacterCard({
   favoritePending: boolean;
   label: string;
   onFavorite: () => void;
+  onPublished: (slug: string) => void;
   onRename: () => void;
   ref?: Ref<HTMLElement>;
   selected: boolean;
@@ -133,6 +137,15 @@ export function CharacterCard({
             </Button>
           )}
         </div>
+        {character.generation_id && !character.is_sample && (
+          <PublishLink
+            compact
+            generationId={character.generation_id}
+            label={label}
+            onPublished={onPublished}
+            slug={character.share_slug}
+          />
+        )}
       </div>
     </article>
   );

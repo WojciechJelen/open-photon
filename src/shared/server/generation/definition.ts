@@ -97,6 +97,10 @@ type RebaseContext = { seed: number; target: ProviderTarget };
  * - `shareRecipe` (optional): what the public share page (`/r/:slug`, `readGenerationShare`) may
  *   show of a recipe; without it, the recipe. A workflow whose recipe holds private text (an
  *   enhanced caption, which is a private text output) leaves that out here.
+ * - `publish` (optional): when a done generation with a file output gets its share page
+ *   (`share_slug`), which makes those files public (`isSharedOutput`). `"on-done"` (the default):
+ *   as it becomes done. `"on-request"`: only when its owner publishes it after seeing it
+ *   (`publishGeneration`, `POST /api/generations/:id/publish`); until then it stays private.
  */
 export type WorkflowDefinition<Input, Recipe extends WorkflowRecipe> = {
   id: string;
@@ -120,6 +124,7 @@ export type WorkflowDefinition<Input, Recipe extends WorkflowRecipe> = {
   rebase(recipe: Recipe, context: RebaseContext): Recipe | null;
   promptOf?(recipe: Recipe): string;
   shareRecipe?(recipe: Recipe): Json;
+  publish?: "on-done" | "on-request";
 };
 
 /** A definition as the registry holds it, whichever input and recipe it types. */

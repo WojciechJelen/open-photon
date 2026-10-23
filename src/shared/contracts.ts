@@ -112,10 +112,15 @@ const generationSnapshotOutputSchema = z.discriminatedUnion("media", [
 
 export type GenerationSnapshotOutput = z.infer<typeof generationSnapshotOutputSchema>;
 
+/** A share page's slug (`/r/<slug>`): 16 random hex characters. */
+export const shareSlugSchema = z.string().regex(/^[0-9a-f]{16}$/);
+
 /**
  * A generation as `GET /api/generations/:id` and its event stream return it. A `done` row has
- * `share_slug` when it has a file to show: its public share page is `/r/<share_slug>` (a
- * generation whose outputs are all text has none). `outputs` lists a `done` generation's named
+ * `share_slug` once it is published: its public share page is `/r/<share_slug>`. A generation
+ * with a file to show is published as it becomes done, or, for a workflow that publishes on
+ * request (the character image), when its owner publishes it (`generationPublicationSchema`); a
+ * generation whose outputs are all text never is. `outputs` lists a `done` generation's named
  * outputs by name (files with their asset, texts inline) and is empty in any other status;
  * `final_asset_id` and `poster_asset_id` name the outputs `video` (an MP4) and `poster` (a JPEG) of
  * the workflows that have them, as they did before outputs had names, and are `null` for any
@@ -135,10 +140,7 @@ export const generationSchema = z.object({
   position: z.int().positive().nullable().default(null),
   poster_asset_id: z.uuid().nullable(),
   progress: z.int().min(0).max(100).nullable(),
-  share_slug: z
-    .string()
-    .regex(/^[0-9a-f]{16}$/)
-    .nullable(),
+  share_slug: shareSlugSchema.nullable(),
   status: generationStatusSchema,
   submitted_at: z.iso.datetime().nullable(),
 });
@@ -175,3 +177,15 @@ export const generationReceiptSchema = z.object({
 });
 
 export type GenerationReceipt = z.infer<typeof generationReceiptSchema>;
+
+/**
+ * The answer to `POST /api/generations/:id/publish` (no body; a session is needed): the done
+ * generation's `share_slug` and the absolute `url` of its share page, now public with its file
+ * outputs. 200 whether it was published now or before (the same slug). 404 `not_found`; 409
+ * `not_done`, `no_file` (all its outputs are text) or `not_publishable` (its workflow publishes
+ * on done).
+ */
+export const generationPublicationSchema = z.object({
+  share_slug: shareSlugSchema,
+  url: z.url(),
+});
