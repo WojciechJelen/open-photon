@@ -51,7 +51,7 @@ export function runtimeWorkflow(workflowFile: string): RuntimeWorkflow {
 /**
  * The runtime workflow at `workflowFile` as a workflow definition uses it, read once when the
  * server starts (from the working directory, like the migrations: the files are part of the image
- * and never change while it runs): its graph, its inputs map with one binding for each of `keys`
+ * and never change while it runs): its graph, its inputs map with one entry for each of `keys`
  * (`inputsMapSchema`), the SHA-256 of the workflow file (what recipes record) and the model pins
  * new recipes carry (`lockedModels`; none for a graph that loads no model file).
  */
