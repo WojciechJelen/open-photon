@@ -1,6 +1,6 @@
 # Run Open Photon
 
-Setup instructions now live in the [README getting started guide](README.md#getting-started):
+Setup instructions now live in the [README setup guide](README.md#setup):
 
 - [Choose Comfy Cloud or Runpod](README.md#choose-a-rendering-backend).
 - [Run locally from source](README.md#run-locally-from-source).
