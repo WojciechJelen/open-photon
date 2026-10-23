@@ -14,6 +14,9 @@ Built with TanStack Start, React, Tailwind, shadcn, SQLite and the Comfy SDK.
 Browsing samples is public; uploads and new generations require an access code.
 New renders use your Comfy Cloud credits or your self-hosted GPU.
 
+An unfinished experiment in pinning performance beats, not part of the app, lives in
+`src/features/motion-score/`.
+
 ## Getting started
 
 ### Choose a rendering backend
