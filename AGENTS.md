@@ -12,7 +12,8 @@ npx shadcn@latest add button
   `workflows/`, `samples/`, `tests/`, contracts (zod schemas and types), client helpers and
   server functions. Features: `motionTransfer` (the wizard, `/motionTransfer`), `characters`
   (workspace character library, sample characters), `characterBuilder` (character images:
-  caption, generation and save contracts, `POST /api/character-generations`), `studio` (home page `/`) and
+  caption, generation and save contracts, `POST /api/character-generations`), `studio` (home page `/`),
+  `presets` (curated Motion Transfer presets, `/presets`) and
   `motion-score` (a Python/ComfyUI PoC: nothing imports it and no workflow of it is a runtime
   workflow, but both images package its `workflows/` and the app image its `samples/`).
 - A feature's public surface is `api.ts` (server code of other features) and `index.ts`
