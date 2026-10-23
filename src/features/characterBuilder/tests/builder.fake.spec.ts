@@ -382,3 +382,64 @@ test("an image stays private until Publish & copy link, then anyone opens its sh
   await expect(cardLink).toHaveValue(new RegExp(`/r/${slugOf(otherId)}$`));
   await expect(card.getByRole("button", { name: /Publish & copy link/ })).toHaveCount(0);
 });
+
+test("publishing without a clipboard, or with copying refused, still publishes and leaves the link to copy; an earlier link starts with the server's share origin", async ({
+  page,
+}) => {
+  const run = crypto.randomUUID().slice(0, 8);
+  const title = `Busker ${run}`;
+
+  // No clipboard at all, as on an origin that is not secure.
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined }),
+  );
+
+  const imageId = await generateImage(page, `A busker ${run}, full body, plain background.`);
+
+  await page.getByRole("button", { name: "Publish & copy link" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Published" })).toHaveText(
+    "Published. Copying is not allowed here; copy the link below.",
+  );
+  expect(slugOf(imageId)).toMatch(/^[0-9a-f]{16}$/);
+  await expect(page.getByLabel("Share link", { exact: true })).toHaveValue(
+    new RegExp(`/r/${slugOf(imageId)}$`),
+  );
+
+  // A clipboard that refuses, as without permission: a library card publishes all the same.
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: () => Promise.reject(new DOMException("Denied", "NotAllowedError")) },
+    }),
+  );
+
+  const otherId = await generateImage(page, `A second busker ${run}, full body.`);
+
+  await page.getByLabel("Name (optional)").fill(title);
+  await page.getByRole("button", { name: "Save to library" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved to the library" })).toBeVisible();
+  await open(page, `/characters?q=${run}`);
+
+  const card = page.getByRole("article", { name: title });
+  const cardLink = card.getByRole("textbox", { name: `Share link: ${title}` });
+
+  await card.getByRole("button", { name: `Publish & copy link: ${title}` }).click();
+  await expect(card.getByRole("status").filter({ hasText: "Published" })).toHaveText(
+    "Published. Copying is not allowed here; copy the link below.",
+  );
+  await expect(cardLink).toHaveValue(new RegExp(`/r/${slugOf(otherId)}$`));
+
+  // Read again behind a proxy (`PUBLIC_APP_URL`): links published earlier are the server's.
+  await page.route("**/api/share-origin", (route) =>
+    route.fulfill({ json: { origin: "https://photon.example" } }),
+  );
+  await page.reload();
+  await expect(cardLink).toHaveValue(`https://photon.example/r/${slugOf(otherId)}`, {
+    timeout: 30_000,
+  });
+  await open(page, `/characters/new?image=${imageId}`);
+  await expect(page.getByLabel("Share link", { exact: true })).toHaveValue(
+    `https://photon.example/r/${slugOf(imageId)}`,
+    { timeout: 30_000 },
+  );
+});

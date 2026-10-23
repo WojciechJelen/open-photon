@@ -112,6 +112,13 @@ const generationSnapshotOutputSchema = z.discriminatedUnion("media", [
 
 export type GenerationSnapshotOutput = z.infer<typeof generationSnapshotOutputSchema>;
 
+/**
+ * `GET /api/share-origin` (a session is needed): the origin every share link starts with,
+ * `PUBLIC_APP_URL` when the server sets it, else the request's; what a page puts before
+ * `/r/<slug>` for a generation published before it opened, so it copies the server's URL.
+ */
+export const shareOriginSchema = z.object({ origin: z.url() });
+
 /** A share page's slug (`/r/<slug>`): 16 random hex characters. */
 export const shareSlugSchema = z.string().regex(/^[0-9a-f]{16}$/);
 
