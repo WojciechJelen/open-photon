@@ -7,7 +7,6 @@ import type { ComponentType } from "react";
 
 import type { PickableCharacter } from "#/features/characters";
 import type { ChildState } from "#/features/motionTransfer/components/render-ended";
-import type { AngleChoice } from "#/features/motionTransfer/contracts";
 import type { Direction, DraftSnapshot } from "#/features/motionTransfer/draft";
 import type { Field } from "#/features/motionTransfer/use-generate";
 import type { GenerationSnapshot } from "#/shared/contracts";
@@ -47,19 +46,13 @@ export type CharacterPickerProps = {
 
 /**
  * The Direct step's direction editor, controlled: it shows `value` and reports every edit as the
- * whole next direction. The seed stays under the step's Advanced; the default edits the angle and
- * the look (`DefaultDirectionEditor`).
+ * whole next direction. The seed stays under the step's Advanced; the default edits the look
+ * (`DefaultDirectionEditor`).
  */
 export type DirectionEditorProps = {
-  /** The reshoot presets on offer, besides `none` (As filmed). */
-  angles: AngleChoice[];
   /** The fields the last Generate found wrong, to mark as invalid. */
   errors: Field[];
-  /** The motion clip, for a preview; `null` while it is private to the visitor. */
-  motionPreview: string | null;
   onChange: (next: Direction) => void;
-  /** Whether the presets' phrasing is still a placeholder (shown as Beta). */
-  placeholderAngles: boolean;
   value: Direction;
 };
 

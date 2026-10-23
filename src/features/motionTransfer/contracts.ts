@@ -59,16 +59,11 @@ export const trimRequestSchema = z.object({
  * The JSON body of `POST /api/generate`. The motion is a stored, probed video asset of 3–8 s
  * (`motion_asset_id`): a sample motion's clip, an upload, or a trimmed cut of one. The character
  * must be a generated one or an upload with consent. `prompt` (appearance and background)
- * defaults to the workflow's own, `seed` to a random one. `angle` is the id of a reshoot-angle
- * preset of `src/features/motionTransfer/workflows/angles.json`; its phrasing is appended to the prompt, and an unknown id is
- * refused. The answer is `{ id, reused }`: `reused` when a generation with the same recipe is
- * done or still on its way, in which case nothing is submitted.
+ * defaults to the workflow's own, `seed` to a random one. The answer is `{ id, reused }`:
+ * `reused` when a generation with the same recipe is done or still on its way, in which case
+ * nothing is submitted.
  */
 export const generateInputSchema = z.object({
-  angle: z
-    .string()
-    .regex(/^[a-z][a-z-]*$/)
-    .optional(),
   character_id: z.uuid(),
   motion_asset_id: z.uuid(),
   prompt: z.string().trim().min(1).max(500).optional(),
@@ -76,6 +71,3 @@ export const generateInputSchema = z.object({
 });
 
 export type GenerateInput = z.output<typeof generateInputSchema>;
-
-/** A reshoot-angle preset as the generate form offers it. */
-export type AngleChoice = { id: string; label: string };

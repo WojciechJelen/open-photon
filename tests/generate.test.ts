@@ -405,28 +405,6 @@ test("retry refuses an unknown generation with 409 and recovery instructions", a
   assert.equal(submits.length, 1);
 });
 
-test("an angle appends its phrasing to the prompt and is part of the recipe; an unknown one is refused", async () => {
-  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
-  const same = { ...input(), prompt: "A dancer" };
-
-  const angled = findGeneration(
-    (await generate({ ...same, angle: "profile" }, session, double)).id,
-  );
-
-  const plain = findGeneration((await generate(same, session, double)).id);
-
-  assert.equal(angled?.recipe.angle, "profile");
-  assert.match(angled?.recipe.params.prompt ?? "", /^A dancer Profile view: /);
-  assert.equal(plain?.recipe.angle, undefined);
-  assert.equal(plain?.recipe.params.prompt, "A dancer");
-  assert.notEqual(plain?.recipe_hash, angled?.recipe_hash);
-
-  await assert.rejects(generate({ ...input(), angle: "upside-down" }, session, double), {
-    status: 422,
-  });
-  assert.equal(submits.length, 2);
-});
-
 /** A generation of `inputs` (fresh ones by default) taken to `done` (nothing is downloaded). */
 async function doneGeneration(double: Provider, inputs = input()) {
   const { id } = await generate(inputs, session, double);
@@ -440,11 +418,7 @@ test("a take's direction comes back as the Direct step held it, for whoever may 
   const { double } = provider((key) => Promise.resolve(`job-${key}`));
   const look = "Red jacket.\n\nRain  on glass.";
 
-  const shot = await generate(
-    { ...input(), angle: "three-quarter", prompt: look, seed: 777 },
-    session,
-    double,
-  );
+  const shot = await generate({ ...input(), prompt: look, seed: 777 }, session, double);
 
   const blank = await generate(
     { character_id: character.id, motion_asset_id: motion.id },
@@ -452,23 +426,71 @@ test("a take's direction comes back as the Direct step held it, for whoever may 
     double,
   );
 
-  // The look as it was typed (its angle phrasing taken off again), line breaks and all.
-  assert.deepEqual(readSelection({ from: shot.id }, true).direction, {
-    angle: "three-quarter",
-    prompt: look,
-    seed: "777",
-  });
+  // The look as it was typed, line breaks and all.
+  assert.deepEqual(readSelection({ from: shot.id }, true).direction, { prompt: look, seed: "777" });
 
   // The defaults read as a blank form, as they were sent.
-  assert.deepEqual(readSelection({ from: blank.id }, true).direction, {
-    angle: "none",
-    prompt: "",
-    seed: "",
-  });
+  assert.deepEqual(readSelection({ from: blank.id }, true).direction, { prompt: "", seed: "" });
 
   // Without a session a take that is not a pre-rendered sample stays private; an unknown id is none.
   assert.equal(readSelection({ from: shot.id }, false).direction, null);
   assert.equal(readSelection({ from: crypto.randomUUID() }, true).direction, null);
+});
+
+test("a take made with a retired reshoot angle comes back with the look as it was typed: the angle's phrasing taken off, blank if it was blank", async () => {
+  const { double } = provider((key) => Promise.resolve(`job-${key}`));
+
+  /** A take whose stored recipe is a legacy one: `angle` set, `prompt` the look then its phrasing. */
+  async function legacyTake(angle: string, prompt: string) {
+    const { id } = await generate(input(), session, double);
+    const recipe = findGeneration(id)?.recipe;
+
+    assert.ok(recipe);
+    database
+      .prepare("UPDATE generations SET recipe = ? WHERE id = ?")
+      .run(JSON.stringify({ ...recipe, angle, params: { ...recipe.params, prompt } }), id);
+
+    return { id, seed: String(recipe.params.seed) };
+  }
+
+  // The longest look the old form took, then the phrasing `prepareRecipe` appended.
+  const longest = "r".repeat(500);
+
+  const legacy = [
+    [
+      await legacyTake(
+        "profile",
+        `${longest} Profile view: the camera sees the character from the side.`,
+      ),
+      longest,
+    ],
+    [
+      await legacyTake(
+        "three-quarter",
+        `${generateDefaults.prompt} Three-quarter view: the camera is turned 45 degrees to the character's side.`,
+      ),
+      "",
+    ],
+    [
+      await legacyTake(
+        "profile",
+        "Neon street. Profile view: the camera sees the subject from the side.",
+      ),
+      "Neon street.",
+    ],
+    // An angle whose phrasing the look does not end with keeps the look whole.
+    [await legacyTake("front", "Neon street."), "Neon street."],
+  ] as const;
+
+  for (const [{ id, seed }, look] of legacy) {
+    assert.deepEqual(readSelection({ from: id }, true).direction, { prompt: look, seed });
+  }
+
+  // A take without an angle keeps a look that happens to end like a phrasing.
+  const typed = "Rooftop. Front view: the camera faces the character straight on.";
+  const shot = await generate({ ...input(), prompt: typed }, session, double);
+
+  assert.equal(readSelection({ from: shot.id }, true).direction?.prompt, typed);
 });
 
 test("rerun of a failed generation submits a child with the same recipe_hash and the same seed", async () => {
@@ -741,6 +763,19 @@ test("generate, retry and re-run are limited to 3 a minute per code and per clie
   assert.equal((await handleGenerate(post("/api/generate", "b1"), double)).status, 429);
   assert.equal(rows(), before);
   assert.equal(submits.length, 1);
+});
+
+test("POST /api/generate ignores the `angle` an old client still sends: the take starts, and its recipe has none", async () => {
+  const { double } = provider((key) => Promise.resolve(`job-${key}`));
+  const cookie = await sessionCookie(mintCode(10));
+  const body = JSON.stringify({ ...input(), angle: "profile", prompt: "A dancer" });
+  const response = await handleGenerate(post("/api/generate", "angle", cookie, body), double);
+  const { id } = z.object({ id: z.uuid() }).parse(await response.json());
+  const recipe = findGeneration(id)?.recipe;
+
+  assert.equal(response.status, 201);
+  assert.equal(recipe?.angle, undefined);
+  assert.equal(recipe?.params.prompt, "A dancer");
 });
 
 test("with the in-flight cap full, a new generation waits in line (a 202 with its place, nothing submitted); IN_FLIGHT_MAX=0 still refuses with a 503 queue_full", async () => {

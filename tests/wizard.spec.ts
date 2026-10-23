@@ -136,7 +136,6 @@ test.describe("without a session", () => {
       page,
       `/motionTransfer?step=direct&motion=${sourceAssetId}&character=${characterId}`,
     );
-    await page.getByLabel("Front").check();
     await page.getByRole("button", { name: "Neon street at night" }).click();
     await expect(page.getByLabel("Look")).toHaveValue(/neon-lit/);
     await slate(page).getByRole("button", { name: "Generate" }).click();
@@ -155,7 +154,7 @@ test.describe("without a session", () => {
     await expect(page).toHaveURL(new RegExp(`/g/${uuid}$`));
     expect(sent).toHaveLength(2);
     expect(sent[1]).toEqual(sent[0]);
-    expect(sent[0]).toMatchObject({ angle: "front", prompt: expect.stringContaining("neon-lit") });
+    expect(sent[0]).toMatchObject({ prompt: expect.stringContaining("neon-lit") });
   });
 
   test("the header's Access code opens the dialog, and the status turns active", async ({

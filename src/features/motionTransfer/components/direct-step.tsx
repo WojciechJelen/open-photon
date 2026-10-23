@@ -5,7 +5,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/component
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { StepIntro } from "#/features/motionTransfer/components/step-intro";
-import type { AngleChoice } from "#/features/motionTransfer/contracts";
 import type { Direction, MotionTransferDraft } from "#/features/motionTransfer/draft";
 import type { DirectionEditorProps } from "#/features/motionTransfer/slots";
 import { type Field, fieldMessages } from "#/features/motionTransfer/use-generate";
@@ -13,33 +12,27 @@ import type { Refusal } from "#/shared/requests";
 
 /**
  * Step 3, direct the shot (optional): the direction editor (`directionEditor`, by default the
- * camera angle and the look: `DefaultDirectionEditor`), and the seed under Advanced. It is the
- * form Generate submits (`formId`); the generation actions live in the slate.
+ * look: `DefaultDirectionEditor`), and the seed under Advanced. It is the form Generate submits
+ * (`formId`); the generation actions live in the slate.
  */
 export function DirectStep({
-  angles,
   back,
   direction,
   directionEditor: DirectionEditor,
   errors,
   failure,
   formId,
-  motionPreview,
   onChange,
   onSubmit,
-  placeholderAngles,
 }: {
-  angles: AngleChoice[];
   back: MotionTransferDraft;
   direction: Direction;
   directionEditor: ComponentType<DirectionEditorProps>;
   errors: Field[];
   failure: Refusal | null;
   formId: string;
-  motionPreview: string | null;
   onChange: (direction: Direction) => void;
   onSubmit: () => void;
-  placeholderAngles: boolean;
 }) {
   const id = useId();
   const { seed } = direction;
@@ -59,18 +52,10 @@ export function DirectStep({
         label="Step 3 of 4 · Optional"
         title="Direct the shot"
       >
-        Keep it as filmed, or reshoot from a new angle and restyle the scene. Skip straight to
-        Generate if you like it as it is.
+        Restyle the character and the scene, or skip straight to Generate if you like it as it is.
       </StepIntro>
 
-      <DirectionEditor
-        angles={angles}
-        errors={errors}
-        motionPreview={motionPreview}
-        onChange={onChange}
-        placeholderAngles={placeholderAngles}
-        value={direction}
-      />
+      <DirectionEditor errors={errors} onChange={onChange} value={direction} />
 
       <div className="rounded-2xl border bg-linear-to-b from-foreground/4 to-foreground/1">
         <Collapsible>

@@ -61,16 +61,16 @@ const nextStep: Record<WizardStep, WizardStep> = {
  * and writes every change to the URL, so a reload, Back and Forward and a deep link land on the
  * same screen; a step whose prerequisites are missing shows the furthest one it can reach
  * (`shownStep`), and the URL follows it. A pick replaces the history entry, a step change adds
- * one. Another page opens it on a draft with `draftHref`. The direction (angle, look, seed) is
- * the Direct step's form while the wizard is open; it starts from the draft's direction fields
- * over the direction of the take the draft comes `from` ("Change the shot", the remixes), and
+ * one. Another page opens it on a draft with `draftHref`. The direction (look, seed) is the
+ * Direct step's form while the wizard is open; it starts from the draft's direction fields over
+ * the direction of the take the draft comes `from` ("Change the shot", the remixes), and
  * another such start opens the form afresh. The access code is asked for by one dialog, which
  * then carries on with what asked for it (an upload, Generate).
  */
 export function MotionTransferWizard(props: WizardProps) {
-  const { angle, from, prompt, seed } = props.draft;
+  const { from, prompt, seed } = props.draft;
 
-  return <Wizard key={JSON.stringify([from, angle, prompt, seed])} {...props} />;
+  return <Wizard key={JSON.stringify([from, prompt, seed])} {...props} />;
 }
 
 function Wizard({
@@ -82,18 +82,8 @@ function Wizard({
 }: WizardProps) {
   const navigate = useNavigate();
 
-  const {
-    angles,
-    character,
-    characterId,
-    characters,
-    motion,
-    motionId,
-    motions,
-    placeholderAngles,
-    sampleTakeId,
-    signedIn,
-  } = selection;
+  const { character, characterId, characters, motion, motionId, motions, sampleTakeId, signedIn } =
+    selection;
 
   // The draft's choices, whether or not their details show: an upload needs the code to show, and
   // keeps its id through that.
@@ -104,13 +94,9 @@ function Wizard({
   const main = useRef<HTMLElement>(null);
   const shownBefore = useRef(step);
 
-  // The draft's direction fields, over the take it comes from; else As filmed, blank, default.
+  // The draft's direction fields, over the take it comes from; else blank, default.
   const [direction, setDirection] = useState<Direction>(() =>
-    startingDirection(
-      draft,
-      selection.direction ?? defaultDirection,
-      angles.map(({ id }) => id),
-    ),
+    startingDirection(draft, selection.direction ?? defaultDirection),
   );
 
   const access = useAccessCode();
@@ -163,7 +149,6 @@ function Wizard({
     });
 
   const sampleMotion = motions.find(({ clip }) => clip.id === motionChoice);
-  const angleLabel = angles.find(({ id }) => id === direction.angle)?.label ?? "As filmed";
 
   const motionRow: SlateRow = {
     change: step !== "motion" ? at("motion") : undefined,
@@ -191,17 +176,6 @@ function Wizard({
       />
     ) : null,
     value: characterChoice ? (character?.title ?? "Your photo") : null,
-  };
-
-  const cameraRow: SlateRow = {
-    done: false,
-    empty: "As filmed",
-    icon: <VideoIcon />,
-    label: "Camera",
-    short: true,
-    thumb: null,
-    // A direction set and left stays on the slate; until then it reads as the default.
-    value: step === "direct" || direction.angle !== "none" ? angleLabel : null,
   };
 
   const lookRow: SlateRow = {
@@ -333,27 +307,24 @@ function Wizard({
             )}
             {step === "direct" && (
               <DirectStep
-                angles={angles}
                 back={at("character")}
                 direction={direction}
                 directionEditor={directionEditor}
                 errors={generate.errors}
                 failure={generate.failure}
                 formId={formId}
-                motionPreview={motion ? mediaUrl(motion) : null}
                 onChange={setDirection}
                 onSubmit={() =>
                   generate.submit({ character: characterChoice, motion: motionChoice }, direction)
                 }
-                placeholderAngles={placeholderAngles}
               />
             )}
           </div>
           <ShotSlate
             action={action}
-            barRow={step === "motion" ? motionRow : step === "character" ? characterRow : cameraRow}
+            barRow={step === "motion" ? motionRow : step === "character" ? characterRow : lookRow}
             note={note}
-            rows={[motionRow, characterRow, cameraRow, lookRow]}
+            rows={[motionRow, characterRow, lookRow]}
           />
         </div>
       </main>

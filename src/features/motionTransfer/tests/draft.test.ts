@@ -8,7 +8,6 @@ import { z } from "zod";
 import {
   carriedDraft,
   carryDraft,
-  defaultDirection,
   directionFixture,
   draftFixture,
   draftHref,
@@ -37,7 +36,8 @@ function openedDraft(href: string) {
 test("parseDraft keeps the members that validate and drops the rest, unknown ones too", () => {
   assert.deepEqual(
     parseDraft({
-      angle: "Front!",
+      // An old link's reshoot angle: the presets are gone, so it is an unknown member.
+      angle: "profile",
       character: sampleCharacterId,
       extra: "x",
       from: 42,
@@ -51,13 +51,12 @@ test("parseDraft keeps the members that validate and drops the rest, unknown one
 
   assert.deepEqual(
     parseDraft({
-      angle: "none",
       motion: sampleMotionId,
       prompt: "  Neon  ",
       seed: 0,
       step: "motion",
     }),
-    { angle: "none", motion: sampleMotionId, prompt: "Neon", seed: 0, step: "motion" },
+    { motion: sampleMotionId, prompt: "Neon", seed: 0, step: "motion" },
   );
 
   assert.deepEqual(parseDraft({ seed: 1.5 }), {});
@@ -72,7 +71,7 @@ test("parseDraft keeps the members that validate and drops the rest, unknown one
 
 test("a remix whose look was cleared and seed reset keeps both through snapshot, link and parse, and generates as blank fields", () => {
   const from = "0c7d5e3a-1b2f-4a6c-8d9e-0f1a2b3c4d5e";
-  const take = { angle: "front", prompt: "From the take.", seed: "11" };
+  const take = { prompt: "From the take.", seed: "11" };
   const picks = { character: sampleCharacterId, motion: sampleMotionId };
 
   // The Direct step opened on the take, then the look and the seed were cleared.
@@ -91,9 +90,9 @@ test("a remix whose look was cleared and seed reset keeps both through snapshot,
   assert.deepEqual(reopened, { ...snapshot });
   assert.deepEqual(openedDraft(href), { ...snapshot });
 
-  const start = startingDirection(reopened, take, ["front"]);
+  const start = startingDirection(reopened, take);
 
-  assert.deepEqual(start, { angle: "front", prompt: "", seed: "" });
+  assert.deepEqual(start, { prompt: "", seed: "" });
 
   // Generated, the resets are parameters left out: the same body as a blank look and seed typed
   // into the form, so the same recipe and hash. (`useGenerate` sends this JSON.)
@@ -103,15 +102,14 @@ test("a remix whose look was cleared and seed reset keeps both through snapshot,
   assert.equal(
     body(start),
     JSON.stringify({
-      angle: "front",
       character_id: sampleCharacterId,
       motion_asset_id: sampleMotionId,
     }),
   );
-  assert.equal(body(start), body({ angle: "front", prompt: "  ", seed: "" }));
+  assert.equal(body(start), body({ prompt: "  ", seed: "" }));
 
   // A field left out still starts from the take's.
-  assert.deepEqual(startingDirection(parseDraft(openedDraft(draftHref({ from }))), take, []), take);
+  assert.deepEqual(startingDirection(parseDraft(openedDraft(draftHref({ from }))), take), take);
 });
 
 test("draftHref opens the wizard on the same draft, a look that reads as a number included", () => {
@@ -185,22 +183,11 @@ test("a snapshot is a frozen copy without the step, and withSeed and withCharact
   assert.throws(() => withCharacter(snapshotFixture, "not-a-uuid"));
 });
 
-test("the Direct step starts from the draft's direction fields over the take's, ignoring an angle not on offer", () => {
-  const take = { angle: "profile", prompt: "From the take.", seed: "11" };
+test("the Direct step starts from the draft's direction fields over the take's", () => {
+  const take = { prompt: "From the take.", seed: "11" };
 
-  assert.deepEqual(startingDirection(draftFixture, take, ["front", "profile"]), directionFixture);
-  assert.deepEqual(startingDirection({ prompt: "Mine." }, take, ["front", "profile"]), {
-    ...take,
-    prompt: "Mine.",
-  });
-  assert.deepEqual(
-    startingDirection({ angle: "zoom" }, defaultDirection, ["front"]),
-    defaultDirection,
-  );
-  assert.deepEqual(startingDirection({ angle: "none" }, take, ["front", "profile"]), {
-    ...take,
-    angle: "none",
-  });
+  assert.deepEqual(startingDirection(draftFixture, take), directionFixture);
+  assert.deepEqual(startingDirection({ prompt: "Mine." }, take), { ...take, prompt: "Mine." });
 });
 
 test("a draft carried through another page keeps its motion and direction, and comes back with the character picked there", () => {
@@ -222,7 +209,6 @@ test("a draft carried through another page keeps its motion and direction, and c
 
   assert.ok(carried && Object.isFrozen(carried));
   assert.deepEqual(carried, {
-    angle: directionFixture.angle,
     from,
     motion: sampleMotionId,
     prompt: directionFixture.prompt,
@@ -231,7 +217,6 @@ test("a draft carried through another page keeps its motion and direction, and c
 
   // Back to the wizard with the character picked there: on Direct, motion and direction kept.
   assert.deepEqual(openedDraft(draftHref(withCharacter(carried ?? {}, picked))), {
-    angle: directionFixture.angle,
     character: picked,
     from,
     motion: sampleMotionId,

@@ -4,15 +4,10 @@ import { type Asset, assetSchema } from "../../../shared/contracts.ts";
 import { findAsset } from "../../../shared/server/assets.ts";
 import { database } from "../../../shared/server/db.server.ts";
 import { getCharacter, listSampleCharacters, visibleCharacter } from "../../characters/api.ts";
-import {
-  type AngleChoice,
-  MAX_CLIP_MS,
-  type SampleMotion,
-  sampleMotionSchema,
-} from "../contracts.ts";
+import { MAX_CLIP_MS, type SampleMotion, sampleMotionSchema } from "../contracts.ts";
 import type { Direction } from "../draft.ts";
 import { findGeneration } from "./generations.ts";
-import { anglePresets, generateDefaults } from "./presets.ts";
+import { generateDefaults } from "./presets.ts";
 import { isPublicAsset } from "./public-access.ts";
 import type { Recipe } from "./recipe.ts";
 import { findSampleTake, findSampleTakeId, publicAsset } from "./shot.ts";
@@ -54,22 +49,34 @@ function listSampleMotions(): SampleMotion[] {
 }
 
 /**
- * The direction `recipe` was made with, as the wizard's Direct step holds it, so "Change the
- * shot", the remixes and a take's generation actions start from it: the angle's preset id
- * (`none`: As filmed), the look as it was sent (its angle phrasing taken off the end again; the
- * default description is a blank look) and the seed (the fixed default is a blank one).
+ * Every phrasing a reshoot-angle preset appended to the look (`prepareRecipe`, after a space)
+ * before the angle benchmark (`docs/angle-benchmark-2026-10-23/`) removed the presets: the three
+ * of `angles.json`, and an earlier profile phrasing that a development take carries
+ * (`fixtures/historical-recipes.json`). Frozen: no new recipe has an `angle`.
  */
-export function directionOf({ angle: angleId, params }: Recipe): Direction {
-  const angle = anglePresets.angles.find((preset) => preset.id === angleId);
-  const phrasing = angle ? ` ${angle.fragment}` : "";
+const retiredAngleFragments = [
+  "Front view: the camera faces the character straight on.",
+  "Three-quarter view: the camera is turned 45 degrees to the character's side.",
+  "Profile view: the camera sees the character from the side.",
+  "Profile view: the camera sees the subject from the side.",
+];
 
-  const look =
-    phrasing && params.prompt.endsWith(phrasing)
-      ? params.prompt.slice(0, -phrasing.length)
-      : params.prompt;
+/**
+ * The direction `recipe` was made with, as the wizard's Direct step holds it, so "Change the
+ * shot", the remixes and a take's generation actions start from it: the look as it was sent (the
+ * default description is a blank look) and the seed (the fixed default is a blank one). A take
+ * made with one of the retired reshoot-angle presets has its phrasing taken off the end again, so
+ * its look is the one typed (at most 500 characters), blank if it was blank.
+ */
+export function directionOf({ angle, params }: Recipe): Direction {
+  const phrasing =
+    angle === undefined
+      ? undefined
+      : retiredAngleFragments.find((fragment) => params.prompt.endsWith(` ${fragment}`));
+
+  const look = phrasing ? params.prompt.slice(0, -(phrasing.length + 1)) : params.prompt;
 
   return {
-    angle: angle?.id ?? "none",
     prompt: look === generateDefaults.prompt ? "" : look,
     seed: params.seed === generateDefaults.seed ? "" : String(params.seed),
   };
@@ -88,11 +95,9 @@ function readDirection(id: string, signedIn: boolean) {
 
 /**
  * What the Motion Transfer wizard (`/motionTransfer`) shows: the sample motions and
- * characters, the motion clip and character the URL names, the reshoot-angle presets
- * (`placeholderAngles` while their phrasing is not the benchmarked one), the description a blank
- * one stands for (`defaultPrompt`), the direction of the take the URL comes `from`
- * (`readDirection`), and the id of the pre-rendered sample take anyone may open for free
- * (`sampleTakeId`). A character in
+ * characters, the motion clip and character the URL names, the description a blank one stands
+ * for (`defaultPrompt`), the direction of the take the URL comes `from` (`readDirection`), and
+ * the id of the pre-rendered sample take anyone may open for free (`sampleTakeId`). A character in
  * the URL may be an upload (every upload has consent); there are no accounts, so an uploaded
  * character is listed only while the URL names it. An id that names nothing usable (unknown, not
  * a video, a clip over 8 s) resolves to `null`, so the picker falls back to no choice. Without a
@@ -117,7 +122,6 @@ export function readSelection(
   const clip = motion ? findMotionClip(motion) : null;
 
   return {
-    angles: anglePresets.angles.map(({ id, label }): AngleChoice => ({ id, label })),
     character: visibleCharacter(chosen, signedIn),
     characterId: chosen?.id ?? null,
     characters: listSampleCharacters(),
@@ -126,7 +130,6 @@ export function readSelection(
     motion: clip && (signedIn || isPublicAsset(clip.id)) ? clip : null,
     motionId: clip?.id ?? null,
     motions: listSampleMotions(),
-    placeholderAngles: anglePresets.placeholder,
     sampleTakeId: findSampleTakeId(),
     signedIn,
   };
