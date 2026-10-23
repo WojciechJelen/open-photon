@@ -1,4 +1,5 @@
 import { rm, stat } from "node:fs/promises";
+import { availableParallelism } from "node:os";
 import { resolve } from "node:path";
 
 import {
@@ -21,8 +22,11 @@ const FRAME_WIDTH = 1080;
 const FRAME_HEIGHT = 1920;
 
 // How long FFmpeg may take: the take holds its place in flight (`IN_FLIGHT_MAX`) until the stitch
-// ends, and an 8 s take stitches in seconds.
-const STITCH_TIMEOUT_MS = 60_000;
+// ends, and an 8 s take on one shared vCPU can take most of a minute.
+const STITCH_TIMEOUT_MS = 120_000;
+
+// libx264 and the filter graph size threads by the host's CPUs: 48 in a 1 GB container ran out.
+const FFMPEG_THREADS = String(Math.min(4, availableParallelism()));
 
 /** `value` rounded to the nearest even number of pixels, which 4:2:0 chroma needs. */
 function even(value: number) {
@@ -58,7 +62,7 @@ function videoOf(asset: StoredAsset | null, what: string) {
  * rate; the clip lasts as long as the result (a shorter driving clip holds its last frame) and
  * carries the result's audio as it is. H.264 High, `yuv420p`, `+faststart`: it plays in Chrome,
  * Safari and iOS. Returns the stored asset by output name (`COMPARE_OUTPUT`); throws when a file is
- * missing, FFmpeg fails or it takes over a minute (`STITCH_TIMEOUT_MS`).
+ * missing, FFmpeg fails or it takes over two minutes (`STITCH_TIMEOUT_MS`).
  */
 export async function stitchCompare(recipe: Recipe, outputs: Readonly<Record<string, string>>) {
   const result = videoOf(findAsset(outputs.video ?? ""), "result");
@@ -93,6 +97,8 @@ export async function stitchCompare(recipe: Recipe, outputs: Readonly<Record<str
     await runTool(
       "ffmpeg",
       [
+        "-filter_complex_threads",
+        FFMPEG_THREADS,
         "-i",
         source.path,
         "-i",
@@ -108,6 +114,8 @@ export async function stitchCompare(recipe: Recipe, outputs: Readonly<Record<str
         // At the result's rate, so the last frame lasts a frame too and the clip as long as the result.
         "-r",
         String(result.fps),
+        "-threads",
+        FFMPEG_THREADS,
         "-c:v",
         "libx264",
         "-profile:v",

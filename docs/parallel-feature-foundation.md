@@ -108,7 +108,8 @@ runs, so a derivation bounds its own work. Motion Transfer derives `compare`
 result frame by frame side by side (clip left, at the result's height) for a portrait or square
 result, or one above the other (clip on top, at the result's width) for a landscape one, scales the
 pair to fit a black 1080×1920 frame and copies the result's AAC audio (H.264 High, `yuv420p`,
-`+faststart`), stored as a `final` asset cut from the result; FFmpeg gets 60 s. A derivation
+`+faststart`), stored as a `final` asset cut from the result; FFmpeg gets 120 s and at most four
+encoder and filter threads (a container sees the host's CPUs, not its own). A derivation
 that throws is logged (`finalize.derive-failed`) and the row is done without it: it never
 fails the row nor counts toward the three finalize attempts. `scripts/backfill-compare.mjs`
 (by hand, from the repository: the app image does not ship it) adds it to takes finished

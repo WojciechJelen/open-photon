@@ -87,7 +87,7 @@ type RebaseContext = { seed: number; target: ProviderTarget };
  *   without its outputs: it never fails the generation nor counts as a failed finalize. It runs
  *   while the row is still `finalizing`, so the row holds its place in flight (`IN_FLIGHT_MAX`)
  *   and is not `done` until it ends: bound its work with a timeout (Motion Transfer's stitch
- *   gives up after 60 s).
+ *   gives up after 120 s).
  * - `seedOf`, `rebase`: the recipe's seed, and the recipe to render for a re-run or retry on the
  *   server's target now; `null` when this workflow can no longer render it (its file changed).
  * - `workflowHash`, `models`: the workflow file's SHA-256 and its model pins (`models.lock`).
