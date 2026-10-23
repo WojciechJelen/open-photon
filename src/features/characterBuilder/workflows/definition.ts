@@ -4,7 +4,6 @@ import { resolve } from "node:path";
 
 import { z } from "zod";
 
-import { loadRuntimeWorkflow } from "../../../shared/server/comfy-workflows.ts";
 import type { WorkflowDefinition } from "../../../shared/server/generation/definition.ts";
 import { GenerateError } from "../../../shared/server/generation/errors.ts";
 import { findGeneration, snapshot } from "../../../shared/server/generation/generations.ts";
@@ -25,18 +24,9 @@ import {
   upsamplerSettingsSchema,
 } from "./caption-definition.ts";
 import { modelPinSchema, SEED_RANGE, seedSchema, sha256Schema } from "./recipe.ts";
+import { characterImageWorkflow as imageWorkflow } from "./registry.ts";
 
 const WORKFLOW_VERSION = 1;
-
-/**
- * `character-generation.v1.json` (FLUX 3 Image Klein distilled, int8, `workflows/README.md`) with
- * its inputs map and model pins, read once when the server starts from the working directory,
- * like Motion Transfer's; both Dockerfiles copy every feature's `workflows/`.
- */
-const imageWorkflow = loadRuntimeWorkflow(
-  resolve("src/features/characterBuilder/workflows/character-generation.v1.json"),
-  ["caption", "height", "seed", "width"],
-);
 
 /** `workflows/defaults.json`: the size a request without `width`/`height` renders at. */
 const defaults = z

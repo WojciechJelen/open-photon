@@ -1,9 +1,7 @@
 import { randomInt } from "node:crypto";
-import { resolve } from "node:path";
 
 import { z } from "zod";
 
-import { loadRuntimeWorkflow } from "../../../shared/server/comfy-workflows.ts";
 import type { WorkflowDefinition } from "../../../shared/server/generation/definition.ts";
 import { buildGraph } from "../../../shared/server/workflow-graph.ts";
 import {
@@ -16,17 +14,9 @@ import {
   compileCharacterRequest,
 } from "../contracts.ts";
 import { modelPinSchema, SEED_RANGE, seedSchema, sha256Schema } from "./recipe.ts";
+import { characterCaptionWorkflow as captionWorkflow } from "./registry.ts";
 
 const WORKFLOW_VERSION = 1;
-
-/**
- * `character-caption.v1.json`: FLUX 3 Image Klein's prompt upsampler alone (`workflows/README.md`),
- * read once when the server starts, with its inputs map and model pins.
- */
-const captionWorkflow = loadRuntimeWorkflow(
-  resolve("src/features/characterBuilder/workflows/character-caption.v1.json"),
-  ["request", "seed"],
-);
 
 const TEXT_GENERATE = "18:11";
 const UPSAMPLER_LOADER = "18:12";
