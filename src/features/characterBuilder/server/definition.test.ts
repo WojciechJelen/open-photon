@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { type ProviderTarget, providerTarget } from "../../../shared/server/comfy-target.ts";
+import type { ProviderTarget } from "../../../shared/server/comfy-target.ts";
 import { hashRecipe } from "../../../shared/server/generation/generations.ts";
 import { readModelsLock } from "../../../shared/server/models-lock.ts";
 import { workflowGraphSchema } from "../../../shared/server/workflow-graph.ts";
@@ -15,7 +15,7 @@ const WORKFLOW_FILE = "src/features/characterBuilder/workflows/character-generat
 const bytes = readFileSync(WORKFLOW_FILE);
 const template = workflowGraphSchema.parse(JSON.parse(bytes.toString("utf8")));
 const lock = readModelsLock("src/features/characterBuilder/workflows/models.lock");
-const cloud: ProviderTarget = { ...providerTarget(), kind: "cloud" };
+const cloud: ProviderTarget = { kind: "cloud", origin: null };
 
 /** The recipe `definition` prepares for a request body, parsed (and trimmed) as the route does. */
 function prepare(body: CharacterGenerationInput, target = cloud) {
