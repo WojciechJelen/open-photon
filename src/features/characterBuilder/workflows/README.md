@@ -108,11 +108,11 @@ Runs through the app and with Motion Transfer: the PR's evidence.
 
 | Generation | Id | Submit → done | ComfyUI execution | Peak VRAM (device) | Output |
 | --- | --- | --- | --- | --- | --- |
-| caption | `7ac084c7-373a-4918-bc80-540e45dc1fa1` | 26.6 s | 25.37 s | 6,601 MiB (from 271 idle) | 1,158 characters |
-| image, 768×1344, seed 1001 | `77508bc1-ec05-41e2-8d78-f9dcb685f4f4` | 31.9 s | 29.87 s | 10,653 MiB (from 6,229) | PNG `484f45ac…f8d23793` |
-| Motion Transfer, 480×848 | `506a2964-2050-4cde-9926-f45fdeb598a7` | 255.9 s | 254.73 s | 38,935 MiB (from 9,533) | MP4 5.0 s, H.264 + AAC, `157b0277…a8211c6` |
+| caption | `7ac084c7-373a-4918-bc80-540e45dc1fa1` | 26.6 s | 25.37 s | 6,601 MiB | 1,158 characters |
+| image, 768×1344, seed 1001 | `77508bc1-ec05-41e2-8d78-f9dcb685f4f4` | 31.9 s | 29.87 s | 10,653 MiB | PNG `484f45ac…f8d23793` |
+| Motion Transfer, 480×848 | `506a2964-2050-4cde-9926-f45fdeb598a7` | 255.9 s | 254.73 s | 38,935 MiB | MP4 5.0 s, H.264 + AAC, `157b0277…f8211c6` |
 
-Each job reached ComfyUI (`got prompt`) within 0.1 s of submission; the app took 0.5 s (caption), 0.3 s (image) and 4.3 s (Motion Transfer, uploading its inputs) from request to submission. Peak VRAM is `nvidia-smi` `memory.used` for the whole device, sampled each second, so it includes models a previous job left loaded (the "from" value at submission). `verify-selfhost.mjs` with the three ids passed for all three: `done`, `target: selfhost`, this checkout's workflow SHA-256 and pins, the declared outputs.
+Each job reached ComfyUI (`got prompt`) within 0.1 s of submission; the app took 0.5 s (caption), 0.3 s (image) and 4.3 s (Motion Transfer, uploading its inputs) from request to submission. Peak VRAM is the highest whole-device `nvidia-smi` `memory.used` sample (one per second) between each generation's submission and done. The last readings before each submission were 271, 6,229 and 9,533 MiB; within 4 s of each submission the device dropped to 271, 461 and 463 MiB before rising to its peak, so the peaks do not include models left by an earlier job. `verify-selfhost.mjs` with the three ids passed for all three: `done`, `target: selfhost`, this checkout's workflow SHA-256 and pins, the declared outputs.
 
 - **Restart.** `runpodctl pod restart` at 15:13:39: no downloads; `install-models.mjs` re-hashed the nine files on the volume (`Verified` each, 4 min 3 s) and the API served again at 15:18:02, 4 min 23 s after the restart.
 - **Cost.** 21 min 4 s from creation to termination at the pod's $0.59/h: about $0.21 (approximate; Runpod had not posted the billing record when this was written).

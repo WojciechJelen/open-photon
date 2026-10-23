@@ -12,7 +12,7 @@ Current setup is in [README.md](README.md#getting-started).
   the three gated FLUX 3 files included) in 5 min 17 s and served 9 min 15 s after creation; a
   restart downloaded nothing and served again after 4 min 23 s. Through the app: caption
   `7ac084c7…` 26.6 s, 6,601 MiB; image `77508bc1…` 31.9 s, 10,653 MiB; Motion Transfer
-  `506a2964…` 255.9 s, 38,935 MiB (device totals); `verify-selfhost.mjs` passed all three.
+  `506a2964…` 255.9 s, 38,935 MiB (whole-device peaks); `verify-selfhost.mjs` passed all three.
   About $0.21 of pod time. Details: `src/features/characterBuilder/workflows/README.md`,
   "Self-host".
 

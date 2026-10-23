@@ -487,9 +487,9 @@ the fake provider otherwise.
 
 | Workflow | Lock | Weights | Peak VRAM |
 | --- | --- | --- | --- |
-| `motion-transfer.v1` (Wan Animate 2) | 5 files, `Comfy-Org/Wan-Animate-2` @ `e7181fe` | 25.6 GB (23.9 GiB) | Measured 31,426 MiB for a 5 s 480×848 render on an RTX 5090 32 GB and 38,935 MiB on an A40 48 GB (image `0.2.0`, device total incl. 9,533 MiB left by the jobs before it); 48 GB recommended |
-| `character-generation.v1` (FLUX 3 Image Klein distilled, int8) | 3 files: 2 from `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated), VAE from `Comfy-Org/Flux-2-Klein-4B` @ `533c4cb` | 11.0 GB (10.3 GiB) | Measured 10,653 MiB for 768×1344 on an A40 (device total incl. 6,229 MiB the caption job left loaded) |
-| `character-caption.v1` (FLUX 3 prompt upsampler, w4a8) | 1 file, `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated) | 6.7 GB (6.3 GiB) | Measured 6,601 MiB on an A40 (from 271 MiB idle) |
+| `motion-transfer.v1` (Wan Animate 2) | 5 files, `Comfy-Org/Wan-Animate-2` @ `e7181fe` | 25.6 GB (23.9 GiB) | Measured 31,426 MiB for a 5 s 480×848 render on an RTX 5090 32 GB, and 38,935 MiB (whole-device peak while the generation ran) on an A40 48 GB with image `0.2.0`; 48 GB recommended |
+| `character-generation.v1` (FLUX 3 Image Klein distilled, int8) | 3 files: 2 from `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated), VAE from `Comfy-Org/Flux-2-Klein-4B` @ `533c4cb` | 11.0 GB (10.3 GiB) | Measured 10,653 MiB (whole-device peak while the generation ran) for 768×1344 on an A40 |
+| `character-caption.v1` (FLUX 3 prompt upsampler, w4a8) | 1 file, `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated) | 6.7 GB (6.3 GiB) | Measured 6,601 MiB (whole-device peak while the generation ran) on an A40 |
 | Every lock (installed on each pod boot) | 9 distinct files | 43.4 GB (40.4 GiB) | One GPU runs one job at a time: the largest peak, Motion Transfer's |
 
 Weights are the `x-linked-size` of each pinned URL (for the gated FLUX 3 files, which answer 401

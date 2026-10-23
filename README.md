@@ -30,8 +30,9 @@ COMFY_API_KEY=your-cloud-key
 **Runpod:** deploy the [Open Photon template](https://console.runpod.io/deploy?template=iqcvzqgt1q)
 on an NVIDIA GPU with a **CUDA 13-compatible driver**. **48 GB VRAM is recommended**:
 image `0.2.0` on an A40 peaked at 38,935 MiB for a 5-second Motion Transfer take and
-10,653 MiB for a character image. Image `0.1.0` also passed a 5-second render on an
-RTX 5090 32 GB, peaking at 31,426 MiB with little headroom.
+10,653 MiB for a character image (whole-device `nvidia-smi` readings while each ran). Image
+`0.1.0` also passed a 5-second render on an RTX 5090 32 GB, peaking at 31,426 MiB with little
+headroom.
 Set `PROXY_TOKEN` to a long random secret, and `HF_TOKEN` to a Hugging Face token of an account
 that accepted the FLUX Kommunity License on
 [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy)
