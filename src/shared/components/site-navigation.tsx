@@ -13,17 +13,10 @@ import { NavigationIcon, type NavigationIconName } from "#/shared/components/nav
 
 type ToolPath = "/characters" | "/characters/new" | "/motionTransfer";
 
-type Tool = {
-  description: string;
-  icon: NavigationIconName;
-  label: string;
-} & ({ to: ToolPath } | { disabled: true });
+type Tool = { description: string; icon: NavigationIconName; label: string; to: ToolPath };
 
-type NavigationEntry = { label: string } & ({ disabled: true } | { tools: Tool[] });
-
-const navigation: NavigationEntry[] = [
-  //TODO: https://linear.app/devs3/issue/DEV-290
-  { disabled: true, label: "Explore" },
+// The tools that ship, by category; a tool is listed once its page exists.
+const navigation: Array<{ label: string; tools: Tool[] }> = [
   {
     label: "Image",
     tools: [
@@ -44,31 +37,8 @@ const navigation: NavigationEntry[] = [
         label: "Motion Transfer",
         to: "/motionTransfer",
       },
-      //TODO: https://linear.app/devs3/issue/DEV-289
-      {
-        description: "Start with a ready-made motion and look.",
-        disabled: true,
-        icon: "motionPresets",
-        label: "Motion presets",
-      },
-      //TODO: https://linear.app/devs3/issue/DEV-291
-      {
-        description: "Set the mood while directing your shot.",
-        disabled: true,
-        icon: "lookLighting",
-        label: "Look & lighting",
-      },
-      //TODO: https://linear.app/devs3/issue/DEV-292
-      {
-        description: "Generate several takes and compare them.",
-        disabled: true,
-        icon: "batchVariations",
-        label: "Batch variations",
-      },
     ],
   },
-  //TODO: https://linear.app/devs3/issue/DEV-288 — enable this category when an audio tool ships.
-  { disabled: true, label: "Audio" },
   {
     label: "Library",
     tools: [
@@ -87,10 +57,7 @@ function ToolDescription({ tool }: { tool: Tool }) {
     <span className="flex w-full items-start gap-3 py-1.5">
       <NavigationIcon name={tool.icon} />
       <span className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="flex items-center justify-between gap-2">
-          <span className="font-medium">{tool.label}</span>
-          {"disabled" in tool && <span className="text-xs text-muted-foreground">Soon</span>}
-        </span>
+        <span className="font-medium">{tool.label}</span>
         <span className="text-xs leading-relaxed text-muted-foreground">{tool.description}</span>
       </span>
     </span>
@@ -109,53 +76,31 @@ export function SiteNavigation() {
 
   return (
     <nav aria-label="Main" className="flex flex-wrap items-center gap-0.5 sm:gap-1">
-      {navigation.map((entry) => {
-        if ("disabled" in entry) {
-          return (
+      {navigation.map((entry) => (
+        <DropdownMenu key={entry.label}>
+          <DropdownMenuTrigger asChild>
             <Button
-              disabled
-              key={entry.label}
               size="nav"
-              title={`${entry.label} · Coming soon`}
-              variant="ghost"
+              variant={entry.tools.some((tool) => inTool(tool.to)) ? "secondary" : "ghost"}
             >
               {entry.label}
-              <span className="sr-only"> (coming soon)</span>
+              <ChevronDownIcon aria-hidden="true" className="size-3" />
             </Button>
-          );
-        }
-
-        const active = entry.tools.some((tool) => "to" in tool && inTool(tool.to));
-
-        return (
-          <DropdownMenu key={entry.label}>
-            <DropdownMenuTrigger asChild>
-              <Button size="nav" variant={active ? "secondary" : "ghost"}>
-                {entry.label}
-                <ChevronDownIcon aria-hidden="true" className="size-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" collisionPadding={16} sideOffset={8}>
-              <div className="w-68">
-                <DropdownMenuLabel>{entry.label}</DropdownMenuLabel>
-                {entry.tools.map((tool) =>
-                  "disabled" in tool ? (
-                    <DropdownMenuItem disabled key={tool.label}>
-                      <ToolDescription tool={tool} />
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem asChild key={tool.label}>
-                      <Link aria-current={pathname === tool.to ? "page" : undefined} to={tool.to}>
-                        <ToolDescription tool={tool} />
-                      </Link>
-                    </DropdownMenuItem>
-                  ),
-                )}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      })}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" collisionPadding={16} sideOffset={8}>
+            <div className="w-68">
+              <DropdownMenuLabel>{entry.label}</DropdownMenuLabel>
+              {entry.tools.map((tool) => (
+                <DropdownMenuItem asChild key={tool.label}>
+                  <Link aria-current={pathname === tool.to ? "page" : undefined} to={tool.to}>
+                    <ToolDescription tool={tool} />
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ))}
     </nav>
   );
 }
