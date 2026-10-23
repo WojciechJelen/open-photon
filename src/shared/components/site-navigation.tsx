@@ -22,14 +22,15 @@ type Tool = {
   label: string;
 } & ({ to: ToolPath } | { disabled: true });
 
-// Planned categories and tools are listed disabled, each under a comment naming its issue.
+// Planned categories and tools are listed disabled, each under a comment naming its issue. A
+// category that is one page (Explore) is a link to it, current on it and the pages under it.
 type NavigationEntry =
   | { disabled: true; label: string }
+  | { label: string; page: "/explore" }
   | { label: NavigationCategory; tools: Tool[] };
 
 const navigation: NavigationEntry[] = [
-  //TODO: https://linear.app/devs3/issue/DEV-290
-  { disabled: true, label: "Explore" },
+  { label: "Explore", page: "/explore" },
   {
     label: "Image",
     tools: [
@@ -125,6 +126,24 @@ export function SiteNavigation({ category }: { category?: NavigationCategory }) 
             >
               {entry.label}
               <span className="sr-only"> (coming soon)</span>
+            </Button>
+          );
+        }
+
+        if ("page" in entry) {
+          const here = pathname === entry.page || pathname.startsWith(`${entry.page}/`);
+
+          return (
+            <Button
+              asChild
+              data-current={here || undefined}
+              key={entry.label}
+              size="nav"
+              variant={here ? "secondary" : "ghost"}
+            >
+              <Link aria-current={here ? "page" : undefined} to={entry.page}>
+                {entry.label}
+              </Link>
             </Button>
           );
         }

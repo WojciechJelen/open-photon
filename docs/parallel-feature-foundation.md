@@ -193,7 +193,7 @@ one character per generation), `motionTransfer/001` (the pre-rendered takes' par
 `PublicAccessDeclaration` (`publicServerFns` keyed `<source path>#<export>`, `publicRoutes`,
 `isPublicAsset`, `indexableRoutes`, `isIndexableAsset`). Anything undeclared needs the access
 code. Declarations: `src/shared/server/generation/public-access.ts`,
-`src/features/{motionTransfer,characters,studio}/server/public-access.ts`.
+`src/features/{motionTransfer,characters,studio,explore}/server/public-access.ts`.
 
 Seeders are idempotent functions a feature exports (`seedSampleCharacters`,
 `seedSampleMotions`); `seedDatabase()` in `src/app/server.ts` runs each in its own transaction at
@@ -287,6 +287,34 @@ slot), `DefaultDirectionEditor`, `GenerateButton`, `RerunButton`. They are fille
 builder, `/characters/new`, carrying the draft. The studio (`/`) links Motion Transfer and both
 character tools ("Describe a character", "Character library"); the main navigation's Image ›
 Create character and Library › Characters open them.
+
+### Explore
+
+`src/features/explore/` (DEV-290): the public gallery `/explore` and an example's page
+`/explore/:slug` (the share page's slug), both open without a code (`exploreAccess`: the two
+pages and `explore.functions.ts#loadExplore`/`#loadExample`, indexable; it opens no file). The
+curated set is DEV-280's sample matrix, not a second one: every pre-rendered take
+(`is_prerendered`, marked by `scripts/prerender-samples.mjs`) that is a done Motion Transfer
+generation with a share page and a `video` output (`server/catalog.ts`). A take someone made is
+published as it becomes done but is not curated, so it is never listed. Like the home page's
+result wall, Explore is empty until the installation's operator runs
+`BASE_URL=… ACCESS_CODE=… node scripts/prerender-samples.mjs` (README, "Container notes"; a
+billed render per sample motion × character); nothing fills it at boot, since a feature never
+inserts `generations` rows itself. Its empty state says so and links Motion Transfer. Each
+example is read
+through the share contract (`readGenerationShare`: outputs, the recipe as `shareRecipe` lets a
+public page show it) and shows only what is public on its own: the result, poster and
+side-by-side (shared outputs); the source clip only when it is a sample motion's (any other clip
+is said to be private, even though the take's share page shows it); the character only as
+`visibleCharacter(…, false)` allows (never an upload), its image only when it is the very image
+the take used. Answers are `exploreEntrySchema`/`exploreDetailSchema` (`contracts.ts`), so no
+server path or other column leaks. Filters: `motion` (a sample motion's slug, or `own-clip`) and
+`look` (12 hex digits of the look's SHA-256), in the URL. "Make this with my character" is the
+wizard opened on `parseDraft({ from: id, motion })` (`draftHref`): the take's look and seed come
+from `from` (a pre-rendered take's direction is public), its clip when it is a sample's, else
+the wizard asks for a motion first. Browsing and opening it submit nothing; Generate is the
+wizard's, through `POST /api/generate` and its access and quota gate. The main navigation's
+Explore is a link to it.
 
 ### Import boundaries
 
