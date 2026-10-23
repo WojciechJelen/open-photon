@@ -14,10 +14,13 @@
 //   code may do what every other may, so an endpoint would let any code holder publish any take.
 // - Idempotent: generate reuses a done (or in-flight) generation of the same recipe, so a second
 //   run submits nothing and sets nothing new.
-// - A take is marked only once it is done with its side-by-side (`compare`) output. One that fails
-//   is reported and left; the script exits 1 after trying the rest.
-// - It refuses a BASE_URL on port 3030 (a local container with a real key; CHECKLIST.md, Phase 1)
-//   unless ALLOW_3030=1.
+// - A take is marked only once it is done with its side-by-side (`compare`) output. One that fails,
+//   or is still not done after 30 min, is reported and left; the script exits 1 after trying the
+//   rest. A full queue that stays full (`IN_FLIGHT_MAX=0`, 503 `queue_full` three times) stops it.
+// - The code must allow a few more generations than the takes: one refunds only when it fails
+//   before Comfy has it, so a provider failure needs another for the next run.
+// - It refuses a BASE_URL on port 3030 (the default dev port; on the maintainers' machines a local
+//   container with a real key, CHECKLIST.md, Phase 1) unless ALLOW_3030=1.
 // - Self-contained (no repository sources), so the app image ships it beside mint-code.mjs: on a
 //   deployment, run it in the container (`railway ssh`) against http://127.0.0.1:$PORT.
 import assert from "node:assert/strict";
@@ -27,9 +30,14 @@ import { DatabaseSync } from "node:sqlite";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const POLL_MS = 3000;
+
 // A Cloud take is about 65 s plus its queue; a self-host one several minutes.
 const TAKE_TIMEOUT_MS = 30 * 60 * 1000;
+
 const TERMINAL = new Set(["done", "failed", "unknown", "cancelled"]);
+
+// `IN_FLIGHT_MAX=0` refuses every new generation (503 `queue_full`); waiting will not help.
+const QUEUE_FULL_TRIES = 3;
 
 const base = process.env.BASE_URL?.replace(/\/+$/, "");
 const code = process.env.ACCESS_CODE;
@@ -43,7 +51,7 @@ if (!base || !code) {
 
 if (new URL(base).port === "3030" && process.env.ALLOW_3030 !== "1") {
   console.error(
-    `Refusing ${base}: port 3030 is the local container with a real key. Set ALLOW_3030=1 if you mean it.`,
+    `Refusing ${base}: port 3030 is the default dev port and, on the maintainers' machines, a local container on a real Comfy key, where every take is billed. Set ALLOW_3030=1 if you mean it.`,
   );
   process.exit(2);
 }
@@ -56,16 +64,24 @@ if (!existsSync(path)) {
 }
 
 const database = new DatabaseSync(path);
+
 database.exec("PRAGMA busy_timeout = 5000");
 
 /** A JSON request to the server, with the session cookie once signed in. */
 async function call(pathname, { body, cookie } = {}) {
+  const headers = { "Content-Type": "application/json" };
+
+  if (cookie) {
+    headers.Cookie = cookie;
+  }
+
   const response = await fetch(`${base}${pathname}`, {
     body: body === undefined ? undefined : JSON.stringify(body),
-    headers: { "Content-Type": "application/json", ...(cookie ? { Cookie: cookie } : {}) },
+    headers,
     method: body === undefined ? "GET" : "POST",
     signal: AbortSignal.timeout(60_000),
   });
+
   const text = await response.text();
 
   return {
@@ -92,10 +108,13 @@ async function signIn() {
 }
 
 /**
- * Asks for the take of `motion` × `character` at the defaults; waits out a rate limit or a full
- * queue. Returns the generation id and whether an existing one was reused.
+ * Asks for the take of `motion` × `character` at the defaults; waits out a rate limit, and a full
+ * queue up to `QUEUE_FULL_TRIES` times. Returns the generation id and whether an existing one was
+ * reused.
  */
 async function requestTake(cookie, motion, character) {
+  let queueFull = 0;
+
   for (;;) {
     const { headers, json, status } = await call("/api/generate", {
       body: { character_id: character.id, motion_asset_id: motion.source_asset_id },
@@ -104,6 +123,12 @@ async function requestTake(cookie, motion, character) {
 
     if (status === 200 || status === 201 || status === 202) {
       return { id: json.id, reused: json.reused === true };
+    }
+
+    if (status === 503 && json?.reason === "queue_full" && ++queueFull >= QUEUE_FULL_TRIES) {
+      throw new Error(
+        `POST /api/generate answered 503 queue_full ${queueFull} times: is IN_FLIGHT_MAX 0 on ${base}?`,
+      );
     }
 
     if (status === 429 || status === 503) {
@@ -117,7 +142,7 @@ async function requestTake(cookie, motion, character) {
   }
 }
 
-/** Polls the generation until it ends; its last snapshot. */
+/** Polls the generation until it ends; its last snapshot, or `null` after `TAKE_TIMEOUT_MS`. */
 async function waitForEnd(cookie, id) {
   const deadline = Date.now() + TAKE_TIMEOUT_MS;
   let last = "";
@@ -137,7 +162,9 @@ async function waitForEnd(cookie, id) {
     }
 
     if (Date.now() > deadline) {
-      throw new Error(`${id} is still ${json.status} after ${TAKE_TIMEOUT_MS / 60_000} min`);
+      console.error(`  ${id}: still ${json.status} after ${TAKE_TIMEOUT_MS / 60_000} min`);
+
+      return null;
     }
 
     await sleep(POLL_MS);
@@ -148,6 +175,7 @@ try {
   const motions = database
     .prepare("SELECT title, source_asset_id FROM motions ORDER BY title")
     .all();
+
   const characters = database
     .prepare("SELECT id, title FROM characters WHERE is_sample = 1 ORDER BY title")
     .all();
@@ -172,13 +200,26 @@ try {
       console.log(`${label}: ${id} (${reused ? "reused" : "submitted"})`);
 
       const snapshot = await waitForEnd(cookie, id);
+
+      if (!snapshot) {
+        failures.push(`${label} (timed out; run again to pick it up where it is)`);
+        continue;
+      }
+
       const outputs = new Set((snapshot.outputs ?? []).map(({ name }) => name));
 
       if (snapshot.status !== "done" || !outputs.has("video") || !outputs.has("compare")) {
         failures.push(label);
         console.error(
-          `  ${id}: ${snapshot.status}, outputs [${[...outputs].join(", ")}]; not marked pre-rendered`,
+          `  ${id}: ${snapshot.status}${snapshot.error_message ? ` (${snapshot.error_message})` : ""}, outputs [${[...outputs].join(", ")}]; not marked pre-rendered`,
         );
+
+        if (reused && snapshot.status === "unknown") {
+          console.error(
+            "  It is an earlier take of this recipe, `unknown` since a server stopped while handing it to Comfy; generate reuses such a take for a day, so this pair fails until then.",
+          );
+        }
+
         continue;
       }
 
@@ -188,6 +229,7 @@ try {
           WHERE id = ? AND status = 'done' AND workflow_id = 'motion-transfer'`,
         )
         .run(id);
+
       const row = database.prepare("SELECT share_slug FROM generations WHERE id = ?").get(id);
 
       assert.ok(
