@@ -38,6 +38,13 @@ test("the home page's result wall loops every pre-rendered take and opens its pu
     ).toHaveAttribute("href", `/r/${take.shareSlug}`);
   }
 
+  // The whole wall is above the fold.
+  for (const link of await links.all()) {
+    const box = await link.boundingBox();
+
+    expect((box?.y ?? Number.POSITIVE_INFINITY) + (box?.height ?? 0)).toBeLessThanOrEqual(800);
+  }
+
   const [first] = prerendered.takes;
 
   if (!first) {
