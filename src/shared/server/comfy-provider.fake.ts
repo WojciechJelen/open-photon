@@ -5,6 +5,7 @@ import { basename, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { type ComfyEvent, IdempotencyKeyReuse, type Progress } from "@comfyorg/sdk";
+import { z } from "zod";
 
 import type { AssetReference } from "./comfy-assets.ts";
 import type { Provider, ProviderJob, ProviderOutput } from "./comfy-provider.ts";
@@ -23,7 +24,40 @@ const fakeScenarios = ["success", "provider_failed", "ambiguous"] as const;
 
 type FakeScenario = (typeof fakeScenarios)[number];
 
-type FakeJob = { id: string; outputs: Map<string, "image" | "video">; scenario: FakeScenario };
+/** A fake job: its output nodes, its scenario and when it was submitted (epoch ms). */
+type FakeJob = {
+  id: string;
+  outputs: Array<[nodeId: string, media: "image" | "video"]>;
+  scenario: FakeScenario;
+  submittedAt: number;
+};
+
+// What a fake job id carries after its key's hash, so a restarted server (whose fake is new) can
+// still be asked about a job the stopped one accepted.
+const fakeJobSchema = z.object({
+  outputs: z.array(z.tuple([z.string(), z.enum(["image", "video"])])),
+  scenario: z.enum(fakeScenarios),
+  submittedAt: z.int().nonnegative(),
+});
+
+/** The job a fake job id describes (`createFakeProvider`'s `submit`), `null` for any other id. */
+function readJobId(id: string): FakeJob | null {
+  const match = /^fake-[0-9a-f]{32}\.([A-Za-z0-9_-]+)$/.exec(id);
+
+  if (!match?.[1]) {
+    return null;
+  }
+
+  try {
+    const described = fakeJobSchema.safeParse(
+      JSON.parse(Buffer.from(match[1], "base64url").toString("utf8")),
+    );
+
+    return described.success ? { id, ...described.data } : null;
+  } catch {
+    return null;
+  }
+}
 
 // Resolved from the working directory, like the workflows; the fake runs from a checkout only.
 const fixtures = {
@@ -63,13 +97,13 @@ function scenarioFor(graph: WorkflowGraph) {
 
 /** The fixture each output node of `graph` produces, by its class. */
 function outputNodes(graph: WorkflowGraph) {
-  const outputs = new Map<string, "image" | "video">();
+  const outputs: FakeJob["outputs"] = [];
 
   for (const [nodeId, node] of Object.entries(graph)) {
     if (/^Save\w*Video$/.test(node.class_type)) {
-      outputs.set(nodeId, "video");
+      outputs.push([nodeId, "video"]);
     } else if (node.class_type === "SaveImage" || node.class_type === "PreviewImage") {
-      outputs.set(nodeId, "image");
+      outputs.push([nodeId, "image"]);
     }
   }
 
@@ -113,7 +147,11 @@ function statusChange(status: string): ComfyEvent {
   return { kind: "statusChange", queuePosition: null, status };
 }
 
-/** `COMFY_FAKE_STEP_MS` (default 250) between a fake job's events, so a page can show progress. */
+/**
+ * `COMFY_FAKE_STEP_MS` (default 250) between a fake job's events, counted from its submit: a job
+ * is `running` until its last event is due, then `succeeded` (or `failed`), so a page can show
+ * progress and a server polling it sees it take that long.
+ */
 function stepMs() {
   const configured = Number(process.env.COMFY_FAKE_STEP_MS ?? 250);
 
@@ -133,57 +171,70 @@ function fakeJobHandle(job: FakeJob): ProviderJob {
         statusChange("succeeded"),
       ];
 
+  const step = stepMs();
+  const ended = Date.now() >= job.submittedAt + script.length * step;
+  const outputs = new Map(job.outputs);
+
   return {
-    error: failed
-      ? { code: "fake_failure", message: "The fake provider failed this job on purpose." }
-      : null,
+    error:
+      failed && ended
+        ? { code: "fake_failure", message: "The fake provider failed this job on purpose." }
+        : null,
     async *events(signal) {
-      for (const event of script) {
-        await delay(stepMs(), undefined, { signal });
+      for (const [index, event] of script.entries()) {
+        const due = job.submittedAt + (index + 1) * step;
+
+        await delay(Math.max(0, due - Date.now()), undefined, { signal });
         yield event;
       }
     },
     getOutputs: (nodeId) => {
-      const media = failed ? undefined : job.outputs.get(nodeId);
+      const media = failed || !ended ? undefined : outputs.get(nodeId);
 
       return media ? [fixtureOutput(media)] : [];
     },
     id: job.id,
-    status: failed ? "failed" : "succeeded",
+    status: ended ? (failed ? "failed" : "succeeded") : "running",
   };
 }
 
 /** A deterministic stand-in for Comfy, with the number of calls each method received. */
 type FakeProvider = Provider & {
   readonly calls: { job: number; submit: number; upload: number };
+  /** The id of the job a submit with `idempotencyKey` created, even one whose call threw. */
+  jobIdFor(idempotencyKey: string): string | undefined;
 };
 
 /**
  * A provider that never leaves the process (`COMFY_PROVIDER=fake`, `comfy-provider.ts`): uploads
- * are named by the file's hash, a submit's job id by its idempotency key, and jobs live in memory,
- * so a restart forgets them. Keys are single-use, as on Comfy: a second submit with a key already
- * seen throws the SDK's `IdempotencyKeyReuse` (422) and leaves the first job as it was.
+ * are named by the file's hash, and a submit's job id by its idempotency key, followed by what the
+ * job is (its outputs, scenario and submit time), so a restarted server can still follow a job
+ * the stopped one submitted. Keys are single-use, as on Comfy, while the process lives: a second
+ * submit with a key already seen throws the SDK's `IdempotencyKeyReuse` (422) and leaves the
+ * first job as it was.
  */
 function createFakeProvider() {
   const jobs = new Map<string, FakeJob>();
+
+  const keyHash = (idempotencyKey: string) =>
+    createHash("sha256").update(idempotencyKey).digest("hex").slice(0, 32);
 
   const provider: FakeProvider = {
     calls: { job: 0, submit: 0, upload: 0 },
     job: (id) => {
       provider.calls.job += 1;
-      const job = jobs.get(id);
+      const job = readJobId(id);
 
       return job
         ? Promise.resolve(fakeJobHandle(job))
-        : Promise.reject(
-            new Error(`The fake provider has no job ${id}: its jobs live in memory only.`),
-          );
+        : Promise.reject(new Error(`The fake provider has no job ${id}.`));
     },
+    jobIdFor: (idempotencyKey) => jobs.get(keyHash(idempotencyKey))?.id,
     submit: async (graph, idempotencyKey) => {
       provider.calls.submit += 1;
-      const id = `fake-${createHash("sha256").update(idempotencyKey).digest("hex").slice(0, 32)}`;
+      const hash = keyHash(idempotencyKey);
 
-      if (jobs.has(id)) {
+      if (jobs.has(hash)) {
         throw new IdempotencyKeyReuse(
           `The fake provider has already seen idempotency key ${idempotencyKey}.`,
           { code: "idempotency_key_reuse", httpStatus: 422 },
@@ -191,8 +242,10 @@ function createFakeProvider() {
       }
 
       const scenario = scenarioFor(graph);
+      const described = { outputs: outputNodes(graph), scenario, submittedAt: Date.now() };
+      const id = `fake-${hash}.${Buffer.from(JSON.stringify(described)).toString("base64url")}`;
 
-      jobs.set(id, { id, outputs: outputNodes(graph), scenario });
+      jobs.set(hash, { id, ...described });
 
       if (scenario === "ambiguous") {
         throw Object.assign(new Error("The fake provider accepted the job, then timed out."), {
