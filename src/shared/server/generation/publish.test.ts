@@ -5,12 +5,15 @@ import test from "node:test";
 import { mintCode } from "../../../../tests/temp-database.ts";
 import { imageDefinition } from "../../../../tests/test-image-workflow.ts";
 import { isPublicRequest } from "../../../app/server.ts";
+import { shareOriginSchema } from "../../contracts.ts";
 import { findAccessCode } from "../access-codes.ts";
 import { findAsset } from "../assets.ts";
 import { database } from "../db.server.ts";
+import { handleShareOrigin } from "../public-origin.ts";
 import { workflows } from "./definition.ts";
 import { GenerateError } from "./errors.ts";
 import { findGeneration, isSharedOutput, publishGeneration, readOutputs } from "./generations.ts";
+import { handlePublish } from "./http.ts";
 import { readGenerationShare } from "./pages.ts";
 import { readGeneration, submit } from "./service.ts";
 
@@ -98,4 +101,38 @@ test("a workflow that publishes on done does so as before; publishing refuses wh
 
   refused(queued.id, 409, "not_done");
   assert.equal(findGeneration(queued.id)?.share_slug, null);
+});
+
+test("a share link starts with PUBLIC_APP_URL when the server sets it, else the request's origin, for a new publish and an old one alike", async () => {
+  const request = new Request("http://internal:3000/api/share-origin");
+  const before = process.env.PUBLIC_APP_URL;
+
+  const origin = async () =>
+    shareOriginSchema.parse(await handleShareOrigin(request).json()).origin;
+
+  delete process.env.PUBLIC_APP_URL;
+  assert.equal(await origin(), "http://internal:3000");
+  process.env.PUBLIC_APP_URL = "https://photon.example";
+
+  try {
+    const id = await done(reviewedDefinition, "A portrait behind a proxy");
+
+    const answer = await handlePublish(
+      new Request(`http://internal:3000/api/generations/${id}/publish`, { method: "POST" }),
+      id,
+    ).json();
+
+    assert.equal(answer.url, `https://photon.example/r/${answer.share_slug}`);
+    // What a page puts before the slug of a generation published earlier: the same URL.
+    assert.equal(`${await origin()}/r/${answer.share_slug}`, answer.url);
+  } finally {
+    if (before === undefined) {
+      delete process.env.PUBLIC_APP_URL;
+    } else {
+      process.env.PUBLIC_APP_URL = before;
+    }
+  }
+
+  // Not public: the access guard asks for the code first.
+  assert.equal(isPublicRequest("GET", "/api/share-origin"), false);
 });

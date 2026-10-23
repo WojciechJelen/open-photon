@@ -15,6 +15,7 @@ import { Route as ApiCharacterCaptionsRouteImport } from './routes/api.character
 import { Route as ApiCharacterGenerationsRouteImport } from './routes/api.character-generations'
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiGenerateRouteImport } from './routes/api.generate'
+import { Route as ApiShareOriginRouteImport } from './routes/api.share-origin'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as CharactersIndexRouteImport } from './routes/characters.index'
 import { Route as CharactersNewRouteImport } from './routes/characters.new'
@@ -61,6 +62,11 @@ const ApiCharactersRoute = ApiCharactersRouteImport.update({
 const ApiGenerateRoute = ApiGenerateRouteImport.update({
   id: '/api/generate',
   path: '/api/generate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiShareOriginRoute = ApiShareOriginRouteImport.update({
+  id: '/api/share-origin',
+  path: '/api/share-origin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiUploadsRoute = ApiUploadsRouteImport.update({
@@ -164,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
+  '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/characters/new': typeof CharactersNewRoute
   '/g/$generationId': typeof GGenerationIdRoute
@@ -189,6 +196,7 @@ export interface FileRoutesByTo {
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
+  '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/characters/new': typeof CharactersNewRoute
   '/g/$generationId': typeof GGenerationIdRoute
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
+  '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/characters/new': typeof CharactersNewRoute
   '/g/$generationId': typeof GGenerationIdRoute
@@ -242,6 +251,7 @@ export interface FileRouteTypes {
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
+    | '/api/share-origin'
     | '/api/uploads'
     | '/characters/new'
     | '/g/$generationId'
@@ -267,6 +277,7 @@ export interface FileRouteTypes {
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
+    | '/api/share-origin'
     | '/api/uploads'
     | '/characters/new'
     | '/g/$generationId'
@@ -292,6 +303,7 @@ export interface FileRouteTypes {
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
+    | '/api/share-origin'
     | '/api/uploads'
     | '/characters/new'
     | '/g/$generationId'
@@ -318,6 +330,7 @@ export interface RootRouteChildren {
   ApiCharacterGenerationsRoute: typeof ApiCharacterGenerationsRouteWithChildren
   ApiCharactersRoute: typeof ApiCharactersRouteWithChildren
   ApiGenerateRoute: typeof ApiGenerateRoute
+  ApiShareOriginRoute: typeof ApiShareOriginRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   CharactersNewRoute: typeof CharactersNewRoute
   GGenerationIdRoute: typeof GGenerationIdRoute
@@ -372,6 +385,13 @@ declare module '@tanstack/react-router' {
       path: '/api/generate'
       fullPath: '/api/generate'
       preLoaderRoute: typeof ApiGenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/share-origin': {
+      id: '/api/share-origin'
+      path: '/api/share-origin'
+      fullPath: '/api/share-origin'
+      preLoaderRoute: typeof ApiShareOriginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/uploads': {
@@ -555,6 +575,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCharacterGenerationsRoute: ApiCharacterGenerationsRouteWithChildren,
   ApiCharactersRoute: ApiCharactersRouteWithChildren,
   ApiGenerateRoute: ApiGenerateRoute,
+  ApiShareOriginRoute: ApiShareOriginRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   CharactersNewRoute: CharactersNewRoute,
   GGenerationIdRoute: GGenerationIdRoute,

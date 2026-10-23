@@ -80,7 +80,8 @@ Client-safe contracts are in `src/shared/contracts.ts`:
 - `generationReceiptSchema`: `{ id, reused }`, plus `status: "waiting"` and `position` when the
   generation waits in line.
 - `generationPublicationSchema`: `{ share_slug, url }`, the answer to
-  `POST /api/generations/:id/publish`.
+  `POST /api/generations/:id/publish`; `shareOriginSchema`: `{ origin }`, the answer to
+  `GET /api/share-origin` (session needed), what a share link starts with (`publicOrigin`).
 - `generationStatusSchema`: `waiting → preparing → queued → running → finalizing → done`, or
   `failed`, `unknown` (the provider may have the job; never resubmitted), `cancelled` (a waiting
   row taken out of line).
@@ -134,8 +135,11 @@ review before distribution the FLUX Kommunity licence asks for (§2.e(i); no con
 again when it is published already (Motion Transfer's included); 404 `not_found`, 409 `not_done`,
 `no_file` (every output is a text) or `not_publishable` (its workflow publishes on done, so a
 missing slug is never added on request). The builder's image and a generated character's library
-card offer it as "Publish & copy link" (`PublishLink`, `src/shared/components/`); a character's
-summary carries its generation's `share_slug`. `generationAccess`
+card offer it as "Publish & copy link" (`PublishLink`, `src/shared/components/`): the publish is
+recorded whatever the clipboard does, and a link it cannot copy stays in a field to copy by hand.
+A link published before the page opened starts with `GET /api/share-origin`'s origin, so every
+surface copies the server's URL. A character's summary carries its generation's `share_slug`.
+`generationAccess`
 (`src/shared/server/generation/public-access.ts`) makes public: share pages, exactly the file
 outputs of done generations that have a share page (`isSharedOutput`; a text asset never is), and
 the pages and API of pre-rendered samples. Assets are stored once by content, so the same bytes
