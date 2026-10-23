@@ -7,9 +7,7 @@ function searchOf(page: Page) {
   return Object.fromEntries(new URL(page.url()).searchParams);
 }
 
-test("Download saves the result's MP4 under a file name that says it is AI-generated", async ({
-  page,
-}) => {
+test("Download saves the result's MP4 under a file name", async ({ page }) => {
   await open(page, `/g/${seededResult().id}`);
 
   const [download] = await Promise.all([
@@ -17,7 +15,7 @@ test("Download saves the result's MP4 under a file name that says it is AI-gener
     page.getByRole("link", { name: "Download MP4" }).click(),
   ]);
 
-  expect(download.suggestedFilename()).toMatch(/^ai-generated-[0-9a-f]{8}\.mp4$/);
+  expect(download.suggestedFilename()).toMatch(/^open-photon-[0-9a-f]{8}\.mp4$/);
   expect(await download.failure()).toBeNull();
 });
 
