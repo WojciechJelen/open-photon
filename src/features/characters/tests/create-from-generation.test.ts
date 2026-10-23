@@ -60,6 +60,18 @@ test("a done image generation run through the fake provider is saved once: its o
   assert.equal(first.created, true);
   assert.deepEqual(second, { character: first.character, created: false });
 
+  // A retry after a reload may not repeat the inputs: the saved character still comes back.
+  for (const retried of [
+    { outputName: "missing" },
+    { outputName: "image", title: "" },
+    { outputName: "image", title: "x".repeat(81) },
+  ]) {
+    assert.deepEqual(createFromGeneration({ generationId: id, ...retried }), {
+      character: first.character,
+      created: false,
+    });
+  }
+
   const { character } = first;
 
   assert.equal(character.origin, "generated");

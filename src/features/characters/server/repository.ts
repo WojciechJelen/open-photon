@@ -165,9 +165,10 @@ export function createFromUpload({
  * image output named `outputName` (422 `no_output`, `not_image`). The character (`origin =
  * 'generated'`) takes that output's asset as its image, and its `prompt` and `provenance`
  * (workflow, model pins) from the generation's stored recipe (`readGenerationProvenance`), never
- * from the caller. Idempotent on the generation: saving it again, or concurrently, returns the
- * first character (`created: false`), whatever `outputName` and `title` say then
- * (`characters_generation`). A rerun or retry is another generation, so another character.
+ * from the caller. Idempotent on the generation: once it is saved, saving it again returns that
+ * character (`created: false`) before anything else is checked, whatever `outputName` and `title`
+ * say then; two first saves at once insert one row (`characters_generation`). A rerun or retry is
+ * another generation, so another character.
  */
 export function createFromGeneration({
   generationId,
@@ -178,6 +179,16 @@ export function createFromGeneration({
   outputName: string;
   title?: string;
 }) {
+  const saved = summarize(
+    database
+      .prepare("SELECT * FROM characters WHERE generation_id = ? AND origin = 'generated'")
+      .get(generationId),
+  );
+
+  if (saved) {
+    return { character: saved, created: false };
+  }
+
   const provenance = readGenerationProvenance(generationId);
 
   if (!provenance) {
