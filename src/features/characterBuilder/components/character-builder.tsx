@@ -122,8 +122,16 @@ export function CharacterBuilder({
   }, [form, recalled]);
 
   // A caption opened without its description (another tab, a shared link): the description and
-  // controls it was made from, from its recipe.
+  // controls it was made from, from its recipe. Only the restoration still current applies its
+  // answer: one for a caption the URL no longer shows, or from before "Start over", is dropped.
   const describedFrom = useRef<string | null>(null);
+  const restoration = useRef<{ caption: string } | null>(null);
+
+  useEffect(() => {
+    if (restoration.current && restoration.current.caption !== search.caption) {
+      restoration.current = null;
+    }
+  }, [search.caption]);
 
   useEffect(() => {
     if (!recalled || !search.caption || search.image || form.description !== "") {
@@ -136,11 +144,19 @@ export function CharacterBuilder({
 
     describedFrom.current = search.caption;
 
+    const current = { caption: search.caption };
+
+    restoration.current = current;
+
     void readCaptionRecipe(search.caption).then((answer) => {
+      if (restoration.current !== current) {
+        return;
+      }
+
+      restoration.current = null;
+
       if ("data" in answer) {
-        setForm((current) =>
-          current.description === "" ? withDescribed(current, answer.data) : current,
-        );
+        setForm((typed) => (typed.description === "" ? withDescribed(typed, answer.data) : typed));
       }
     });
   }, [recalled, search.caption, search.image, form.description]);
@@ -171,8 +187,10 @@ export function CharacterBuilder({
       return;
     }
 
-    // The URL first: with its caption still in it, a blank description would be filled again
-    // from that caption's recipe (above).
+    // Any restoration of the old caption's description is dropped, and the URL changes first:
+    // with its caption still in it, a blank description would be filled again from its recipe.
+    restoration.current = null;
+    describedFrom.current = null;
     await navigate({ search: { draft: search.draft } });
     setForm(emptyForm);
     setDescribeErrors([]);

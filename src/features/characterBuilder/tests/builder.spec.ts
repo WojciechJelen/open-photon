@@ -79,6 +79,55 @@ test("Start over clears the description, controls and seed, here and after a rel
   expect(count(captions)).toBe(before + 1);
 });
 
+test("Start over drops a description still being restored from the caption's recipe", async ({
+  context,
+  page,
+}) => {
+  await describe(page, "A keeper restored too late");
+  await page.getByLabel("Appearance (optional)").fill("Red cap");
+  await page.getByRole("button", { name: "Enhance caption" }).click();
+  await expect(page).toHaveURL(/caption=[0-9a-f-]{36}/);
+
+  const captionUrl = page.url();
+
+  // Another tab has none of this one's form: it restores the description from the recipe,
+  // whose answer is held until after Start over.
+  const tab = await context.newPage();
+  // As `hold` in motionTransfer/tests/motion.spec.ts: the project's lib predates
+  // `Promise.withResolvers`.
+  let release = () => {};
+
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await tab.route("**/recipe.json", async (route) => {
+    await released;
+    await route.continue().catch(() => {});
+  });
+
+  const asked = tab.waitForRequest((request) => request.url().endsWith("/recipe.json"));
+
+  await open(tab, new URL(captionUrl).pathname + new URL(captionUrl).search);
+  await asked;
+  await tab.getByRole("button", { name: "Start over" }).click();
+  await expect(tab).toHaveURL((url) => url.pathname === "/characters/new" && url.search === "");
+
+  const answered = tab.waitForResponse((response) => response.url().endsWith("/recipe.json"));
+
+  release();
+  await answered;
+  await delay(500);
+
+  await expect(tab.getByLabel("Description", { exact: true })).toHaveValue("");
+  await expect(tab.getByLabel("Appearance (optional)")).toHaveValue("");
+
+  await tab.reload();
+  await tab.locator("html[data-hydrated]").waitFor();
+  await expect(tab.getByLabel("Description", { exact: true })).toHaveValue("");
+  await tab.close();
+});
+
 test("Enhance checks the description in the browser and sends nothing invalid", async ({
   page,
 }) => {
