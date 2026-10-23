@@ -1,11 +1,10 @@
 import { rm, stat } from "node:fs/promises";
 
-import { workflows } from "../../../app/server.ts";
 import { hashFile, incomingPath, type NewAsset, storeAsset } from "../assets.ts";
 import { comfyProvider, type Provider, type ProviderOutput } from "../comfy-provider.ts";
 import { cutPoster } from "../media/poster.ts";
 import { classifyImage, probe } from "../media/probe.ts";
-import { type OutputDeclaration, POSTER_OUTPUT } from "./definition.ts";
+import { type OutputDeclaration, POSTER_OUTPUT, workflows } from "./definition.ts";
 import {
   countFinalizeAttempt,
   findGeneration,

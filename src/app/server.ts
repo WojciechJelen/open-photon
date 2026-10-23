@@ -8,7 +8,7 @@ import { motionTransferDefinition } from "../features/motionTransfer/workflows/d
 import { studioAccess } from "../features/studio/server/public-access.ts";
 import { createAccessPolicy } from "../shared/server/access-policy.ts";
 import { database } from "../shared/server/db.server.ts";
-import { createWorkflowRegistry } from "../shared/server/generation/definition.ts";
+import { workflows } from "../shared/server/generation/definition.ts";
 import { generationAccess } from "../shared/server/generation/public-access.ts";
 import { transaction } from "../shared/server/migrate.ts";
 
@@ -17,11 +17,9 @@ export const { isIndexable, isPublicAsset, isPublicRequest, isPublicServerFn } =
   [generationAccess, studioAccess, motionTransferAccess],
 );
 
-/**
- * The workflows the generation service runs (`src/shared/server/generation/`), found again by the
- * `(workflow_id, workflow_version)` each stored generation records.
- */
-export const workflows = createWorkflowRegistry([motionTransferDefinition]);
+// The workflows the generation service runs (`workflows`, `src/shared/server/generation/`), found
+// again by the `(workflow_id, workflow_version)` each stored generation records.
+workflows.compose([motionTransferDefinition]);
 
 /** Each feature's seeder: idempotent, so it runs on every start, each in its own transaction. */
 const seeders = [seedSamples];

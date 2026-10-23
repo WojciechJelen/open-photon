@@ -61,8 +61,8 @@ type RebaseContext = { seed: number; target: ProviderTarget };
 
 /**
  * A workflow the generation service runs (`src/shared/server/generation/`), owned by its feature
- * and composed in `src/app/server.ts` (`createWorkflowRegistry`), which finds it again by the
- * `(id, version)` a stored generation records. Everything workflow-specific lives here; the
+ * and registered in `workflows` by the composition (`src/app/server.ts`), where the service finds
+ * it again by the `(id, version)` a stored generation records. Everything workflow-specific lives here; the
  * service treats a recipe as an opaque, validated value.
  *
  * - `inputSchema`: the request body a feature's route accepts (`parseInput`).
@@ -78,6 +78,9 @@ type RebaseContext = { seed: number; target: ProviderTarget };
  * - `seedOf`, `rebase`: the recipe's seed, and the recipe to render for a re-run or retry on the
  *   server's target now; `null` when this workflow can no longer render it (its file changed).
  * - `workflowHash`, `models`: the workflow file's SHA-256 and its model pins (`models.lock`).
+ * - `promptOf` (optional): the text prompt a recipe renders, which what is saved from its output
+ *   keeps as its provenance (`readGenerationProvenance`: a generated character's `prompt`). A
+ *   workflow without a text prompt leaves it out.
  */
 export type WorkflowDefinition<Input, Recipe extends WorkflowRecipe> = {
   id: string;
@@ -95,6 +98,7 @@ export type WorkflowDefinition<Input, Recipe extends WorkflowRecipe> = {
   ): WorkflowGraph;
   seedOf(recipe: Recipe): number;
   rebase(recipe: Recipe, context: RebaseContext): Recipe | null;
+  promptOf?(recipe: Recipe): string;
 };
 
 /** A definition as the registry holds it, whichever input and recipe it types. */
@@ -124,37 +128,52 @@ function outputsProblem(outputs: readonly OutputDeclaration[]) {
   return null;
 }
 
-/**
- * The workflows a server runs, found by the `(workflow_id, workflow_version)` a generation row
- * records. `register` adds one more (a test's own workflow, say); a second definition with one id
- * and version, or outputs that cannot be stored, throw.
- */
-export function createWorkflowRegistry(definitions: readonly AnyWorkflowDefinition[]) {
-  const byKey = new Map<string, AnyWorkflowDefinition>();
+const byKey = new Map<string, AnyWorkflowDefinition>();
 
-  const register = (definition: AnyWorkflowDefinition) => {
-    const key = `${definition.id}@${definition.version}`;
-    const problem = outputsProblem(definition.outputs);
+// The keys `compose` set last.
+let composed: string[] = [];
 
-    if (byKey.has(key)) {
-      throw new Error(`Two workflow definitions are ${definition.id} v${definition.version}`);
-    }
+/** Adds one definition; a second one with its id and version, or unstorable outputs, throw. */
+function register(definition: AnyWorkflowDefinition) {
+  const key = `${definition.id}@${definition.version}`;
+  const problem = outputsProblem(definition.outputs);
 
-    if (problem) {
-      throw new Error(`Workflow ${definition.id} v${definition.version} ${problem}`);
-    }
-
-    byKey.set(key, definition);
-  };
-
-  for (const definition of definitions) {
-    register(definition);
+  if (byKey.has(key)) {
+    throw new Error(`Two workflow definitions are ${definition.id} v${definition.version}`);
   }
 
-  return {
-    /** The definition of a stored generation; `undefined` when no feature registers it. */
-    find: (row: { workflow_id: string; workflow_version: number }) =>
-      byKey.get(`${row.workflow_id}@${row.workflow_version}`),
-    register,
-  };
+  if (problem) {
+    throw new Error(`Workflow ${definition.id} v${definition.version} ${problem}`);
+  }
+
+  byKey.set(key, definition);
+
+  return key;
 }
+
+/**
+ * The workflows this server runs, found by the `(workflow_id, workflow_version)` a generation row
+ * records (`service.ts`, `finalize.ts`, `readGenerationProvenance`). The composition,
+ * `src/app/server.ts`, sets every feature's definition (`compose`) as it loads, which every server
+ * entry (the boot plugin, the access guard) and test database does before a generation runs; a
+ * test adds its own workflow (`register`). It lives here, not in the composition, so that a
+ * feature API which reads through the service (a generated character's provenance) can be
+ * imported by a composed workflow without an import cycle.
+ */
+export const workflows = {
+  /**
+   * Sets the composition's definitions, in place of those it set before (a dev server reloads
+   * it); definitions added with `register` stay.
+   */
+  compose: (definitions: readonly AnyWorkflowDefinition[]) => {
+    for (const key of composed) {
+      byKey.delete(key);
+    }
+
+    composed = definitions.map(register);
+  },
+  /** The definition of a stored generation; `undefined` when no feature registers it. */
+  find: (row: { workflow_id: string; workflow_version: number }) =>
+    byKey.get(`${row.workflow_id}@${row.workflow_version}`),
+  register,
+};

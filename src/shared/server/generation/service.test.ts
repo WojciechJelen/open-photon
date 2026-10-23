@@ -4,17 +4,14 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { z } from "zod";
-
 import { mintCode } from "../../../../tests/temp-database.ts";
-import { isPublicRequest, workflows } from "../../../app/server.ts";
+import { imageDefinition, imageRecipe } from "../../../../tests/test-image-workflow.ts";
+import { isPublicRequest } from "../../../app/server.ts";
 import { findAccessCode } from "../access-codes.ts";
 import { findAsset } from "../assets.ts";
 import { fakeProvider } from "../comfy-provider.fake.ts";
 import type { Provider } from "../comfy-provider.ts";
 import { providerTarget } from "../comfy-target.ts";
-import { buildGraph, inputsMapSchema, workflowGraphSchema } from "../workflow-graph.ts";
-import { recipeIdentitySchema, type WorkflowDefinition } from "./definition.ts";
 import {
   createGeneration,
   findGeneration,
@@ -23,6 +20,7 @@ import {
   readOutputs,
 } from "./generations.ts";
 import { readGenerationResult, readGenerationShare } from "./pages.ts";
+import { readGenerationProvenance } from "./provenance.ts";
 import { readGeneration, retry, submit } from "./service.ts";
 
 // `comfyProvider` (the default of every call below) is the fake. The target still resolves, as
@@ -38,71 +36,6 @@ process.env.COMFY_PROXY_TOKEN = "";
 process.env.COMFY_BASE_URL = "http://127.0.0.1:1";
 
 process.env.IN_FLIGHT_MAX = "1000";
-
-/** A text-to-image graph in API format: scalar inputs only, one `SaveImage` output. */
-const template = workflowGraphSchema.parse({
-  "1": { class_type: "CheckpointLoaderSimple", inputs: { ckpt_name: "test.safetensors" } },
-  "2": { class_type: "CLIPTextEncode", inputs: { clip: ["1", 1], text: "" } },
-  "3": { class_type: "EmptyLatentImage", inputs: { batch_size: 1, height: 512, width: 512 } },
-  "4": {
-    class_type: "KSampler",
-    inputs: { latent_image: ["3", 0], model: ["1", 0], positive: ["2", 0], seed: 0 },
-  },
-  "5": { class_type: "VAEDecode", inputs: { samples: ["4", 0], vae: ["1", 2] } },
-  "9": { class_type: "SaveImage", inputs: { filename_prefix: "test", images: ["5", 0] } },
-});
-
-const inputsMap = inputsMapSchema(["prompt", "seed", "width", "height"]).parse({
-  inputs: {
-    height: { class_type: "EmptyLatentImage", field: "height", node: "3" },
-    prompt: { class_type: "CLIPTextEncode", field: "text", node: "2" },
-    seed: { class_type: "KSampler", field: "seed", node: "4" },
-    width: { class_type: "EmptyLatentImage", field: "width", node: "3" },
-  },
-  workflow: "test-image.v1.json",
-});
-
-const recipeSchema = recipeIdentitySchema
-  .extend({
-    height: z.int().positive(),
-    prompt: z.string().min(1),
-    seed: z.int().nonnegative(),
-    width: z.int().positive(),
-  })
-  .strict();
-
-type ImageRecipe = z.output<typeof recipeSchema>;
-
-const workflow = { id: "test-image", sha256: "0".repeat(64), version: 1 };
-
-/** The test workflow's recipe for `prompt` and `seed` on `target`. */
-function imageRecipe(prompt: string, seed: number, target = providerTarget()): ImageRecipe {
-  return { height: 832, models: [], prompt, seed, target: target.kind, width: 512, workflow };
-}
-
-/**
- * A scalar-only workflow, as the character generation's will be: a prompt and a seed in, one
- * image out, nothing uploaded. It exists in this test only, registered beside the app's own.
- */
-const imageDefinition: WorkflowDefinition<{ prompt: string; seed?: number }, ImageRecipe> = {
-  assetInputs: () => ({}),
-  buildGraph: ({ height, prompt, seed, width }) =>
-    buildGraph(template, inputsMap, { height, prompt, seed, width }),
-  id: workflow.id,
-  inputSchema: z.object({ prompt: z.string().min(1), seed: z.int().optional() }),
-  models: [],
-  outputs: [{ media: "image", name: "image", nodeId: "9" }],
-  prepareRecipe: ({ prompt, seed }, { target }) => ({
-    recipe: imageRecipe(prompt, seed ?? 7, target),
-  }),
-  rebase: (recipe, { seed, target }) => ({ ...recipe, seed, target: target.kind }),
-  recipeSchema,
-  seedOf: (recipe) => recipe.seed,
-  version: workflow.version,
-  workflowHash: workflow.sha256,
-};
-
-workflows.register(imageDefinition);
 
 const session = { codeId: findAccessCode(mintCode(100))?.id ?? "" };
 const scope = { free: () => false, session };
@@ -169,6 +102,35 @@ test("a scalar-only workflow runs submit → done through the fake provider: no 
   assert.equal(fakeProvider.calls.submit - before.submit, 1);
 });
 
+test("a generation's provenance is read from its stored recipe: workflow, models, status and its definition's prompt", async () => {
+  const { id } = await submit(imageDefinition, { prompt: "A portrait", seed: 1 }, { scope });
+  const { workflow } = imageRecipe("A portrait", 1);
+
+  assert.deepEqual(readGenerationProvenance(id), {
+    models: [],
+    prompt: "A portrait",
+    status: "done",
+    workflow,
+  });
+
+  // A workflow no feature registers any more still has its recorded identity, but no prompt; an
+  // unknown id has no provenance.
+  const gone = { ...workflow, id: "test-image-gone" };
+
+  const { id: orphan } = createGeneration(
+    { ...imageDefinition, id: gone.id },
+    { recipe: { ...imageRecipe("Gone", 3), workflow: gone }, target: providerTarget() },
+  );
+
+  assert.deepEqual(readGenerationProvenance(orphan), {
+    models: [],
+    prompt: null,
+    status: "preparing",
+    workflow: gone,
+  });
+  assert.equal(readGenerationProvenance(crypto.randomUUID()), null);
+});
+
 test("a provider_failed job fails the row with provider_failed", async () => {
   const { id } = await submit(
     imageDefinition,
@@ -223,10 +185,12 @@ test("a scalar-only row a stopped server left mid-submit is unknown, though it u
 });
 
 test("a recipe that names another workflow or version than its definition is refused before it is hashed", () => {
+  const recipe = imageRecipe("Mislabelled", 1);
+
   assert.throws(
     () =>
       createGeneration(imageDefinition, {
-        recipe: { ...imageRecipe("Mislabelled", 1), workflow: { ...workflow, version: 2 } },
+        recipe: { ...recipe, workflow: { ...recipe.workflow, version: 2 } },
         target: providerTarget(),
       }),
     /names workflow test-image v2/,
