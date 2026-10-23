@@ -494,9 +494,11 @@ the fake provider otherwise.
 
 Weights are the `x-linked-size` of each pinned URL (for the gated FLUX 3 files, which answer 401
 without a token, the `size` the Hugging Face tree API lists). Disk and volume must hold the sum;
-the GPU the largest peak. The private deployment guide's disk recommendation
-(`docs/priv/deployment.md`) was written for Motion Transfer's ≈ 26 GB and should be revisited
-before a release that ships the FLUX 3 locks.
+the GPU the largest peak. `selfhost/runpod-template.json` gives `/workspace` (where
+`install-models.mjs` puts the weights) 80 GB: the sum plus about 36 GB for ComfyUI's inputs and
+outputs and the proxy's job records. The container disk (50 GB) holds only the image and
+ComfyUI's temporary files. The private deployment guide's disk recommendation
+(`docs/priv/deployment.md`) was written for Motion Transfer's ≈ 26 GB and should follow it.
 
 ## Verification status
 
@@ -526,13 +528,14 @@ To verify on self-host, someone with a Runpod pod:
    (`docker build --platform linux/amd64 -f selfhost/Dockerfile -t <registry>/open-photon-comfy:<tag> .`)
    and the app image; lists `/opt/open-photon/src/features/*/workflows` in the first and
    `/app/src/shared/server/migrations` in the second.
-2. Starts a pod with volume room for 41.8 GB of weights; the boot log shows both
+2. Starts a pod with volume room for 43.4 GB of weights; the boot log shows both
    `<feature>/<id>.v1: … 0 missing` lines and `Serving the Comfy API v2 on 0.0.0.0:8189 (auth: bearer)`.
 3. Runs `COMFY_API_KEY= COMFY_BASE_URL=https://<pod-id>-8189.proxy.runpod.net COMFY_PROXY_TOKEN=<token> npm run check:comfy`.
-4. Renders one character (`POST /api/character-generations`) and one Motion Transfer take of it,
-   following `src/features/characterBuilder/workflows/README.md`, "Self-host" (recipe
-   `target: selfhost`, workflow SHA-256, pins, `generation_outputs`, `/g` and `/r`), and records
-   peak VRAM and latency with the `nvidia-smi` command in `docs/priv/selfhost.md`.
+4. Enhances a caption, renders one character from it (`POST /api/character-captions`,
+   `POST /api/character-generations`) and one Motion Transfer take of it, following
+   `src/features/characterBuilder/workflows/README.md`, "Self-host", while `nvidia-smi` records
+   GPU memory, and checks all three with `scripts/verify-selfhost.mjs` (status, `target:
+   selfhost`, workflow SHA-256, pins, outputs, peak VRAM and latency per generation).
 5. With `IN_FLIGHT_MAX=1`, submits three generations, restarts the app while one is in flight,
    and checks they all finish once with one provider job each.
 

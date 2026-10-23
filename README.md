@@ -35,12 +35,13 @@ Set `PROXY_TOKEN` to a long random secret, and `HF_TOKEN` to a Hugging Face toke
 that accepted the FLUX Kommunity License on
 [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy)
 (character generation's weights are gated there; without it the first boot stops). The template
-supplies the GPU image, port `8189` and persistent storage at `/workspace`. Wait for `Serving the
-Comfy API v2` in the logs; the first boot downloads approximately 26 GB of Motion Transfer models,
-plus approximately 17.7 GB for character generation (FLUX 3 Image Klein distilled int8, its
-Qwen3-VL text encoder, its prompt upsampler and the FLUX 2 VAE) in images built from the current
-source. The GPU runs one job at a time, so it must fit the largest workflow, Motion Transfer; the
-figures above are its own. Then save:
+supplies the GPU image, port `8189` and an 80 GB persistent volume at `/workspace`. Wait for
+`Serving the Comfy API v2` in the logs; the first boot downloads 43.4 GB (40.4 GiB) of models to
+that volume: 25.6 GB for Motion Transfer and 17.7 GB for character generation (FLUX 3 Image Klein
+distilled int8, its Qwen3-VL text encoder, its prompt upsampler and the FLUX 2 VAE), which leaves
+about 36 GB for ComfyUI's inputs and outputs. A volume of your own needs at least 50 GB. The GPU
+runs one job at a time, so it must fit the largest workflow, Motion Transfer; the figures above
+are its own. Then save:
 
 ```dotenv
 COMFY_BASE_URL=https://POD_ID-8189.proxy.runpod.net
@@ -85,7 +86,7 @@ docker run -d --name open-photon --init \
   --env-file .env \
   -p 127.0.0.1:3030:3000 \
   -v open-photon-data:/app/data \
-  ghcr.io/wojciechjelen/open-photon:0.1.0
+  ghcr.io/wojciechjelen/open-photon:0.2.0
 ```
 
 Open [localhost:3030](http://localhost:3030), then create an access code:
