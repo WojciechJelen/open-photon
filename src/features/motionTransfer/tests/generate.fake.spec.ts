@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-import { open } from "../../../../tests/e2e/session.ts";
+import { expectCurrentCategory, open } from "../../../../tests/e2e/session.ts";
 import { generationSchema } from "../../../shared/contracts.ts";
 
 // On the fake provider's server (project `fake`): a take Comfy finishes, end to end in the
-// browser, without a Comfy.
+// browser, without a Comfy; its result page `/g/:id` belongs to Video in the main navigation.
 test("Generate follows a take to its result: the stream reports it done, the page plays it, the API lists its outputs", async ({
   page,
   request,
@@ -23,6 +23,12 @@ test("Generate follows a take to its result: the stream reports it done, the pag
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your shot is ready", {
     timeout: 30_000,
   });
+  await expectCurrentCategory(page, "Video");
+
+  // Opened afresh, the take's result page still marks Video current, not Image.
+  await open(page, `/g/${id}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your shot is ready");
+  await expectCurrentCategory(page, "Video");
 
   const generation = generationSchema.parse(
     await (await request.get(`/api/generations/${id}`)).json(),

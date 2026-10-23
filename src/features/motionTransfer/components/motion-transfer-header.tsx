@@ -181,7 +181,7 @@ export function MotionTransferHeader({
         </div>
       </header>
       <div className="border-b px-4 py-1 sm:px-8">
-        <SiteNavigation />
+        <SiteNavigation category="Video" />
       </div>
     </>
   );

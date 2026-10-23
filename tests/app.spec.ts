@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { accessCode, open, seededResult } from "./e2e/session.ts";
 
-test("the studio home features Motion Transfer and links its live character tools, with nothing marked Soon", async ({
+test("the studio home features Motion Transfer and links its live character tools, and the navigation shows the planned ones disabled", async ({
   page,
 }) => {
   await open(page, "/");
@@ -19,25 +19,57 @@ test("the studio home features Motion Transfer and links its live character tool
   await expect(page.getByRole("list", { name: "Coming soon" })).toHaveCount(0);
   await expect(tools.getByText("Soon", { exact: true })).toHaveCount(0);
 
-  // The main navigation lists only the tools that ship: nothing disabled, nothing to come, in
-  // its buttons or in the menus they open (rendered outside the nav).
+  // The home has no Soon cards; the main navigation shows every planned category and tool, but
+  // disabled: a planned category is a disabled button, a planned tool a disabled menu item that
+  // links nowhere (the menus render outside the nav), and each shipped tool is a link.
   const navigation = page.getByRole("navigation", { name: "Main" });
 
-  await expect(navigation.getByRole("button")).toHaveText(["Image", "Video", "Library"]);
-  await expect(navigation).not.toContainText(/soon/i);
+  await expect(navigation.getByRole("button")).toHaveText([
+    "Explore (coming soon)",
+    "Image",
+    "Video",
+    "Audio (coming soon)",
+    "Library",
+  ]);
 
-  for (const [label, tools] of [
-    ["Image", ["Create character"]],
-    ["Video", ["Motion Transfer"]],
-    ["Library", ["Characters"]],
+  for (const label of ["Explore", "Audio"]) {
+    await expect(navigation.getByRole("button", { name: label })).toBeDisabled();
+  }
+
+  for (const [label, shipped, planned] of [
+    ["Image", [["Create character", "/characters/new"]], []],
+    [
+      "Video",
+      [["Motion Transfer", "/motionTransfer"]],
+      ["Motion presets", "Look & lighting", "Batch variations"],
+    ],
+    ["Library", [["Characters", "/characters"]], []],
   ] as const) {
+    await expect(navigation.getByRole("button", { name: label })).toBeEnabled();
     await navigation.getByRole("button", { name: label }).click();
 
     const menu = page.getByRole("menu");
 
-    await expect(menu.getByRole("menuitem")).toHaveCount(tools.length);
-    await expect(menu.getByRole("menuitem", { name: tools[0] })).toBeVisible();
-    await expect(menu).not.toContainText(/soon/i);
+    await expect(menu.getByRole("menuitem")).toHaveCount(shipped.length + planned.length);
+
+    for (const [name, path] of shipped) {
+      const item = menu.getByRole("menuitem", { name });
+
+      await expect(item).toHaveAttribute("href", path);
+      await expect(item).not.toHaveAttribute("aria-disabled");
+      await expect(item).not.toContainText("Soon");
+    }
+
+    for (const name of planned) {
+      const item = menu.getByRole("menuitem", { name });
+
+      await expect(item).toBeVisible();
+      await expect(item).toHaveAttribute("aria-disabled", "true");
+      await expect(item).not.toHaveAttribute("href");
+      await expect(item.locator("a")).toHaveCount(0);
+      await expect(item).toContainText("Soon");
+    }
+
     await page.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
   }

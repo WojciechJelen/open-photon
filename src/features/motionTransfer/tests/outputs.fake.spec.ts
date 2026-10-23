@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-import { open } from "../../../../tests/e2e/session.ts";
+import { expectCurrentCategory, open } from "../../../../tests/e2e/session.ts";
 import { generationReceiptSchema, generationSchema } from "../../../shared/contracts.ts";
 
 // On the fake provider's server (project `fake`): a character image's result page `/g/:id` and
 // public share page `/r/:slug`, which show it by its outputs whatever workflow made it, say it is
-// AI-generated (the FLUX Kommunity licence asks for it), and its download is named so.
+// AI-generated (the FLUX Kommunity licence asks for it), its download is named so, and the main
+// navigation marks Image current there, not Video.
 test("an image output says it is AI-generated on its result and share pages, and downloads as ai-generated-<id>", async ({
   browser,
   page,
@@ -50,6 +51,7 @@ test("an image output says it is AI-generated on its result and share pages, and
     "href",
     `${src}?download=1`,
   );
+  await expectCurrentCategory(page, "Image");
 
   // Its share page, to anyone: the label and the alt text, and nothing of its caption.
   const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
@@ -65,6 +67,7 @@ test("an image output says it is AI-generated on its result and share pages, and
     "AI-generated image, made with Open Photon",
   );
   await expect(visitor.getByText(caption)).toHaveCount(0);
+  await expectCurrentCategory(visitor, "Image");
 
   const download = await visitor.request.get(`${src}?download=1`);
 

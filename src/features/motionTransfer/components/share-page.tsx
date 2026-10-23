@@ -67,7 +67,7 @@ function OutputsSharePage({ share }: { share: Extract<Share, { view: "outputs" }
   return (
     <div className="relative isolate">
       <PageGlow />
-      <SiteHeader>
+      <SiteHeader category={images.length > 0 ? "Image" : undefined}>
         <span className="hidden sm:inline-flex">
           <OpenWeightsBadge />
         </span>
@@ -111,7 +111,7 @@ function MotionTransferSharePage({ share }: { share: Extract<Share, { view: "mot
   return (
     <div className="relative isolate">
       <PageGlow />
-      <SiteHeader>
+      <SiteHeader category="Video">
         <span className="hidden sm:inline-flex">
           <OpenWeightsBadge />
         </span>
