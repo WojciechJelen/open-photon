@@ -49,6 +49,8 @@ export const generationStatusSchema = z.enum([
  * - `finalize_failed`: Comfy finished the job, but its output could not be downloaded or stored
  *   (three attempts); the job and its output stay in the Comfy account's history.
  * - `interrupted`: the server stopped before sending the job; nothing was submitted.
+ * - `target_mismatch`: the job was submitted to another endpoint than the one this server
+ *   renders on now, so it cannot be followed; the job may still exist there (Retry renders anew).
  * - `unknown`: anything else, including an `unknown` row (the job may exist on Comfy).
  */
 const generationErrorCodeSchema = z.enum([
@@ -58,6 +60,7 @@ const generationErrorCodeSchema = z.enum([
   "timeout",
   "finalize_failed",
   "interrupted",
+  "target_mismatch",
   "unknown",
 ]);
 

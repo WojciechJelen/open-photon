@@ -86,14 +86,14 @@ test("findReusable returns a row with the same recipe_hash only once it is done"
 
   const { id } = createGeneration(motionTransferDefinition, { recipe: shared, target: cloud });
 
-  assert.equal(findReusable(hash), null);
+  assert.equal(findReusable(hash, motionTransferDefinition), null);
   markQueued(id, randomUUID());
   transition(id, "queued", "running");
   transition(id, "running", "finalizing");
-  assert.equal(findReusable(hash), null);
+  assert.equal(findReusable(hash, motionTransferDefinition), null);
   transition(id, "finalizing", "done");
 
-  assert.equal(findReusable(hash)?.id, id);
+  assert.equal(findReusable(hash, motionTransferDefinition)?.id, id);
 });
 
 test("a child row keeps parent_id and gets its own idempotency key", () => {

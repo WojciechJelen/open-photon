@@ -2,7 +2,7 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { type GenerationEvent, generationSchema } from "../../contracts.ts";
 import { comfyProvider, type Provider } from "../comfy-provider.ts";
-import { askable, finalize } from "./finalize.ts";
+import { failElsewhere, finalize } from "./finalize.ts";
 import { findGeneration, type Generation, markRunning } from "./generations.ts";
 import { settleAbandoned } from "./service.ts";
 
@@ -63,9 +63,11 @@ async function* generationUpdates(
     return;
   }
 
-  // Another endpoint than the job's own cannot say anything about it (`askable`).
-  if (!askable(row, provider)) {
-    yield { generation: row, kind: "provider_unavailable" };
+  // Another endpoint than the job's own cannot say anything about it: the row fails here.
+  const elsewhere = failElsewhere(row, provider);
+
+  if (elsewhere) {
+    yield { generation: elsewhere, kind: "snapshot" };
 
     return;
   }

@@ -14,7 +14,11 @@ import { assetReferenceSchema } from "../comfy-assets.ts";
 import type { ProviderTarget } from "../comfy-target.ts";
 import { database } from "../db.server.ts";
 import { transaction } from "../migrate.ts";
-import type { RecipeJson, WorkflowDefinition } from "./definition.ts";
+import {
+  recipeIdentitySchema,
+  type WorkflowDefinition,
+  type WorkflowRecipe,
+} from "./definition.ts";
 import { recipeHash } from "./recipe-hash.ts";
 
 type GenerationStatus = z.infer<typeof generationStatusSchema>;
@@ -82,13 +86,34 @@ function parseRow(row: Record<string, SQLOutputValue> | undefined) {
 }
 
 /**
- * Inserts a `preparing` row whose idempotency key exists before anything reaches the provider,
- * for `definition`'s workflow and the recipe its `recipeSchema` parses (hashed as parsed,
- * `recipeHash`), on `target`, with the access code that asked for it (which counts it,
- * `006-access-codes.sql`) and the rows it links to (`characterId`, the sample `motionId`). The
- * row comes back with that recipe.
+ * The recipe `definition` decodes from `recipe`, and its hash (`recipeHash`, canonical JSON of the
+ * decoded value). Every recipe carries its identity (`recipeIdentitySchema`: target, workflow,
+ * model pins), checked here before it is hashed: one naming another workflow or version than
+ * `definition`'s throws, so two workflows can never share a recipe hash.
  */
-export function createGeneration<Input, Recipe extends RecipeJson>(
+export function hashRecipe<Input, Recipe extends WorkflowRecipe>(
+  definition: WorkflowDefinition<Input, Recipe>,
+  recipe: Recipe,
+) {
+  const parsed = definition.recipeSchema.parse(recipe);
+  const { workflow } = recipeIdentitySchema.parse(parsed);
+
+  if (workflow.id !== definition.id || workflow.version !== definition.version) {
+    throw new Error(
+      `A ${definition.id} v${definition.version} recipe names workflow ${workflow.id} v${workflow.version}`,
+    );
+  }
+
+  return { hash: recipeHash(parsed), recipe: parsed };
+}
+
+/**
+ * Inserts a `preparing` row whose idempotency key exists before anything reaches the provider,
+ * for `definition`'s workflow and the recipe it decodes (`hashRecipe`), on `target`, with the
+ * access code that asked for it (which counts it, `006-access-codes.sql`) and the rows it links
+ * to (`characterId`, the sample `motionId`). The row comes back with that recipe.
+ */
+export function createGeneration<Input, Recipe extends WorkflowRecipe>(
   definition: WorkflowDefinition<Input, Recipe>,
   {
     accessCodeId,
@@ -106,7 +131,7 @@ export function createGeneration<Input, Recipe extends RecipeJson>(
     target: ProviderTarget;
   },
 ): DecodedGeneration<Recipe> {
-  const parsed = definition.recipeSchema.parse(recipe);
+  const { hash, recipe: parsed } = hashRecipe(definition, recipe);
 
   const row = database
     .prepare(
@@ -124,7 +149,7 @@ export function createGeneration<Input, Recipe extends RecipeJson>(
       definition.id,
       definition.version,
       JSON.stringify(parsed),
-      recipeHash(parsed),
+      hash,
       randomUUID(),
       target.kind,
       target.origin,
@@ -148,15 +173,22 @@ export function findShared(slug: string) {
   );
 }
 
-/** A finished generation with this recipe, whose output can be shown instead of rendering again. */
-export function findReusable(hash: string) {
+/** Which workflow a recipe hash is looked up for: a hash identifies a recipe of one workflow. */
+type WorkflowKey = { id: string; version: number };
+
+/**
+ * A finished generation of `workflow` with this recipe, whose output can be shown instead of
+ * rendering again.
+ */
+export function findReusable(hash: string, workflow: WorkflowKey) {
   return parseRow(
     database
       .prepare(
         `SELECT * FROM generations WHERE recipe_hash = ? AND status = 'done'
+          AND workflow_id = ? AND workflow_version = ?
         ORDER BY finished_at DESC LIMIT 1`,
       )
-      .get(hash),
+      .get(hash, workflow.id, workflow.version),
   );
 }
 
@@ -165,41 +197,58 @@ export function findReusable(hash: string) {
 const UNKNOWN_REUSE_MS = 24 * 60 * 60 * 1000;
 
 /**
- * A generation with this recipe that may still produce its output: on its way, or `unknown`
- * (Comfy may be rendering it) for up to a day. Submitting the recipe again would pay for a second
- * job; an `unknown` row older than that is left alone, so the recipe can be generated again.
+ * A generation of `workflow` with this recipe that may still produce its output: on its way, or
+ * `unknown` (Comfy may be rendering it) for up to a day. Submitting the recipe again would pay
+ * for a second job; an `unknown` row older than that is left alone, so the recipe can be
+ * generated again.
  */
-export function findPending(hash: string) {
+export function findPending(hash: string, workflow: WorkflowKey) {
   return parseRow(
     database
       .prepare(
-        `SELECT * FROM generations WHERE recipe_hash = ?
+        `SELECT * FROM generations WHERE recipe_hash = ? AND workflow_id = ? AND workflow_version = ?
           AND (status IN ('preparing', 'queued', 'running', 'finalizing')
             OR (status = 'unknown' AND created_at > ?))
         ORDER BY created_at DESC LIMIT 1`,
       )
-      .get(hash, new Date(Date.now() - UNKNOWN_REUSE_MS).toISOString()),
+      .get(
+        hash,
+        workflow.id,
+        workflow.version,
+        new Date(Date.now() - UNKNOWN_REUSE_MS).toISOString(),
+      ),
   );
 }
 
-const IN_FLIGHT = "status IN ('preparing', 'queued', 'running', 'finalizing')";
+// In flight on `target` (when given): a job on another endpoint cannot be followed from here
+// (`failElsewhere`), so it never holds a place. A row from before origins were recorded matches
+// by its kind.
+const IN_FLIGHT = `status IN ('preparing', 'queued', 'running', 'finalizing')
+  AND (:kind IS NULL OR (target = :kind AND (target_origin IS NULL OR target_origin IS :origin)))`;
+
+const onTarget = (target: ProviderTarget | undefined) => ({
+  kind: target?.kind ?? null,
+  origin: target?.origin ?? null,
+});
 
 /**
- * How many generations are in flight: being submitted, or on Comfy and not finished yet. The
- * in-flight cap (`IN_FLIGHT_MAX`) counts them; `unknown` ones are not counted, as nothing ever
- * moves them on.
+ * How many generations are in flight on `target` (every endpoint without one): being submitted,
+ * or on Comfy and not finished yet. The in-flight cap (`IN_FLIGHT_MAX`) counts them; `unknown`
+ * ones are not counted, as nothing ever moves them on.
  */
-export function countInFlight() {
+export function countInFlight(target?: ProviderTarget) {
   return Number(
-    database.prepare(`SELECT count(*) AS count FROM generations WHERE ${IN_FLIGHT}`).get()?.count,
+    database
+      .prepare(`SELECT count(*) AS count FROM generations WHERE ${IN_FLIGHT}`)
+      .get(onTarget(target))?.count,
   );
 }
 
-/** The ids of the `limit` oldest generations in flight. */
-export function findInFlight(limit: number) {
+/** The ids of the `limit` oldest generations in flight on `target`. */
+export function findInFlight(limit: number, target?: ProviderTarget) {
   return database
-    .prepare(`SELECT id FROM generations WHERE ${IN_FLIGHT} ORDER BY created_at LIMIT ?`)
-    .all(limit)
+    .prepare(`SELECT id FROM generations WHERE ${IN_FLIGHT} ORDER BY created_at LIMIT :limit`)
+    .all({ ...onTarget(target), limit })
     .map((row) => String(row.id));
 }
 

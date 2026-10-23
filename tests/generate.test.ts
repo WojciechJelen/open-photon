@@ -167,7 +167,10 @@ test("a row a stopped server left preparing is settled on its next read, never r
   });
 
   assert.equal((await readGeneration(afterUploads.id))?.status, "unknown");
-  assert.equal(findPending(afterUploads.recipe_hash)?.id, afterUploads.id);
+  assert.equal(
+    findPending(afterUploads.recipe_hash, motionTransferDefinition)?.id,
+    afterUploads.id,
+  );
   assert.equal(findGeneration(afterUploads.id)?.provider_job_id, null);
 });
 

@@ -12,7 +12,7 @@ import { comfyProvider, type Provider, providerError } from "../comfy-provider.t
 import { providerTarget } from "../comfy-target.ts";
 import { inFlightMax } from "../limits.ts";
 import { assetsDirectory } from "../paths.ts";
-import type { RecipeJson, WorkflowDefinition } from "./definition.ts";
+import type { WorkflowDefinition, WorkflowRecipe } from "./definition.ts";
 import { GenerateError } from "./errors.ts";
 import { finalize } from "./finalize.ts";
 import {
@@ -22,6 +22,7 @@ import {
   findInFlight,
   findPending,
   findReusable,
+  hashRecipe,
   type Generation,
   markQueued,
   markSubmitting,
@@ -29,7 +30,14 @@ import {
   recordProviderInputs,
   transition,
 } from "./generations.ts";
-import { recipeHash } from "./recipe-hash.ts";
+
+/**
+ * The endpoint `provider` submits to: its own `target`, or this server's (`providerTarget`) for a
+ * provider that does not say.
+ */
+function targetOf(provider: Provider) {
+  return provider.target?.() ?? providerTarget();
+}
 
 const UNKNOWN_MESSAGE =
   "Comfy may have accepted this generation before its job id was saved, so it is never submitted again automatically. Check your rendering backend for a job created at that time before starting a new generation with another seed.";
@@ -77,7 +85,7 @@ let refreshing: Promise<unknown> | null = null;
 function refreshInFlight(provider: Provider) {
   refreshing ??= Promise.race([
     Promise.all(
-      findInFlight(REFRESH_ROWS).map(async (id) => {
+      findInFlight(REFRESH_ROWS, provider.target?.()).map(async (id) => {
         try {
           await readGeneration(id, provider);
         } catch (error) {
@@ -108,7 +116,7 @@ type InputFile = { name: string; path: string };
  * The stored files a recipe uploads (`assetInputs`), by the names the graph takes their
  * references under. Every one must be stored: a recipe names its inputs by content.
  */
-function inputFiles<Input, Recipe extends RecipeJson>(
+function inputFiles<Input, Recipe extends WorkflowRecipe>(
   definition: WorkflowDefinition<Input, Recipe>,
   recipe: Recipe,
 ): InputFile[] {
@@ -129,7 +137,7 @@ function inputFiles<Input, Recipe extends RecipeJson>(
  * moment it returns. A refusal before the provider can have taken the job fails the row; an
  * uncertain submit makes it `unknown`.
  */
-async function send<Input, Recipe extends RecipeJson>(
+async function send<Input, Recipe extends WorkflowRecipe>(
   definition: WorkflowDefinition<Input, Recipe>,
   row: Pick<Generation, "id" | "idempotency_key">,
   recipe: Recipe,
@@ -200,13 +208,18 @@ type Claim = { id: string; reused: true } | { codeId: string; full: boolean; reu
  * There is no await in it: one process cannot create the row twice, nor start more generations
  * than the cap.
  */
-function claim(hash: string, scope: GenerationScope): Claim {
-  let existing = findReusable(hash) ?? findPending(hash);
+function claim(
+  workflow: { id: string; version: number },
+  hash: string,
+  scope: GenerationScope,
+  provider: Provider,
+): Claim {
+  let existing = findReusable(hash, workflow) ?? findPending(hash, workflow);
 
   // Settling an abandoned row can take it out of `findPending` (failed, or `unknown` for more
   // than a day), so look again until the row found is one that stays.
   while (existing && settleAbandoned(existing).status !== existing.status) {
-    existing = findPending(hash);
+    existing = findPending(hash, workflow);
   }
 
   if (existing && (scope.session || scope.free(existing))) {
@@ -227,7 +240,11 @@ function claim(hash: string, scope: GenerationScope): Claim {
     );
   }
 
-  return { codeId: code.id, full: countInFlight() >= inFlightMax(), reused: false };
+  return {
+    codeId: code.id,
+    full: countInFlight(provider.target?.()) >= inFlightMax(),
+    reused: false,
+  };
 }
 
 /**
@@ -272,15 +289,14 @@ async function admitToProvider<Started>(
  * the moment it returns (`send`). A new row records the access code, which counts it
  * (`006-access-codes.sql`).
  */
-async function submitRecipe<Input, Recipe extends RecipeJson>(
+async function submitRecipe<Input, Recipe extends WorkflowRecipe>(
   definition: WorkflowDefinition<Input, Recipe>,
   prepared: { characterId?: string; motionId?: string; parentId?: string; recipe: Recipe },
   { admit = admitAll, provider = comfyProvider, scope }: SubmitOptions,
 ) {
-  const recipe = definition.recipeSchema.parse(prepared.recipe);
+  const { hash, recipe } = hashRecipe(definition, prepared.recipe);
   const files = inputFiles(definition, recipe);
-  const hash = recipeHash(recipe);
-  const first = claim(hash, scope);
+  const first = claim(definition, hash, scope, provider);
 
   if (first.reused) {
     return { id: first.id, reused: true };
@@ -291,7 +307,7 @@ async function submitRecipe<Input, Recipe extends RecipeJson>(
   // The new row is this process's to submit from the moment it exists (`settleAbandoned`).
   const started = await admitToProvider(
     first,
-    () => claim(hash, scope),
+    () => claim(definition, hash, scope, provider),
     provider,
     (claimed) => {
       if (claimed.reused) {
@@ -304,7 +320,7 @@ async function submitRecipe<Input, Recipe extends RecipeJson>(
         motionId: prepared.motionId,
         parentId: prepared.parentId,
         recipe,
-        target: providerTarget(),
+        target: targetOf(provider),
       });
 
       submitting.add(row.id);
@@ -334,12 +350,14 @@ async function submitRecipe<Input, Recipe extends RecipeJson>(
  * `GenerateError`) for the target this server renders on, and `submitRecipe` submits it — or
  * returns the generation that already has it. The answer is the generation's receipt.
  */
-export async function submit<Input, Recipe extends RecipeJson>(
+export async function submit<Input, Recipe extends WorkflowRecipe>(
   definition: WorkflowDefinition<Input, Recipe>,
   input: Input,
   options: SubmitOptions,
 ) {
-  const prepared = definition.prepareRecipe(input, { target: providerTarget() });
+  const prepared = definition.prepareRecipe(input, {
+    target: targetOf(options.provider ?? comfyProvider),
+  });
 
   return submitRecipe(definition, prepared, options);
 }
@@ -362,7 +380,7 @@ function submitChild(
     definition && recipe
       ? definition.rebase(recipe, {
           seed: seed(definition.seedOf(recipe)),
-          target: providerTarget(),
+          target: targetOf(provider),
         })
       : null;
 
