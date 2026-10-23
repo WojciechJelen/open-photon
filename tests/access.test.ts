@@ -222,9 +222,10 @@ test("a link with ?code= signs in like the form and goes on to next; reopened, i
   assert.equal((await guard(link(code, "/characters/new", cookie)))?.status, 200);
 });
 
-test("a link with another code than the session's signs in to the link's; a wrong one signs no one out", async () => {
-  const first = mintCode(5);
-  const second = mintCode(5);
+test("a link replaces a session only when its code is used up; a wrong one signs no one out", async () => {
+  const spent = mintCode(5);
+  const active = mintCode(5);
+  const linked = mintCode(5);
   const guard = createAccessGuard({ production: true });
 
   const link = (value: string, cookie: string) =>
@@ -235,17 +236,34 @@ test("a link with another code than the session's signs in to the link's; a wron
   const sessionOf = (cookie: string) =>
     readSession(new Request(`${origin}/`, { headers: { Cookie: cookie } }));
 
-  const cookieA = await sessionCookie(first);
-  const switched = await guard(link(second, cookieA));
-  const cookieB = switched?.headers.get("Set-Cookie")?.split(";")[0] ?? "";
+  // A session whose code has no generations left: the link's code takes over.
+  const spentCookie = await sessionCookie(spent);
+
+  database
+    .prepare("UPDATE access_codes SET used = max_generations WHERE code_hash = ?")
+    .run(createHash("sha256").update(spent).digest("hex"));
+
+  const switched = await guard(link(linked, spentCookie));
+  const linkedCookie = switched?.headers.get("Set-Cookie")?.split(";")[0] ?? "";
 
   assert.equal(switched?.status, 303);
   assert.equal(switched?.headers.get("Location"), "/characters/new");
-  assert.ok(sessionOf(cookieB));
-  assert.notEqual(sessionOf(cookieB)?.codeId, sessionOf(cookieA)?.codeId);
+  assert.equal(
+    sessionOf(linkedCookie)?.codeId,
+    database
+      .prepare("SELECT id FROM access_codes WHERE code_hash = ?")
+      .get(createHash("sha256").update(linked).digest("hex"))?.id,
+  );
+
+  // A session whose code still has generations: it is kept, whichever right code the link has.
+  const kept = await guard(link(linked, await sessionCookie(active)));
+
+  assert.equal(kept?.status, 303);
+  assert.equal(kept?.headers.get("Location"), "/characters/new");
+  assert.equal(kept?.headers.get("Set-Cookie"), null);
 
   // A wrong code with a session goes on, keeping that session.
-  const wrong = await guard(link(`${second}x`, cookieB));
+  const wrong = await guard(link(`${linked}x`, linkedCookie));
 
   assert.equal(wrong?.status, 303);
   assert.equal(wrong?.headers.get("Location"), "/characters/new");
@@ -265,8 +283,10 @@ test("links pay into the same login limit as the form and POST /api/session", as
       return guard(request);
     };
 
-    const link = (value: string) =>
-      new Request(`${origin}/access?code=${encodeURIComponent(value)}&next=%2Fcharacters%2Fnew`);
+    const link = (value: string, cookie?: string) =>
+      new Request(`${origin}/access?code=${encodeURIComponent(value)}&next=%2Fcharacters%2Fnew`, {
+        headers: cookie ? { Cookie: cookie } : {},
+      });
 
     // A right code costs nothing, as with the form.
     for (let attempt = 0; attempt < 12; attempt++) {
@@ -287,6 +307,23 @@ test("links pay into the same login limit as the form and POST /api/session", as
     assert.equal((await from("10.5.0.2", login(code)))?.status, 429);
     assert.equal((await from("10.5.0.2", exchange(code)))?.status, 429);
     assert.equal((await from("10.5.0.3", link(code)))?.status, 303);
+
+    // With a session, wrong links still pay into the client's limit: they go on without a
+    // cookie, and once the limit is spent a right one goes on too, the session kept.
+    const cookie = await sessionCookie(code);
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const wrong = await from("10.5.0.4", link("wrong", cookie));
+
+      assert.equal(wrong?.status, 303);
+      assert.equal(wrong?.headers.get("Set-Cookie"), null);
+    }
+
+    const reopened = await from("10.5.0.4", link(code, cookie));
+
+    assert.equal(reopened?.status, 303);
+    assert.equal(reopened?.headers.get("Set-Cookie"), null);
+    assert.equal((await from("10.5.0.4", link(code)))?.status, 429);
   } finally {
     delete process.env.CLIENT_IP_HEADER;
   }

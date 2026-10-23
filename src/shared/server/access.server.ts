@@ -281,15 +281,25 @@ export function createAccessGuard(
         return respond("Method not allowed", 405, { Allow: "GET, POST" });
       }
 
-      // A link that carries the code (`?code=`) signs in like the form. A visitor already signed
-      // in with that code only goes on; one signed in with another code changes to the link's; a
-      // wrong or rate-limited link never signs anyone out. A wrong one without a session shows the
-      // form (200), whose action drops `code`, so no loop.
+      // A link that carries the code (`?code=`) signs in like the form, every lookup paying into
+      // the login limit. It never signs anyone out: a visitor with a session only goes on, unless
+      // the session's code has no generations left and the link's code is another, right one,
+      // which then replaces it. A wrong one without a session shows the form (200), whose action
+      // drops `code`, so no loop.
       const session = link ? readSession(request, now) : null;
       const result = await login(request, link ? "link" : "form");
 
-      if (session && result.status !== 200) {
-        return respond("", 303, { Location: next });
+      if (session) {
+        const own = findAccessCodeById(session.codeId);
+
+        const replace =
+          result.status === 200 &&
+          result.codeId !== session.codeId &&
+          (!own || own.used >= own.max_generations);
+
+        if (!replace) {
+          return respond("", 303, { Location: next });
+        }
       }
 
       if (result.status === 429) {
@@ -302,13 +312,7 @@ export function createAccessGuard(
         return page(next, "Incorrect access code. Please try again.", link ? 200 : 401);
       }
 
-      return respond(
-        "",
-        303,
-        session?.codeId === result.codeId
-          ? { Location: next }
-          : { Location: next, "Set-Cookie": result.cookie },
-      );
+      return respond("", 303, { Location: next, "Set-Cookie": result.cookie });
     }
 
     if (url.pathname === "/api/session") {
