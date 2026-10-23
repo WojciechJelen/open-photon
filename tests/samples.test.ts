@@ -137,11 +137,14 @@ test("the picker resolves a motion clip and a character, and falls back to none 
   assert.equal(readSelection({ character: motion?.clip.id }, true).character, null);
 });
 
-/** A stored copy of the 5 s result fixture, as `finalize` stores a result. */
-async function storeResult() {
+/**
+ * A stored copy of the 5 s result fixture (or another video `fixture`, recorded with the same
+ * metadata), as `finalize` stores a result.
+ */
+async function storeResult(fixture = "tests/fixtures/result-5s.mp4") {
   const temporary = await incomingPath();
 
-  await copyFile("tests/fixtures/result-5s.mp4", temporary);
+  await copyFile(fixture, temporary);
 
   const { asset } = await storeAsset(temporary, {
     bytes: (await stat(temporary)).size,
@@ -162,15 +165,17 @@ async function storeResult() {
 }
 
 /**
- * A done generation of a character (the first sample unless `character` names another), pre-rendered
- * or not, driven by the clip whose hash is `drivingVideo` (the sample motion's unless a test names
- * another), finished at `finishedAt` when given.
+ * A done generation of a character (the first sample unless `character` names another) made from
+ * its current image (unless `referenceImage` names another hash), pre-rendered or not, driven by
+ * the clip whose hash is `drivingVideo` (the sample motion's unless a test names another), finished
+ * at `finishedAt` when given.
  */
 function take({
   character: characterId,
   drivingVideo,
   finishedAt,
   prerendered,
+  referenceImage,
   result,
   seed,
 }: {
@@ -178,21 +183,31 @@ function take({
   drivingVideo?: string;
   finishedAt?: string;
   prerendered: boolean;
+  referenceImage?: string;
   result: string;
   seed: number;
 }) {
   const { characters, motions } = readSelection({}, true);
   const [motion] = motions;
-  const [character] = characters;
+  const [first] = characters;
 
-  assert.ok(motion && character);
+  assert.ok(motion && first);
+
+  const character = characterId ?? first.id;
+
+  const image = database
+    .prepare(
+      `SELECT assets.sha256 FROM characters JOIN assets ON assets.id = characters.image_asset_id
+      WHERE characters.id = ?`,
+    )
+    .get(character);
 
   const { id } = createGeneration(motionTransferDefinition, {
-    characterId: characterId ?? character.id,
+    characterId: character,
     recipe: {
       inputs: {
         driving_video_sha256: drivingVideo ?? motion.clip.sha256,
-        reference_image_sha256: character.image.sha256,
+        reference_image_sha256: referenceImage ?? String(image?.sha256),
       },
       models: [],
       params: { fragment_length: 81, height: 848, prompt: "A take", seed, width: 480 },
@@ -279,7 +294,7 @@ test("the result wall lists the done pre-rendered sample takes by character titl
   });
 
   // Newer than any, and never listed: not pre-rendered, a library character, a clip no sample
-  // motion has.
+  // motion has, an image the sample no longer has (rendered before a re-render).
   const library = crypto.randomUUID();
 
   database
@@ -300,6 +315,13 @@ test("the result wall lists the done pre-rendered sample takes by character titl
       prerendered: true,
       result: result.id,
       seed: 8,
+    }),
+    take({
+      finishedAt: later,
+      prerendered: true,
+      referenceImage: other.image.sha256,
+      result: result.id,
+      seed: 9,
     }),
   ];
 
@@ -331,4 +353,53 @@ test("the result wall lists the done pre-rendered sample takes by character titl
   assert.ok(isSharedOutput(findAsset(result.id) ?? assert.fail("result not stored")));
   // The wizard's free take is the newest sample one, never a hidden one.
   assert.equal(readSelection({}, false).sampleTakeId, sample);
+});
+
+test("with two sample motions the wall gives each the same number of takes, eight tiles at most with their source clips", async () => {
+  const result = await storeResult();
+  const clip = await storeResult("tests/fixtures/short-2s.mp4");
+
+  // By title as SQLite orders text (binary).
+  const characters = [...listSampleCharacters()].sort((a, b) =>
+    (a.title ?? "") < (b.title ?? "") ? -1 : 1,
+  );
+
+  const second = crypto.randomUUID();
+
+  database
+    .prepare(
+      `INSERT INTO motions (id, slug, title, source_asset_id, license, attribution, created_at)
+      VALUES (?, 'zz-second', 'Zz second', ?, 'CC0-1.0', 'Test', ?)`,
+    )
+    .run(second, clip.id, clip.created_at);
+
+  // Every sample × both motions, as the script leaves them.
+  for (const [index, character] of characters.entries()) {
+    take({ character: character.id, prerendered: true, result: result.id, seed: 100 + index });
+  }
+
+  const secondTakes = characters.map((character, index) =>
+    take({
+      character: character.id,
+      drivingVideo: clip.sha256,
+      prerendered: true,
+      result: result.id,
+      seed: 200 + index,
+    }),
+  );
+
+  const { wall } = readStudio();
+  const [motion] = readSelection({}, true).motions;
+
+  // 8 tiles / 2 motions = 4 each: the source clip and 3 takes.
+  assert.deepEqual(
+    wall.map(({ motionTitle }) => motionTitle),
+    [motion?.title, motion?.title, motion?.title, "Zz second", "Zz second", "Zz second"],
+  );
+  // The second motion's takes are its first three characters by title.
+  assert.deepEqual(
+    wall.filter(({ source }) => source.id === clip.id).map(({ id }) => id),
+    secondTakes.slice(0, 3),
+  );
+  database.prepare("DELETE FROM motions WHERE id = ?").run(second);
 });

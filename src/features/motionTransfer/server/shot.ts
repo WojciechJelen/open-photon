@@ -38,9 +38,10 @@ export function sourceClip(row: MotionTransferGeneration): Asset {
 
 /**
  * The id of the newest done pre-rendered sample generation (`is_prerendered`) of a seeded sample
- * character and a sample motion's stored clip, or `null`: one query, for the wizard's access
- * dialog, which offers that take as the free way in. Its page is public, like its result, poster
- * and clip. A take of any other character or clip is never offered.
+ * character's current image and a sample motion's stored clip, or `null`: one query, for the
+ * wizard's access dialog, which offers that take as the free way in. Its page is public, like its
+ * result, poster and clip. A take of any other character or clip, or of an image the sample no
+ * longer has (re-rendered since), is never offered.
  */
 export function findSampleTakeId() {
   const row = database
@@ -48,6 +49,8 @@ export function findSampleTakeId() {
       `SELECT generations.id FROM generations
       JOIN characters
         ON characters.id = generations.character_id AND characters.is_sample = 1
+      JOIN assets AS reference ON reference.id = characters.image_asset_id
+        AND reference.sha256 = generations.recipe ->> '$.inputs.reference_image_sha256'
       JOIN assets ON assets.sha256 = generations.recipe ->> '$.inputs.driving_video_sha256'
       JOIN motions ON motions.source_asset_id = assets.id
       WHERE generations.is_prerendered = 1 AND generations.status = 'done'
@@ -61,65 +64,76 @@ export function findSampleTakeId() {
   return row ? z.object({ id: z.string() }).parse(row).id : null;
 }
 
-/** An `assets` row as one JSON object (`assetSchema`'s fields), or SQL `NULL` without a row. */
-function assetJson(alias: string) {
-  return `CASE WHEN ${alias}.id IS NULL THEN NULL ELSE json_object(
-    'bytes', ${alias}.bytes, 'created_at', ${alias}.created_at,
-    'duration_ms', ${alias}.duration_ms, 'fps', ${alias}.fps,
-    'has_audio', CASE ${alias}.has_audio WHEN 1 THEN json('true') WHEN 0 THEN json('false') END,
-    'height', ${alias}.height, 'id', ${alias}.id, 'kind', ${alias}.kind, 'mime', ${alias}.mime,
-    'role', ${alias}.role, 'sha256', ${alias}.sha256, 'source_asset_id', ${alias}.source_asset_id,
-    'width', ${alias}.width) END`;
+/** The `assets` columns the API shows (`assetSchema`'s fields). */
+const ASSET_FIELDS = assetSchema.keyof().options;
+
+/** An `assets` row's API columns, each selected as `<alias>_<field>`. */
+function assetColumns(alias: string) {
+  return ASSET_FIELDS.map((field) => `${alias}.${field} AS ${alias}_${field}`).join(", ");
 }
 
-/** A column `assetJson` made, as the API shows the asset. */
-const assetColumn = z.string().transform((value) => assetSchema.parse(JSON.parse(value)));
-
-const wallRowSchema = z.object({
+const wallRowSchema = z.looseObject({
   character_title: z.string(),
   id: z.string(),
   motion_title: z.string(),
-  poster: assetColumn.nullable(),
+  poster_asset_id: z.string().nullable(),
   share_slug: z.string(),
-  source: assetColumn,
-  video: assetColumn,
 });
 
-/** How many takes the studio home's result wall shows at most (`listPrerenderedTakes`). */
-const WALL_TAKES = 8;
+/** The asset `assetColumns(alias)` selected in a wall row, as the API shows it. */
+function assetFrom(row: z.output<typeof wallRowSchema>, alias: string) {
+  const fields = Object.fromEntries(ASSET_FIELDS.map((field) => [field, row[`${alias}_${field}`]]));
+  const hasAudio = fields.has_audio;
+
+  return assetSchema.parse({ ...fields, has_audio: hasAudio === null ? null : hasAudio === 1 });
+}
+
+/** How many tiles the studio home's result wall shows at most: takes plus a source clip per motion. */
+const WALL_TILES = 8;
 
 /**
- * The done pre-rendered sample takes (`is_prerendered`) of a seeded sample character
- * (`is_sample = 1`) and a sample motion's clip, with their result and a share page, in one
- * query: what the studio home's result wall shows, at most `WALL_TAKES`, by motion title, then
- * character title, then newest first. A take of any other character or clip is never listed.
- * Each one's share page (`/r/:slug`), result and poster are public (`isSharedOutput`), and so is
- * its `source` clip (a sample motion's).
+ * The done pre-rendered sample takes (`is_prerendered`) of a seeded sample character's current
+ * image (`is_sample = 1`) and a sample motion's clip, with their result and a share page, in one
+ * query: what the studio home's result wall shows, by motion title, then character title, then
+ * newest first. Each motion's group is its source tile and the same number of takes, at most as
+ * many as keep the wall within `WALL_TILES` tiles (with more motions than fit, the first ones). A
+ * take of any other character, image or clip is never listed. Each one's share page (`/r/:slug`),
+ * result and poster are public (`isSharedOutput`), and so is its `source` clip (a sample motion's).
  */
 export function listPrerenderedTakes() {
   return database
     .prepare(
-      `SELECT generations.id, generations.share_slug, characters.title AS character_title,
-        motions.title AS motion_title, ${assetJson("source")} AS source,
-        ${assetJson("video_asset")} AS video, ${assetJson("poster_asset")} AS poster
-      FROM generations
-      JOIN characters
-        ON characters.id = generations.character_id AND characters.is_sample = 1
-      JOIN assets AS source
-        ON source.sha256 = generations.recipe ->> '$.inputs.driving_video_sha256'
-      JOIN motions ON motions.source_asset_id = source.id
-      JOIN generation_outputs AS video
-        ON video.generation_id = generations.id AND video.name = 'video'
-      JOIN assets AS video_asset ON video_asset.id = video.asset_id
-      LEFT JOIN generation_outputs AS poster
-        ON poster.generation_id = generations.id AND poster.name = 'poster'
-      LEFT JOIN assets AS poster_asset ON poster_asset.id = poster.asset_id
-      WHERE generations.is_prerendered = 1 AND generations.status = 'done'
-        AND generations.workflow_id = 'motion-transfer' AND generations.share_slug IS NOT NULL
-      ORDER BY motions.title, characters.title, generations.finished_at DESC, generations.id
-      LIMIT ?`,
+      `WITH takes AS (
+        SELECT generations.id, generations.share_slug, characters.title AS character_title,
+          motions.title AS motion_title, ${assetColumns("source")},
+          ${assetColumns("video_asset")}, ${assetColumns("poster_asset")},
+          row_number() OVER (PARTITION BY motions.id
+            ORDER BY characters.title, generations.finished_at DESC, generations.id) AS take_rank,
+          dense_rank() OVER (ORDER BY motions.title, motions.id) AS motion_rank
+        FROM generations
+        JOIN characters
+          ON characters.id = generations.character_id AND characters.is_sample = 1
+        JOIN assets AS reference ON reference.id = characters.image_asset_id
+          AND reference.sha256 = generations.recipe ->> '$.inputs.reference_image_sha256'
+        JOIN assets AS source
+          ON source.sha256 = generations.recipe ->> '$.inputs.driving_video_sha256'
+        JOIN motions ON motions.source_asset_id = source.id
+        JOIN generation_outputs AS video
+          ON video.generation_id = generations.id AND video.name = 'video'
+        JOIN assets AS video_asset ON video_asset.id = video.asset_id
+        LEFT JOIN generation_outputs AS poster
+          ON poster.generation_id = generations.id AND poster.name = 'poster'
+        LEFT JOIN assets AS poster_asset ON poster_asset.id = poster.asset_id
+        WHERE generations.is_prerendered = 1 AND generations.status = 'done'
+          AND generations.workflow_id = 'motion-transfer' AND generations.share_slug IS NOT NULL
+      ),
+      -- Takes per motion: an equal share of the tiles, less the motion's source tile; at least one.
+      shape AS (SELECT max(1, ${WALL_TILES} / max(motion_rank) - 1) AS per_motion FROM takes)
+      SELECT takes.* FROM takes, shape
+      WHERE take_rank <= per_motion AND motion_rank * (per_motion + 1) <= ${WALL_TILES}
+      ORDER BY motion_rank, take_rank`,
     )
-    .all(WALL_TAKES)
+    .all()
     .map((row) => {
       const take = wallRowSchema.parse(row);
 
@@ -127,10 +141,10 @@ export function listPrerenderedTakes() {
         characterTitle: take.character_title,
         id: take.id,
         motionTitle: take.motion_title,
-        poster: take.poster,
-        result: take.video,
+        poster: take.poster_asset_id === null ? null : assetFrom(take, "poster_asset"),
+        result: assetFrom(take, "video_asset"),
         shareSlug: take.share_slug,
-        source: take.source,
+        source: assetFrom(take, "source"),
       };
     });
 }
