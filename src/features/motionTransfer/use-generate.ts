@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { type GenerateInput, generateInputSchema } from "#/features/motionTransfer/contracts";
-import { type Direction, formSeed } from "#/features/motionTransfer/draft";
+import { type Direction, generateRequest } from "#/features/motionTransfer/draft";
 import { generationReceiptSchema } from "#/shared/contracts";
 import { callApi, type Refusal } from "#/shared/requests";
 import type { HoldForCode } from "#/shared/use-access-code";
@@ -75,16 +75,9 @@ export function useGenerate(hold: HoldForCode) {
 
   function submit(
     picks: { character: string | undefined; motion: string | undefined },
-    { angle, prompt, seed }: Direction,
+    direction: Direction,
   ) {
-    const parsed = generateInputSchema.safeParse({
-      angle: angle === "none" ? undefined : angle,
-      character_id: picks.character,
-      motion_asset_id: picks.motion,
-      prompt: prompt.trim() || undefined,
-      // Anything but digits becomes NaN, which the schema refuses.
-      seed: formSeed(seed),
-    });
+    const parsed = generateInputSchema.safeParse(generateRequest(picks, direction));
 
     setFailure(null);
 

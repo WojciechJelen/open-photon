@@ -19,7 +19,8 @@ import {
   withCharacter,
   withSeed,
 } from "../api.ts";
-import { shownStep, startingDirection } from "../draft.ts";
+import { generateInputSchema } from "../contracts.ts";
+import { directionFields, generateRequest, shownStep, startingDirection } from "../draft.ts";
 
 /** The draft the wizard gets for `href`: TanStack Router's search parsing, then the route's schema. */
 function openedDraft(href: string) {
@@ -56,11 +57,58 @@ test("parseDraft keeps the members that validate and drops the rest, unknown one
     { angle: "none", motion: sampleMotionId, prompt: "Neon", seed: 0, step: "motion" },
   );
 
-  assert.deepEqual(parseDraft({ prompt: "   ", seed: 1.5 }), {});
+  assert.deepEqual(parseDraft({ seed: 1.5 }), {});
   assert.deepEqual(parseDraft({ seed: Number.MAX_SAFE_INTEGER + 1 }), {});
+  assert.deepEqual(parseDraft({ seed: "random" }), {});
+  // The explicit resets: a cleared look (blank or spaces) and the fixed default seed.
+  assert.deepEqual(parseDraft({ prompt: "   ", seed: "default" }), { prompt: "", seed: "default" });
   assert.deepEqual(parseDraft("?character=x"), {});
   assert.deepEqual(parseDraft(null), {});
   assert.deepEqual(parseDraft(draftFixture), draftFixture);
+});
+
+test("a remix whose look was cleared and seed reset keeps both through snapshot, link and parse, and generates as blank fields", () => {
+  const from = "0c7d5e3a-1b2f-4a6c-8d9e-0f1a2b3c4d5e";
+  const take = { angle: "front", prompt: "From the take.", seed: "11" };
+  const picks = { character: sampleCharacterId, motion: sampleMotionId };
+
+  // The Direct step opened on the take, then the look and the seed were cleared.
+  const snapshot = snapshotDraft({
+    ...picks,
+    from,
+    ...directionFields({ ...take, prompt: "", seed: "" }),
+  });
+
+  assert.equal(snapshot.prompt, "");
+  assert.equal(snapshot.seed, "default");
+
+  const href = draftHref(snapshot);
+  const reopened = parseDraft(openedDraft(href));
+
+  assert.deepEqual(reopened, { ...snapshot });
+  assert.deepEqual(openedDraft(href), { ...snapshot });
+
+  const start = startingDirection(reopened, take, ["front"]);
+
+  assert.deepEqual(start, { angle: "front", prompt: "", seed: "" });
+
+  // Generated, the resets are parameters left out: the same body as a blank look and seed typed
+  // into the form, so the same recipe and hash. (`useGenerate` sends this JSON.)
+  const body = (direction: typeof start) =>
+    JSON.stringify(generateInputSchema.parse(generateRequest(picks, direction)));
+
+  assert.equal(
+    body(start),
+    JSON.stringify({
+      angle: "front",
+      character_id: sampleCharacterId,
+      motion_asset_id: sampleMotionId,
+    }),
+  );
+  assert.equal(body(start), body({ angle: "front", prompt: "  ", seed: "" }));
+
+  // A field left out still starts from the take's.
+  assert.deepEqual(startingDirection(parseDraft(openedDraft(draftHref({ from }))), take, []), take);
 });
 
 test("draftHref opens the wizard on the same draft, a look that reads as a number included", () => {
