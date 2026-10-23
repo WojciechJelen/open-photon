@@ -23,8 +23,8 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { DatabaseSync } from "node:sqlite";
+import { setTimeout as sleep } from "node:timers/promises";
 
 const POLL_MS = 3000;
 // A Cloud take is about 65 s plus its queue; a self-host one several minutes.
@@ -68,7 +68,11 @@ async function call(pathname, { body, cookie } = {}) {
   });
   const text = await response.text();
 
-  return { headers: response.headers, json: text ? JSON.parse(text) : null, status: response.status };
+  return {
+    headers: response.headers,
+    json: text ? JSON.parse(text) : null,
+    status: response.status,
+  };
 }
 
 /** Signs in with ACCESS_CODE and returns the session cookie. */
@@ -141,12 +145,17 @@ async function waitForEnd(cookie, id) {
 }
 
 try {
-  const motions = database.prepare("SELECT title, source_asset_id FROM motions ORDER BY title").all();
+  const motions = database
+    .prepare("SELECT title, source_asset_id FROM motions ORDER BY title")
+    .all();
   const characters = database
     .prepare("SELECT id, title FROM characters WHERE is_sample = 1 ORDER BY title")
     .all();
 
-  assert.ok(motions.length > 0 && characters.length > 0, `${path} has no sample motions or characters`);
+  assert.ok(
+    motions.length > 0 && characters.length > 0,
+    `${path} has no sample motions or characters`,
+  );
   console.log(
     `${motions.length} motions × ${characters.length} characters = ${motions.length * characters.length} takes, on ${base}`,
   );
