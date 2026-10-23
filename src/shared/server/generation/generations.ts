@@ -693,6 +693,25 @@ export function countFinalizeAttempt(id: string) {
   return row;
 }
 
+/**
+ * Adds named outputs to a `done` generation, leaving any name it already has as it is: what a
+ * workflow derives later for a row finished before it did (`deriveForDone`). Returns the names it
+ * added; none for a row that is not done.
+ */
+export function addOutputs(id: string, outputs: Readonly<Record<string, string>>) {
+  const store = database.prepare(
+    `INSERT INTO generation_outputs (generation_id, name, asset_id)
+    SELECT id, ?, ? FROM generations WHERE id = ? AND status = 'done'
+    ON CONFLICT (generation_id, name) DO NOTHING`,
+  );
+
+  return transaction(database, () =>
+    Object.entries(outputs).flatMap(([name, assetId]) =>
+      store.run(name, assetId, id).changes > 0 ? [name] : [],
+    ),
+  );
+}
+
 const storedOutputSchema = z.object({ asset_id: z.string(), name: z.string() });
 
 /** A generation's named outputs whose assets are stored, by name, with their stored asset. */

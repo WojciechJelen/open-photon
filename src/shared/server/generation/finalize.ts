@@ -12,10 +12,12 @@ import {
   workflows,
 } from "./definition.ts";
 import {
+  addOutputs,
   countFinalizeAttempt,
   findGeneration,
   type Generation,
   markFinalizing,
+  readOutputs,
   transition,
 } from "./generations.ts";
 
@@ -232,6 +234,29 @@ async function derive(
 
     return {};
   }
+}
+
+/**
+ * Adds to a `done` generation the outputs its workflow derives (`deriveOutputs`) that it does not
+ * have yet: for a row finished before its workflow derived them, by hand
+ * (`scripts/backfill-compare.mjs`). Returns the names added: none for a row that is not done or
+ * whose workflow derives nothing, or when the derivation fails (logged, as in `finalize`).
+ */
+export async function deriveForDone(id: string) {
+  const row = findGeneration(id);
+  const definition = row?.status === "done" ? workflows.find(row) : undefined;
+
+  if (!row || !definition) {
+    return [];
+  }
+
+  const stored = Object.fromEntries(readOutputs(id).map(({ asset, name }) => [name, asset.id]));
+  const derived = await derive(definition, row, stored);
+
+  return addOutputs(
+    id,
+    Object.fromEntries(Object.entries(derived).filter(([name]) => !(name in stored))),
+  );
 }
 
 // A finalize that failed is tried again on a later read, no sooner than this many milliseconds
