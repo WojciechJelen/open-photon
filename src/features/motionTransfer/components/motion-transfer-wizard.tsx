@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowRightIcon, ImageIcon, LockIcon, PlayIcon, UserIcon, VideoIcon } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { ArrowRightIcon, ImageIcon, LockIcon, UserIcon, VideoIcon } from "lucide-react";
+import { type ComponentType, useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "#/components/ui/button";
 import { CharacterStep } from "#/features/motionTransfer/components/character-step";
@@ -14,12 +14,18 @@ import { ShotSlate, type SlateRow } from "#/features/motionTransfer/components/s
 import {
   defaultDirection,
   type Direction,
+  directionFields,
   type MotionTransferDraft,
   shownStep,
+  snapshotDraft,
   startingDirection,
   type WizardStep,
 } from "#/features/motionTransfer/draft";
 import type { loadSelection } from "#/features/motionTransfer/selection.functions";
+import type {
+  DirectGenerationActionsProps,
+  DirectionEditorProps,
+} from "#/features/motionTransfer/slots";
 import { generateHold, useGenerate } from "#/features/motionTransfer/use-generate";
 import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
 import { PageGlow } from "#/shared/components/brand";
@@ -36,6 +42,10 @@ type DraftEntry = "push" | "replace";
 type WizardProps = {
   /** The draft shown: the URL's of `/motionTransfer`, validated by `motionTransferDraftSchema`. */
   draft: MotionTransferDraft;
+  /** Fills the Direct step's direction editor slot (`src/app/composer-slots.ts`). */
+  directionEditor: ComponentType<DirectionEditorProps>;
+  /** Fills the Direct step's generation actions slot, in the slate (`src/app/composer-slots.ts`). */
+  generationActions: ComponentType<DirectGenerationActionsProps>;
   /**
    * Takes each draft the wizard moves to (a pick, a step, the step it corrects a link to).
    * Without it, the wizard writes the draft to the URL of `/motionTransfer`, which then comes
@@ -69,7 +79,13 @@ export function MotionTransferWizard(props: WizardProps) {
   return <Wizard key={JSON.stringify([from, angle, prompt, seed])} {...props} />;
 }
 
-function Wizard({ draft, onDraftChange, selection }: WizardProps) {
+function Wizard({
+  draft,
+  directionEditor,
+  generationActions: GenerationActions,
+  onDraftChange,
+  selection,
+}: WizardProps) {
   const navigate = useNavigate();
 
   const {
@@ -220,21 +236,25 @@ function Wizard({ draft, onDraftChange, selection }: WizardProps) {
 
   const picked = step === "motion" ? motionChoice : characterChoice;
 
+  // What the generation actions get: the picks and the direction as they stand.
+  const shot = snapshotDraft({
+    character: characterChoice,
+    from: draft.from,
+    motion: motionChoice,
+    ...directionFields(direction),
+  });
+
   const action = (place: "bar" | "panel") =>
     step === "direct" ? (
-      // Keyed apart from Continue: React would otherwise turn the clicked Continue into this
+      // Keyed apart from Continue: React would otherwise turn the clicked Continue into a
       // submit button before the click's default action runs, and submit the form.
-      <Button
-        disabled={generate.pending}
-        form={formId}
+      <GenerationActions
+        draft={shot}
+        formId={formId}
         key="generate"
-        size={place === "panel" ? "lg" : "default"}
-        type="submit"
-        variant="photon"
-      >
-        <PlayIcon className="fill-current" />
-        {generate.pending ? "Starting…" : "Generate"}
-      </Button>
+        pending={generate.pending}
+        place={place}
+      />
     ) : (
       <Button
         disabled={!picked}
@@ -315,6 +335,7 @@ function Wizard({ draft, onDraftChange, selection }: WizardProps) {
                 angles={angles}
                 back={at("character")}
                 direction={direction}
+                directionEditor={directionEditor}
                 errors={generate.errors}
                 failure={generate.failure}
                 formId={formId}

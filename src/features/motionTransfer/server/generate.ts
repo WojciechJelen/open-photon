@@ -13,6 +13,7 @@ import type { GenerateInput } from "../contracts.ts";
 import { motionTransferDefinition } from "../workflows/definition.ts";
 import { findCharacter } from "./characters.server.ts";
 import { asMotionTransfer, findGeneration } from "./generations.ts";
+import { directionOf } from "./selection.ts";
 import { sampleMotionTitle, sourceClip, visibleCharacter } from "./shot.ts";
 
 /**
@@ -55,8 +56,9 @@ export function handleGenerate(request: Request, provider: Provider = comfyProvi
  * row a stopped server left is settled first), its recipe, its named outputs once done
  * (`outputs`; the result and its poster as `final` and `poster`), the motion clip it was made
  * from (`source`, the asset the wizard's `?motion=` names) with its sample title if it is one
- * (`motionTitle`), the character with its image as `signedIn` may see it (`visibleCharacter`)
- * and, for a child, whether it kept its parent's seed (a re-run) or not (a retry); `null` for a
+ * (`motionTitle`), the character with its image as `signedIn` may see it (`visibleCharacter`),
+ * the direction it was made with (`directionOf`, for the take's draft) and, for a child, whether
+ * it kept its parent's seed (a re-run) or not (a retry); `null` for a
  * malformed or unknown id, or another workflow's generation. It never asks Comfy, so the page
  * renders at once even when Comfy does not answer: the page's event stream finalizes a row Comfy
  * has finished, as `GET /api/generations/:id` does.
@@ -77,6 +79,7 @@ export function readResult(id: string, signedIn: boolean) {
 
   return {
     character: visibleCharacter(character, signedIn),
+    direction: directionOf(row.recipe),
     final: outputs.find(({ name }) => name === "video")?.asset ?? null,
     generation: generationSchema.parse(row),
     motionTitle: sampleMotionTitle(source.id),
