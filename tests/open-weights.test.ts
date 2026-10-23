@@ -92,6 +92,9 @@ test("pod preflight rejects a ComfyUI that lacks a required class or lists a fil
   const directory = mkdtempSync(join(tmpdir(), "photon-preflight-"));
   const path = join(directory, "object-info.json");
   const files = new Set(motionTransferModels.map(({ file }) => file));
+  // The object_info below lists Motion Transfer's classes and files only, so the check runs on
+  // its workflow alone, not on every feature's.
+  const workflow = "src/features/motionTransfer/workflows/motion-transfer.v1.json";
 
   // object_info's shape: each loader offers the files it can load as its input's choices.
   const definitions = Object.fromEntries(
@@ -111,14 +114,14 @@ test("pod preflight rejects a ComfyUI that lacks a required class or lists a fil
 
   try {
     writeFileSync(path, JSON.stringify(definitions));
-    assert.equal(run("check-models-lock", "--definitions", path).status, 0);
+    assert.equal(run("check-models-lock", "--definitions", path, workflow).status, 0);
 
     const withoutClass = { ...definitions };
 
     delete withoutClass.WanAnimate2Cache;
     writeFileSync(path, JSON.stringify(withoutClass));
 
-    const missingClass = run("check-models-lock", "--definitions", path);
+    const missingClass = run("check-models-lock", "--definitions", path, workflow);
 
     assert.equal(missingClass.status, 1);
     assert.match(missingClass.output, /WanAnimate2Cache/);
@@ -139,7 +142,7 @@ test("pod preflight rejects a ComfyUI that lacks a required class or lists a fil
       }),
     );
 
-    const wrongLoader = run("check-models-lock", "--definitions", path);
+    const wrongLoader = run("check-models-lock", "--definitions", path, workflow);
 
     assert.equal(wrongLoader.status, 1);
     assert.match(

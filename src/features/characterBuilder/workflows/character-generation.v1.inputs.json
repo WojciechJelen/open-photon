@@ -1,0 +1,15 @@
+{
+  "workflow": "character-generation.v1.json",
+  "inputs": {
+    "prompt": { "node": "77:74", "field": "text", "class_type": "CLIPTextEncode" },
+    "seed": { "node": "77:73", "field": "noise_seed", "class_type": "RandomNoise" },
+    "width": [
+      { "node": "77:66", "field": "width", "class_type": "EmptyFlux2LatentImage" },
+      { "node": "77:62", "field": "width", "class_type": "Flux2Scheduler" }
+    ],
+    "height": [
+      { "node": "77:66", "field": "height", "class_type": "EmptyFlux2LatentImage" },
+      { "node": "77:62", "field": "height", "class_type": "Flux2Scheduler" }
+    ]
+  }
+}
