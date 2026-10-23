@@ -107,8 +107,8 @@ export type BatchCharacter = z.output<typeof batchCharacterSchema>;
  * - `reused`: its first generation was an existing one with the same recipe (a take done or on
  *   its way), returned free instead of rendered again;
  * - `generation`: the item's current generation, a snapshot as `GET /api/generations/:id` has
- *   it. A failed or cancelled one that was retried (the shared retry, a new seed) is followed to
- *   its retry; `attempt` counts those retries (0: the first generation);
+ *   it. A failed or cancelled one rendered again (the shared retry with a new seed, or a re-run
+ *   with the same one) is followed to that child; `attempt` counts them (0: the first generation);
  * - `seed`: the seed the current generation renders with (its recipe's), and `character` the
  *   character it animates.
  */

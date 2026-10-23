@@ -1,6 +1,12 @@
-import { expect, type Page, test } from "@playwright/test";
+import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 
-import { open } from "../../../../tests/e2e/session.ts";
+import { expect, type Page, test } from "@playwright/test";
+import { z } from "zod";
+
+import { open, seededResult } from "../../../../tests/e2e/session.ts";
 import { batchListSchema, batchSchema } from "../contracts.ts";
 
 // On the server whose Comfy is a dead port (project `features`): nothing renders, so a batch's
@@ -15,6 +21,180 @@ async function direct(page: Page, look: string) {
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByLabel("Look").fill(look);
 }
+
+/** Runs `use` on the e2e server's database, as an operator's script would. */
+function database<T>(use: (connection: DatabaseSync) => T) {
+  const connection = new DatabaseSync(process.env.E2E_DATABASE_PATH ?? "");
+
+  try {
+    connection.exec("PRAGMA busy_timeout = 5000");
+
+    return use(connection);
+  } finally {
+    connection.close();
+  }
+}
+
+/** A new access code for `max` generations on the e2e server (`scripts/mint-code.mjs`). */
+function mintCode(max: number) {
+  return execFileSync(process.execPath, ["scripts/mint-code.mjs", "e2e-batches", String(max)], {
+    encoding: "utf8",
+    env: { ...process.env, DATABASE_PATH: process.env.E2E_DATABASE_PATH },
+  }).trim();
+}
+
+test("Render is not held back by the allowance: the server admits a batch whose only new take fits, and says why it refuses one that does not", async ({
+  browser,
+}) => {
+  // A code with one generation left, and the seeded done take (the sample motion, its
+  // character, look "e2e seeded result", seed 1), which a batch gets back free.
+  const code = mintCode(1);
+  const seeded = seededResult();
+
+  const shot = new URLSearchParams({
+    character: seeded.characterId,
+    motion: seeded.sourceAssetId,
+    prompt: "e2e seeded result",
+    seed: "1",
+    step: "direct",
+  });
+
+  const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const page = await context.newPage();
+
+  await open(page, `/access?code=${code}&next=${encodeURIComponent(`/motionTransfer?${shot}`)}`);
+
+  const variations = page
+    .getByRole("complementary", { name: "Your shot" })
+    .getByRole("button", { name: "Variations" });
+
+  await variations.click();
+
+  const dialog = page.getByRole("dialog", { name: "Render variations" });
+
+  // Two new seeds need two generations: shown as information, and the server refuses it whole.
+  await expect(dialog.getByText("your access code has 1 left", { exact: false })).toBeVisible();
+  await dialog.getByRole("button", { name: "Render 2 takes" }).click();
+  await expect(dialog.getByRole("alert")).toHaveText(
+    "This access code has 1 of its 1 generations left, and this request needs 2. Nothing was started.",
+  );
+
+  // The seeded take's character and one more: two takes, one of them already rendered.
+  await dialog.getByRole("radio", { name: "Characters" }).click();
+  await dialog
+    .getByRole("button", { pressed: false })
+    .filter({ has: page.getByRole("img") })
+    .first()
+    .click();
+  await expect(dialog.getByText("your access code has 1 left", { exact: false })).toBeVisible();
+
+  const admitted = page.waitForResponse(
+    (response) => response.url().endsWith("/api/batches") && response.request().method() === "POST",
+  );
+
+  await dialog.getByRole("button", { name: "Render 2 takes" }).click();
+
+  const response = await admitted;
+  const batch = batchSchema.parse(await response.json());
+
+  expect(response.status()).toBe(201);
+  expect(batch.items.map((item) => item.reused)).toEqual([true, false]);
+  expect(batch.items[0]?.generation.id).toBe(seeded.id);
+  await expect(page).toHaveURL(`/batches/${batch.id}`);
+
+  const list = batchListSchema.parse(await (await page.request.get("/api/batches")).json());
+
+  expect(list.allowance).toEqual({ max: 1, remaining: 0, used: 1 });
+  await context.close();
+});
+
+test("a landscape take shows its whole frame in the comparison grid, on desktop and on a phone", async ({
+  page,
+}) => {
+  const created = await page.request.post("/api/batches", {
+    data: {
+      request_key: randomUUID(),
+      shot: { character: seededResult().characterId, motion: seededResult().sourceAssetId },
+      variation: { kind: "seeds", seeds: [7_100_001, 7_100_002] },
+    },
+  });
+
+  const batch = batchSchema.parse(await created.json());
+
+  // A 320×240 clip stored as the second take's result, as finalize stores an 848×480 one.
+  const upload = await page.request.post("/api/uploads", {
+    multipart: {
+      file: {
+        buffer: readFileSync("tests/fixtures/long-12s.mp4"),
+        mimeType: "video/mp4",
+        name: "landscape.mp4",
+      },
+    },
+  });
+
+  const landscape = z
+    .object({ height: z.int(), id: z.uuid(), width: z.int() })
+    .parse(await upload.json());
+
+  expect(landscape.width).toBeGreaterThan(landscape.height);
+
+  const take = batch.items[1]?.generation.id ?? "";
+
+  // Comfy is a dead port: the take fails first, then is stored done with the landscape result.
+  await expect
+    .poll(
+      async () =>
+        batchSchema.parse(await (await page.request.get(`/api/batches/${batch.id}`)).json())
+          .items[1]?.generation.status,
+      { timeout: 30_000 },
+    )
+    .toBe("failed");
+
+  // As finalize leaves a finished job: its job id, `done`, the result as output `video`.
+  database((connection) => {
+    connection
+      .prepare(
+        `UPDATE generations SET status = 'done', progress = 100, provider_job_id = ?,
+          final_asset_id = ?, finished_at = ? WHERE id = ?`,
+      )
+      .run(`e2e-landscape-${take}`, landscape.id, new Date().toISOString(), take);
+    connection
+      .prepare(
+        "INSERT INTO generation_outputs (generation_id, name, asset_id) VALUES (?, 'video', ?)",
+      )
+      .run(take, landscape.id);
+  });
+
+  for (const viewport of [
+    { height: 800, width: 1280 },
+    { height: 844, width: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await open(page, `/batches/${batch.id}`);
+
+    const video = page.locator('video[aria-label="Take 2"]');
+
+    await expect
+      .poll(() => video.evaluate((element: HTMLVideoElement) => element.videoWidth))
+      .toBe(320);
+
+    // Letterboxed, not cropped: the whole 4:3 frame fits the portrait cell.
+    const frame = await video.evaluate((element: HTMLVideoElement) => {
+      const box = element.getBoundingClientRect();
+      const fit = getComputedStyle(element).objectFit;
+
+      const scale =
+        fit === "cover"
+          ? Math.max(box.width / element.videoWidth, box.height / element.videoHeight)
+          : Math.min(box.width / element.videoWidth, box.height / element.videoHeight);
+
+      return { fit, shown: element.videoWidth * scale, width: box.width };
+    });
+
+    expect(frame.fit).toBe("contain");
+    expect(frame.shown).toBeLessThanOrEqual(frame.width + 0.5);
+  }
+});
 
 test("Variations shows the takes, what stays the same and the allowance before anything starts, from the keyboard", async ({
   page,
@@ -113,7 +293,7 @@ test("a take that fails keeps its place in the batch and offers the shared retry
   // Retry is the shared one: the take's generation gets a child with a new seed, which the batch
   // follows as the take's next attempt.
   await page.getByRole("button", { name: "Retry take 1" }).click();
-  await expect(page.getByText("Retry 1 (the shared retry renders with a new seed).")).toBeVisible();
+  await expect(page.getByText("Attempt 2: rendered again after a failure.")).toBeVisible();
 
   const retried = batchSchema.parse(
     await (await page.request.get(`/api/batches/${batch.id}`)).json(),

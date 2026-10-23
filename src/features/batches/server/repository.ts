@@ -125,9 +125,10 @@ export function listBatches(limit: number) {
 }
 
 /**
- * The latest retry of a failed or cancelled generation: its newest child (`parent_id`). A
- * re-run's parent is done, so a child of a failed or cancelled generation is always a retry
- * (`retry` in the generation service), made here or from the take's page.
+ * The latest attempt after a failed or cancelled generation: its newest child (`parent_id`),
+ * made here or from the take's page. That is a retry (a new seed) or a re-run (the same seed;
+ * the shared service makes a child of a failed generation for one too): either renders the take
+ * again.
  */
 export function findRetry(generationId: string) {
   const row = database

@@ -396,11 +396,13 @@ function TakeCard({
         <VariationLabel item={item} />
       </div>
 
+      {/* Cells share one portrait shape so the grid lines up; `object-contain` letterboxes a
+          landscape take (848×480) instead of cropping it, so every take shows its whole frame. */}
       <div className="relative aspect-9/16 overflow-hidden rounded-xl bg-foreground/5">
         {state === "completed" && video && video.media !== "text" ? (
           <video
             aria-label={`Take ${take}`}
-            className="absolute inset-0 size-full object-cover"
+            className="absolute inset-0 size-full bg-black object-contain"
             controls
             loop
             muted
@@ -454,7 +456,7 @@ function TakeCard({
       )}
       {item.attempt > 0 && (
         <p className="text-xs text-muted-foreground">
-          Retry {item.attempt} (the shared retry renders with a new seed).
+          Attempt {item.attempt + 1}: rendered again after a failure.
         </p>
       )}
 

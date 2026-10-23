@@ -62,7 +62,6 @@ async function post(body: Body, cookie: string) {
       headers: { "Content-Type": "application/json", Cookie: cookie },
       method: "POST",
     }),
-    motionTransfer,
   );
 
   return { body: await response.json(), status: response.status };
@@ -313,7 +312,6 @@ test("the batch endpoints need a session; GET answers the batch, the list and th
       body: JSON.stringify({ ...seedBody(seeds(2)), request_key: randomUUID() }),
       method: "POST",
     }),
-    motionTransfer,
   );
 
   assert.equal(unauthorized.status, 401);

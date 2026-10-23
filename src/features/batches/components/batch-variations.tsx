@@ -192,8 +192,10 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
 
   const items = valid ? planItems(draft, variation) : [];
   const size = kind === "seeds" ? count : chosen.length;
+  // What the code has left is shown, not enforced: only new takes are charged, and only the
+  // server knows which takes are already rendered, so its atomic admission decides.
   const remaining = reads.kind === "ready" ? reads.allowance.remaining : null;
-  const short = remaining !== null && remaining < size;
+  const beyond = remaining !== null && remaining < size;
 
   const togglePick = (id: string) =>
     setPicked((current) =>
@@ -410,10 +412,10 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
               </ol>
             )}
             <p
-              className={cn("text-sm", short ? "text-warning-foreground" : "text-soft-foreground")}
+              className={cn("text-sm", beyond ? "text-warning-foreground" : "text-soft-foreground")}
             >
-              {short
-                ? `This needs up to ${size} generations and your access code has ${remaining} left, so the batch would be refused.`
+              {beyond
+                ? `Up to ${size} generations, and your access code has ${remaining} left. A take already rendered with the same recipe comes back free, so the batch starts if its new takes fit; otherwise nothing starts.`
                 : `Uses up to ${size} of the ${remaining} generations your access code has left. A take already rendered with the same recipe comes back free.`}
             </p>
           </section>
@@ -428,7 +430,7 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
 
       <DialogFooter>
         <Button
-          disabled={reads.kind !== "ready" || !valid || short || pending}
+          disabled={reads.kind !== "ready" || !valid || pending}
           onClick={() => void submit()}
           type="button"
           variant="photon"
