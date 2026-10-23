@@ -78,6 +78,7 @@ export function LibraryCharacterPicker({
   const { reload, state: library } = useCharacterList({ enabled: signedIn });
   const listed = signedIn && library.kind === "ready" ? library.characters : characters;
   const missing = character && !listed.some(({ id }) => id === character.id) ? [character] : [];
+
   // A picked character this visitor may not see (an upload, without the code): a locked tile.
   const locked =
     characterId !== undefined && !character && !listed.some(({ id }) => id === characterId);

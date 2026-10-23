@@ -33,6 +33,7 @@ export function listLibrary(request: Request) {
   }
 
   const { favorites, q, samples } = query.data;
+
   const list: CharacterList = {
     characters: listCharacters({ favorites, includeSamples: samples, query: q }),
   };

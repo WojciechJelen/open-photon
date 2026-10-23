@@ -143,11 +143,8 @@ test("the library lists the workspace's characters, the newest first, a favorite
     library,
   );
   assert.deepEqual(
-    all
-      .filter(({ is_sample }) => is_sample)
-      .map(({ title }) => title)
-      .sort(),
-    ["Placeholder blue", "Placeholder green", "Placeholder orange"],
+    new Set(all.filter(({ is_sample }) => is_sample).map(({ title }) => title)),
+    new Set(["Placeholder blue", "Placeholder green", "Placeholder orange"]),
   );
 
   setFavorite(older.id, false);

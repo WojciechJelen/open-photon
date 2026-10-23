@@ -96,22 +96,19 @@ export function CharacterCard({
         <span className="absolute top-3 left-3">
           <Badge variant="solid">{originLabel(character)}</Badge>
         </span>
-        <Button
-          aria-label={favorite ? `Remove ${name} from favorites` : `Add ${name} to favorites`}
-          aria-pressed={favorite}
-          className="absolute top-1.5 right-1.5 bg-background/65 backdrop-blur-md"
-          // Not `disabled`: the button keeps the keyboard focus while the change is saved.
-          aria-disabled={favoritePending}
-          onClick={() => !favoritePending && onFavorite()}
-          size="icon"
-          variant="ghost"
-        >
-          <StarIcon
-            aria-hidden="true"
-            className={cn(favorite && "fill-warning text-warning")}
-            data-favorite={favorite}
-          />
-        </Button>
+        <span className="absolute top-1.5 right-1.5 rounded-full bg-background/65 backdrop-blur-md">
+          <Button
+            aria-label={favorite ? `Remove ${name} from favorites` : `Add ${name} to favorites`}
+            aria-pressed={favorite}
+            // Not `disabled`: the button keeps the keyboard focus while the change is saved.
+            aria-disabled={favoritePending}
+            onClick={() => !favoritePending && onFavorite()}
+            size="icon"
+            variant="ghost"
+          >
+            <StarIcon aria-hidden="true" className={cn(favorite && "fill-warning text-warning")} />
+          </Button>
+        </span>
       </div>
       <div className="flex flex-1 flex-col gap-3 p-3.5">
         <h3 className="truncate text-base leading-tight font-semibold" title={name}>

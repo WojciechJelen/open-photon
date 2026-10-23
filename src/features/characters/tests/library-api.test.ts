@@ -43,7 +43,9 @@ const generated = await generatedCharacter("A painter in a YELLOW raincoat");
 const newest = await uploadedCharacter("Ballet Teacher");
 
 createdAt(older.id, "2099-01-01T00:00:01.000Z");
+
 createdAt(generated.id, "2099-01-01T00:00:02.000Z");
+
 createdAt(newest.id, "2099-01-01T00:00:03.000Z");
 
 const samples = ["placeholder-blue", "placeholder-green", "placeholder-orange"].map((slug) =>
@@ -137,8 +139,9 @@ test("GET /api/characters needs a session; the /characters page opens without on
 
   const anonymous = await guard(new Request(`${origin}/api/characters`));
 
-  assert.equal(anonymous?.status, 401);
-  assert.equal((await anonymous?.json()).reason, "access_required");
+  assert.ok(anonymous);
+  assert.equal(anonymous.status, 401);
+  assert.equal((await anonymous.json()).reason, "access_required");
 
   for (const path of ["/api/characters?samples=1", "/API/Characters/"]) {
     assert.equal((await guard(new Request(`${origin}${path}`)))?.status, 401, path);
