@@ -27,12 +27,13 @@ import {
   countInFlight,
   countWaiting,
   createGeneration,
-  findByRequestKey,
   findGeneration,
   findInFlight,
   findPending,
+  findRequest,
   findReusable,
   hashRecipe,
+  recordRequest,
   type DecodedGeneration,
   type Generation,
   markQueued,
@@ -320,35 +321,6 @@ function refuseWhenClosed() {
 }
 
 /**
- * Admission to the provider, for a claim that would create a row: with `IN_FLIGHT_MAX=0` the
- * answer is a 503 `queue_full` and no row is created. While the in-flight cap is full and nobody
- * waits in line, the rows holding it are refreshed once and the recipe claimed again (an
- * existing generation found meanwhile comes back). Whatever is admitted goes to `start`, which
- * stores the row `preparing` when a place is free and nobody waits, or `waiting` in line for the
- * dispatcher; no await in between, so the row exists before another request claims the recipe.
- */
-async function admitToProvider<Started>(
-  claimed: Claim,
-  again: () => Claim,
-  provider: Provider,
-  start: (admitted: Claim) => Started,
-) {
-  let admitted = claimed;
-
-  if (!admitted.reused) {
-    refuseWhenClosed();
-  }
-
-  if (!admitted.reused && admitted.full && !admitted.lineAhead) {
-    await refreshInFlight(provider);
-    admitted = again();
-  }
-
-  // No await from the claim to `start`: the row it creates exists before another request claims.
-  return start(admitted);
-}
-
-/**
  * The receipt of a row: a `waiting` one says so with its place in line (`position`), as a 202;
  * any other is `{ id, reused }`.
  */
@@ -361,12 +333,18 @@ function receiptOf(row: Omit<Generation, "recipe">, reused: boolean): Generation
 }
 
 /**
- * The receipt again for a request key already used (`findByRequestKey`): the same generation, as
- * it was answered the first time (`reused: false`), for the access code that made it; anyone
- * else's request with that key is a 409.
+ * The answer a request key already got (`findRequest`), again: the same generation, reused or
+ * not as it was the first time, for the access code that asked then; another code's request with
+ * that key is a 409. `null` for a key not used yet (or none).
  */
-function replayed(row: Generation, scope: GenerationScope) {
-  if (row.access_code_id === null || row.access_code_id !== scope.session?.codeId) {
+function replayed(workflowId: string, requestKey: string | undefined, scope: GenerationScope) {
+  const request = requestKey === undefined ? null : findRequest(workflowId, requestKey);
+
+  if (!request) {
+    return null;
+  }
+
+  if (request.accessCodeId !== (scope.session?.codeId ?? null)) {
     throw new GenerateError(
       409,
       "This request key was used for another request. Send a new one.",
@@ -374,21 +352,23 @@ function replayed(row: Generation, scope: GenerationScope) {
     );
   }
 
-  return receiptOf(row, false);
+  return receiptOf(request.row, request.reused);
 }
 
-// SQLITE_CONSTRAINT_UNIQUE: another process stored the request key first.
-const UNIQUE_VIOLATION = 2067;
+// SQLITE_CONSTRAINT_PRIMARYKEY: another process recorded the request key first.
+const KEY_VIOLATION = 1555;
 
 /**
  * Submits a prepared recipe: a generation with the same recipe that is done or still on its way
- * comes back as it is (`claim`); otherwise the request is `admit`ted (the rate limit) and
- * admitted to the provider (`admitToProvider`). A row stored `waiting` is answered at once with
- * its place in line; the dispatcher submits it when a place opens. A `preparing` row (with its
- * idempotency key) is submitted here: the recipe's files go to Comfy, the graph is submitted
- * under that key and the job id is saved the moment it returns (`send`). A new row records the
- * access code, which counts it (`006-access-codes.sql`), and `requestKey`, which a concurrent
- * request with the same key finds instead of storing a second row.
+ * comes back as it is (`claim`). Otherwise, with `IN_FLIGHT_MAX=0`, the answer is a 503
+ * `queue_full`; while the in-flight cap is full and nobody waits in line, the rows holding it
+ * are refreshed once (`refreshInFlight`), then the request key and the recipe are resolved again,
+ * in that order, with no await until the answer is stored. A new row is `admit`ted (the rate
+ * limit; only a request that stores one pays) and stored, with its request key, in one
+ * transaction: `preparing` when a place is free and nobody waits, submitted here (`send`: the
+ * recipe's files, then the graph under the row's idempotency key, then the job id), or `waiting`,
+ * answered at once with its place in line for the dispatcher. A new row records the access code,
+ * which counts it (`006-access-codes.sql`). A reused result is recorded under the key too.
  */
 async function submitRecipe<Input, Recipe extends WorkflowRecipe>(
   definition: WorkflowDefinition<Input, Recipe>,
@@ -397,75 +377,93 @@ async function submitRecipe<Input, Recipe extends WorkflowRecipe>(
 ): Promise<GenerationReceipt> {
   const { hash, recipe } = hashRecipe(definition, prepared.recipe);
   const files = inputFiles(definition, recipe);
-  const first = claim(definition, hash, scope, provider);
+  let claimed = claim(definition, hash, scope, provider);
 
-  if (first.reused) {
-    return receiptOf(first.row, true);
+  if (!claimed.reused) {
+    refuseWhenClosed();
+
+    if (claimed.full && !claimed.lineAhead) {
+      await refreshInFlight(provider);
+
+      // A concurrent request with this key may have been answered meanwhile.
+      const again = replayed(definition.id, requestKey, scope);
+
+      if (again) {
+        return again;
+      }
+
+      claimed = claim(definition, hash, scope, provider);
+    }
   }
 
-  admit();
+  // No await from here until the answer is stored: another request finds it.
+  const admitted = claimed;
+  let row: DecodedGeneration<Recipe> | null = null;
 
-  // The new row is this process's to submit from the moment it exists (`settleAbandoned`).
-  const started = await admitToProvider(
-    first,
-    () => claim(definition, hash, scope, provider),
-    provider,
-    (claimed): { receipt: GenerationReceipt } | { row: DecodedGeneration<Recipe> } => {
-      if (claimed.reused) {
-        return { receipt: receiptOf(claimed.row, true) };
-      }
-
-      const made = requestKey === undefined ? null : findByRequestKey(definition.id, requestKey);
-
-      if (made) {
-        return { receipt: replayed(made, scope) };
-      }
-
-      const waiting = claimed.full || claimed.lineAhead;
-      let row;
-
-      try {
-        row = createGeneration(definition, {
-          accessCodeId: claimed.codeId,
-          characterId: prepared.characterId,
-          motionId: prepared.motionId,
-          parentId: prepared.parentId,
-          recipe,
-          requestKey,
-          status: waiting ? "waiting" : "preparing",
-          target: targetOf(provider),
-        });
-      } catch (error) {
-        const raced =
-          requestKey !== undefined &&
-          error instanceof Error &&
-          "errcode" in error &&
-          error.errcode === UNIQUE_VIOLATION
-            ? findByRequestKey(definition.id, requestKey)
-            : null;
-
-        if (!raced) {
-          throw error;
+  try {
+    row = transaction(database, () => {
+      if (admitted.reused) {
+        if (requestKey !== undefined) {
+          recordRequest(definition.id, requestKey, {
+            accessCodeId: scope.session?.codeId ?? null,
+            generationId: admitted.row.id,
+            reused: true,
+          });
         }
 
-        return { receipt: replayed(raced, scope) };
+        return null;
       }
 
-      if (waiting) {
-        return { receipt: receiptOf(row, false) };
+      admit();
+
+      const created = createGeneration(definition, {
+        accessCodeId: admitted.codeId,
+        characterId: prepared.characterId,
+        motionId: prepared.motionId,
+        parentId: prepared.parentId,
+        recipe,
+        requestKey,
+        status: admitted.full || admitted.lineAhead ? "waiting" : "preparing",
+        target: targetOf(provider),
+      });
+
+      if (requestKey !== undefined) {
+        recordRequest(definition.id, requestKey, {
+          accessCodeId: admitted.codeId,
+          generationId: created.id,
+          reused: false,
+        });
       }
 
-      submitting.add(row.id);
+      return created;
+    });
+  } catch (error) {
+    const raced =
+      error instanceof Error && "errcode" in error && error.errcode === KEY_VIOLATION
+        ? replayed(definition.id, requestKey, scope)
+        : null;
 
-      return { row };
-    },
-  );
+    if (!raced) {
+      throw error;
+    }
 
-  if ("receipt" in started) {
-    return started.receipt;
+    return raced;
   }
 
-  const { row } = started;
+  if (admitted.reused) {
+    return receiptOf(admitted.row, true);
+  }
+
+  if (!row) {
+    throw new Error("A new generation was not stored");
+  }
+
+  if (row.status === "waiting") {
+    return receiptOf(row, false);
+  }
+
+  // The new row is this process's to submit from the moment it exists (`settleAbandoned`).
+  submitting.add(row.id);
 
   try {
     await send(definition, row, recipe, files, provider);
@@ -481,20 +479,19 @@ async function submitRecipe<Input, Recipe extends WorkflowRecipe>(
  * the recipe once (`prepareRecipe`, which refuses an input it cannot render with a
  * `GenerateError`) for the target this server renders on, and `submitRecipe` submits it — or
  * returns the generation that already has it. The answer is the generation's receipt. A
- * `requestKey` the workflow already has returns its generation before anything is resolved, so a
- * request repeated after a lost answer gets the same generation, even one whose seed was drawn
- * at random.
+ * `requestKey` already answered returns that answer before anything is resolved
+ * (`generation_requests`), so a request repeated after a lost answer gets the same generation,
+ * even one whose seed was drawn at random.
  */
 export async function submit<Input, Recipe extends WorkflowRecipe>(
   definition: WorkflowDefinition<Input, Recipe>,
   input: Input,
   options: SubmitOptions,
 ) {
-  const made =
-    options.requestKey === undefined ? null : findByRequestKey(definition.id, options.requestKey);
+  const made = replayed(definition.id, options.requestKey, options.scope);
 
   if (made) {
-    return replayed(made, options.scope);
+    return made;
   }
 
   const prepared = definition.prepareRecipe(input, {
@@ -553,16 +550,16 @@ export function submitMany<Input, Recipe extends WorkflowRecipe>(
     const fresh = new Map<string, { key: string; prepared: PreparedRecipe<Recipe> }>();
 
     type Planned =
-      | { made: Generation }
-      | { existing: Generation }
-      | { hash: string; reused: boolean };
+      | { key: string; made: GenerationReceipt }
+      | { existing: Generation; key: string }
+      | { hash: string; key: string; reused: boolean };
 
     const plan = items.map((input, index): Planned => {
       const key = `${requestKey}#${index}`;
-      const made = findByRequestKey(definition.id, key);
+      const made = replayed(definition.id, key, scope);
 
       if (made) {
-        return { made };
+        return { key, made };
       }
 
       const prepared = definition.prepareRecipe(input, { target });
@@ -573,17 +570,17 @@ export function submitMany<Input, Recipe extends WorkflowRecipe>(
       const existing = existingFor(definition, hash);
 
       if (existing && (scope.session || scope.free(existing))) {
-        return { existing };
+        return { existing, key };
       }
 
       // An item with the recipe of an earlier new one gets that one's row, as a reused result.
       if (fresh.has(hash)) {
-        return { hash, reused: true };
+        return { hash, key, reused: true };
       }
 
       fresh.set(hash, { key, prepared: { ...prepared, recipe } });
 
-      return { hash, reused: false };
+      return { hash, key, reused: false };
     });
 
     const stored = new Map<string, Omit<Generation, "recipe">>();
@@ -611,22 +608,27 @@ export function submitMany<Input, Recipe extends WorkflowRecipe>(
       }
     }
 
+    // Every item's answer is recorded under its key, reused ones too, so the same request again
+    // gets the same answers whatever happened to their generations since.
     return plan.map((item) => {
       if ("made" in item) {
-        return replayed(item.made, scope);
+        return item.made;
       }
 
-      if ("existing" in item) {
-        return receiptOf(item.existing, true);
-      }
-
-      const row = stored.get(item.hash);
+      const row = "existing" in item ? item.existing : stored.get(item.hash);
+      const reused = "existing" in item || item.reused;
 
       if (!row) {
-        throw new Error(`No row was stored for recipe ${item.hash}`);
+        throw new Error(`No row was stored for request item ${item.key}`);
       }
 
-      return receiptOf(row, item.reused);
+      recordRequest(definition.id, item.key, {
+        accessCodeId: scope.session?.codeId ?? null,
+        generationId: row.id,
+        reused,
+      });
+
+      return receiptOf(row, reused);
     });
   });
 }

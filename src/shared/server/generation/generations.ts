@@ -282,13 +282,59 @@ export function findPending(hash: string, workflow: WorkflowKey) {
   );
 }
 
-/** The generation of `workflowId` a client's request key (`createGeneration`) made, if any. */
-export function findByRequestKey(workflowId: string, requestKey: string) {
-  return parseRow(
-    database
-      .prepare("SELECT * FROM generations WHERE workflow_id = ? AND request_key = ?")
-      .get(workflowId, requestKey),
-  );
+const requestSchema = z.object({
+  access_code_id: z.string().nullable(),
+  generation_id: z.string(),
+  reused: z.union([z.literal(0), z.literal(1)]).transform((value) => value === 1),
+});
+
+/**
+ * What a client's request key for `workflowId` was answered with (`generation_requests`): the
+ * generation, whether it was an existing one, and the access code that asked; `null` for a new key.
+ */
+export function findRequest(workflowId: string, requestKey: string) {
+  const stored = database
+    .prepare(
+      `SELECT access_code_id, generation_id, reused FROM generation_requests
+      WHERE workflow_id = ? AND request_key = ?`,
+    )
+    .get(workflowId, requestKey);
+
+  const request = stored === undefined ? null : requestSchema.parse(stored);
+  const row = request ? findGeneration(request.generation_id) : null;
+
+  return request && row
+    ? { accessCodeId: request.access_code_id, reused: request.reused, row }
+    : null;
+}
+
+/**
+ * Records what a request key was answered with: `generationId`, reused or made for it, for
+ * `accessCodeId`. A key the workflow already has throws (its primary key).
+ */
+export function recordRequest(
+  workflowId: string,
+  requestKey: string,
+  {
+    accessCodeId,
+    generationId,
+    reused,
+  }: { accessCodeId: string | null; generationId: string; reused: boolean },
+) {
+  database
+    .prepare(
+      `INSERT INTO generation_requests (workflow_id, request_key, access_code_id, generation_id,
+        reused, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      workflowId,
+      requestKey,
+      accessCodeId,
+      generationId,
+      reused ? 1 : 0,
+      new Date().toISOString(),
+    );
 }
 
 // In flight on `target` (when given): a job on another endpoint cannot be followed from here

@@ -60,7 +60,7 @@ test("shared/002 rebuilds generations for the waiting queue: rows, links, indexe
       mkdirSync(join(directory, entry.name));
 
       for (const file of readdirSync(join(MIGRATIONS, entry.name))) {
-        if (`${entry.name}/${file}` !== "shared/002-waiting-queue.sql") {
+        if (entry.name !== "shared" || file < "002") {
           cpSync(join(MIGRATIONS, entry.name, file), join(directory, entry.name, file));
         }
       }
@@ -119,10 +119,7 @@ test("shared/002 rebuilds generations for the waiting queue: rows, links, indexe
 
   assert.equal(used(), 3);
 
-  cpSync(
-    join(MIGRATIONS, "shared/002-waiting-queue.sql"),
-    join(directory, "shared/002-waiting-queue.sql"),
-  );
+  cpSync(join(MIGRATIONS, "shared"), join(directory, "shared"), { recursive: true });
   migrate(database, directory);
 
   // Every row and every link to it is there, foreign keys hold and are enforced again.

@@ -17,7 +17,9 @@
  * - **Progress.** Every `GENERATION_DISPATCH_MS` it asks the provider about each `queued`,
  *   `running` or `finalizing` row (`finalize`, with its backoff after a failed download), so a
  *   finished job is collected and its place freed whether or not anyone watches its event stream,
- *   which stays a view over the row.
+ *   which stays a view over the row. One finalize per row at a time; a row whose poll fails
+ *   (the provider unreachable) is asked again after a capped, jittered exponential backoff, which
+ *   counts no download attempt and refunds nothing.
  *
  * Restart recovery (`recoverAfterRestart`, run once at boot before the dispatcher starts; one
  * process runs per installation, so every claim found then is a stopped process's):
@@ -58,6 +60,9 @@ function dispatchInterval() {
 
   return Number.isInteger(configured) && configured > 0 ? configured : 3000;
 }
+
+// The longest a row whose polls keep failing waits before it is asked again.
+const MAX_POLL_BACKOFF_MS = 60_000;
 
 /** Logs a failed pass, submit or finalize; the row keeps its state, and the next pass retries. */
 function logError(event: string, id: string | null, error: Error | string) {
@@ -113,15 +118,47 @@ export function startDispatcher({
   provider = comfyProvider,
 }: { intervalMs?: number; provider?: Provider } = {}): Dispatcher {
   const work = new Set<Promise<unknown>>();
+  // The rows a finalize started by this dispatcher is still asking about.
+  const asking = new Set<string>();
+  // The rows whose last poll failed (the provider unreachable, a download that failed): how many
+  // times in a row, and when they may be asked again.
+  const failing = new Map<string, { failures: number; until: number }>();
   let stopped = false;
   let scheduled: NodeJS.Immediate | null = null;
   let poll = false;
 
-  const track = (event: string, id: string, promise: Promise<unknown>) => {
-    const tracked = promise.catch((error) => logError(event, id, error));
+  const track = (promise: Promise<unknown>) => {
+    work.add(promise);
+    void promise.finally(() => work.delete(promise));
+  };
 
-    work.add(tracked);
-    void tracked.finally(() => work.delete(tracked));
+  /**
+   * Asks the provider about one row (`finalize`), unless a finalize of it is still running or its
+   * backoff has not passed. A failure waits `intervalMs` doubled for each failure in a row, up
+   * to `MAX_POLL_BACKOFF_MS`, less up to half at random so rows do not ask in step; a poll that
+   * succeeds resets it. Nothing here touches the row: a failed provider call is no download
+   * attempt (`finalize_attempts`) and refunds nothing.
+   */
+  const follow = (id: string, now: number) => {
+    if (asking.has(id) || (failing.get(id)?.until ?? 0) > now) {
+      return;
+    }
+
+    asking.add(id);
+    track(
+      finalize(id, provider)
+        .then(
+          () => failing.delete(id),
+          (error) => {
+            const failures = (failing.get(id)?.failures ?? 0) + 1;
+            const wait = Math.min(MAX_POLL_BACKOFF_MS, intervalMs * 2 ** (failures - 1));
+
+            failing.set(id, { failures, until: Date.now() + wait * (0.5 + Math.random() / 2) });
+            logError("dispatch.finalize-error", id, error);
+          },
+        )
+        .finally(() => asking.delete(id)),
+    );
   };
 
   /**
@@ -137,12 +174,25 @@ export function startDispatcher({
     poll = false;
 
     for (let row = claimNextWaiting(target, max); row; row = claimNextWaiting(target, max)) {
-      track("dispatch.submit-error", row.id, sendClaimed(row, provider));
+      const { id } = row;
+
+      track(
+        sendClaimed(row, provider).catch((error) => logError("dispatch.submit-error", id, error)),
+      );
     }
 
     if (polling) {
-      for (const id of findFollowable()) {
-        track("dispatch.finalize-error", id, finalize(id, provider));
+      const now = Date.now();
+      const followable = findFollowable();
+
+      for (const id of failing.keys()) {
+        if (!followable.includes(id)) {
+          failing.delete(id);
+        }
+      }
+
+      for (const id of followable) {
+        follow(id, now);
       }
     }
   };
