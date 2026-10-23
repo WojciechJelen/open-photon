@@ -117,6 +117,7 @@ Each job reached ComfyUI (`got prompt`) within 0.1 s of submission; the app took
 - **Restart.** `runpodctl pod restart` at 15:13:39: no downloads; `install-models.mjs` re-hashed the nine files on the volume (`Verified` each, 4 min 3 s) and the API served again at 15:18:02, 4 min 23 s after the restart.
 - **Cost.** 21 min 4 s from creation to termination at the pod's $0.59/h: about $0.21 (approximate; Runpod had not posted the billing record when this was written).
 - **Observations.** The image shows one person head to toe, both hands and feet visible, on a plain background, as the compiled request asks. The take follows the Street dance clip's camera, which opens on a close-up and pulls back to full body in about 1.5 s. The image runs no SSH server; GPU memory was recorded through Runpod's SSH proxy (`<pod id>-<host id>@ssh.runpod.io`), which opens a shell without one.
+- **Raw evidence.** The verification output, GPU memory samples, trimmed boot log, the three recipes and their outputs (caption, PNG, MP4) are in [`docs/selfhost-proof-2026-10-23/`](../../../../docs/selfhost-proof-2026-10-23/README.md).
 
 Before the pod run, without a token (2026-10-23):
 

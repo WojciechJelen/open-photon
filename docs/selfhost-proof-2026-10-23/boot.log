@@ -1,0 +1,74 @@
+# Trimmed from the pod's log stream (Runpod system + container lines, UTC): image pull and start,
+# model Downloading/Verified, ComfyUI version, preflight, Serving, each job's got prompt/executed,
+# the restart. Layer progress, ComfyUI chatter and the container id are removed.
+2026-10-23T14:57:16Z [system] 256bab911b12 Downloading
+2026-10-23T14:57:23Z [system] create container: still fetching image ghcr.io/wojciechjelen/open-photon-comfy:0.2.0
+2026-10-23T15:00:57Z [system] Digest: sha256:b7d55526ea9905432f6ec78865bde685abe3f3f288899a45db21c3f630188a62
+2026-10-23T15:00:57Z [system] Status: Downloaded newer image for ghcr.io/wojciechjelen/open-photon-comfy:0.2.0
+2026-10-23T15:00:58Z [system] create container ghcr.io/wojciechjelen/open-photon-comfy:0.2.0
+2026-10-23T15:00:59Z [system] 0.2.0 Pulling from wojciechjelen/open-photon-comfy
+2026-10-23T15:00:59Z [system] Digest: sha256:b7d55526ea9905432f6ec78865bde685abe3f3f288899a45db21c3f630188a62
+2026-10-23T15:00:59Z [system] Status: Image is up to date for ghcr.io/wojciechjelen/open-photon-comfy:0.2.0
+2026-10-23T15:00:59Z [system] start container for ghcr.io/wojciechjelen/open-photon-comfy:0.2.0: begin
+2026-10-23T15:01:00.463223761Z [container] Downloading flux3-image-klein-int8-convrot.safetensors
+2026-10-23T15:01:36.652879844Z [container] Verified flux3-image-klein-int8-convrot.safetensors
+2026-10-23T15:01:36.657457805Z [container] Downloading qwen3vl_4b_int8_convrot.safetensors
+2026-10-23T15:02:07.071168311Z [container] Verified qwen3vl_4b_int8_convrot.safetensors
+2026-10-23T15:02:07.079386486Z [container] Downloading qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors
+2026-10-23T15:02:52.018256249Z [container] Verified qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors
+2026-10-23T15:02:52.022835051Z [container] Downloading flux2-vae.safetensors
+2026-10-23T15:02:54.170075132Z [container] Verified flux2-vae.safetensors
+2026-10-23T15:02:54.173519045Z [container] Downloading Wan2_1_VAE_bf16.safetensors
+2026-10-23T15:02:56.080072554Z [container] Verified Wan2_1_VAE_bf16.safetensors
+2026-10-23T15:02:56.083153573Z [container] Downloading clip_vision_h.safetensors
+2026-10-23T15:03:03.165727004Z [container] Verified clip_vision_h.safetensors
+2026-10-23T15:03:03.170177640Z [container] Downloading lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
+2026-10-23T15:03:09.215403621Z [container] Verified lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
+2026-10-23T15:03:09.223500306Z [container] Downloading umt5_xxl_fp8_e4m3fn_scaled.safetensors
+2026-10-23T15:03:59.153411102Z [container] Verified umt5_xxl_fp8_e4m3fn_scaled.safetensors
+2026-10-23T15:03:59.163581067Z [container] Downloading wan_animate_2_int8_convrot.safetensors
+2026-10-23T15:06:16.992783913Z [container] Verified wan_animate_2_int8_convrot.safetensors
+2026-10-23T15:06:17.046582427Z [container] Waiting for ComfyUI on 127.0.0.1:8188
+2026-10-23T15:06:20.678814799Z [container] [INFO] Total VRAM 45490 MB, total RAM 47684 MB
+2026-10-23T15:06:20.678866947Z [container] [INFO] pytorch version: 2.10.0+cu130
+2026-10-23T15:06:20.679409651Z [container] [INFO] Device: cuda:0 NVIDIA A40 : cudaMallocAsync
+2026-10-23T15:06:24.557943925Z [container] [INFO] ComfyUI version: 0.42.0
+2026-10-23T15:06:27.764048020Z [container] characterBuilder/character-caption.v1: 1 model files, 1 locked, 0 missing (Apache-2.0)
+2026-10-23T15:06:27.765695588Z [container] characterBuilder/character-generation.v1: 3 model files, 3 locked, 0 missing (Apache-2.0, FLUX-Kommunity-1.0)
+2026-10-23T15:06:27.778091162Z [container] motionTransfer/motion-transfer.v1: 5 model files, 5 locked, 0 missing (Apache-2.0)
+2026-10-23T15:06:27.778226520Z [container] 9 distinct model files across 2 feature locks, 0 conflicts
+2026-10-23T15:06:27.791566776Z [container] Serving the Comfy API v2 on 0.0.0.0:8189 (auth: bearer)
+2026-10-23T15:06:28.121308066Z [container] ======== Running on http://0.0.0.0:8189 ========
+2026-10-23T15:07:27.250864318Z [container] [INFO] got prompt
+2026-10-23T15:07:52.633853992Z [container] [INFO] Prompt executed in 25.37 seconds
+2026-10-23T15:08:01.177250445Z [container] [INFO] got prompt
+2026-10-23T15:08:31.048434340Z [container] [INFO] Prompt executed in 29.87 seconds
+2026-10-23T15:08:49.918397943Z [container] [INFO] got prompt
+2026-10-23T15:13:04.674288358Z [container] [INFO] Prompt executed in 254.73 seconds
+2026-10-23T15:13:40Z [system] stop container <container id>
+2026-10-23T15:13:46Z [system] remove container
+2026-10-23T15:13:47Z [system] create container ghcr.io/wojciechjelen/open-photon-comfy:0.2.0
+2026-10-23T15:13:48Z [system] 0.2.0 Pulling from wojciechjelen/open-photon-comfy
+2026-10-23T15:13:48Z [system] Digest: sha256:b7d55526ea9905432f6ec78865bde685abe3f3f288899a45db21c3f630188a62
+2026-10-23T15:13:48Z [system] Status: Image is up to date for ghcr.io/wojciechjelen/open-photon-comfy:0.2.0
+2026-10-23T15:13:48Z [system] start container for ghcr.io/wojciechjelen/open-photon-comfy:0.2.0: begin
+2026-10-23T15:14:40.072653575Z [container] Verified flux3-image-klein-int8-convrot.safetensors
+2026-10-23T15:15:05.945720647Z [container] Verified qwen3vl_4b_int8_convrot.safetensors
+2026-10-23T15:15:41.137361860Z [container] Verified qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors
+2026-10-23T15:15:43.067507150Z [container] Verified flux2-vae.safetensors
+2026-10-23T15:15:44.300787785Z [container] Verified Wan2_1_VAE_bf16.safetensors
+2026-10-23T15:15:51.030556888Z [container] Verified clip_vision_h.safetensors
+2026-10-23T15:15:54.585789507Z [container] Verified lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
+2026-10-23T15:16:12.467755590Z [container] Verified umt5_xxl_fp8_e4m3fn_scaled.safetensors
+2026-10-23T15:17:51.104830864Z [container] Verified wan_animate_2_int8_convrot.safetensors
+2026-10-23T15:17:51.158555852Z [container] Waiting for ComfyUI on 127.0.0.1:8188
+2026-10-23T15:17:54.825094983Z [container] [INFO] Total VRAM 45490 MB, total RAM 47684 MB
+2026-10-23T15:17:54.825335274Z [container] [INFO] pytorch version: 2.10.0+cu130
+2026-10-23T15:17:54.825781164Z [container] [INFO] Device: cuda:0 NVIDIA A40 : cudaMallocAsync
+2026-10-23T15:17:58.466770141Z [container] [INFO] ComfyUI version: 0.42.0
+2026-10-23T15:18:01.783420255Z [container] characterBuilder/character-caption.v1: 1 model files, 1 locked, 0 missing (Apache-2.0)
+2026-10-23T15:18:01.794106243Z [container] characterBuilder/character-generation.v1: 3 model files, 3 locked, 0 missing (Apache-2.0, FLUX-Kommunity-1.0)
+2026-10-23T15:18:01.797434164Z [container] motionTransfer/motion-transfer.v1: 5 model files, 5 locked, 0 missing (Apache-2.0)
+2026-10-23T15:18:01.797687537Z [container] 9 distinct model files across 2 feature locks, 0 conflicts
+2026-10-23T15:18:01.811008400Z [container] Serving the Comfy API v2 on 0.0.0.0:8189 (auth: bearer)
+2026-10-23T15:18:02.117461072Z [container] ======== Running on http://0.0.0.0:8189 ========

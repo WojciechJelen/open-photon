@@ -1,0 +1,95 @@
+[
+  {
+    "generation_id": "7ac084c7-373a-4918-bc80-540e45dc1fa1",
+    "workflow": "character-caption",
+    "target": "selfhost",
+    "gpu": "NVIDIA A40",
+    "submitted_to_done_seconds": 26.589,
+    "peak_vram_mib": 6601,
+    "vram_samples": 28,
+    "workflow_sha256": "7fb5249affff67e83f0d72ad30ce793aaad77051d5a7b0e6953a9012cc0a67cc",
+    "models": [
+      {
+        "file": "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+        "license": "Apache-2.0",
+        "sha256": "e5d85a7421d197bf5a12474511936ecabce19a833252f16e9310a983194a4458"
+      }
+    ],
+    "caption_characters": 1158,
+    "caption_sha256": "a9d5ea55caa49f33f32d525bf21f5bbe6553ef77fbc636f7fb9dbf2ea1888e4c"
+  },
+  {
+    "generation_id": "77508bc1-ec05-41e2-8d78-f9dcb685f4f4",
+    "workflow": "character-generation",
+    "target": "selfhost",
+    "gpu": "NVIDIA A40",
+    "submitted_to_done_seconds": 31.885,
+    "peak_vram_mib": 10653,
+    "vram_samples": 34,
+    "workflow_sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+    "models": [
+      {
+        "file": "flux3-image-klein-int8-convrot.safetensors",
+        "license": "FLUX-Kommunity-1.0",
+        "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+      },
+      {
+        "file": "qwen3vl_4b_int8_convrot.safetensors",
+        "license": "Apache-2.0",
+        "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+      },
+      {
+        "file": "flux2-vae.safetensors",
+        "license": "Apache-2.0",
+        "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+      }
+    ],
+    "resolution": "768x1344",
+    "output_sha256": "484f45ac6e519e57dff29c067d6a8989f86a42069a4592a8172db807d8f23793"
+  },
+  {
+    "generation_id": "506a2964-2050-4cde-9926-f45fdeb598a7",
+    "workflow": "motion-transfer",
+    "target": "selfhost",
+    "gpu": "NVIDIA A40",
+    "submitted_to_done_seconds": 255.921,
+    "peak_vram_mib": 38935,
+    "vram_samples": 253,
+    "workflow_sha256": "ef8b31e822968f27fd80409d7158a6d7c2ca46cf96b8814427ad15b180a3b1a9",
+    "variant": "int8 base + lightx2v distillation LoRA, 6 steps",
+    "resolution": "480x848",
+    "clip_seconds": 5.016599,
+    "models": [
+      {
+        "file": "wan_animate_2_int8_convrot.safetensors",
+        "license": "Apache-2.0",
+        "sha256": "0580ecdd65e47e97c30df9670d13a6c4a131d26de5a1faf2ccc78392d5167584"
+      },
+      {
+        "file": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+        "license": "Apache-2.0",
+        "sha256": "85c4a61c30e0497aa44b91d93a893b624708461a56fe5485183b28fa07e2dfb3"
+      },
+      {
+        "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+        "license": "Apache-2.0",
+        "sha256": "c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68"
+      },
+      {
+        "file": "clip_vision_h.safetensors",
+        "license": "Apache-2.0",
+        "sha256": "64a7ef761bfccbadbaa3da77366aac4185a6c58fa5de5f589b42a65bcc21f161"
+      },
+      {
+        "file": "Wan2_1_VAE_bf16.safetensors",
+        "license": "Apache-2.0",
+        "sha256": "1ab9a32cc2c740f6e39d80d367ce5dcc28db8c71b79b28670546b8973e9d75f9"
+      }
+    ],
+    "output_sha256": "157b0277fbeddbff99d30870167b13130e8c2a2fad34f60bf07a225b6f8211c6",
+    "audio": "Present and decodable; compare playback with the source clip before marking the proof complete"
+  }
+]
+character-caption 7ac084c7-373a-4918-bc80-540e45dc1fa1: peak 6601 MiB
+character-generation 77508bc1-ec05-41e2-8d78-f9dcb685f4f4: peak 10653 MiB
+motion-transfer 506a2964-2050-4cde-9926-f45fdeb598a7: peak 38935 MiB
