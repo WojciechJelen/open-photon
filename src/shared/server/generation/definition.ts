@@ -80,6 +80,14 @@ type RebaseContext = { seed: number; target: ProviderTarget };
  *   then submitted without an upload and with no `provider_inputs`.
  * - `buildGraph`: the API graph to submit for the recipe and those references.
  * - `outputs`: the files the job produces (`OutputDeclaration`).
+ * - `deriveOutputs` (optional): further outputs the server makes from the stored ones once they
+ *   are all stored (`finalize`), by output name (Motion Transfer's side-by-side `compare`); it
+ *   stores their assets itself and gets the decoded recipe and the stored asset ids by name. A
+ *   declared output keeps its name. A derivation that throws is logged and the row is done
+ *   without its outputs: it never fails the generation nor counts as a failed finalize. It runs
+ *   while the row is still `finalizing`, so the row holds its place in flight (`IN_FLIGHT_MAX`)
+ *   and is not `done` until it ends: bound its work with a timeout (Motion Transfer's stitch
+ *   gives up after 60 s).
  * - `seedOf`, `rebase`: the recipe's seed, and the recipe to render for a re-run or retry on the
  *   server's target now; `null` when this workflow can no longer render it (its file changed).
  * - `workflowHash`, `models`: the workflow file's SHA-256 and its model pins (`models.lock`).
@@ -98,6 +106,10 @@ export type WorkflowDefinition<Input, Recipe extends WorkflowRecipe> = {
   inputSchema: z.ZodType<Input>;
   recipeSchema: z.ZodType<Recipe>;
   outputs: readonly OutputDeclaration[];
+  deriveOutputs?(
+    recipe: Recipe,
+    outputs: Readonly<Record<string, string>>,
+  ): Promise<Readonly<Record<string, string>>>;
   prepareRecipe(input: Input, context: PrepareContext): PreparedRecipe<Recipe>;
   assetInputs(recipe: Recipe): Readonly<Record<string, string>>;
   buildGraph(
@@ -111,7 +123,7 @@ export type WorkflowDefinition<Input, Recipe extends WorkflowRecipe> = {
 };
 
 /** A definition as the registry holds it, whichever input and recipe it types. */
-type AnyWorkflowDefinition = WorkflowDefinition<Json, WorkflowRecipe>;
+export type AnyWorkflowDefinition = WorkflowDefinition<Json, WorkflowRecipe>;
 
 /** Why a definition's output declarations cannot be stored, or `null` when they can. */
 function outputsProblem(outputs: readonly OutputDeclaration[]) {

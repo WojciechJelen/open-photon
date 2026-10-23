@@ -200,10 +200,10 @@ function useWhenDone<Shown>(
   return shown;
 }
 
-/** The result and poster of a Motion Transfer take, as `loadResult` reads them. */
+/** The result, poster and side-by-side of a Motion Transfer take, as `loadResult` reads them. */
 function resultAssets(result: Result | null) {
   return result?.view === "motionTransfer" && result.final
-    ? { final: result.final, poster: result.poster }
+    ? { compare: result.compare, final: result.final, poster: result.poster }
     : null;
 }
 
@@ -304,6 +304,7 @@ function MotionTransferView({
     resultAssets,
   );
 
+  const compare = assets?.compare ?? null;
   const final = assets?.final ?? null;
   const poster = assets?.poster ?? null;
 
@@ -436,6 +437,7 @@ function MotionTransferView({
             <ResultView
               character={character}
               child={child}
+              compare={compare ? mediaUrl(compare) : undefined}
               draft={snapshotDraft({ ...shot, ...directionFields(direction) })}
               final={final}
               generation={generation}

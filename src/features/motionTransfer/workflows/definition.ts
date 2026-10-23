@@ -5,6 +5,7 @@ import { GenerateError } from "../../../shared/server/generation/errors.ts";
 import { buildGraph } from "../../../shared/server/workflow-graph.ts";
 import { getCharacter } from "../../characters/api.ts";
 import { type GenerateInput, generateInputSchema, MAX_CLIP_MS } from "../contracts.ts";
+import { stitchCompare } from "../server/media/compare.ts";
 import { anglePresets, generateDefaults } from "../server/presets.ts";
 import { type Recipe, recipeSchema } from "../server/recipe.ts";
 import { motionTransferParamsSchema } from "./params.ts";
@@ -20,7 +21,9 @@ function sampleMotionId(assetId: string) {
 /**
  * Motion Transfer's workflow, `motion-transfer.v1` (Wan Animate 2), for the generation service
  * (`src/shared/server/generation/`): a stored 3–8 s motion clip performed by a character, at 480
- * wide (848 for a landscape clip), into one MP4 with the driving clip's audio and a poster.
+ * wide (848 for a landscape clip), into one MP4 with the driving clip's audio and a poster, and,
+ * once those are stored, a vertical side-by-side of the clip and the result (`compare`,
+ * `stitchCompare`; a take whose stitch fails is done without it).
  *
  * The input is `generateInputSchema`. The motion must be a stored, probed video of at most 8 s;
  * the character a generated one or an upload with consent; an angle one of `angles.json`, whose
@@ -39,6 +42,7 @@ export const motionTransferDefinition: WorkflowDefinition<GenerateInput, Recipe>
       motionTransferWorkflow.inputsMap,
       motionTransferParamsSchema.parse({ ...recipe.params, ...providerInputs }),
     ),
+  deriveOutputs: stitchCompare,
   id: "motion-transfer",
   inputSchema: generateInputSchema,
   models: motionTransferModels,

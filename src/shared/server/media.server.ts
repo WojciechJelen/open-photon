@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 import { isPublicAsset } from "../../app/server.ts";
 import { findAsset } from "./assets.ts";
+import { outputNameOf } from "./generation/generations.ts";
 import { assetsDirectory } from "./paths.ts";
 
 /**
@@ -50,8 +51,10 @@ export function byteRange(header: string, size: number) {
  * `isPublicAsset`) may sit in shared caches (`public`); everything else is behind the access code
  * (`private`). `?download=1` asks the browser to save it, as `ai-generated-<first 8 of the
  * id>.<ext>` for an image a workflow produced (the FLUX Kommunity licence asks that AI-generated
- * images be disclosed as such) and as `open-photon-<first 8 of the id>.<ext>` for anything else
- * (a Motion Transfer video and its poster, an upload, a cut of one, a sample).
+ * images be disclosed as such), as `open-photon-<first 8 of the id>-<output name>.<ext>` for a
+ * file the server composed (role `final`) that a generation lists as an output (Motion Transfer's
+ * side-by-side: `-compare`) and as `open-photon-<first 8 of the id>.<ext>` for anything else (a
+ * Motion Transfer video and its poster, an upload, a cut of one, a sample).
  */
 export async function serveMedia(request: Request, filename: string) {
   const match = /^([0-9a-f-]{36})\.([a-z0-9]+)$/.exec(filename);
@@ -93,10 +96,13 @@ export async function serveMedia(request: Request, filename: string) {
 
   if (new URL(request.url).searchParams.get("download") === "1") {
     const generatedImage = asset.kind === "image" && asset.role === "provider_output";
+    const output = asset.role === "final" ? outputNameOf(asset.id) : null;
+    // An output name is a workflow's own identifier; anything else stays out of the header.
+    const suffix = output && /^[a-z0-9-]+$/.test(output) ? `-${output}` : "";
 
     headers.set(
       "Content-Disposition",
-      `attachment; filename="${generatedImage ? "ai-generated" : "open-photon"}-${asset.id.slice(0, 8)}.${match?.[2]}"`,
+      `attachment; filename="${generatedImage ? "ai-generated" : "open-photon"}-${asset.id.slice(0, 8)}${suffix}.${match?.[2]}"`,
     );
   }
 

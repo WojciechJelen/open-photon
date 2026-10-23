@@ -98,12 +98,13 @@ export function SharePageView({ share }: { share: Share }) {
 /**
  * The public share page of a done Motion Transfer take: the result on a loop with the source
  * clip beside it, "Use this motion with my character" (the wizard with the motion kept, at the
- * character step), Download, and how the shot was made: the inputs (a character photo shows only
- * when it is a sample, as an upload is private), the recipe, and the model files the workflow
- * loads, with a license only where the repository records one.
+ * character step), Download, Download side-by-side (9:16) when it was stitched (a file, not a
+ * player: the result keeps its source inset), and how the shot was made: the inputs (a character
+ * photo shows only when it is a sample, as an upload is private), the recipe, and the model files
+ * the workflow loads, with a license only where the repository records one.
  */
 function MotionTransferSharePage({ share }: { share: Extract<Share, { view: "motionTransfer" }> }) {
-  const { character, final, models, motionTitle, poster, recipe, source } = share;
+  const { character, compare, final, models, motionTitle, poster, recipe, source } = share;
   const portrait = (final.height ?? 0) >= (final.width ?? 0);
   const useMotion = { motion: source.id, step: "character" as const };
   const unpinned = models?.some(({ license }) => license === null) ?? false;
@@ -180,6 +181,14 @@ function MotionTransferSharePage({ share }: { share: Extract<Share, { view: "mot
                   Download
                 </a>
               </Button>
+              {compare && (
+                <Button asChild size="lg" variant="outline">
+                  <a download href={`${mediaUrl(compare)}?download=1`}>
+                    <DownloadIcon />
+                    Download side-by-side (9:16)
+                  </a>
+                </Button>
+              )}
             </div>
             <div className="flex flex-wrap gap-x-5 gap-y-2 pt-2">
               <Hud>

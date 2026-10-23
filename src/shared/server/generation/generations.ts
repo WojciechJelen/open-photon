@@ -693,6 +693,25 @@ export function countFinalizeAttempt(id: string) {
   return row;
 }
 
+/**
+ * Adds named outputs to a `done` generation, leaving any name it already has as it is: what a
+ * workflow derives later for a row finished before it did (`deriveForDone`). Returns the names it
+ * added; none for a row that is not done.
+ */
+export function addOutputs(id: string, outputs: Readonly<Record<string, string>>) {
+  const store = database.prepare(
+    `INSERT INTO generation_outputs (generation_id, name, asset_id)
+    SELECT id, ?, ? FROM generations WHERE id = ? AND status = 'done'
+    ON CONFLICT (generation_id, name) DO NOTHING`,
+  );
+
+  return transaction(database, () =>
+    Object.entries(outputs).flatMap(([name, assetId]) =>
+      store.run(name, assetId, id).changes > 0 ? [name] : [],
+    ),
+  );
+}
+
 const storedOutputSchema = z.object({ asset_id: z.string(), name: z.string() });
 
 /** A generation's named outputs whose assets are stored, by name, with their stored asset. */
@@ -747,4 +766,17 @@ export function isSharedOutput(asset: StoredAsset) {
       )
       .get(asset.id)?.shared === 1
   );
+}
+
+/**
+ * The name a generation lists this asset under among its outputs (the first by name if several
+ * do), or `null` when none does: what a file the server composed downloads as
+ * (`serveMedia`). One indexed lookup (`generation_outputs_asset`).
+ */
+export function outputNameOf(assetId: string) {
+  const row = database
+    .prepare("SELECT name FROM generation_outputs WHERE asset_id = ? ORDER BY name LIMIT 1")
+    .get(assetId);
+
+  return row ? z.object({ name: z.string() }).parse(row).name : null;
 }

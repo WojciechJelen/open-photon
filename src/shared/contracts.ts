@@ -14,6 +14,8 @@ export const assetSchema = z.object({
   id: z.uuid(),
   kind: z.enum(["video", "image", "poster", "text"]),
   mime: z.string(),
+  // `final`: a file the server composed from a generation's stored outputs (Motion Transfer's
+  // side-by-side, its `compare` output), with `source_asset_id` the output it was made from.
   role: z.enum(["upload", "trimmed", "sample", "provider_output", "final", "poster"]),
   sha256: z.string().regex(/^[a-f0-9]{64}$/),
   source_asset_id: z.uuid().nullable(),

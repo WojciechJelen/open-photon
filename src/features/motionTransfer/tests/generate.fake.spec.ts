@@ -4,8 +4,10 @@ import { expectCurrentCategory, open } from "../../../../tests/e2e/session.ts";
 import { generationSchema } from "../../../shared/contracts.ts";
 
 // On the fake provider's server (project `fake`): a take Comfy finishes, end to end in the
-// browser, without a Comfy; its result page `/g/:id` belongs to Video in the main navigation.
-test("Generate follows a take to its result: the stream reports it done, the page plays it, the API lists its outputs", async ({
+// browser, without a Comfy; its result page `/g/:id` belongs to Video in the main navigation, and
+// it and the public share page offer the stitched side-by-side as a second download.
+test("Generate follows a take to its result: the stream reports it done, the page plays it, the API lists its outputs, the side-by-side downloads to anyone", async ({
+  browser,
   page,
   request,
 }) => {
@@ -35,9 +37,13 @@ test("Generate follows a take to its result: the stream reports it done, the pag
   );
 
   const video = generation.outputs.find(({ name }) => name === "video");
+  const compare = generation.outputs.find(({ name }) => name === "compare");
+  const compareId = compare?.media === "video" ? compare.asset.id : "";
+  const compareSrc = `/media/${compareId}.mp4`;
 
   expect(generation.status).toBe("done");
   expect(generation.outputs.map(({ media, name }) => [name, media])).toEqual([
+    ["compare", "video"],
     ["poster", "poster"],
     ["video", "video"],
   ]);
@@ -45,4 +51,27 @@ test("Generate follows a take to its result: the stream reports it done, the pag
     "src",
     `/media/${video?.media === "video" ? video.asset.id : ""}.mp4`,
   );
+  await expect(page.getByRole("link", { name: "Download side-by-side (9:16)" })).toHaveAttribute(
+    "href",
+    `${compareSrc}?download=1`,
+  );
+
+  // The share page offers it to anyone, who may download it under its own name.
+  const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const visitor = await anonymous.newPage();
+
+  await open(visitor, `/r/${generation.share_slug}`);
+  await expect(visitor.getByRole("link", { name: "Download side-by-side (9:16)" })).toHaveAttribute(
+    "href",
+    `${compareSrc}?download=1`,
+  );
+
+  const download = await visitor.request.get(`${compareSrc}?download=1`);
+
+  expect(download.status()).toBe(200);
+  expect(download.headers()["content-disposition"]).toBe(
+    `attachment; filename="open-photon-${compareId.slice(0, 8)}-compare.mp4"`,
+  );
+
+  await anonymous.close();
 });
