@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
@@ -85,13 +85,64 @@ export function addQueuedGeneration() {
     true,
   );
 
+  return { id, remove: () => removeGeneration(id) };
+}
+
+/** Deletes the generation `id` and its outputs' rows (a test's own, never a seeded one). */
+function removeGeneration(id: string) {
+  query((database) => {
+    database.prepare("DELETE FROM generation_outputs WHERE generation_id = ?").run(id);
+    database.prepare("DELETE FROM generations WHERE id = ?").run(id);
+  }, true);
+}
+
+/**
+ * Adds a done generation of a workflow other than Motion Transfer whose one output is a text (a
+ * caption), as finalize stores one: a private `text` asset, its `.txt` file in the server's
+ * assets directory. Returns its id, its text and a function that removes it.
+ */
+export function addTextOnlyGeneration() {
+  const id = randomUUID();
+  const assetId = randomUUID();
+  const text = `A full-body caption ${id}.`;
+  const sha256 = createHash("sha256").update(text).digest("hex");
+  const directory = join(dirname(process.env.E2E_DATABASE_PATH ?? ""), "assets");
+  const file = join(directory, `${sha256}.txt`);
+  const now = new Date().toISOString();
+
+  mkdirSync(directory, { recursive: true });
+  writeFileSync(file, text);
+
+  query((database) => {
+    database
+      .prepare(
+        `INSERT INTO assets (id, sha256, kind, role, path, mime, bytes, created_at)
+        VALUES (?, ?, 'text', 'provider_output', ?, 'text/plain; charset=utf-8', ?, ?)`,
+      )
+      .run(assetId, sha256, `${sha256}.txt`, Buffer.byteLength(text), now);
+    database
+      .prepare(
+        `INSERT INTO generations (id, workflow_id, workflow_version, recipe, recipe_hash,
+          idempotency_key, provider_job_id, target, status, progress, created_at, submitted_at,
+          finished_at)
+        VALUES (?, 'test-caption', 1, '{}', ?, ?, ?, 'cloud', 'done', 100, ?, ?, ?)`,
+      )
+      .run(id, "0".repeat(64), randomUUID(), `e2e-text-${id}`, now, now, now);
+    database
+      .prepare(
+        "INSERT INTO generation_outputs (generation_id, name, asset_id) VALUES (?, 'caption', ?)",
+      )
+      .run(id, assetId);
+  }, true);
+
   return {
     id,
-    remove: () =>
-      query((database) => {
-        database.prepare("DELETE FROM generation_outputs WHERE generation_id = ?").run(id);
-        database.prepare("DELETE FROM generations WHERE id = ?").run(id);
-      }, true),
+    remove: () => {
+      removeGeneration(id);
+      query((database) => database.prepare("DELETE FROM assets WHERE id = ?").run(assetId), true);
+      rmSync(file, { force: true });
+    },
+    text,
   };
 }
 

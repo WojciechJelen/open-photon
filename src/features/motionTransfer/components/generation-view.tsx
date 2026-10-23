@@ -205,31 +205,21 @@ function resultAssets(result: Result | null) {
     : null;
 }
 
-/** The outputs of a generation of another workflow, once it has them. */
-function doneOutputs(result: Result | null) {
-  return result?.view === "outputs" && result.outputs.length > 0 ? result.outputs : null;
-}
-
 /**
  * `/g/:id` of a generation of a workflow other than Motion Transfer, by the media of its outputs:
  * its status as its event stream reports it and, once done, each image output (an image
- * generation has no poster and no video).
+ * generation has no poster and no video). A done snapshot lists its outputs
+ * (`generationSchema`), stored with its status in one write, so done is final here: a
+ * generation whose outputs are all text (a caption) shows that it has no file to show, never
+ * the text.
  */
 function OutputsView({ data }: { data: OutputsResult }) {
   const live = useLiveGeneration(data.generation);
+  const { status } = live.generation;
 
-  const outputs = useWhenDone(
-    data.generation.id,
-    live.generation.status === "done",
-    data.outputs.length > 0 ? data.outputs : null,
-    doneOutputs,
+  const images = live.generation.outputs.flatMap((output) =>
+    output.media === "image" ? [output] : [],
   );
-
-  // Done by the stream but its outputs not loaded yet: still finishing, as far as the page shows.
-  const status =
-    live.generation.status === "done" && !outputs ? "finalizing" : live.generation.status;
-
-  const images = outputs?.filter(({ media }) => media === "image") ?? [];
 
   return (
     <div className="relative isolate min-h-svh">
@@ -259,6 +249,9 @@ function OutputsView({ data }: { data: OutputsResult }) {
             width={asset.width ?? undefined}
           />
         ))}
+        {status === "done" && images.length === 0 && (
+          <p className="text-sm text-soft-foreground">This generation has no image to show here.</p>
+        )}
       </main>
     </div>
   );

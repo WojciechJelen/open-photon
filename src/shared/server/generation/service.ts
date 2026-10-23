@@ -805,8 +805,8 @@ export async function sendClaimed(row: Generation, provider: Provider) {
 
 /**
  * `GET /api/generations/:id`: the generation as `generationSchema` (`snapshot`: a `waiting` one
- * with its place in line), `null` when there is none. A row Comfy may have finished is finalized
- * first, so a result the event stream missed lands here.
+ * with its place in line, a `done` one with its outputs), `null` when there is none. A row Comfy
+ * may have finished is finalized first, so a result the event stream missed lands here.
  */
 export async function readGeneration(id: string, provider: Provider = comfyProvider) {
   const row = findGeneration(id);
