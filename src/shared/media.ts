@@ -1,11 +1,13 @@
 import type { Asset } from "./contracts.ts";
 
-// The extension each stored MIME type is saved under (`src/shared/server/media/probe.ts`); `/media/*`
-// answers only to the stored file's own. A Map: the key is an asset's runtime `mime` string.
+// The extension each stored MIME type is saved under (`src/shared/server/media/probe.ts`, and a
+// text output's `.txt`, `generation/finalize.ts`); `/media/*` answers only to the stored file's
+// own. A Map: the key is an asset's runtime `mime` string.
 const extensions = new Map([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
   ["image/webp", "webp"],
+  ["text/plain; charset=utf-8", "txt"],
   ["video/mp4", "mp4"],
   ["video/quicktime", "mov"],
   ["video/webm", "webm"],

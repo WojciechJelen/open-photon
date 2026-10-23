@@ -32,15 +32,20 @@ export type WorkflowRecipe = { [key: string]: Json | undefined } & z.infer<
 >;
 
 /**
- * One file a workflow's job produces, collected from the `SaveImage`/`SaveVideo` node `nodeId`
- * and stored as the generation's output `name` (`generation_outputs`). An `image` output (PNG,
- * JPEG or WebP) is stored as it is downloaded. A `video` output is an MP4; with `poster`, a JPEG
- * still of it at 0.5 s (its first frame when it is shorter) is stored too, as the output `poster`.
+ * One output a workflow's job produces, collected from the node `nodeId` and stored as the
+ * generation's output `name` (`generation_outputs`). An `image` output (PNG, JPEG or WebP, from a
+ * `SaveImage` node) is stored as it is downloaded. A `video` output is an MP4 (a `SaveVideo`
+ * node); with `poster`, a JPEG still of it at 0.5 s (its first frame when it is shorter) is stored
+ * too, as the output `poster`. A `text` output is a text file the node saved (core `SaveText`,
+ * format `txt`: Comfy's jobs API lists it as a `.txt` file; it does not list a `PreviewAny`
+ * node's text): the first one that is not blank, at most `TEXT_OUTPUT_MAX_BYTES` of valid UTF-8,
+ * is stored byte for byte as a private `.txt` asset and shown inline by the generation's API
+ * (`generationSchema`); none, or one too long or not UTF-8, fails the generation.
  */
 export type OutputDeclaration = {
   name: string;
   nodeId: string;
-  media: "image" | "video";
+  media: "image" | "video" | "text";
   poster?: boolean;
 };
 

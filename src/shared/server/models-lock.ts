@@ -4,6 +4,12 @@ import { z } from "zod";
 
 import type { WorkflowGraph } from "./workflow-graph.ts";
 
+/**
+ * A feature's `models.lock`: every weights file its workflows load, pinned to an immutable
+ * Hugging Face revision (a 40-hex commit) of a Comfy-Org repackaging or of Black Forest Labs'
+ * FLUX 3 Image Klein ComfyUI repository (gated), with its SHA-256 and licence: Apache-2.0, or the
+ * FLUX Kommunity License v1.0 of the FLUX 3 transformer and VAE.
+ */
 const modelsLockSchema = z.strictObject({
   version: z.literal(1),
   models: z
@@ -13,9 +19,11 @@ const modelsLockSchema = z.strictObject({
         directory: z.enum(["diffusion_models", "loras", "text_encoders", "clip_vision", "vae"]),
         url: z
           .string()
-          .regex(/^https:\/\/huggingface\.co\/Comfy-Org\/[^/]+\/resolve\/[a-f0-9]{40}\//),
+          .regex(
+            /^https:\/\/huggingface\.co\/(?:Comfy-Org\/[^/]+|black-forest-labs\/flux-3-image-klein-comfy)\/resolve\/[a-f0-9]{40}\//,
+          ),
         sha256: z.string().regex(/^[a-f0-9]{64}$/),
-        license: z.literal("Apache-2.0"),
+        license: z.enum(["Apache-2.0", "FLUX-Kommunity-1.0"]),
       }),
     )
     .min(1),
