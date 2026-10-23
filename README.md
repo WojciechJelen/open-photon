@@ -28,12 +28,16 @@ COMFY_API_KEY=your-cloud-key
 on an NVIDIA GPU with a **CUDA 13-compatible driver**. **48 GB VRAM is recommended**
 (tested on A40). The published image also passed a 5-second render on an RTX 5090
 32 GB, peaking at 31,426 MiB with little headroom.
-Set `PROXY_TOKEN` to a long random secret. The template supplies the GPU image,
-port `8189` and persistent storage at `/workspace`. Wait for `Serving the Comfy API v2`
-in the logs; the first boot downloads approximately 26 GB of Motion Transfer models, plus
-approximately 16 GB for character generation (FLUX.2 Klein 4B, Apache-2.0) in images built from
-the current source. The GPU runs one job at a time, so it must fit the largest workflow, Motion
-Transfer; the figures above are its own. Then save:
+Set `PROXY_TOKEN` to a long random secret, and `HF_TOKEN` to a Hugging Face token of an account
+that accepted the FLUX Kommunity License on
+[black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy)
+(character generation's weights are gated there; without it the first boot stops). The template
+supplies the GPU image, port `8189` and persistent storage at `/workspace`. Wait for `Serving the
+Comfy API v2` in the logs; the first boot downloads approximately 26 GB of Motion Transfer models,
+plus approximately 17.7 GB for character generation (FLUX 3 Image Klein distilled int8, its
+Qwen3-VL text encoder, its prompt upsampler and the FLUX 2 VAE) in images built from the current
+source. The GPU runs one job at a time, so it must fit the largest workflow, Motion Transfer; the
+figures above are its own. Then save:
 
 ```dotenv
 COMFY_BASE_URL=https://POD_ID-8189.proxy.runpod.net
@@ -91,3 +95,17 @@ The volume keeps results and access codes across container replacement. From a
 source checkout, you can instead use `docker compose up -d` and
 `docker compose exec app node scripts/mint-code.mjs me 100` with the same `.env`.
 Compose uses its own persistent volume.
+
+## Models and licences
+
+| Feature | Model | Licence |
+| --- | --- | --- |
+| Motion Transfer | Wan Animate 2 and its encoders | Apache-2.0 |
+| Character generation | FLUX 3 Image Klein distilled (int8) | [FLUX Kommunity License v1.0](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/blob/main/LICENSE.md) |
+| Character generation | Qwen3-VL-4B text encoder, FLUX 3 prompt upsampler, FLUX 2 VAE | Apache-2.0 |
+
+FLUX 3 Image Klein's weights are open but not under an OSI licence: the FLUX Kommunity License
+allows non-commercial use, and commercial use of outputs only by Qualifying Users (under
+US$5M gross annualized revenue with affiliates), who must filter or review outputs and disclose
+that they are AI-generated. Read the licence before deploying. Exact files, revisions, hashes and
+the workflow's origin: `src/features/characterBuilder/workflows/README.md`.
