@@ -56,6 +56,54 @@ export function findSampleTakeId() {
   return row ? z.object({ id: z.string() }).parse(row).id : null;
 }
 
+const wallRowSchema = z.object({
+  character_id: z.string().nullable(),
+  id: z.string(),
+  poster_id: z.string().nullable(),
+  share_slug: z.string(),
+  source_id: z.string(),
+  video_id: z.string(),
+});
+
+/**
+ * Every done pre-rendered sample take (`is_prerendered`, the sample × sample matrix) with its
+ * result, a share page and a stored motion clip, newest first, in one query: what the studio
+ * home's result wall shows. Each one's share page (`/r/:slug`), result and poster are public
+ * (`isSharedOutput`), and so is its `source` clip (a sample motion's). The titles are its
+ * character's and its sample motion's; `null` for one no longer seeded.
+ */
+export function listPrerenderedTakes() {
+  return database
+    .prepare(
+      `SELECT generations.id, generations.share_slug, generations.character_id,
+        source.id AS source_id, video.asset_id AS video_id, poster.asset_id AS poster_id
+      FROM generations
+      JOIN assets AS source
+        ON source.sha256 = generations.recipe ->> '$.inputs.driving_video_sha256'
+      JOIN generation_outputs AS video
+        ON video.generation_id = generations.id AND video.name = 'video'
+      LEFT JOIN generation_outputs AS poster
+        ON poster.generation_id = generations.id AND poster.name = 'poster'
+      WHERE is_prerendered = 1 AND status = 'done' AND workflow_id = 'motion-transfer'
+        AND share_slug IS NOT NULL
+      ORDER BY finished_at DESC, generations.id`,
+    )
+    .all()
+    .map((row) => {
+      const take = wallRowSchema.parse(row);
+
+      return {
+        characterTitle: take.character_id ? (getCharacter(take.character_id)?.title ?? null) : null,
+        id: take.id,
+        motionTitle: sampleMotionTitle(take.source_id),
+        poster: take.poster_id ? publicAsset(take.poster_id) : null,
+        result: publicAsset(take.video_id),
+        shareSlug: take.share_slug,
+        source: publicAsset(take.source_id),
+      };
+    });
+}
+
 /**
  * The take `findSampleTakeId` names, with what the studio home shows of it: its result and
  * poster, its source clip and the titles of its motion and character. `null` without one, or when
