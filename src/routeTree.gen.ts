@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MotionTransferRouteImport } from './routes/motionTransfer'
+import { Route as ApiCharacterGenerationsRouteImport } from './routes/api.character-generations'
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiGenerateRouteImport } from './routes/api.generate'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
@@ -35,6 +36,11 @@ const IndexRoute = IndexRouteImport.update({
 const MotionTransferRoute = MotionTransferRouteImport.update({
   id: '/motionTransfer',
   path: '/motionTransfer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCharacterGenerationsRoute = ApiCharacterGenerationsRouteImport.update({
+  id: '/api/character-generations',
+  path: '/api/character-generations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCharactersRoute = ApiCharactersRouteImport.update({
@@ -122,6 +128,7 @@ const ApiGenerationsGenerationIdRetryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/api/character-generations': typeof ApiCharacterGenerationsRoute
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/api/character-generations': typeof ApiCharacterGenerationsRoute
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/api/character-generations': typeof ApiCharacterGenerationsRoute
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/motionTransfer'
+    | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
     | '/api/uploads'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/motionTransfer'
+    | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
     | '/api/uploads'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/motionTransfer'
+    | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
     | '/api/uploads'
@@ -240,6 +252,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MotionTransferRoute: typeof MotionTransferRoute
+  ApiCharacterGenerationsRoute: typeof ApiCharacterGenerationsRoute
   ApiCharactersRoute: typeof ApiCharactersRouteWithChildren
   ApiGenerateRoute: typeof ApiGenerateRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
@@ -266,6 +279,13 @@ declare module '@tanstack/react-router' {
       path: '/motionTransfer'
       fullPath: '/motionTransfer'
       preLoaderRoute: typeof MotionTransferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/character-generations': {
+      id: '/api/character-generations'
+      path: '/api/character-generations'
+      fullPath: '/api/character-generations'
+      preLoaderRoute: typeof ApiCharacterGenerationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/characters': {
@@ -413,6 +433,7 @@ const ApiGenerationsGenerationIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MotionTransferRoute: MotionTransferRoute,
+  ApiCharacterGenerationsRoute: ApiCharacterGenerationsRoute,
   ApiCharactersRoute: ApiCharactersRouteWithChildren,
   ApiGenerateRoute: ApiGenerateRoute,
   ApiUploadsRoute: ApiUploadsRoute,

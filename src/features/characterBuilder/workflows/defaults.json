@@ -1,0 +1,5 @@
+{
+  "note": "The image size a character generation renders at when the request leaves it out; both land in the recipe like given values. 768×1344 (multiples of 16, about 1 megapixel) is close to the 9:16 portrait Motion Transfer renders at (480×848), whose reference-image resize crops to that aspect from the centre, so a full-body character keeps its hands and feet (workflows/README.md, spike). There is no default seed: a request without one gets a random seed, resolved once into the recipe.",
+  "width": 768,
+  "height": 1344
+}
