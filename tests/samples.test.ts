@@ -12,6 +12,7 @@ import { classifyVideo } from "../src/features/motionTransfer/server/media/clip.
 import { readSelection, readStudio } from "../src/features/motionTransfer/server/selection.ts";
 import { motionTransferDefinition } from "../src/features/motionTransfer/workflows/definition.ts";
 import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
+import { assetSchema } from "../src/shared/contracts.ts";
 import { findAsset, hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
 import { database } from "../src/shared/server/db.server.ts";
 import {
@@ -78,6 +79,7 @@ test("seeding deletes a sample character the manifest no longer lists, and keeps
     `INSERT INTO characters (id, slug, title, image_asset_id, origin, is_sample, created_at)
     VALUES (?, ?, ?, ?, 'generated', ?, ?)`,
   );
+
   const retired = crypto.randomUUID();
   const kept = crypto.randomUUID();
 
@@ -160,16 +162,21 @@ async function storeResult() {
 }
 
 /**
- * A done generation of the sample character, pre-rendered or not, driven by the clip whose hash
- * is `drivingVideo` (the sample motion's unless a test names another).
+ * A done generation of a character (the first sample unless `character` names another), pre-rendered
+ * or not, driven by the clip whose hash is `drivingVideo` (the sample motion's unless a test names
+ * another), finished at `finishedAt` when given.
  */
 function take({
+  character: characterId,
   drivingVideo,
+  finishedAt,
   prerendered,
   result,
   seed,
 }: {
+  character?: string;
   drivingVideo?: string;
+  finishedAt?: string;
   prerendered: boolean;
   result: string;
   seed: number;
@@ -181,7 +188,7 @@ function take({
   assert.ok(motion && character);
 
   const { id } = createGeneration(motionTransferDefinition, {
-    characterId: character.id,
+    characterId: characterId ?? character.id,
     recipe: {
       inputs: {
         driving_video_sha256: drivingVideo ?? motion.clip.sha256,
@@ -199,8 +206,10 @@ function take({
   transition(id, "queued", "finalizing");
   transition(id, "finalizing", "done", { outputs: { video: result } });
   database
-    .prepare("UPDATE generations SET is_prerendered = ? WHERE id = ?")
-    .run(Number(prerendered), id);
+    .prepare(
+      "UPDATE generations SET is_prerendered = ?, finished_at = coalesce(?, finished_at) WHERE id = ?",
+    )
+    .run(Number(prerendered), finishedAt ?? null, id);
 
   return id;
 }
@@ -245,31 +254,81 @@ test("a pre-rendered take whose clip is not stored is never offered, and the pag
   );
 });
 
-test("the result wall lists every done pre-rendered take with a stored clip, newest first, each with its public share page", async () => {
+test("the result wall lists the done pre-rendered sample takes by character title, newest first within one, each with its public share page; the free take is one of them", async () => {
   const { characters, motions } = readSelection({}, true);
   const before = readStudio().wall.map(({ id }) => id);
   const result = await storeResult();
-  const sample = take({ prerendered: true, result: result.id, seed: 4 });
+  const [first] = characters;
+  const other = characters.find(({ id }) => id !== first?.id);
 
-  take({ prerendered: false, result: result.id, seed: 5 });
+  assert.ok(first && other);
+
+  const sample = take({
+    finishedAt: "2099-01-01T00:00:00.000Z",
+    prerendered: true,
+    result: result.id,
+    seed: 4,
+  });
+
+  const otherSample = take({
+    character: other.id,
+    finishedAt: "2098-01-01T00:00:00.000Z",
+    prerendered: true,
+    result: result.id,
+    seed: 5,
+  });
+
+  // Newer than any, and never listed: not pre-rendered, a library character, a clip no sample
+  // motion has.
+  const library = crypto.randomUUID();
+
+  database
+    .prepare(
+      `INSERT INTO characters (id, title, image_asset_id, origin, created_at)
+      VALUES (?, 'Mine', ?, 'generated', ?)`,
+    )
+    .run(library, first.image.id, first.created_at);
+
+  const later = "2100-01-01T00:00:00.000Z";
+
+  const hidden = [
+    take({ finishedAt: later, prerendered: false, result: result.id, seed: 6 }),
+    take({ character: library, finishedAt: later, prerendered: true, result: result.id, seed: 7 }),
+    take({
+      drivingVideo: result.sha256,
+      finishedAt: later,
+      prerendered: true,
+      result: result.id,
+      seed: 8,
+    }),
+  ];
 
   const { wall } = readStudio();
   const slug = database.prepare("SELECT share_slug FROM generations WHERE id = ?").get(sample);
+  const firstGroup = [sample, ...before];
 
   assert.deepEqual(
     wall.map(({ id }) => id),
-    [sample, ...before],
+    (first.title ?? "") < (other.title ?? "")
+      ? [...firstGroup, otherSample]
+      : [otherSample, ...firstGroup],
   );
-  assert.deepEqual(wall[0], {
-    characterTitle: characters[0]?.title,
-    id: sample,
-    motionTitle: motions[0]?.title,
-    poster: null,
-    result: wall[0]?.result,
-    shareSlug: slug?.share_slug,
-    source: motions[0]?.clip,
-  });
-  assert.equal(wall[0]?.result.id, result.id);
+  assert.ok(wall.every(({ id }) => !hidden.includes(id)));
+  assert.deepEqual(
+    wall.find(({ id }) => id === sample),
+    {
+      characterTitle: first.title,
+      id: sample,
+      motionTitle: motions[0]?.title,
+      poster: null,
+      result: assetSchema.parse(findAsset(result.id)),
+      shareSlug: slug?.share_slug,
+      source: motions[0]?.clip,
+    },
+  );
+  assert.equal(wall.find(({ id }) => id === otherSample)?.characterTitle, other.title);
   // Anyone may load it: the result of a done generation with a share page.
   assert.ok(isSharedOutput(findAsset(result.id) ?? assert.fail("result not stored")));
+  // The wizard's free take is the newest sample one, never a hidden one.
+  assert.equal(readSelection({}, false).sampleTakeId, sample);
 });
