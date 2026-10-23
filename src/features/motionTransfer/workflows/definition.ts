@@ -3,8 +3,8 @@ import { database } from "../../../shared/server/db.server.ts";
 import type { WorkflowDefinition } from "../../../shared/server/generation/definition.ts";
 import { GenerateError } from "../../../shared/server/generation/errors.ts";
 import { buildGraph } from "../../../shared/server/workflow-graph.ts";
+import { getCharacter } from "../../characters/api.ts";
 import { type GenerateInput, generateInputSchema, MAX_CLIP_MS } from "../contracts.ts";
-import { findCharacter } from "../server/characters.server.ts";
 import { anglePresets, generateDefaults } from "../server/presets.ts";
 import { type Recipe, recipeSchema } from "../server/recipe.ts";
 import { motionTransferParamsSchema } from "./params.ts";
@@ -58,7 +58,8 @@ export const motionTransferDefinition: WorkflowDefinition<GenerateInput, Recipe>
       throw new GenerateError(422, "This clip is longer than 8 seconds. Trim it first.");
     }
 
-    const character = findCharacter(input.character_id);
+    // `null` too for one whose image is not stored.
+    const character = getCharacter(input.character_id);
 
     if (!character) {
       throw new GenerateError(404, "Character not found.");
@@ -66,12 +67,6 @@ export const motionTransferDefinition: WorkflowDefinition<GenerateInput, Recipe>
 
     if (character.origin === "upload" && character.consent_at === null) {
       throw new GenerateError(422, "This character was uploaded without likeness consent.");
-    }
-
-    const image = findAsset(character.image_asset_id);
-
-    if (!image) {
-      throw new Error(`Character ${character.id} has no image asset`);
     }
 
     const angle =
@@ -91,7 +86,10 @@ export const motionTransferDefinition: WorkflowDefinition<GenerateInput, Recipe>
       motionId: sampleMotionId(motion.id),
       recipe: {
         angle: angle?.id,
-        inputs: { driving_video_sha256: motion.sha256, reference_image_sha256: image.sha256 },
+        inputs: {
+          driving_video_sha256: motion.sha256,
+          reference_image_sha256: character.image.sha256,
+        },
         models: motionTransferModels,
         params: {
           fragment_length: 81,

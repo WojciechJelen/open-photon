@@ -56,31 +56,6 @@ export const trimRequestSchema = z.object({
 });
 
 /**
- * A `characters` row. `POST /api/characters` takes multipart `image` (PNG, JPEG or WebP by
- * content, at most 128 MiB) and `consent=true`, the uploader's statement that they may use the
- * likeness. 201 with the new character (`origin: "upload"`, `consent_at` set), 200 with the
- * stored one when the same image was uploaded before. 422 `{ error, reason }` with
- * `consent_required` or `not_image`; nothing is stored then.
- */
-export const characterSchema = z.object({
-  consent_at: z.iso.datetime().nullable(),
-  created_at: z.iso.datetime(),
-  generation_id: z.uuid().nullable(),
-  id: z.uuid(),
-  image_asset_id: z.uuid(),
-  is_sample: z.boolean(),
-  origin: z.enum(["generated", "upload"]),
-  prompt: z.string().nullable(),
-  slug: z.string().nullable(),
-  title: z.string().nullable(),
-});
-
-/** A character with its reference image's asset, as the picker shows it. */
-export const pickableCharacterSchema = characterSchema.extend({ image: assetSchema });
-
-export type PickableCharacter = z.infer<typeof pickableCharacterSchema>;
-
-/**
  * The JSON body of `POST /api/generate`. The motion is a stored, probed video asset of 3–8 s
  * (`motion_asset_id`): a sample motion's clip, an upload, or a trimmed cut of one. The character
  * must be a generated one or an upload with consent. `prompt` (appearance and background)

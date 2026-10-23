@@ -1,12 +1,12 @@
-import "./temp-database.ts";
+import "../../../../tests/temp-database.ts";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { basename } from "node:path";
 import test from "node:test";
 
-import { uploadCharacter } from "../src/features/motionTransfer/server/characters.server.ts";
-import { database } from "../src/shared/server/db.server.ts";
-import { assetsDirectory } from "../src/shared/server/paths.ts";
+import { database } from "../../../shared/server/db.server.ts";
+import { assetsDirectory } from "../../../shared/server/paths.ts";
+import { uploadCharacter } from "../server/http.ts";
 
 function upload(path: string, consent?: string) {
   const form = new FormData();

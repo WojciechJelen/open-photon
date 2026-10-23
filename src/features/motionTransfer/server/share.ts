@@ -3,10 +3,10 @@ import { getRequest } from "@tanstack/react-start/server";
 import { mediaUrl } from "../../../shared/media.ts";
 import { readOutputs } from "../../../shared/server/generation/generations.ts";
 import { workflowModelFiles } from "../../../shared/server/models-lock.ts";
+import { getCharacter, visibleCharacter } from "../../characters/api.ts";
 import { motionTransferWorkflow } from "../workflows/registry.ts";
-import { findCharacter } from "./characters.server.ts";
 import { findShared } from "./generations.ts";
-import { sampleMotionTitle, sourceClip, visibleCharacter } from "./shot.ts";
+import { sampleMotionTitle, sourceClip } from "./shot.ts";
 
 /**
  * The origin absolute links (Open Graph tags, the share link) start with: `PUBLIC_APP_URL` when
@@ -36,7 +36,7 @@ export function readShare(slug: string, origin: string) {
 
   const poster = outputs.find(({ name }) => name === "poster")?.asset ?? null;
   const source = sourceClip(row);
-  const character = row.character_id ? findCharacter(row.character_id) : null;
+  const character = row.character_id ? getCharacter(row.character_id) : null;
 
   const models =
     row.recipe.models.length > 0

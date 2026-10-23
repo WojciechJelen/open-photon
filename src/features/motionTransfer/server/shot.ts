@@ -4,57 +4,18 @@ import { type Asset, assetSchema } from "../../../shared/contracts.ts";
 import { findAsset, findBySha256 } from "../../../shared/server/assets.ts";
 import { database } from "../../../shared/server/db.server.ts";
 import { readOutputs } from "../../../shared/server/generation/generations.ts";
-import {
-  type characterSchema,
-  type PickableCharacter,
-  pickableCharacterSchema,
-} from "../contracts.ts";
-import { findCharacter } from "./characters.server.ts";
+import { getCharacter } from "../../characters/api.ts";
 import { findGeneration, type MotionTransferGeneration } from "./generations.ts";
-import { isPublicAsset } from "./public-access.ts";
-
-/** An asset as the API shows it (no server path), or `null` when none is stored with this id. */
-function storedAsset(id: string) {
-  const asset = findAsset(id);
-
-  return asset ? assetSchema.parse(asset) : null;
-}
 
 /** An asset that must be stored, as the API shows it. */
 export function publicAsset(id: string) {
-  const asset = storedAsset(id);
+  const asset = findAsset(id);
 
   if (!asset) {
     throw new Error(`Asset ${id} is not stored`);
   }
 
-  return asset;
-}
-
-/** A sample character with its reference image, as the picker lists it. */
-export function pickable(character: z.output<typeof characterSchema>): PickableCharacter {
-  return pickableCharacterSchema.parse({
-    ...character,
-    image: publicAsset(character.image_asset_id),
-  });
-}
-
-/**
- * A character as a page may show it, with its image: `null` without a character, when its image
- * is not stored, or when the visitor has no session (`signedIn`) and the image is not public
- * (`isPublicAsset`: a sample's is; an uploaded photo never is). The one rule for every page.
- */
-export function visibleCharacter(
-  character: z.output<typeof characterSchema> | null,
-  signedIn: boolean,
-): PickableCharacter | null {
-  const image = character ? storedAsset(character.image_asset_id) : null;
-
-  if (!character || !image || !(signedIn || isPublicAsset(image.id))) {
-    return null;
-  }
-
-  return pickableCharacterSchema.parse({ ...character, image });
+  return assetSchema.parse(asset);
 }
 
 /** The title of the sample motion whose clip this asset is; `null` for an upload or a cut. */
@@ -111,7 +72,7 @@ export function findSampleTake() {
     return null;
   }
 
-  const character = generation.character_id ? findCharacter(generation.character_id) : null;
+  const character = generation.character_id ? getCharacter(generation.character_id) : null;
 
   return {
     characterTitle: character?.title ?? null,

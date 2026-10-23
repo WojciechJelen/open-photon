@@ -1,9 +1,9 @@
 import { ImageIcon, LockIcon, ShieldCheckIcon, UserIcon } from "lucide-react";
 
+import type { PickableCharacter } from "#/features/characters";
 import { CharacterUpload } from "#/features/motionTransfer/components/character-upload";
 import { PickTile, tileMedia } from "#/features/motionTransfer/components/pick-tile";
 import { StepIntro, TipsPanel } from "#/features/motionTransfer/components/step-intro";
-import type { PickableCharacter } from "#/features/motionTransfer/contracts";
 import type { MotionTransferDraft } from "#/features/motionTransfer/draft";
 import { Hud } from "#/shared/components/brand";
 import { mediaUrl } from "#/shared/media";

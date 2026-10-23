@@ -9,12 +9,12 @@ import {
 } from "../../../shared/server/generation/generations.ts";
 import { answer, readInput } from "../../../shared/server/generation/http.ts";
 import { type Admit, settleAbandoned, submit } from "../../../shared/server/generation/service.ts";
+import { getCharacter, visibleCharacter } from "../../characters/api.ts";
 import type { GenerateInput } from "../contracts.ts";
 import { motionTransferDefinition } from "../workflows/definition.ts";
-import { findCharacter } from "./characters.server.ts";
 import { asMotionTransfer, findGeneration } from "./generations.ts";
 import { directionOf } from "./selection.ts";
-import { sampleMotionTitle, sourceClip, visibleCharacter } from "./shot.ts";
+import { sampleMotionTitle, sourceClip } from "./shot.ts";
 
 /**
  * `POST /api/generate` (`handleGenerate`): the input contract is `generateInputSchema`, the
@@ -74,7 +74,7 @@ export function readResult(id: string, signedIn: boolean) {
 
   const source = sourceClip(row);
   const parent = row.parent_id ? findGeneration(row.parent_id) : null;
-  const character = row.character_id ? findCharacter(row.character_id) : null;
+  const character = row.character_id ? getCharacter(row.character_id) : null;
   const outputs = row.status === "done" ? readOutputs(row.id) : [];
 
   return {

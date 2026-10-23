@@ -20,20 +20,29 @@ function isSharedSourceClip(asset: StoredAsset) {
   );
 }
 
-/**
- * Whether anyone may load this asset without an access code, as far as Motion Transfer decides:
- * a sample (a sample motion's clip or a sample character's image, what the picker shows) or the
- * source clip of a share page. Uploads, cuts, character photos and unshared results need a
- * session.
- */
-function isPublicMotionTransferAsset(asset: StoredAsset) {
-  return asset.role === "sample" || isSharedSourceClip(asset);
+/** Whether this asset is a sample motion's clip, which the picker shows to anyone. */
+function isSampleMotionClip(asset: StoredAsset) {
+  return (
+    database
+      .prepare("SELECT EXISTS (SELECT 1 FROM motions WHERE source_asset_id = ?) AS sample")
+      .get(asset.id)?.sample === 1
+  );
 }
 
 /**
- * Whether a page of Motion Transfer may show this asset to a visitor without a session: one it
- * makes public (`isPublicMotionTransferAsset`) or an output of a shared generation
- * (`isSharedOutput`); `false` for an id no asset has.
+ * Whether anyone may load this asset without an access code, as far as Motion Transfer decides:
+ * a sample motion's clip or the source clip of a share page. Uploads, cuts and unshared results
+ * need a session; the sample characters' images are the characters feature's to open.
+ */
+function isPublicMotionTransferAsset(asset: StoredAsset) {
+  return isSampleMotionClip(asset) || isSharedSourceClip(asset);
+}
+
+/**
+ * Whether a page of Motion Transfer may show this motion clip to a visitor without a session: one
+ * it makes public (`isPublicMotionTransferAsset`) or an output of a shared generation
+ * (`isSharedOutput`); `false` for an id no asset has. A character's visibility is the characters
+ * feature's (`visibleCharacter`).
  */
 export function isPublicAsset(assetId: string) {
   const asset = findAsset(assetId);
@@ -50,8 +59,9 @@ export function isPublicAsset(assetId: string) {
  * - the wizard `/motionTransfer` that picks the motion and character;
  * - `POST /api/generate`, which may answer with a result that already exists (a pre-rendered
  *   sample × sample result) for free and refuses anything that would submit a job (`generate`);
- * - samples and the source clips share pages show (`isPublicMotionTransferAsset`); for search
- *   engines, those source clips.
+ * - the sample motions' clips and the source clips share pages show
+ *   (`isPublicMotionTransferAsset`); for search engines, those source clips. The sample
+ *   characters' images are opened by `charactersAccess`.
  */
 export const motionTransferAccess: PublicAccessDeclaration = {
   isIndexableAsset: isSharedSourceClip,

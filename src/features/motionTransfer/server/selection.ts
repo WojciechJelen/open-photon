@@ -3,6 +3,7 @@ import { z } from "zod";
 import { type Asset, assetSchema } from "../../../shared/contracts.ts";
 import { findAsset } from "../../../shared/server/assets.ts";
 import { database } from "../../../shared/server/db.server.ts";
+import { getCharacter, listSampleCharacters, visibleCharacter } from "../../characters/api.ts";
 import {
   type AngleChoice,
   MAX_CLIP_MS,
@@ -10,18 +11,11 @@ import {
   sampleMotionSchema,
 } from "../contracts.ts";
 import type { Direction } from "../draft.ts";
-import { findCharacter, listSampleCharacters } from "./characters.server.ts";
 import { findGeneration } from "./generations.ts";
 import { anglePresets, generateDefaults } from "./presets.ts";
 import { isPublicAsset } from "./public-access.ts";
 import type { Recipe } from "./recipe.ts";
-import {
-  findSampleTake,
-  findSampleTakeId,
-  pickable,
-  publicAsset,
-  visibleCharacter,
-} from "./shot.ts";
+import { findSampleTake, findSampleTakeId, publicAsset } from "./shot.ts";
 
 const motionRowSchema = z.object({
   attribution: z.string(),
@@ -119,14 +113,14 @@ export function readSelection(
   },
   signedIn: boolean,
 ) {
-  const chosen = character ? findCharacter(character) : null;
+  const chosen = character ? getCharacter(character) : null;
   const clip = motion ? findMotionClip(motion) : null;
 
   return {
     angles: anglePresets.angles.map(({ id, label }): AngleChoice => ({ id, label })),
     character: visibleCharacter(chosen, signedIn),
     characterId: chosen?.id ?? null,
-    characters: listSampleCharacters().map(pickable),
+    characters: listSampleCharacters(),
     defaultPrompt: generateDefaults.prompt,
     direction: from ? readDirection(from, signedIn) : null,
     motion: clip && (signedIn || isPublicAsset(clip.id)) ? clip : null,
@@ -144,7 +138,7 @@ export function readSelection(
  */
 export function readStudio() {
   return {
-    characters: listSampleCharacters().map(pickable),
+    characters: listSampleCharacters(),
     motions: listSampleMotions(),
     sampleTake: findSampleTake(),
   };

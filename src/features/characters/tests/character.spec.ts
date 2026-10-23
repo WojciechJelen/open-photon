@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { count, open, seededResult } from "./e2e/session.ts";
+import { count, open, seededResult } from "../../../../tests/e2e/session.ts";
 
 const uuid = "[0-9a-f-]{36}";
 

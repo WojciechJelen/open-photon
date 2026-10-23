@@ -3,13 +3,13 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
+import { characterSchema } from "#/features/characters";
 import {
   IdleUpload,
   RejectedState,
   uploadTileClass,
   WorkingState,
 } from "#/features/motionTransfer/components/upload-states";
-import { characterSchema } from "#/features/motionTransfer/contracts";
 import { callApi, type Refusal } from "#/shared/requests";
 import type { HoldForCode } from "#/shared/use-access-code";
 import { useRequestSignal } from "#/shared/use-request-signal";

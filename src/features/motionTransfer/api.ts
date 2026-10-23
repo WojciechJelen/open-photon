@@ -4,7 +4,7 @@
 // composer's slot contracts and server-function types. The wizard owns its URL: another feature
 // opens it on a draft with `draftHref`, never by holding its state. Slot components are mounted
 // in `src/app/composer-slots.ts`; test fixtures are in `tests/fixtures.ts`.
-export type { PickableCharacter, SampleMotion } from "./contracts.ts";
+export type { SampleMotion } from "./contracts.ts";
 
 export {
   defaultDirection,

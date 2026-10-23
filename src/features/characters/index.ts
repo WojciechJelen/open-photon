@@ -1,0 +1,8 @@
+// The characters feature's public client module: its contracts, which other features' client code
+// (and tests) may import (`scripts/check-import-boundaries.mjs`). Server code imports `api.ts`.
+export {
+  type CharacterSummary,
+  characterSchema,
+  characterSummarySchema,
+  type PickableCharacter,
+} from "./contracts.ts";

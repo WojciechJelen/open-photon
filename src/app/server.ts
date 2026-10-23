@@ -2,8 +2,10 @@
 // shared code (`scripts/check-import-boundaries.mjs`). A feature with public routes, assets or
 // server functions adds its `PublicAccessDeclaration` here; one with data every database needs
 // adds its seeder; one with a workflow the generation service runs adds its definition.
+import { charactersAccess } from "../features/characters/server/public-access.ts";
+import { seedSampleCharacters } from "../features/characters/server/seed.ts";
 import { motionTransferAccess } from "../features/motionTransfer/server/public-access.ts";
-import { seedSamples } from "../features/motionTransfer/server/samples.ts";
+import { seedSampleMotions } from "../features/motionTransfer/server/samples.ts";
 import { motionTransferDefinition } from "../features/motionTransfer/workflows/definition.ts";
 import { studioAccess } from "../features/studio/server/public-access.ts";
 import { createAccessPolicy } from "../shared/server/access-policy.ts";
@@ -14,7 +16,7 @@ import { transaction } from "../shared/server/migrate.ts";
 
 /** The composed access rules (`createAccessPolicy`); anything no feature declares is private. */
 export const { isIndexable, isPublicAsset, isPublicRequest, isPublicServerFn } = createAccessPolicy(
-  [generationAccess, studioAccess, motionTransferAccess],
+  [generationAccess, studioAccess, charactersAccess, motionTransferAccess],
 );
 
 // The workflows the generation service runs (`workflows`, `src/shared/server/generation/`), found
@@ -22,7 +24,7 @@ export const { isIndexable, isPublicAsset, isPublicRequest, isPublicServerFn } =
 workflows.compose([motionTransferDefinition]);
 
 /** Each feature's seeder: idempotent, so it runs on every start, each in its own transaction. */
-const seeders = [seedSamples];
+const seeders = [seedSampleCharacters, seedSampleMotions];
 
 /**
  * Seeds the database: the sample characters and motions. Runs at boot before the server listens
