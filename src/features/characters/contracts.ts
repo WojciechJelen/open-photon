@@ -71,3 +71,34 @@ export const characterPatchSchema = z
   .refine((patch) => patch.favorite !== undefined || patch.title !== undefined, {
     message: "Give a title, favorite, or both.",
   });
+
+// A `0`/`1` flag of a query string.
+const queryFlag = z.enum(["0", "1"]).optional();
+
+/**
+ * The query of `GET /api/characters` (a session is needed; 401 without one), the workspace
+ * library: `q` keeps the characters whose title or prompt contains it, case-insensitively
+ * (trimmed, at most 200 characters; blank is no filter); `favorites=1` only the favorites;
+ * `samples=0` leaves the sample characters out (`1`, the default, lists them too). 400 for a
+ * query that is not this.
+ */
+export const characterListQuerySchema = z.object({
+  favorites: queryFlag.transform((flag) => flag === "1"),
+  q: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .transform((query) => query || undefined),
+  samples: queryFlag.transform((flag) => flag !== "0"),
+});
+
+export type CharacterListQuery = z.output<typeof characterListQuerySchema>;
+
+/**
+ * The answer to `GET /api/characters`: the workspace's characters and the sample ones the query
+ * keeps (`characterListQuerySchema`), most recent first (`created_at` descending, then `id`).
+ */
+export const characterListSchema = z.object({ characters: z.array(characterSummarySchema) });
+
+export type CharacterList = z.output<typeof characterListSchema>;

@@ -8,8 +8,10 @@ import type { ProviderTarget } from "../../../shared/server/comfy-target.ts";
 import { hashRecipe } from "../../../shared/server/generation/generations.ts";
 import { readModelsLock } from "../../../shared/server/models-lock.ts";
 import { workflowGraphSchema } from "../../../shared/server/workflow-graph.ts";
-import type { CharacterGenerationInput } from "../contracts.ts";
-import { characterGenerationDefinition as definition } from "../workflows/definition.ts";
+import {
+  characterGenerationDefinition as definition,
+  type PromptInput as CharacterGenerationInput,
+} from "../workflows/definition.ts";
 
 const WORKFLOW_FILE = "src/features/characterBuilder/workflows/character-generation.v1.json";
 const bytes = readFileSync(WORKFLOW_FILE);

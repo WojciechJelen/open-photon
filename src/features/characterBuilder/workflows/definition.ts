@@ -7,11 +7,22 @@ import { z } from "zod";
 import { loadRuntimeWorkflow } from "../../../shared/server/comfy-workflows.ts";
 import type { WorkflowDefinition } from "../../../shared/server/generation/definition.ts";
 import { buildGraph } from "../../../shared/server/workflow-graph.ts";
-import {
-  type CharacterGenerationInput,
-  characterGenerationInputSchema,
-  imageSideSchema,
-} from "../contracts.ts";
+import { imageSideSchema } from "../contracts.ts";
+
+/**
+ * The FLUX.2 body of `POST /api/character-generations`, until the FLUX 3 workflow (DEV-297)
+ * replaces this definition with the caption contract (`characterGenerationInputSchema` of
+ * `../contracts.ts`): a text `prompt` (1–1000 characters after trimming), an optional `seed` and
+ * `width`/`height`.
+ */
+const promptInputSchema = z.object({
+  height: imageSideSchema.optional(),
+  prompt: z.string().trim().min(1).max(1000),
+  seed: z.int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
+  width: imageSideSchema.optional(),
+});
+
+export type PromptInput = z.output<typeof promptInputSchema>;
 
 const WORKFLOW_ID = "character-generation";
 
@@ -53,7 +64,7 @@ const recipeSchema = z.strictObject({
   ),
   params: z.strictObject({
     height: imageSideSchema,
-    prompt: characterGenerationInputSchema.shape.prompt,
+    prompt: promptInputSchema.shape.prompt,
     seed: z.int().min(0).max(Number.MAX_SAFE_INTEGER),
     width: imageSideSchema,
   }),
@@ -76,14 +87,14 @@ type CharacterGenerationRecipe = z.output<typeof recipeSchema>;
  * graph is built from.
  */
 export const characterGenerationDefinition: WorkflowDefinition<
-  CharacterGenerationInput,
+  PromptInput,
   CharacterGenerationRecipe
 > = {
   assetInputs: () => ({}),
   buildGraph: ({ params }) =>
     buildGraph(characterGenerationWorkflow.graph, characterGenerationWorkflow.inputsMap, params),
   id: WORKFLOW_ID,
-  inputSchema: characterGenerationInputSchema,
+  inputSchema: promptInputSchema,
   models: characterGenerationWorkflow.models,
   outputs: [{ media: "image", name: "image", nodeId: "78" }],
   prepareRecipe: (input, { target }) => ({
