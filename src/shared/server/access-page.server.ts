@@ -4,11 +4,17 @@ export function accessUrl(next: string) {
   return next === "/" ? "/access" : `/access?next=${encodeURIComponent(next)}`;
 }
 
-/** The code form; it posts back to `/access`, keeping `next`. */
-export function accessPage(
-  next: string,
-  message = "Browsing the samples is open to anyone. Enter an access code to upload your own clips and generate.",
-) {
+/**
+ * The code form; it posts back to `/access`, keeping `next`. With `error` (a wrong code), that
+ * replaces the intro and the line about links that carry a code is left out.
+ */
+export function accessPage(next: string, error?: string) {
+  const message =
+    error ??
+    "Browsing the samples is open to anyone. Enter an access code to upload your own clips and generate.";
+
+  const link = error ? "" : " Opened a link that already contains a code? You're in.";
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -45,7 +51,7 @@ export function accessPage(
       <input id="code" name="code" type="password" autocomplete="one-time-code" required maxlength="256">
       <button type="submit">Continue</button>
     </form>
-    <small>Access lasts 12 hours. Ask the owner for a code. <a href="/motionTransfer">Browse the samples</a></small>
+    <small>Access lasts 12 hours. Ask the owner for a code.${link} <a href="/motionTransfer">Browse the samples</a></small>
   </main>
 </body>
 </html>`;

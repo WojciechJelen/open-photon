@@ -12,6 +12,7 @@ upload a photo with the person's consent, then find and animate it from
 
 Built with TanStack Start, React, Tailwind, shadcn, SQLite and the Comfy SDK.
 Browsing samples is public; uploads and new generations require an access code.
+Opened a link that already contains a code? You're in.
 New renders use your Comfy Cloud credits or your self-hosted GPU.
 
 An unfinished experiment in pinning performance beats, not part of the app, lives in
@@ -78,7 +79,8 @@ database, run this in another terminal from the repository directory:
 node --env-file=.env scripts/mint-code.mjs me 100
 ```
 
-Enter the printed access code in the app. `100` is its generation allowance.
+Enter the printed access code in the app. `100` is its generation allowance. A link
+`/access?code=<code>&next=/characters/new` signs in on opening and lands on that page.
 
 <a id="run"></a>
 
