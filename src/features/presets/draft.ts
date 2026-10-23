@@ -70,6 +70,25 @@ export function directionSearch(preset: Preset, direction: Direction): Direction
 }
 
 /**
+ * The form's direction once the page's preset or search changed under it (a catalog refresh, a
+ * version accepted, Back or Forward): `current` while it says what the search says, so an edit
+ * the search already holds stays as typed; otherwise the search's members over the preset's
+ * (`presetDirection`), so no value of another version or another history entry is sent as a
+ * change.
+ */
+export function reconciledDirection(
+  preset: Preset,
+  search: DirectionMembers,
+  current: Direction,
+): Direction {
+  const wanted = presetDirection(preset, search);
+  const held = directionSearch(preset, current);
+  const meant = directionSearch(preset, wanted);
+
+  return held.prompt === meant.prompt && held.seed === meant.seed ? current : wanted;
+}
+
+/**
  * What Generate sends, before `presetGenerateInputSchema` checks it: the version, the character
  * (none yet is `undefined`, which the schema refuses) and the changes (`changedMembers`).
  */

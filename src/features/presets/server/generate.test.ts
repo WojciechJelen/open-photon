@@ -8,6 +8,7 @@ import { mintCode } from "../../../../tests/temp-database.ts";
 import type { GenerationReceipt } from "../../../shared/contracts.ts";
 import { findAccessCode } from "../../../shared/server/access-codes.ts";
 import { findBySha256 } from "../../../shared/server/assets.ts";
+import { fakeProvider } from "../../../shared/server/comfy-provider.fake.ts";
 import { database } from "../../../shared/server/db.server.ts";
 import { GenerateError } from "../../../shared/server/generation/errors.ts";
 import { findGeneration } from "../../../shared/server/generation/generations.ts";
@@ -272,6 +273,51 @@ test("an unknown, stale or unavailable preset, or an unknown character, is refus
     401,
     "access_required",
   );
+});
+
+test("the preset version is recorded with the generation, before the provider is asked, so a submit that never answers keeps it", async () => {
+  // The fake provider takes a graph carrying this marker and then throws from `submit`, which
+  // leaves the row `unknown`: the job may exist, as after a server stopped mid-submit.
+  const { catalog, preset } = catalogWith({
+    defaults: { prompt: "An ambiguous look. [fake:ambiguous]", seed: 777 },
+  });
+
+  const seen: string[] = [];
+
+  const receipt = await generateFromPreset(
+    preset.id,
+    { character_id: character.id, version: 1 },
+    session,
+    {
+      catalog,
+      provider: {
+        ...fakeProvider,
+        submit: (graph, idempotencyKey) => {
+          // When the graph reaches the provider, the row and its record are both stored.
+          const rows = database
+            .prepare(
+              `SELECT p.preset_id FROM preset_generations p JOIN generations g
+                ON g.id = p.generation_id WHERE g.recipe ->> '$.params.seed' = 777`,
+            )
+            .all();
+
+          seen.push(
+            ...z
+              .array(z.object({ preset_id: z.string() }))
+              .parse(rows)
+              .map(({ preset_id }) => preset_id),
+          );
+
+          return fakeProvider.submit(graph, idempotencyKey);
+        },
+      },
+    },
+  );
+
+  assert.deepEqual(seen, ["test-preset"]);
+
+  assert.equal(findGeneration(receipt.id)?.status, "unknown");
+  assert.equal(provenance(receipt.id).preset_version, 1);
 });
 
 test("after the catalog changes, an earlier take still re-runs its own version's look and seed, and a request for the old version is refused as stale", async () => {

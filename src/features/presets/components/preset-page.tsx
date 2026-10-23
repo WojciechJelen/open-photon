@@ -1,6 +1,6 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import { ArrowLeftIcon, ExternalLinkIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
-import { type ComponentType, useEffect, useId, useState } from "react";
+import { type ComponentType, useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
@@ -21,6 +21,7 @@ import {
   presetDirection,
   presetDraft,
   type PresetSearch,
+  reconciledDirection,
 } from "#/features/presets/draft";
 import { presetFieldMessages, usePresetGenerate } from "#/features/presets/use-preset-generate";
 import { AccessCodeDialog, AccessStatus } from "#/shared/components/access-code-dialog";
@@ -94,6 +95,8 @@ export function PresetPage({
   const router = useRouter();
   const access = useAccessCode();
   const [direction, setDirection] = useState(() => presetDirection(preset, search));
+  // The direction searches this page's own edits asked for and the router has not shown yet.
+  const ownSearches = useRef<string[]>([]);
   const { errors, failure, pending, submit } = usePresetGenerate(preset, access.hold);
   const stale = search.version !== undefined && search.version !== preset.version;
   const ready = availability.status === "ready";
@@ -106,6 +109,34 @@ export function PresetPage({
       onSearch({ version: preset.version });
     }
   }, [onSearch, preset.version, search.version]);
+
+  // The search or the preset changed under the form: an edit of the page's own arriving keeps
+  // the form as typed; anything else (Back, Forward, a refreshed catalog) resets the form to it.
+  const { prompt, seed } = search;
+
+  useEffect(() => {
+    const arrived = ownSearches.current.indexOf(JSON.stringify({ prompt, seed }));
+
+    if (arrived !== -1) {
+      ownSearches.current.splice(0, arrived + 1);
+
+      return;
+    }
+
+    setDirection((current) => reconciledDirection(preset, { prompt, seed }, current));
+  }, [preset, prompt, seed]);
+
+  function edit(next: typeof direction) {
+    const members = directionSearch(preset, next);
+
+    setDirection(next);
+
+    // Only a search that changes comes back through the effect above.
+    if (members.prompt !== prompt || members.seed !== seed) {
+      ownSearches.current.push(JSON.stringify({ prompt: members.prompt, seed: members.seed }));
+      onSearch(members);
+    }
+  }
 
   return (
     <div className="relative isolate">
@@ -216,14 +247,7 @@ export function PresetPage({
               2 · Adjust the shot{" "}
               <span className="text-base font-normal text-muted-foreground">· optional</span>
             </h2>
-            <DirectionEditor
-              errors={errors}
-              onChange={(next) => {
-                setDirection(next);
-                onSearch(directionSearch(preset, next));
-              }}
-              value={direction}
-            />
+            <DirectionEditor errors={errors} onChange={edit} value={direction} />
             <div className="flex max-w-xs flex-col gap-2">
               <Label htmlFor={`${id}-seed`}>Seed</Label>
               <Input
@@ -231,12 +255,7 @@ export function PresetPage({
                 aria-invalid={errors.includes("seed")}
                 id={`${id}-seed`}
                 inputMode="numeric"
-                onChange={(event) => {
-                  const next = { ...direction, seed: event.target.value };
-
-                  setDirection(next);
-                  onSearch(directionSearch(preset, next));
-                }}
+                onChange={(event) => edit({ ...direction, seed: event.target.value })}
                 placeholder="Default"
                 value={direction.seed}
               />
@@ -265,7 +284,12 @@ export function PresetPage({
               >
                 <span>{failure.message}</span>
                 {failure.reason === "preset_stale" && (
-                  <Button onClick={() => void router.invalidate()} size="sm" variant="outline">
+                  <Button
+                    onClick={() => void router.invalidate()}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
                     Reload the preset
                   </Button>
                 )}

@@ -17,6 +17,7 @@ import {
   presetDraft,
   presetRequest,
   presetSearchSchema,
+  reconciledDirection,
   resolveDirection,
 } from "../draft.ts";
 
@@ -115,6 +116,43 @@ test("Generate sends the version, the character and only the changes; the schema
     new Set(refused.error?.issues.map(({ path }) => path[0])),
     new Set(["character_id", "seed"]),
   );
+});
+
+test("when the preset or the search changes under the form, the form follows them unless it already says the same", () => {
+  // A refreshed catalog: version 2 has another look and seed; the form still shows version 1's.
+  const next: Preset = presetSchema.parse({
+    ...preset,
+    defaults: { prompt: "The look of version two.", seed: 8 },
+    version: 2,
+  });
+
+  const shown = presetDirection(preset, {});
+
+  assert.deepEqual(reconciledDirection(next, {}, shown), {
+    prompt: "The look of version two.",
+    seed: "8",
+  });
+  // The visitor's own changes are in the search, so they survive the refresh.
+  assert.deepEqual(reconciledDirection(next, { prompt: "Mine.", seed: 42 }, shown), {
+    prompt: "Mine.",
+    seed: "42",
+  });
+
+  // Back or Forward to another entry: its seed replaces the form's.
+  assert.deepEqual(reconciledDirection(preset, { seed: 5 }, { ...shown, seed: "6" }), {
+    prompt: "A look of the preset.",
+    seed: "5",
+  });
+
+  // An edit the search already holds stays as typed, padding included; so does a seed that is
+  // not a number yet, which the search leaves out.
+  const typed = { prompt: "Mine.", seed: " 42" };
+
+  assert.equal(reconciledDirection(preset, { prompt: "Mine.", seed: 42 }, typed), typed);
+
+  const unfinished = { prompt: "A look of the preset.", seed: "4x" };
+
+  assert.equal(reconciledDirection(preset, {}, unfinished), unfinished);
 });
 
 test("the server resolves each member into the preset's value, the visitor's, or Motion Transfer's default for a reset", () => {

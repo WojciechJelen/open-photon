@@ -17,7 +17,11 @@ type PresetGenerateOptions = {
   requestKey?: string;
 };
 
-/** Records which preset version a new generation was submitted from (`preset_generations`). */
+/**
+ * Records which preset version a new generation was submitted from (`preset_generations`). Run
+ * by the generation service in the transaction that stores the row (`onCreated`), so a row never
+ * exists without its record, even when the server stops before the provider is asked.
+ */
 function recordProvenance(generationId: string, preset: Preset, input: PresetGenerateInput) {
   const overrides = { prompt: input.prompt, seed: input.seed };
 
@@ -25,8 +29,7 @@ function recordProvenance(generationId: string, preset: Preset, input: PresetGen
     .prepare(
       `INSERT INTO preset_generations (generation_id, preset_id, preset_version, preset, overrides,
   created_at)
-VALUES (?, ?, ?, ?, ?, ?)
-ON CONFLICT (generation_id) DO NOTHING`,
+VALUES (?, ?, ?, ?, ?, ?)`,
     )
     .run(
       generationId,
@@ -52,8 +55,9 @@ ON CONFLICT (generation_id) DO NOTHING`,
  * motion clip become Motion Transfer's input, submitted through the generation service like
  * `POST /api/generate` (the same recipe, so the same take made in the wizard is reused, and a
  * pre-rendered sample take comes back without a session). A new generation records the preset
- * version it came from (`preset_generations`); its recipe holds the concrete values, so a re-run
- * renders them whatever the catalog says later.
+ * version it came from (`preset_generations`) in the transaction that stores it, before anything
+ * reaches the provider; its recipe holds the concrete values, so a re-run renders them whatever
+ * the catalog says later.
  */
 export async function generateFromPreset(
   presetId: string,
@@ -103,18 +107,13 @@ export async function generateFromPreset(
     );
   }
 
-  const receipt = await submit(definition, parsed.data, {
+  return submit(definition, parsed.data, {
     admit,
+    onCreated: (generationId) => recordProvenance(generationId, preset, input),
     provider,
     requestKey,
     scope: { free: (existing) => existing.status === "done" && existing.is_prerendered, session },
   });
-
-  if (!receipt.reused) {
-    recordProvenance(receipt.id, preset, input);
-  }
-
-  return receipt;
 }
 
 /**
