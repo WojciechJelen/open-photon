@@ -1,5 +1,6 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 
 import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
 
@@ -7,6 +8,7 @@ import {
   accessCode,
   count,
   open,
+  sampleCharacter,
   seededResult,
   storageStatePath,
 } from "../../../../tests/e2e/session.ts";
@@ -573,4 +575,95 @@ test("closing the rename dialog returns the focus to its Rename button, or to th
   await expect(page.getByText("No characters found")).toBeVisible();
   await expect(page.getByText(`0 characters matching “Alice-${tag}”`)).toBeVisible();
   await expect(page.getByRole("heading", { level: 1, name: "Characters" })).toBeFocused();
+});
+
+test("a rename answered after the search changed keeps the character in the list the page now shows", async ({
+  page,
+  request,
+}) => {
+  const tag = randomBytes(3).toString("hex");
+  const name = `Alice-${tag}`;
+  const character = await uploadThroughApi(request, name);
+
+  let release = () => {};
+
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await page.route(`**/api/characters/${character.id}`, async (route) => {
+    await held;
+    await route.continue();
+  });
+  await open(page, `/characters?q=Alice-${tag}`);
+
+  const dialog = page.getByRole("dialog", { name: "Rename character" });
+  const renamed = `Bob-${tag}`;
+
+  await card(page, name)
+    .getByRole("button", { name: `Rename ${name}` })
+    .click();
+  await dialog.getByLabel("Name").fill(renamed);
+  await dialog.getByRole("button", { name: "Save name" }).click();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+
+  // The search is cleared while the save is pending: the whole library shows.
+  await page.getByRole("searchbox", { name: "Search characters" }).fill("");
+  await expect(page).not.toHaveURL(/q=/);
+  await expect(card(page, name)).toBeVisible();
+  release();
+
+  await expect(card(page, renamed)).toBeVisible();
+  await expect(card(page, name)).toHaveCount(0);
+});
+
+test("a character saved from a generation says it is AI-generated, with what made it", async ({
+  page,
+}) => {
+  // A generated character as `createFromGeneration` stores one, on the run's done generation and
+  // a sample's image (the browser run has no image workflow to finish).
+  const name = unique("Generated dancer");
+  const id = randomUUID();
+  const database = new DatabaseSync(process.env.E2E_DATABASE_PATH ?? "");
+
+  try {
+    database
+      .prepare(
+        `INSERT INTO characters (id, title, image_asset_id, origin, prompt, generation_id,
+          provenance, created_at)
+        VALUES (?, ?, ?, 'generated', ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        name,
+        sampleCharacter().imageAssetId,
+        "A street dancer in a red hoodie, full body",
+        seededResult().id,
+        JSON.stringify({
+          models: [
+            {
+              file: "flux3-image-klein-int8-convrot.safetensors",
+              license: "flux-kommunity-license",
+              sha256: "a".repeat(64),
+            },
+          ],
+          workflow: { id: "character-generation", sha256: "b".repeat(64), version: 1 },
+        }),
+        new Date().toISOString(),
+      );
+  } finally {
+    database.close();
+  }
+
+  await open(page, "/characters");
+
+  const generated = card(page, name);
+
+  await expect(generated.getByText("AI-generated", { exact: true })).toBeVisible();
+  await expect(generated.getByText(/^AI image, generated /)).toBeVisible();
+  await expect(generated).toContainText("A street dancer in a red hoodie, full body");
+  await generated.getByText("Made with").click();
+  await expect(generated).toContainText("character-generation v1");
+  await expect(generated).toContainText("flux3-image-klein-int8-convrot");
 });
