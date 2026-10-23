@@ -23,8 +23,27 @@ type Migration = {
   sql: string;
 };
 
-/** Runs `operation` in one `BEGIN IMMEDIATE` transaction of `database`, rolled back if it throws. */
+/**
+ * Runs `operation` in one `BEGIN IMMEDIATE` transaction of `database`, rolled back if it throws.
+ * Called inside a transaction already, it runs in a savepoint of it instead: rolled back alone if
+ * it throws, committed with the outer transaction.
+ */
 export function transaction<T>(database: DatabaseSync, operation: () => T): T {
+  if (database.isTransaction) {
+    database.exec("SAVEPOINT nested");
+
+    try {
+      const result = operation();
+      database.exec("RELEASE nested");
+
+      return result;
+    } catch (error) {
+      database.exec("ROLLBACK TO nested");
+      database.exec("RELEASE nested");
+      throw error;
+    }
+  }
+
   database.exec("BEGIN IMMEDIATE");
 
   try {
@@ -146,49 +165,78 @@ CREATE UNIQUE INDEX migrations_identity ON migrations (identity);`);
  * transaction, and records its identity and the SHA-256 of its bytes. An applied migration whose
  * file was renamed or whose bytes changed throws: applied migrations are immutable. A row the
  * flat-only runner applied has no checksum yet and gets its file's now.
+ *
+ * Foreign keys are not enforced while migrations run, so one can rebuild a table other tables
+ * point at (SQLite's create-copy-drop-rename); `PRAGMA foreign_key_check` must find no violation
+ * before a migration commits, and enforcement is restored afterwards.
  */
 export function migrate(database: DatabaseSync, directory: string) {
   upgradeTable(database);
 
-  for (const migration of discover(directory)) {
-    transaction(database, () => {
-      const applied = database
-        .prepare("SELECT name, checksum FROM migrations WHERE identity = ?")
-        .get(migration.identity);
+  const enforced = database.prepare("PRAGMA foreign_keys").get()?.foreign_keys === 1;
 
-      if (!applied) {
-        database.exec(migration.sql);
-        database
-          .prepare(
-            `INSERT INTO migrations (version, name, applied_at, identity, checksum)
-            VALUES (?, ?, ?, ?, ?)`,
-          )
-          .run(
-            migration.namespace === "legacy" ? migration.number : null,
-            migration.name,
-            new Date().toISOString(),
-            migration.identity,
-            migration.checksum,
-          );
+  // A no-op inside a transaction, so it is set between them.
+  database.exec("PRAGMA foreign_keys = OFF");
 
-        return;
-      }
-
-      if (applied.name !== migration.name) {
-        throw new Error(
-          `Migration ${migration.identity} was applied as ${String(applied.name)}, not ${migration.name}`,
-        );
-      }
-
-      if (applied.checksum === null) {
-        database
-          .prepare("UPDATE migrations SET checksum = ? WHERE identity = ?")
-          .run(migration.checksum, migration.identity);
-      } else if (applied.checksum !== migration.checksum) {
-        throw new Error(
-          `Migration ${migration.identity} (${migration.name}) changed after it was applied: its SHA-256 is ${migration.checksum}, the database recorded ${String(applied.checksum)}. Applied migrations are immutable; restore the file and add a new migration.`,
-        );
-      }
-    });
+  try {
+    for (const migration of discover(directory)) {
+      apply(database, migration);
+    }
+  } finally {
+    if (enforced) {
+      database.exec("PRAGMA foreign_keys = ON");
+    }
   }
+}
+
+/** Applies `migration` unless it was, or checks it is unchanged (`migrate`). */
+function apply(database: DatabaseSync, migration: Migration) {
+  transaction(database, () => {
+    const applied = database
+      .prepare("SELECT name, checksum FROM migrations WHERE identity = ?")
+      .get(migration.identity);
+
+    if (!applied) {
+      database.exec(migration.sql);
+
+      const violation = database.prepare("PRAGMA foreign_key_check").get();
+
+      if (violation) {
+        throw new Error(
+          `Migration ${migration.identity} (${migration.name}) leaves a row of ${String(violation.table)} pointing at a missing row of ${String(violation.parent)}`,
+        );
+      }
+
+      database
+        .prepare(
+          `INSERT INTO migrations (version, name, applied_at, identity, checksum)
+          VALUES (?, ?, ?, ?, ?)`,
+        )
+        .run(
+          migration.namespace === "legacy" ? migration.number : null,
+          migration.name,
+          new Date().toISOString(),
+          migration.identity,
+          migration.checksum,
+        );
+
+      return;
+    }
+
+    if (applied.name !== migration.name) {
+      throw new Error(
+        `Migration ${migration.identity} was applied as ${String(applied.name)}, not ${migration.name}`,
+      );
+    }
+
+    if (applied.checksum === null) {
+      database
+        .prepare("UPDATE migrations SET checksum = ? WHERE identity = ?")
+        .run(migration.checksum, migration.identity);
+    } else if (applied.checksum !== migration.checksum) {
+      throw new Error(
+        `Migration ${migration.identity} (${migration.name}) changed after it was applied: its SHA-256 is ${migration.checksum}, the database recorded ${String(applied.checksum)}. Applied migrations are immutable; restore the file and add a new migration.`,
+      );
+    }
+  });
 }
