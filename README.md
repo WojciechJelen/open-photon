@@ -104,8 +104,11 @@ Compose uses its own persistent volume.
 | Character generation | FLUX 3 Image Klein distilled (int8) | [FLUX Kommunity License v1.0](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/blob/main/LICENSE.md) |
 | Character generation | Qwen3-VL-4B text encoder, FLUX 3 prompt upsampler, FLUX 2 VAE | Apache-2.0 |
 
-FLUX 3 Image Klein's weights are open but not under an OSI licence: the FLUX Kommunity License
-allows non-commercial use, and commercial use of outputs only by Qualifying Users (under
-US$5M gross annualized revenue with affiliates), who must filter or review outputs and disclose
-that they are AI-generated. Read the licence before deploying. Exact files, revisions, hashes and
+FLUX 3 Image Klein's weights are open but not under an OSI licence. The FLUX Kommunity License
+grants non-commercial use (§2.a(i)); running it in production to generate outputs for commercial
+use is granted only to Qualifying Users (§2.a(ii): you and your affiliates under US$5M gross
+annualized revenue), and only if you filter outputs for unlawful, unsafe or infringing content or
+review them before distribution (§2.e(i)), and disclose that outputs are AI-generated to the
+extent applicable law requires (§2.e(ii)). Open Photon itself implements neither filtering nor a
+disclosure. Read the licence before deploying. Exact files, revisions, hashes and
 the workflow's origin: `src/features/characterBuilder/workflows/README.md`.

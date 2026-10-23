@@ -209,6 +209,86 @@ test("the installer verifies actual bytes and refuses to overwrite a mismatched 
   }
 });
 
+test("the installer sends HF_TOKEN only to the gated FLUX 3 repository and names the licence when it is refused", () => {
+  const directory = mkdtempSync(join(tmpdir(), "photon-gated-"));
+  const workflows = join(directory, "src", "features", "demo", "workflows");
+  const requests = join(directory, "requests.jsonl");
+  const publicUrl = `https://huggingface.co/Comfy-Org/test/resolve/${"a".repeat(40)}/vae/public.safetensors`;
+  const gatedUrl = `https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/resolve/${"b".repeat(40)}/diffusion_models/gated.safetensors`;
+
+  try {
+    mkdirSync(workflows, { recursive: true });
+    writeFileSync(
+      join(workflows, "demo.v1.json"),
+      JSON.stringify({
+        "1": { class_type: "VAELoader", inputs: { vae_name: "public.safetensors" } },
+        "2": { class_type: "UNETLoader", inputs: { unet_name: "gated.safetensors" } },
+      }),
+    );
+    writeFileSync(join(workflows, "demo.v1.inputs.json"), "{}");
+    writeFileSync(
+      join(workflows, "models.lock"),
+      JSON.stringify({
+        version: 1,
+        models: [
+          {
+            file: "public.safetensors",
+            directory: "vae",
+            license: "Apache-2.0",
+            url: publicUrl,
+            sha256: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          },
+          {
+            file: "gated.safetensors",
+            directory: "diffusion_models",
+            license: "FLUX-Kommunity-1.0",
+            url: gatedUrl,
+            sha256: "c".repeat(64),
+          },
+        ],
+      }),
+    );
+    // Stands in for Hugging Face: records each request's URL and Authorization, serves the public
+    // file's bytes ("abc", the pinned SHA-256) and refuses the gated one as the gate does.
+    writeFileSync(
+      join(directory, "fake-fetch.mjs"),
+      `import { appendFileSync } from "node:fs";
+globalThis.fetch = async (url, init = {}) => {
+  appendFileSync(${JSON.stringify(requests)}, JSON.stringify({ url, authorization: init.headers?.Authorization ?? null }) + "\\n");
+  return String(url).includes("/black-forest-labs/") ? new Response("gated", { status: 401 }) : new Response("abc");
+};
+`,
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--import",
+        join(directory, "fake-fetch.mjs"),
+        join(process.cwd(), "scripts/install-models.mjs"),
+        join(directory, "models"),
+      ],
+      { cwd: directory, encoding: "utf8", env: { ...process.env, HF_TOKEN: "hf_secret" } },
+    );
+
+    const sent = readFileSync(requests, "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+
+    assert.ifError(result.error);
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    assert.deepEqual(sent, [
+      { authorization: null, url: publicUrl },
+      { authorization: "Bearer hf_secret", url: gatedUrl },
+    ]);
+    assert.match(result.stdout, /Verified public\.safetensors/);
+    assert.match(result.stderr, /HTTP 401.*gated repository.*FLUX Kommunity License/s);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("a workflow that loads models without a models.lock stops the installer and the lock check", () => {
   const directory = mkdtempSync(join(tmpdir(), "photon-nolock-"));
   const workflows = join(directory, "src", "features", "demo", "workflows");
