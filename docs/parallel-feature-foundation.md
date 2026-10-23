@@ -434,6 +434,7 @@ cp .env.example .env            # backend settings: README "Getting started"
 npm run dev                     # vite dev on PORT (default 3030); migrates, seeds, recovers, dispatches
 node --env-file=.env scripts/mint-code.mjs me 100   # an access code, once the app has started
 node scripts/seed-samples.mjs   # seed a DATABASE_PATH without starting the server
+BASE_URL=http://127.0.0.1:<PORT> ACCESS_CODE=<code> node scripts/prerender-samples.mjs   # 💸 every sample motion × character, marked pre-rendered (result wall); refuses :3030 without ALLOW_3030=1
 
 npm run check                   # typecheck, lint, format, fallow, import boundaries (read-only)
 npm run test:server             # node:test over tests/ and every feature's and shared server's tests
