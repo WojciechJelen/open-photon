@@ -195,14 +195,17 @@ non-sample character is visible to whoever holds a session; there is no per-user
   provenance is the client's `description`/`controls` and `enhancement: null`. Both endpoints
   answer `generationReceiptSchema` like `POST /api/generate`.
 - `POST /api/character-generations/:generationId/character`, `saveCharacterInputSchema`
-  (`title?`): `createFromGeneration` of the `image` output; 201 new / 200 existing
-  `CharacterSummary`, 401, 404, 409. Only an explicit user action calls it.
+  (`title?`; a JSON body is required, `{}` for no title): `createFromGeneration` of the `image`
+  output; 201 new / 200 existing `CharacterSummary`, 400 `invalid_input` for a missing, invalid or
+  oversized body (nothing saved), 401, 404, 409. Only an explicit user action calls it.
 - Fixtures (`tests/fixtures.ts`): `captionInputFixture`, `captionGenerationFixture` (text output),
   `enhancedCaptionFixture`, `generationInputFixture`, `imageGenerationFixture` (image output),
   `savedCharacterFixture`, `captionGenerationId`, `imageGenerationId`.
 
-Until DEV-297 replaces it, the FLUX.2 `character-generation.v1` definition keeps its own prompt
-body (`PromptInput` in `workflows/definition.ts`); the contracts above describe the FLUX 3 one.
+The definitions implementing them are `workflows/caption-definition.ts`
+(`character-caption.v1`, the FLUX 3 prompt upsampler) and `workflows/definition.ts`
+(`character-generation.v1`, FLUX 3 Image Klein distilled; its `shareRecipe` leaves the enhanced
+caption off the public share page). FLUX.2 is gone: no fallback, no legacy recipe.
 
 ### Motion Transfer draft and composer slots
 
