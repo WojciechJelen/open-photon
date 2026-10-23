@@ -4,8 +4,10 @@
 
 Turn a short motion clip and a character image into a video of that character doing
 the same motion. Open Photon runs the open-weights Wan Animate 2 workflow on Comfy
-Cloud or your own GPU, with side-by-side playback, downloadable results, share
-pages and reproducible recipes. Characters come from a workspace library: describe
+Cloud or your own GPU, with side-by-side playback, two downloads per take (the result,
+and a vertical 9:16 side-by-side of the source clip and the result with its audio,
+stitched with FFmpeg when the take finishes, for TikTok, Reels and X), share pages and
+reproducible recipes. Characters come from a workspace library: describe
 one and render it with the open-weights FLUX 3 Image Klein (`/characters/new`), or
 upload a photo with the person's consent, then find and animate it from
 `/characters`.

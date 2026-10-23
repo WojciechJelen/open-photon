@@ -13,7 +13,7 @@ Two edits, nothing else; the file keeps ComfyUI's formatting.
 1. Node `292` and the 13 `291:*` nodes that only it reached are removed.
 2. SaveVideo `246` is pinned to `format: mp4`, `format.codec: h264` and `codec: h264` instead of `auto`. The app's player and the share page need H.264 in MP4; the spike set the same three values on every submission, and the Oct 18 render proved them. `filename_prefix` stays `video/ComfyUI`: the app collects the output by node id, not by file name.
 
-`292` is the template's comparison output. It is a second SaveVideo that stitches the frames saved by `246` beside the driving video from `240` (`ImageStitch`, direction right) and encodes the result. The app only downloads `246`, so `292` cost an extra encode and a second output per render for a video nobody receives.
+`292` is the template's comparison output. It is a second SaveVideo that stitches the frames saved by `246` beside the driving video from `240` (`ImageStitch`, direction right) and encodes the result. The app only downloads `246`, so `292` cost an extra encode and a second output per render for a video nobody receives. The app makes that comparison itself at finalize instead, on the CPU, with FFmpeg: the output `compare`, a vertical 1080×1920 MP4 of the driving clip beside the result, with the result's audio (`stitchCompare`, [`../server/media/compare.ts`](../server/media/compare.ts)).
 
 | | Export | v1 |
 | --- | --- | --- |
