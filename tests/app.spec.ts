@@ -76,6 +76,33 @@ test("no page scrolls sideways, on a phone or a desktop", async ({ page }) => {
   }
 });
 
+test("a button reached with the keyboard shows its focus ring", async ({ page }) => {
+  await open(page, "/");
+
+  // Tab from the top of the page to the first button (the main navigation's first category).
+  for (let step = 0; step < 20; step += 1) {
+    await page.keyboard.press("Tab");
+
+    if (await page.evaluate(() => document.activeElement?.matches('button[data-slot="button"]'))) {
+      break;
+    }
+  }
+
+  const ring = await page.evaluate(() => {
+    const focused = document.activeElement;
+
+    if (!(focused instanceof HTMLElement) || !focused.matches(":focus-visible")) {
+      return null;
+    }
+
+    const style = getComputedStyle(focused);
+
+    return { style: style.outlineStyle, width: style.outlineWidth };
+  });
+
+  expect(ring).toEqual({ style: "solid", width: "2px" });
+});
+
 test.describe("without a session", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
