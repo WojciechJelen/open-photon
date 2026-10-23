@@ -34,6 +34,10 @@ import { useRequestSignal } from "#/shared/use-request-signal";
 
 type Result = NonNullable<Awaited<ReturnType<typeof loadResult>>>;
 
+type MotionTransferResult = Extract<Result, { view: "motionTransfer" }>;
+
+type OutputsResult = Extract<Result, { view: "outputs" }>;
+
 const finished = new Set(["done", "failed", "unknown"]);
 
 /**
@@ -173,19 +177,22 @@ function RenderMonitor({
 const RELOAD_MS = 2000;
 
 /**
- * The result and poster of a take the stream reports done. The page's data has them when it was
- * loaded done; otherwise they are loaded (`loadResult`), and again every `RELOAD_MS` until the
- * stored row has them (the stream can say done before the commit is visible, and a load can fail)
- * or the page goes, so it never stays on "Finishing".
+ * What a take the stream reports done shows (`select`, from the page's data): `initial` when the
+ * page was loaded done; otherwise it is loaded (`loadResult`), and again every `RELOAD_MS` until
+ * the stored row has it (the stream can say done before the commit is visible, and a load can
+ * fail) or the page goes, so it never stays on "Finishing".
  */
-function useResultAssets(data: Result, done: boolean) {
-  const [loaded, setLoaded] = useState<Pick<Result, "final" | "poster"> | null>(null);
-  const assets = data.final ? data : loaded;
-  const final = assets?.final ?? null;
-  const id = data.generation.id;
+function useWhenDone<Shown>(
+  id: string,
+  done: boolean,
+  initial: Shown | null,
+  select: (result: Result | null) => Shown | null,
+) {
+  const [loaded, setLoaded] = useState<Shown | null>(null);
+  const shown = initial ?? loaded;
 
   useEffect(() => {
-    if (!done || final) {
+    if (!done || shown) {
       return;
     }
 
@@ -193,14 +200,14 @@ function useResultAssets(data: Result, done: boolean) {
     let stopped = false;
 
     const attempt = async () => {
-      const result = await loadResult({ data: id }).catch(() => null);
+      const result = select(await loadResult({ data: id }).catch(() => null));
 
       if (stopped) {
         return;
       }
 
-      if (result?.final) {
-        setLoaded({ final: result.final, poster: result.poster });
+      if (result) {
+        setLoaded(result);
       } else {
         timer = setTimeout(() => void attempt(), RELOAD_MS);
       }
@@ -212,23 +219,110 @@ function useResultAssets(data: Result, done: boolean) {
       stopped = true;
       clearTimeout(timer);
     };
-  }, [done, final, id]);
+  }, [done, shown, id, select]);
 
-  return { final, poster: assets?.poster ?? null };
+  return shown;
+}
+
+/** The result and poster of a Motion Transfer take, as `loadResult` reads them. */
+function resultAssets(result: Result | null) {
+  return result?.view === "motionTransfer" && result.final
+    ? { final: result.final, poster: result.poster }
+    : null;
+}
+
+/** The outputs of a generation of another workflow, once it has them. */
+function doneOutputs(result: Result | null) {
+  return result?.view === "outputs" && result.outputs.length > 0 ? result.outputs : null;
 }
 
 /**
- * `/g/:id`: Step 4 and Step 5 of Motion Transfer. While it renders: the monitor, the named stages and
+ * `/g/:id` of a generation of a workflow other than Motion Transfer, by the media of its outputs:
+ * its status as its event stream reports it and, once done, each image output (an image
+ * generation has no poster and no video).
+ */
+function OutputsView({ data }: { data: OutputsResult }) {
+  const live = useLiveGeneration(data.generation);
+
+  const outputs = useWhenDone(
+    data.generation.id,
+    live.generation.status === "done",
+    data.outputs.length > 0 ? data.outputs : null,
+    doneOutputs,
+  );
+
+  // Done by the stream but its outputs not loaded yet: still finishing, as far as the page shows.
+  const status =
+    live.generation.status === "done" && !outputs ? "finalizing" : live.generation.status;
+
+  const images = outputs?.filter(({ media }) => media === "image") ?? [];
+
+  return (
+    <div className="relative isolate min-h-svh">
+      <PageGlow />
+      <main className="mx-auto flex w-full max-w-150 flex-col gap-6 px-4 pt-10 pb-18 sm:px-8">
+        <p
+          aria-label="Generation status"
+          className="inline-flex items-center gap-2 hud text-muted-foreground"
+          data-status={status}
+          role="status"
+        >
+          <StatusDot tone={status === "done" ? "ok" : finished.has(status) ? "danger" : "tally"} />
+          {status === "done"
+            ? "Done"
+            : finished.has(status)
+              ? endingTitle(live.generation)
+              : stageTitle(status)}
+          {live.providerUnavailable && " · Comfy is not answering"}
+        </p>
+        {images.map(({ asset, name }) => (
+          <img
+            alt={`Result: ${name}`}
+            className="w-full rounded-3xl border bg-screen"
+            height={asset.height ?? undefined}
+            key={name}
+            src={mediaUrl(asset)}
+            width={asset.width ?? undefined}
+          />
+        ))}
+      </main>
+    </div>
+  );
+}
+
+/**
+ * `/g/:id`: a Motion Transfer take (`MotionTransferView`), or a generation of another workflow by
+ * the media of its outputs (`OutputsView`).
+ */
+export function GenerationView({ data }: { data: Result }) {
+  return data.view === "motionTransfer" ? (
+    <MotionTransferView data={data} />
+  ) : (
+    <OutputsView data={data} />
+  );
+}
+
+/**
+ * Step 4 and Step 5 of Motion Transfer. While it renders: the monitor, the named stages and
  * "Safe to leave" with the page's link. Failed or unknown: why, in plain words, and what can be
- * done. Done: the result (`useResultAssets` loads it when the stream says done). Retry (a new seed) and Re-run (the same recipe) open the child they start; a
+ * done. Done: the result (`useWhenDone` loads it when the stream says done). Retry (a new seed) and Re-run (the same recipe) open the child they start; a
  * re-run of a done generation answers with this one, which the page says. An action that needs
  * the access code asks for it in the dialog, then carries on.
  */
-export function GenerationView({ data }: { data: Result }) {
+function MotionTransferView({ data }: { data: MotionTransferResult }) {
   const { character, motionTitle, origin, recipe, rerunOfParent, signedIn, source } = data;
   const live = useLiveGeneration(data.generation);
   const { providerUnavailable } = live;
-  const { final, poster } = useResultAssets(data, live.generation.status === "done");
+
+  const assets = useWhenDone(
+    data.generation.id,
+    live.generation.status === "done",
+    resultAssets(data),
+    resultAssets,
+  );
+
+  const final = assets?.final ?? null;
+  const poster = assets?.poster ?? null;
 
   // Done by the stream but its result not loaded yet: still finishing, as far as the page shows.
   const generation: GenerationSnapshot =

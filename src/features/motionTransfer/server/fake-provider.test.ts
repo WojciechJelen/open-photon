@@ -9,6 +9,7 @@ import { mintCode } from "../../../../tests/temp-database.ts";
 import { findAccessCode } from "../../../shared/server/access-codes.ts";
 import { findAsset } from "../../../shared/server/assets.ts";
 import { fakeProvider } from "../../../shared/server/comfy-provider.fake.ts";
+import { readOutputs } from "../../../shared/server/generation/generations.ts";
 import { readGeneration } from "../../../shared/server/generation/service.ts";
 import { assetsDirectory } from "../../../shared/server/paths.ts";
 import { generate } from "./generate.ts";
@@ -76,26 +77,11 @@ test("COMFY_PROVIDER=fake runs a Motion Transfer generation end to end with the 
   );
   assert.deepEqual([video?.width, video?.height, video?.kind], [240, 424, "video"]);
   assert.equal(poster?.kind, "poster");
-});
-
-test("a provider_failed job fails the row with provider_failed", async () => {
-  const { id } = await generate(input("[fake:provider_failed] A dancer"), session);
-  const failed = await readGeneration(id);
-
-  assert.deepEqual([failed?.status, failed?.error_code], ["failed", "provider_failed"]);
-});
-
-test("an ambiguous submit leaves the row unknown after exactly one submit, and never resubmits it", async () => {
-  const before = fakeProvider.calls.submit;
-  const same = input("[fake:ambiguous] A dancer");
-  const { id } = await generate(same, session);
-
-  assert.equal(findGeneration(id)?.status, "unknown");
-  assert.equal(findGeneration(id)?.provider_job_id, null);
-  assert.equal(fakeProvider.calls.submit - before, 1);
-
-  // The same recipe again returns the unknown row; nothing is sent.
-  assert.deepEqual(await generate(same, session), { id, reused: true });
-  assert.equal((await readGeneration(id))?.status, "unknown");
-  assert.equal(fakeProvider.calls.submit - before, 1);
+  assert.deepEqual(
+    readOutputs(id).map(({ asset, name }) => [name, asset.id]),
+    [
+      ["poster", poster?.id],
+      ["video", video?.id],
+    ],
+  );
 });

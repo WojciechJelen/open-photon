@@ -19,6 +19,12 @@ export const shareTitle = "Motion Transfer: one motion, another character";
 export const shareDescription =
   "The motion of one clip, performed by another character. Made with Open Photon on the Wan Animate 2 workflow.";
 
+/** What the share page of a generation of another workflow is called. */
+export const outputsShareTitle = "Made with Open Photon";
+
+export const outputsShareDescription =
+  "Made with Open Photon, on open-weights ComfyUI workflows. Run it yourself.";
+
 /** A SHA-256 shortened for reading: its first and last eight characters. */
 function shortHash(sha256: string) {
   return `${sha256.slice(0, 8)}…${sha256.slice(-8)}`;
@@ -50,13 +56,66 @@ function InputRow({
 }
 
 /**
- * The public share page of a done generation (`/r/:slug`): the result on a loop with the source
+ * The public share page of a done generation of a workflow other than Motion Transfer, by the
+ * media of its outputs: each image output, with Download (an image generation has no poster and
+ * no video).
+ */
+function OutputsSharePage({ share }: { share: Extract<Share, { view: "outputs" }> }) {
+  const images = share.outputs.filter(({ media }) => media === "image");
+
+  return (
+    <div className="relative isolate">
+      <PageGlow />
+      <SiteHeader>
+        <span className="hidden sm:inline-flex">
+          <OpenWeightsBadge />
+        </span>
+      </SiteHeader>
+      <main className="mx-auto flex w-full max-w-150 flex-col gap-6 px-4 pt-10 pb-24 sm:px-8">
+        <Hud>{outputsShareTitle}</Hud>
+        {images.map(({ asset, name }) => (
+          <figure className="flex flex-col gap-3" key={name}>
+            <img
+              alt={`Result: ${name}`}
+              className="w-full rounded-3xl border bg-screen"
+              height={asset.height ?? undefined}
+              src={mediaUrl(asset)}
+              width={asset.width ?? undefined}
+            />
+            <Button asChild size="lg" variant="outline">
+              <a download href={`${mediaUrl(asset)}?download=1`}>
+                <DownloadIcon />
+                Download
+              </a>
+            </Button>
+          </figure>
+        ))}
+      </main>
+      <SiteFooter tagline="Open Photon · MIT licensed · Built on ComfyUI" />
+    </div>
+  );
+}
+
+/**
+ * `/r/:slug`: a Motion Transfer take (`MotionTransferSharePage`), or a generation of another
+ * workflow by the media of its outputs (`OutputsSharePage`).
+ */
+export function SharePageView({ share }: { share: Share }) {
+  return share.view === "motionTransfer" ? (
+    <MotionTransferSharePage share={share} />
+  ) : (
+    <OutputsSharePage share={share} />
+  );
+}
+
+/**
+ * The public share page of a done Motion Transfer take: the result on a loop with the source
  * clip beside it, "Use this motion with my character" (the wizard with the motion kept, at the
  * character step), Download, and how the shot was made: the inputs (a character photo shows only
  * when it is a sample, as an upload is private), the recipe, and the model files the workflow
  * loads, with a license only where the repository records one.
  */
-export function SharePageView({ share }: { share: Share }) {
+function MotionTransferSharePage({ share }: { share: Extract<Share, { view: "motionTransfer" }> }) {
   const { character, final, models, motionTitle, poster, recipe, source } = share;
   const portrait = (final.height ?? 0) >= (final.width ?? 0);
   const useMotion = { motion: source.id, step: "character" as const };
