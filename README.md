@@ -28,9 +28,10 @@ COMFY_API_KEY=your-cloud-key
 ```
 
 **Runpod:** deploy the [Open Photon template](https://console.runpod.io/deploy?template=iqcvzqgt1q)
-on an NVIDIA GPU with a **CUDA 13-compatible driver**. **48 GB VRAM is recommended**
-(tested on A40). The published image also passed a 5-second render on an RTX 5090
-32 GB, peaking at 31,426 MiB with little headroom.
+on an NVIDIA GPU with a **CUDA 13-compatible driver**. **48 GB VRAM is recommended**:
+image `0.2.0` on an A40 peaked at 38,935 MiB for a 5-second Motion Transfer take and
+10,653 MiB for a character image. Image `0.1.0` also passed a 5-second render on an
+RTX 5090 32 GB, peaking at 31,426 MiB with little headroom.
 Set `PROXY_TOKEN` to a long random secret, and `HF_TOKEN` to a Hugging Face token of an account
 that accepted the FLUX Kommunity License on
 [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy)
@@ -39,7 +40,9 @@ supplies the GPU image, port `8189` and an 80 GB persistent volume at `/workspac
 `Serving the Comfy API v2` in the logs; the first boot downloads 43.4 GB (40.4 GiB) of models to
 that volume: 25.6 GB for Motion Transfer and 17.7 GB for character generation (FLUX 3 Image Klein
 distilled int8, its Qwen3-VL text encoder, its prompt upsampler and the FLUX 2 VAE), which leaves
-about 36 GB for ComfyUI's inputs and outputs. A volume of your own needs at least 50 GB. The GPU
+about 36 GB for ComfyUI's inputs and outputs (on the A40 test, the download took 5 minutes and
+the API served 9 minutes after the pod was created; a restart downloads nothing but re-checks
+every file, about 4 minutes). A volume of your own needs at least 50 GB. The GPU
 runs one job at a time, so it must fit the largest workflow, Motion Transfer; the figures above
 are its own. Then save:
 

@@ -487,9 +487,9 @@ the fake provider otherwise.
 
 | Workflow | Lock | Weights | Peak VRAM |
 | --- | --- | --- | --- |
-| `motion-transfer.v1` (Wan Animate 2) | 5 files, `Comfy-Org/Wan-Animate-2` @ `e7181fe` | 25.6 GB (23.9 GiB) | Measured 31,426 MiB for a 5 s 480×848 render on an RTX 5090 32 GB; 48 GB recommended (tested on A40) |
-| `character-generation.v1` (FLUX 3 Image Klein distilled, int8) | 3 files: 2 from `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated), VAE from `Comfy-Org/Flux-2-Klein-4B` @ `533c4cb` | 11.0 GB (10.3 GiB) | Not measured (no pod); BFL's card: the int8 files run on 8 GB GPUs |
-| `character-caption.v1` (FLUX 3 prompt upsampler, w4a8) | 1 file, `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated) | 6.7 GB (6.3 GiB) | Not measured (no pod) |
+| `motion-transfer.v1` (Wan Animate 2) | 5 files, `Comfy-Org/Wan-Animate-2` @ `e7181fe` | 25.6 GB (23.9 GiB) | Measured 31,426 MiB for a 5 s 480×848 render on an RTX 5090 32 GB and 38,935 MiB on an A40 48 GB (image `0.2.0`, device total incl. 9,533 MiB left by the jobs before it); 48 GB recommended |
+| `character-generation.v1` (FLUX 3 Image Klein distilled, int8) | 3 files: 2 from `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated), VAE from `Comfy-Org/Flux-2-Klein-4B` @ `533c4cb` | 11.0 GB (10.3 GiB) | Measured 10,653 MiB for 768×1344 on an A40 (device total incl. 6,229 MiB the caption job left loaded) |
+| `character-caption.v1` (FLUX 3 prompt upsampler, w4a8) | 1 file, `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated) | 6.7 GB (6.3 GiB) | Measured 6,601 MiB on an A40 (from 271 MiB idle) |
 | Every lock (installed on each pod boot) | 9 distinct files | 43.4 GB (40.4 GiB) | One GPU runs one job at a time: the largest peak, Motion Transfer's |
 
 Weights are the `x-linked-size` of each pinned URL (for the gated FLUX 3 files, which answer 401
@@ -518,11 +518,12 @@ feature locks, 0 conflicts" and `npm run check:open-weights` "310 nodes scanned 
 | Characters API, idempotent save under concurrency, privacy of uploads | Proven in tests | `src/features/characters/tests/*.test.ts`, `*.spec.ts` |
 | Fake provider refused by a built server | Proven | `NODE_ENV=production node .output/server/index.mjs` exits 1 (F1 report) |
 | Waiting queue against a real provider | Not verified on Cloud or selfhost | — |
-| Any render on the self-host image built from this branch | Not verified on selfhost | No pod credentials |
+| Any render on the self-host image | Proven on selfhost (Runpod A40, image `0.2.0` from `723614c`) | `src/features/characterBuilder/workflows/README.md`, "Self-host": caption, image and Motion Transfer generations passed `scripts/verify-selfhost.mjs` |
 | Packaged runtime: image lists namespaced migrations, a fake generation inside the image, restart in the image | Not verified | Only `docker build --check` for both Dockerfiles and an arm64 app image listing `src/features/characterBuilder` were run |
 | Two worktrees running `test:server` and `test:e2e` at once | Not verified | Ports and databases are parameterized; no simultaneous run recorded |
 
-To verify on self-host, someone with a Runpod pod:
+Steps 2–4 below passed on a Runpod A40 with the published image `0.2.0` (2026-10-23; step 1's
+rebuild and step 5 were not run). To repeat them, someone with a Runpod pod:
 
 1. Builds and pushes the self-host image from the foundation commit
    (`docker build --platform linux/amd64 -f selfhost/Dockerfile -t <registry>/open-photon-comfy:<tag> .`)
@@ -551,4 +552,5 @@ To verify on self-host, someone with a Runpod pod:
   self-host image its `workflows/`. Decide whether it stays under `src/features/`.
 - No HTTP route calls `submitMany` and no route cancels a waiting generation; batches (DEV-292)
   own both.
-- Self-host, packaged-runtime and two-worktree verification (above).
+- Waiting queue against a real provider (step 5 above), packaged-runtime and two-worktree
+  verification.
