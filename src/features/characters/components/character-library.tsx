@@ -9,6 +9,7 @@ import { CharacterUpload } from "#/features/characters/components/character-uplo
 import { RenameDialog, type RenameSession } from "#/features/characters/components/rename-dialog";
 import type { CharacterSummary } from "#/features/characters/contracts";
 import {
+  accessibleNames,
   animateHref,
   type LibrarySearch,
   type CreateCharacterHref,
@@ -377,6 +378,8 @@ function Results({
   const filtered = query !== "" || favorites;
   const workspaceEmpty = !filtered && characters.every(({ is_sample }) => is_sample);
 
+  const labels = accessibleNames(characters);
+
   return (
     <div className="flex flex-col gap-4">
       <p aria-live="polite" className="text-sm text-muted-foreground">
@@ -418,6 +421,7 @@ function Results({
                 animateHref={animateHref(draft, character.id)}
                 character={character}
                 favoritePending={pendingFavorite === character.id}
+                label={labels.get(character.id) ?? ""}
                 onFavorite={() => onFavorite(character)}
                 onRename={() => onRename(character)}
                 ref={character.id === selected ? selectedCard : undefined}

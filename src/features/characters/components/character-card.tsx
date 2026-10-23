@@ -56,12 +56,15 @@ function Provenance({ character }: { character: CharacterSummary }) {
  * One character of the library: its image (a placeholder when it does not load), origin badge,
  * name (the title, or what it is), provenance, a favorite toggle, "Animate" (`animateHref`, to the
  * Motion Transfer wizard with it picked) and Rename (not for a sample, whose title is fixed).
- * `selected` rings it, as the character the page was opened on.
+ * `label` is what the card and its controls are called to assistive technology
+ * (`accessibleNames`: an untitled one with its origin and when it was added). `selected` rings
+ * it, as the character the page was opened on.
  */
 export function CharacterCard({
   animateHref,
   character,
   favoritePending,
+  label,
   onFavorite,
   onRename,
   ref,
@@ -70,6 +73,7 @@ export function CharacterCard({
   animateHref: string;
   character: CharacterSummary;
   favoritePending: boolean;
+  label: string;
   onFavorite: () => void;
   onRename: () => void;
   ref?: Ref<HTMLElement>;
@@ -81,7 +85,7 @@ export function CharacterCard({
   return (
     <article
       aria-current={selected ? "true" : undefined}
-      aria-label={name}
+      aria-label={label}
       className={cn(
         "flex h-full flex-col overflow-hidden rounded-xl border bg-card focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring",
         selected && "border-transparent shadow-picked",
@@ -98,7 +102,7 @@ export function CharacterCard({
         </span>
         <span className="absolute top-1.5 right-1.5 rounded-full bg-background/65 backdrop-blur-md">
           <Button
-            aria-label={favorite ? `Remove ${name} from favorites` : `Add ${name} to favorites`}
+            aria-label={favorite ? `Remove ${label} from favorites` : `Add ${label} to favorites`}
             aria-pressed={favorite}
             // Not `disabled`: the button keeps the keyboard focus while the change is saved.
             aria-disabled={favoritePending}
@@ -117,13 +121,13 @@ export function CharacterCard({
         <Provenance character={character} />
         <div className="mt-auto flex flex-wrap items-center gap-1">
           <Button asChild size="sm">
-            <a aria-label={`Animate ${name}`} href={animateHref}>
+            <a aria-label={`Animate ${label}`} href={animateHref}>
               <PlayIcon aria-hidden="true" />
               Animate
             </a>
           </Button>
           {!character.is_sample && (
-            <Button aria-label={`Rename ${name}`} onClick={onRename} size="sm" variant="ghost">
+            <Button aria-label={`Rename ${label}`} onClick={onRename} size="sm" variant="ghost">
               <PencilIcon aria-hidden="true" />
               Rename
             </Button>

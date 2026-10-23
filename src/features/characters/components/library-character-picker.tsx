@@ -7,6 +7,7 @@ import { CharacterImage } from "#/features/characters/components/character-image
 import { CharacterUpload } from "#/features/characters/components/character-upload";
 import type { PickableCharacter } from "#/features/characters/contracts";
 import {
+  accessibleNames,
   characterName,
   type CreateCharacterHref,
   libraryHref,
@@ -19,15 +20,19 @@ import { Viewfinder } from "#/shared/components/brand";
 /** A character as a pick: the whole tile toggles it (`aria-pressed`). */
 function CharacterTile({
   character,
+  label,
   onToggle,
   picked,
 }: {
   character: PickableCharacter;
+  /** Its accessible name (`accessibleNames`); said instead of the tile's text only when untitled. */
+  label: string;
   onToggle: () => void;
   picked: boolean;
 }) {
   return (
     <button
+      aria-label={character.title ? undefined : label}
       aria-pressed={picked}
       className={cn(
         "relative block aspect-3/4 w-full cursor-pointer overflow-hidden rounded-xl border bg-card text-left text-foreground transition hover:-translate-y-0.5 hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring",
@@ -89,6 +94,9 @@ export function LibraryCharacterPicker({
   // A picked character this visitor may not see (an upload, without the code): a locked tile.
   const locked =
     characterId !== undefined && !character && !listed.some(({ id }) => id === characterId);
+
+  const shown = [...missing, ...listed];
+  const labels = accessibleNames(shown);
 
   return (
     <div className="flex flex-col gap-4">
@@ -159,10 +167,11 @@ export function LibraryCharacterPicker({
             </button>
           </li>
         )}
-        {[...missing, ...listed].map((each) => (
+        {shown.map((each) => (
           <li key={each.id}>
             <CharacterTile
               character={each}
+              label={labels.get(each.id) ?? ""}
               onToggle={() => onPick(each.id === characterId ? undefined : each.id)}
               picked={each.id === characterId}
             />
