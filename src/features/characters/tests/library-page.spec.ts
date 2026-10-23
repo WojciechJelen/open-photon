@@ -430,6 +430,9 @@ test("the library fits a phone and a desktop without scrolling sideways, and wor
     "aria-pressed",
     "false",
   );
+  // A sample shows what made it (FLUX 3 provenance) between its favorite toggle and Animate.
+  await page.keyboard.press("Tab");
+  await expect(sample.getByText("Made with", { exact: true })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(sample.getByRole("link", { name: "Animate Maya" })).toBeFocused();
 });
