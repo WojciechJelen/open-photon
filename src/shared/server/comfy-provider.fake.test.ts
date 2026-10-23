@@ -117,9 +117,36 @@ test("an ambiguous submit is accepted by the fake, then throws an error the app 
   assert.equal(fakeProvider.calls.submit, before + 1);
 
   // The job exists all the same, as an accepted request would on Comfy: its id is the key's.
-  const id = `fake-${createHash("sha256").update("key-ambiguous").digest("hex").slice(0, 32)}`;
+  const id = fakeProvider.jobIdFor("key-ambiguous") ?? "";
+  const hash = createHash("sha256").update("key-ambiguous").digest("hex").slice(0, 32);
 
+  assert.ok(id.startsWith(`fake-${hash}.`));
   assert.equal((await fakeProvider.job(id)).status, "succeeded");
+});
+
+test("a fake job runs for its steps from its submit, and its id alone describes it", async () => {
+  process.env.COMFY_FAKE_STEP_MS = "60000";
+
+  try {
+    const id = await fakeProvider.submit(graph("a slow dancer"), "key-slow");
+    const job = await fakeProvider.job(id);
+
+    assert.deepEqual([job.status, job.error, job.getOutputs("2")], ["running", null, []]);
+  } finally {
+    process.env.COMFY_FAKE_STEP_MS = "0";
+  }
+
+  // A job id this fake never handed out (a restarted server's fake asked about the stopped one's
+  // job) is read from the id itself; anything else is no job.
+  const described = Buffer.from(
+    JSON.stringify({ outputs: [["3", "image"]], scenario: "success", submittedAt: 0 }),
+  ).toString("base64url");
+
+  const earlier = await fakeProvider.job(`fake-${"0".repeat(32)}.${described}`);
+
+  assert.equal(earlier.status, "succeeded");
+  assert.equal(earlier.getOutputs("3")[0]?.contentType, "image/png");
+  await assert.rejects(fakeProvider.job("fake-unknown"), { message: /has no job/ });
 });
 
 test("an upload is named by the file's hash", async () => {
