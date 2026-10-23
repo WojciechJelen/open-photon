@@ -6,6 +6,7 @@ import { workflowModelFiles } from "../../../shared/server/models-lock.ts";
 import { getCharacter, visibleCharacter } from "../../characters/api.ts";
 import { motionTransferWorkflow } from "../workflows/registry.ts";
 import { findShared } from "./generations.ts";
+import { COMPARE_OUTPUT } from "./media/compare.ts";
 import { sampleMotionTitle, sourceClip } from "./shot.ts";
 
 /**
@@ -19,7 +20,8 @@ export function publicOrigin() {
 /**
  * What `/r/:slug` shows of a Motion Transfer generation, or `null` for a slug no done one has: its
  * named outputs (`outputs`; the result and its poster as `final` and `poster`, with absolute URLs
- * from `origin` for the Open Graph tags) and the source clip with its sample title if it is one,
+ * from `origin` for the Open Graph tags, and its side-by-side as `compare`, `null` when its stitch
+ * failed) and the source clip with its sample title if it is one,
  * the character as a visitor without a session may see it (`visibleCharacter`: a sample's, never
  * an uploaded photo), the recipe, and the model files the recipe's workflow loads, with their
  * licenses once `models.lock` pins them (`null` when the stored workflow file is no longer the
@@ -47,6 +49,7 @@ export function readShare(slug: string, origin: string) {
 
   return {
     character: visibleCharacter(character, false),
+    compare: outputs.find(({ name }) => name === COMPARE_OUTPUT)?.asset ?? null,
     final,
     finishedAt: row.finished_at,
     models,

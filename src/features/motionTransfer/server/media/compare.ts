@@ -33,7 +33,14 @@ function videoOf(asset: StoredAsset | null, what: string) {
     throw new Error(`The ${what} is not a stored video with a size, a length and a frame rate`);
   }
 
-  return { durationMs, fps, height, id: asset.id, path: resolve(assetsDirectory(), asset.path), width };
+  return {
+    durationMs,
+    fps,
+    height,
+    id: asset.id,
+    path: resolve(assetsDirectory(), asset.path),
+    width,
+  };
 }
 
 /**

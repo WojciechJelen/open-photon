@@ -71,7 +71,8 @@ function RemixCard({
 
 /**
  * Step 5, the result: the source and the result on one clock, side by side or as a swipe (swipe
- * by default below 640 px); Download first; the share link; "Make another take", which opens the
+ * by default below 640 px); Download first, then the vertical side-by-side (`compare`) when it was
+ * stitched; the share link; "Make another take", which opens the
  * wizard with the motion or the character kept and this take's direction (`from`) to start from;
  * and the recipe, folded, with the generation actions (`generationActions`, by default Re-run)
  * and how a re-run went.
@@ -79,6 +80,7 @@ function RemixCard({
 export function ResultView({
   character,
   child,
+  compare,
   draft,
   final,
   generation,
@@ -92,6 +94,8 @@ export function ResultView({
 }: {
   character: PickableCharacter | null;
   child: ChildState;
+  /** The side-by-side's URL; `undefined` when its stitch failed. */
+  compare: string | undefined;
   /** This take as a draft, for the generation actions. */
   draft: DraftSnapshot;
   final: Asset;
@@ -157,13 +161,21 @@ export function ResultView({
         className="flex w-full shrink-0 flex-col gap-4 lg:w-90 lg:pt-20"
       >
         <div className="flex flex-col gap-4 rounded-2xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-5">
-          <div className="grid">
+          <div className="grid gap-2.5">
             <Button asChild size="lg">
               <a download href={`${result}?download=1`}>
                 <DownloadIcon />
                 Download MP4
               </a>
             </Button>
+            {compare && (
+              <Button asChild size="lg" variant="outline">
+                <a download href={`${compare}?download=1`}>
+                  <DownloadIcon />
+                  Download side-by-side (9:16)
+                </a>
+              </Button>
+            )}
           </div>
           {generation.share_slug && <ShareLink origin={origin} slug={generation.share_slug} />}
         </div>
