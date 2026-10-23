@@ -473,13 +473,15 @@ the fake provider otherwise.
 | Workflow | Lock | Weights | Peak VRAM |
 | --- | --- | --- | --- |
 | `motion-transfer.v1` (Wan Animate 2) | 5 files, `Comfy-Org/Wan-Animate-2` @ `e7181fe` | 25.6 GB (23.9 GiB) | Measured 31,426 MiB for a 5 s 480×848 render on an RTX 5090 32 GB; 48 GB recommended (tested on A40) |
-| `character-generation.v1` (FLUX.2 Klein 4B distilled) | 3 files, `Comfy-Org/Flux-2-Klein-4B` @ `533c4cb` | 16.1 GB (15.0 GiB) | Not measured here; Comfy's guide says ≈ 8.4 GB |
-| Every lock (installed on each pod boot) | 8 distinct files | 41.8 GB (38.9 GiB) | One GPU runs one job at a time: the largest peak, Motion Transfer's |
+| `character-generation.v1` (FLUX 3 Image Klein distilled, int8) | 3 files: 2 from `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated), VAE from `Comfy-Org/Flux-2-Klein-4B` @ `533c4cb` | 11.0 GB (10.3 GiB) | Not measured (no pod); BFL's card: the int8 files run on 8 GB GPUs |
+| `character-caption.v1` (FLUX 3 prompt upsampler, w4a8) | 1 file, `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated) | 6.7 GB (6.3 GiB) | Not measured (no pod) |
+| Every lock (installed on each pod boot) | 9 distinct files | 43.4 GB (40.4 GiB) | One GPU runs one job at a time: the largest peak, Motion Transfer's |
 
-Weights are the `x-linked-size` of each pinned URL. Disk and volume must hold the sum; the GPU
-the largest peak. The private deployment guide's disk recommendation (`docs/priv/deployment.md`)
-was written for Motion Transfer's ≈ 26 GB and should be revisited before a release that ships the
-Klein lock.
+Weights are the `x-linked-size` of each pinned URL (for the gated FLUX 3 files, which answer 401
+without a token, the `size` the Hugging Face tree API lists). Disk and volume must hold the sum;
+the GPU the largest peak. The private deployment guide's disk recommendation
+(`docs/priv/deployment.md`) was written for Motion Transfer's ≈ 26 GB and should be revisited
+before a release that ships the FLUX 3 locks.
 
 ## Verification status
 
