@@ -140,16 +140,18 @@ source checkout, you can instead use `docker compose up -d` and
 `docker compose exec app node scripts/mint-code.mjs me 100` with the same `.env`.
 Compose uses its own persistent volume.
 
-To fill the home page's result wall, render every sample motion × sample character
-once and mark the takes pre-rendered (public, and free to reopen without a code). With
-the app running, mint a code for at least that many generations, then:
+To fill the home page's result wall and Explore (`/explore`), render every sample motion ×
+sample character once and mark the takes pre-rendered (public, and free to reopen without a
+code). Until then both are empty (Explore says so and links Motion Transfer); nothing fills
+them at boot. With the app running, mint a code for at least that many generations, then:
 
 ```sh
 BASE_URL=http://127.0.0.1:3000 ACCESS_CODE=<code> node scripts/prerender-samples.mjs
 ```
 
 Run it where the database is (in the container: `docker exec open-photon …`). Each
-take is a Wan Animate 2 render billed to your backend; a second run submits nothing.
+take is a Wan Animate 2 render billed to your backend; a second run submits nothing. Every take
+it marks is listed in Explore at once, with its recipe and "Make this with my character".
 
 ## Every model and tool
 

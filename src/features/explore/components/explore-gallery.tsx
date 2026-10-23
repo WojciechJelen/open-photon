@@ -117,20 +117,28 @@ export function ExploreGallery({
       (search.look === undefined || entry.look.key === search.look),
   );
 
+  // No pre-rendered takes: this installation has not run `scripts/prerender-samples.mjs` yet (the
+  // same takes fill the home page's result wall). Said to visitors and to the operator alike.
   if (entries.length === 0) {
     return (
       <div className="flex flex-col items-start gap-4 rounded-2xl border border-dashed p-8">
         <h2 className="text-xl font-semibold">No examples yet</h2>
         <p className="max-w-prose text-soft-foreground">
-          Finished sample takes appear here once they are rendered. Until then, make the first shot
-          yourself.
+          Explore shows this installation's pre-rendered sample takes, and there are none here yet.
+          They appear once the samples are pre-rendered. Meanwhile, start a shot of your own: pick a
+          sample motion and a character in Motion Transfer.
         </p>
         <Button asChild>
           <Link to="/motionTransfer">
-            Open Motion Transfer
+            Start a shot in Motion Transfer
             <ArrowRightIcon aria-hidden="true" />
           </Link>
         </Button>
+        <p className="max-w-prose text-sm text-muted-foreground">
+          Running this installation? Pre-render the samples with{" "}
+          <code className="font-mono text-xs">scripts/prerender-samples.mjs</code> (README,
+          Container notes); the same takes fill the home page's result wall.
+        </p>
       </div>
     );
   }

@@ -296,7 +296,12 @@ pages and `explore.functions.ts#loadExplore`/`#loadExample`, indexable; it opens
 curated set is DEV-280's sample matrix, not a second one: every pre-rendered take
 (`is_prerendered`, marked by `scripts/prerender-samples.mjs`) that is a done Motion Transfer
 generation with a share page and a `video` output (`server/catalog.ts`). A take someone made is
-published as it becomes done but is not curated, so it is never listed. Each example is read
+published as it becomes done but is not curated, so it is never listed. Like the home page's
+result wall, Explore is empty until the installation's operator runs
+`BASE_URL=… ACCESS_CODE=… node scripts/prerender-samples.mjs` (README, "Container notes"; a
+billed render per sample motion × character); nothing fills it at boot, since a feature never
+inserts `generations` rows itself. Its empty state says so and links Motion Transfer. Each
+example is read
 through the share contract (`readGenerationShare`: outputs, the recipe as `shareRecipe` lets a
 public page show it) and shows only what is public on its own: the result, poster and
 side-by-side (shared outputs); the source clip only when it is a sample motion's (any other clip
