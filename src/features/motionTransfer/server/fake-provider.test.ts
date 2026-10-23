@@ -77,11 +77,21 @@ test("COMFY_PROVIDER=fake runs a Motion Transfer generation end to end with the 
   );
   assert.deepEqual([video?.width, video?.height, video?.kind], [240, 424, "video"]);
   assert.equal(poster?.kind, "poster");
+
+  const outputs = readOutputs(id);
+  const compare = outputs.find(({ name }) => name === "compare")?.asset;
+
   assert.deepEqual(
-    readOutputs(id).map(({ asset, name }) => [name, asset.id]),
+    outputs.map(({ asset, name }) => [name, asset.id]),
     [
+      ["compare", compare?.id],
       ["poster", poster?.id],
       ["video", video?.id],
     ],
+  );
+  // The side-by-side is stitched from the fixture result and the stored sample clip.
+  assert.deepEqual(
+    [compare?.source_asset_id, compare?.width, compare?.height],
+    [video?.id, 1080, 1920],
   );
 });
