@@ -153,3 +153,14 @@ export function seededResult() {
     sourceAssetId: String(row?.source_asset_id),
   };
 }
+
+/** A seeded sample character (`placeholder-blue`): its id and its image's asset id. */
+export function sampleCharacter() {
+  const row = query((database) =>
+    database
+      .prepare("SELECT id, image_asset_id FROM characters WHERE slug = 'placeholder-blue'")
+      .get(),
+  );
+
+  return { id: String(row?.id), imageAssetId: String(row?.image_asset_id) };
+}

@@ -21,6 +21,7 @@ function isSampleCharacterImage(asset: StoredAsset) {
  * What the characters feature opens without the access code (`createAccessPolicy`, composed in
  * `src/app/server.ts`): the sample characters' images. An uploaded likeness never is; a generated
  * character's image is a generation's output, public only as that generation's share page makes
- * it (`generationAccess`). Its upload endpoint (`POST /api/characters`) needs a session.
+ * it (`generationAccess`). Its endpoints (`POST /api/characters`, `PATCH /api/characters/:id`)
+ * need a session.
  */
 export const charactersAccess: PublicAccessDeclaration = { isPublicAsset: isSampleCharacterImage };

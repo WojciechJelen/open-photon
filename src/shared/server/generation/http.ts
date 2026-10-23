@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { GenerationReceipt } from "../../contracts.ts";
-import { readLimitedBody, readSession, type Session } from "../access.server.ts";
+import { readJsonBody, readSession, type Session } from "../access.server.ts";
 import { comfyProvider, type Provider } from "../comfy-provider.ts";
 import { requesterKeys, returnToken, takeToken } from "../limits.ts";
 import { GenerateError } from "./errors.ts";
@@ -77,14 +77,13 @@ export async function answer(
  * `invalid_input` for a body that is too large, not JSON, or not the schema.
  */
 export async function readInput<Input>(request: Request, schema: z.ZodType<Input>, limit: number) {
-  const body = await readLimitedBody(request, limit);
-  const input = schema.safeParse(await new Response(body ?? "").json().catch(() => null));
+  const body = await readJsonBody(request, schema, limit);
 
-  if (!input.success) {
-    throw new GenerateError(400, z.prettifyError(input.error), "invalid_input");
+  if (body.error !== undefined) {
+    throw new GenerateError(400, body.error, "invalid_input");
   }
 
-  return input.data;
+  return body.data;
 }
 
 /**
