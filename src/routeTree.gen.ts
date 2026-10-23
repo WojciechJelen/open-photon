@@ -11,17 +11,21 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MotionTransferRouteImport } from './routes/motionTransfer'
+import { Route as ApiBatchesRouteImport } from './routes/api.batches'
 import { Route as ApiCharacterCaptionsRouteImport } from './routes/api.character-captions'
 import { Route as ApiCharacterGenerationsRouteImport } from './routes/api.character-generations'
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiGenerateRouteImport } from './routes/api.generate'
 import { Route as ApiShareOriginRouteImport } from './routes/api.share-origin'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
+import { Route as BatchesIndexRouteImport } from './routes/batches.index'
+import { Route as BatchesBatchIdRouteImport } from './routes/batches.$batchId'
 import { Route as CharactersIndexRouteImport } from './routes/characters.index'
 import { Route as CharactersNewRouteImport } from './routes/characters.new'
 import { Route as GGenerationIdRouteImport } from './routes/g.$generationId'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
+import { Route as ApiBatchesBatchIdRouteImport } from './routes/api.batches.$batchId'
 import { Route as ApiCharactersCharacterIdRouteImport } from './routes/api.characters.$characterId'
 import { Route as ApiDebugHeartbeatRouteImport } from './routes/api.debug.heartbeat'
 import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
@@ -42,6 +46,11 @@ const IndexRoute = IndexRouteImport.update({
 const MotionTransferRoute = MotionTransferRouteImport.update({
   id: '/motionTransfer',
   path: '/motionTransfer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBatchesRoute = ApiBatchesRouteImport.update({
+  id: '/api/batches',
+  path: '/api/batches',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCharacterCaptionsRoute = ApiCharacterCaptionsRouteImport.update({
@@ -74,6 +83,16 @@ const ApiUploadsRoute = ApiUploadsRouteImport.update({
   path: '/api/uploads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BatchesIndexRoute = BatchesIndexRouteImport.update({
+  id: '/batches/',
+  path: '/batches/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BatchesBatchIdRoute = BatchesBatchIdRouteImport.update({
+  id: '/batches/$batchId',
+  path: '/batches/$batchId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CharactersIndexRoute = CharactersIndexRouteImport.update({
   id: '/characters/',
   path: '/characters/',
@@ -98,6 +117,11 @@ const RSlugRoute = RSlugRouteImport.update({
   id: '/r/$slug',
   path: '/r/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBatchesBatchIdRoute = ApiBatchesBatchIdRouteImport.update({
+  id: '/$batchId',
+  path: '/$batchId',
+  getParentRoute: () => ApiBatchesRoute,
 } as any)
 const ApiCharactersCharacterIdRoute =
   ApiCharactersCharacterIdRouteImport.update({
@@ -166,17 +190,21 @@ const ApiGenerationsGenerationIdRetryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/api/batches': typeof ApiBatchesRouteWithChildren
   '/api/character-captions': typeof ApiCharacterCaptionsRoute
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/batches/$batchId': typeof BatchesBatchIdRoute
   '/characters/new': typeof CharactersNewRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
+  '/batches/': typeof BatchesIndexRoute
   '/characters/': typeof CharactersIndexRoute
+  '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
@@ -192,17 +220,21 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/api/batches': typeof ApiBatchesRouteWithChildren
   '/api/character-captions': typeof ApiCharacterCaptionsRoute
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/batches/$batchId': typeof BatchesBatchIdRoute
   '/characters/new': typeof CharactersNewRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
+  '/batches': typeof BatchesIndexRoute
   '/characters': typeof CharactersIndexRoute
+  '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
@@ -219,17 +251,21 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/api/batches': typeof ApiBatchesRouteWithChildren
   '/api/character-captions': typeof ApiCharacterCaptionsRoute
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/batches/$batchId': typeof BatchesBatchIdRoute
   '/characters/new': typeof CharactersNewRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
+  '/batches/': typeof BatchesIndexRoute
   '/characters/': typeof CharactersIndexRoute
+  '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
@@ -247,17 +283,21 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/motionTransfer'
+    | '/api/batches'
     | '/api/character-captions'
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
     | '/api/share-origin'
     | '/api/uploads'
+    | '/batches/$batchId'
     | '/characters/new'
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
+    | '/batches/'
     | '/characters/'
+    | '/api/batches/$batchId'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
@@ -273,17 +313,21 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/motionTransfer'
+    | '/api/batches'
     | '/api/character-captions'
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
     | '/api/share-origin'
     | '/api/uploads'
+    | '/batches/$batchId'
     | '/characters/new'
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
+    | '/batches'
     | '/characters'
+    | '/api/batches/$batchId'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
@@ -299,17 +343,21 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/motionTransfer'
+    | '/api/batches'
     | '/api/character-captions'
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
     | '/api/share-origin'
     | '/api/uploads'
+    | '/batches/$batchId'
     | '/characters/new'
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
+    | '/batches/'
     | '/characters/'
+    | '/api/batches/$batchId'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
@@ -326,16 +374,19 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MotionTransferRoute: typeof MotionTransferRoute
+  ApiBatchesRoute: typeof ApiBatchesRouteWithChildren
   ApiCharacterCaptionsRoute: typeof ApiCharacterCaptionsRoute
   ApiCharacterGenerationsRoute: typeof ApiCharacterGenerationsRouteWithChildren
   ApiCharactersRoute: typeof ApiCharactersRouteWithChildren
   ApiGenerateRoute: typeof ApiGenerateRoute
   ApiShareOriginRoute: typeof ApiShareOriginRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
+  BatchesBatchIdRoute: typeof BatchesBatchIdRoute
   CharactersNewRoute: typeof CharactersNewRoute
   GGenerationIdRoute: typeof GGenerationIdRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
   RSlugRoute: typeof RSlugRoute
+  BatchesIndexRoute: typeof BatchesIndexRoute
   CharactersIndexRoute: typeof CharactersIndexRoute
   ApiDebugHeartbeatRoute: typeof ApiDebugHeartbeatRoute
   ApiDebugStreamsRoute: typeof ApiDebugStreamsRoute
@@ -357,6 +408,13 @@ declare module '@tanstack/react-router' {
       path: '/motionTransfer'
       fullPath: '/motionTransfer'
       preLoaderRoute: typeof MotionTransferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/batches': {
+      id: '/api/batches'
+      path: '/api/batches'
+      fullPath: '/api/batches'
+      preLoaderRoute: typeof ApiBatchesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/character-captions': {
@@ -401,6 +459,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiUploadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/batches/': {
+      id: '/batches/'
+      path: '/batches'
+      fullPath: '/batches/'
+      preLoaderRoute: typeof BatchesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/batches/$batchId': {
+      id: '/batches/$batchId'
+      path: '/batches/$batchId'
+      fullPath: '/batches/$batchId'
+      preLoaderRoute: typeof BatchesBatchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/characters/': {
       id: '/characters/'
       path: '/characters'
@@ -435,6 +507,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/r/$slug'
       preLoaderRoute: typeof RSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/batches/$batchId': {
+      id: '/api/batches/$batchId'
+      path: '/$batchId'
+      fullPath: '/api/batches/$batchId'
+      preLoaderRoute: typeof ApiBatchesBatchIdRouteImport
+      parentRoute: typeof ApiBatchesRoute
     }
     '/api/characters/$characterId': {
       id: '/api/characters/$characterId'
@@ -516,6 +595,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ApiBatchesRouteChildren {
+  ApiBatchesBatchIdRoute: typeof ApiBatchesBatchIdRoute
+}
+
+const ApiBatchesRouteChildren: ApiBatchesRouteChildren = {
+  ApiBatchesBatchIdRoute: ApiBatchesBatchIdRoute,
+}
+
+const ApiBatchesRouteWithChildren = ApiBatchesRoute._addFileChildren(
+  ApiBatchesRouteChildren,
+)
+
 interface ApiCharacterGenerationsRouteChildren {
   ApiCharacterGenerationsGenerationIdCharacterRoute: typeof ApiCharacterGenerationsGenerationIdCharacterRoute
 }
@@ -571,16 +662,19 @@ const ApiGenerationsGenerationIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MotionTransferRoute: MotionTransferRoute,
+  ApiBatchesRoute: ApiBatchesRouteWithChildren,
   ApiCharacterCaptionsRoute: ApiCharacterCaptionsRoute,
   ApiCharacterGenerationsRoute: ApiCharacterGenerationsRouteWithChildren,
   ApiCharactersRoute: ApiCharactersRouteWithChildren,
   ApiGenerateRoute: ApiGenerateRoute,
   ApiShareOriginRoute: ApiShareOriginRoute,
   ApiUploadsRoute: ApiUploadsRoute,
+  BatchesBatchIdRoute: BatchesBatchIdRoute,
   CharactersNewRoute: CharactersNewRoute,
   GGenerationIdRoute: GGenerationIdRoute,
   MediaFilenameRoute: MediaFilenameRoute,
   RSlugRoute: RSlugRoute,
+  BatchesIndexRoute: BatchesIndexRoute,
   CharactersIndexRoute: CharactersIndexRoute,
   ApiDebugHeartbeatRoute: ApiDebugHeartbeatRoute,
   ApiDebugStreamsRoute: ApiDebugStreamsRoute,
