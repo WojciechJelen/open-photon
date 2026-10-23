@@ -8,7 +8,8 @@ it: no route, no studio card, no navigation entry, no runtime workflow. Its `wor
 kept as a record of what was tried and makes no claim beyond the evidence below.
 
 **What works: driver retiming.** Three source→target frame pins (28→32, 52→48, 64→64) retime the
-driver clip inside ComfyUI with stock nodes, before Wan Animate 2. Decoding
+driver clip inside ComfyUI, before Wan Animate 2, with existing nodes (core, Basic Data Handling
+and KJNodes) and no new custom node. Decoding
 `samples/results/retimed-driver.mp4` puts source frames 28, 52 and 64 at output frames 32, 48 and
 64: zero-frame error on all three pins (`verification/render-check.json`). Moving target 1 from 32
 to 31 maps source frame 28 to output frame 31 (`workflows/test_poc.py`); the Cloud run with that
@@ -21,7 +22,8 @@ not strictly increasing interior frames, segment speeds outside 0.75–1.5× and
 every pinned pose. In `samples/results/character.mp4` the raised-arms pose of pin 1 (target frame
 32, 2 s) is not clearly reproduced. A second render did not recover it: job `2f2596c3…`
 (`verification/stronger-result.json`, which records status and timing only; 384×672, eight steps,
-pose strength 1.3 per the Oct 21 notes; its video is not kept). The timing of the character's
+pose strength 1.3 per the deleted `features/motion-score.md`, readable with
+`git show 833ccd6^:features/motion-score.md`; its video is not kept). The timing of the character's
 gestures was never measured: every audit of a character render reports `UNMEASURED`
 (`verification/final-editor-run.json`, `verification/fixed-seed-run.json`). There is no pose or
 beat detector, no custom-node pack and no app integration. Exact driver pins do not certify
@@ -29,7 +31,7 @@ generated gestures.
 
 **Cloud evidence** (`samples/results/`), matching the four outputs of Comfy Cloud job
 `eb4247cd-4ac8-46fa-b210-ee570ba4f998` (`verification/generation-result.json`, nodes 41, 44, 61 and
-64; the files were renamed from the Cloud output names):
+64; the files were presumably renamed from the Cloud output names, and no file records the rename):
 
 - `retimed-driver.mp4` (`driver_00001_.mp4`): the driver after retiming.
 - `before-after.mp4` (`before-after_00001_.mp4`): original and retimed driver side by side.
