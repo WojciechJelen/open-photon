@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { generationSchema } from "../src/shared/contracts.ts";
 import {
   addQueuedGeneration,
+  addTextOnlyGeneration,
   cancelWaiting,
   count,
   finishGeneration,
@@ -328,4 +329,42 @@ test("an unknown generation is a not-found page", async ({ page }) => {
 
   expect(response?.status()).toBe(404);
   await expect(status(page)).toHaveCount(0);
+});
+
+test("a done generation whose outputs are all text is final on its page: no Finishing, no polling, no text", async ({
+  page,
+  request,
+}) => {
+  const { id, remove, text } = addTextOnlyGeneration();
+
+  try {
+    // Its API shows the text inline, to a session; it has no share page.
+    const stored = generationSchema.parse(
+      await (await request.get(`/api/generations/${id}`)).json(),
+    );
+
+    expect(stored.status).toBe("done");
+    expect(stored.share_slug).toBeNull();
+    expect(stored.outputs).toEqual([{ media: "text", name: "caption", text }]);
+
+    const reads: string[] = [];
+
+    page.on("request", (sent) => {
+      if (new URL(sent.url()).pathname.startsWith("/_serverFn/")) {
+        reads.push(sent.url());
+      }
+    });
+
+    await open(page, `/g/${id}`);
+    await expect(status(page)).toHaveAttribute("data-status", "done");
+    await expect(page.getByText("This generation has no image to show here.")).toBeVisible();
+    await expect(page.getByText(text)).toHaveCount(0);
+
+    // Done is final: the page never reloads its result.
+    await page.waitForTimeout(4500);
+    await expect(status(page)).toHaveAttribute("data-status", "done");
+    expect(reads, "the page reloaded a final result").toEqual([]);
+  } finally {
+    remove();
+  }
 });

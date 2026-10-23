@@ -24,10 +24,12 @@ test("the SDK uses the proxy token; a Cloud/proxy conflict makes no request", as
 
   assert.ok(address && typeof address !== "string");
 
+  // The real SDK provider, whatever `COMFY_PROVIDER` the suite runs under.
   const env = {
     ...process.env,
     COMFY_API_KEY: "",
     COMFY_BASE_URL: `http://127.0.0.1:${address.port}`,
+    COMFY_PROVIDER: "comfy",
     COMFY_PROXY_TOKEN: "proxy-test-token",
   };
 
