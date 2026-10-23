@@ -6,7 +6,7 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { CharacterCard } from "#/features/characters/components/character-card";
 import { CharacterUpload } from "#/features/characters/components/character-upload";
-import { RenameDialog } from "#/features/characters/components/rename-dialog";
+import { RenameDialog, type RenameSession } from "#/features/characters/components/rename-dialog";
 import type { CharacterSummary } from "#/features/characters/contracts";
 import {
   animateHref,
@@ -49,11 +49,33 @@ export function CharacterLibrary({
   const { favorites, q, selected } = search;
   const { reload, setState, state } = useCharacterList({ favorites, q });
   const access = useAccessCode();
-  const [renaming, setRenaming] = useState<CharacterSummary | null>(null);
+  const [renaming, setRenaming] = useState<RenameSession | null>(null);
+  const sessions = useRef(0);
+  // What had the focus when the rename dialog opened (its Rename button), and the page's heading,
+  // where the focus goes back to when that is gone (a rename the search no longer matches).
+  const opener = useRef<HTMLElement | null>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   const [pendingFavorite, setPendingFavorite] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const askForCode = useCallback(() => access.hold(HELD, "unlock", reload), [access.hold, reload]);
+
+  // Whether a changed character still belongs in the list the filters asked for, as
+  // `GET /api/characters` decides it: a favorite under `favorites`, a title or prompt with `q`.
+  const matches = useCallback(
+    (character: CharacterSummary) => {
+      const needle = q?.toLocaleLowerCase() ?? "";
+
+      return (
+        (!favorites || character.favorite_at !== null) &&
+        (needle === "" ||
+          [character.title, character.prompt].some((text) =>
+            text?.toLocaleLowerCase().includes(needle),
+          ))
+      );
+    },
+    [favorites, q],
+  );
 
   const replace = useCallback(
     (character: CharacterSummary) =>
@@ -62,17 +84,19 @@ export function CharacterLibrary({
           ? {
               ...current,
               characters: current.characters.flatMap((each) =>
-                each.id !== character.id
-                  ? [each]
-                  : favorites && character.favorite_at === null
-                    ? []
-                    : [character],
+                each.id !== character.id ? [each] : matches(character) ? [character] : [],
               ),
             }
           : current,
       ),
-    [favorites, setState],
+    [matches, setState],
   );
+
+  function startRename(character: CharacterSummary) {
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    sessions.current += 1;
+    setRenaming({ character, id: sessions.current });
+  }
 
   async function toggleFavorite(character: CharacterSummary) {
     setPendingFavorite(character.id);
@@ -105,7 +129,11 @@ export function CharacterLibrary({
         <div className="flex flex-col gap-4">
           <Hud>Library</Hud>
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <h1 className="font-display text-4xl leading-none font-bold tracking-display sm:text-5xl">
+            <h1
+              className="font-display text-4xl leading-none font-bold tracking-display outline-none sm:text-5xl"
+              ref={heading}
+              tabIndex={-1}
+            >
               Characters
             </h1>
             {createCharacterHref && (
@@ -158,7 +186,7 @@ export function CharacterLibrary({
                 draft={search.draft}
                 favorites={favorites ?? false}
                 onFavorite={(character) => void toggleFavorite(character)}
-                onRename={setRenaming}
+                onRename={startRename}
                 onRetry={reload}
                 pendingFavorite={pendingFavorite}
                 query={q ?? ""}
@@ -180,13 +208,20 @@ export function CharacterLibrary({
         )}
       </main>
       <RenameDialog
-        character={renaming}
         onAccessRequired={askForCode}
         onClose={() => setRenaming(null)}
-        onRenamed={(character) => {
-          replace(character);
-          setRenaming(null);
+        onClosed={() => {
+          const target = opener.current?.isConnected ? opener.current : heading.current;
+
+          target?.focus();
         }}
+        onRenamed={(character, session) => {
+          // The list takes every saved name; only the dialog that saved it closes, not one
+          // opened for another character since.
+          replace(character);
+          setRenaming((current) => (current?.id === session ? null : current));
+        }}
+        session={renaming}
       />
       <AccessCodeDialog {...access.dialog} />
     </div>

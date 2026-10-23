@@ -475,3 +475,102 @@ test("a library that could not be read says so and loads on Try again", async ({
   await expect(card(page, "Placeholder blue")).toBeVisible();
   await expect(alert).toHaveCount(0);
 });
+
+test("a rename answered after its dialog was dismissed keeps the name but leaves another character's open dialog alone", async ({
+  page,
+  request,
+}) => {
+  const first = unique("First rename");
+  const second = unique("Second rename");
+  const a = await uploadThroughApi(request, first);
+
+  const b = await uploadThroughApi(request, second);
+
+  // A's save is held until B's dialog is open.
+  let release = () => {};
+
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await page.route(`**/api/characters/${a.id}`, async (route) => {
+    await held;
+    await route.continue();
+  });
+  await open(page, "/characters");
+
+  const dialog = page.getByRole("dialog", { name: "Rename character" });
+  const renamed = unique("Renamed late");
+
+  await card(page, first)
+    .getByRole("button", { name: `Rename ${first}` })
+    .click();
+  await dialog.getByLabel("Name").fill(renamed);
+  await dialog.getByRole("button", { name: "Save name" }).click();
+  await expect(dialog.getByRole("button", { name: "Saving…" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+
+  await card(page, second)
+    .getByRole("button", { name: `Rename ${second}` })
+    .click();
+  await dialog.getByLabel("Name").fill("Not saved yet");
+  release();
+
+  // A's answer lands: the library shows its new name, B's dialog stays open with its draft.
+  // (The modal hides the page from the accessibility tree: the cards are found by their ids.)
+  await expect(page.locator(`[data-character-id="${a.id}"]`)).toHaveAttribute(
+    "aria-label",
+    renamed,
+  );
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("Name")).toHaveValue("Not saved yet");
+  await expect(page.locator(`[data-character-id="${b.id}"]`)).toHaveAttribute("aria-label", second);
+});
+
+test("closing the rename dialog returns the focus to its Rename button, or to the heading once a rename leaves the search", async ({
+  page,
+  request,
+}) => {
+  const tag = randomBytes(3).toString("hex");
+  const name = `Alice-${tag}`;
+
+  await uploadThroughApi(request, name);
+  await open(page, `/characters?q=Alice-${tag}`);
+  await expect(card(page, name)).toBeVisible();
+
+  const dialog = page.getByRole("dialog", { name: "Rename character" });
+  const rename = card(page, name).getByRole("button", { name: `Rename ${name}` });
+
+  // Escape and Cancel give the focus back to the button that opened the dialog.
+  await rename.focus();
+  await page.keyboard.press("Enter");
+  await expect(dialog.getByLabel("Name")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(rename).toBeFocused();
+
+  await page.keyboard.press("Enter");
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(rename).toBeFocused();
+
+  // A save that still matches the search: the same button.
+  const still = `Alice-${tag} on stage`;
+
+  await page.keyboard.press("Enter");
+  await dialog.getByLabel("Name").fill(still);
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeHidden();
+  await expect(card(page, still).getByRole("button", { name: `Rename ${still}` })).toBeFocused();
+
+  // A save the search no longer matches: the card leaves, the empty result shows, and the
+  // focus goes to the page's heading.
+  await page.keyboard.press("Enter");
+  await dialog.getByLabel("Name").fill(`Bob ${tag}`);
+  await dialog.getByRole("button", { name: "Save name" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(card(page, still)).toHaveCount(0);
+  await expect(page.getByText("No characters found")).toBeVisible();
+  await expect(page.getByText(`0 characters matching “Alice-${tag}”`)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Characters" })).toBeFocused();
+});
