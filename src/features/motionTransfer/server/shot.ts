@@ -37,69 +37,100 @@ export function sourceClip(row: MotionTransferGeneration): Asset {
 }
 
 /**
- * The id of the newest done pre-rendered sample generation (`is_prerendered`, the sample × sample
- * matrix) whose motion clip is stored, or `null`: one query, for the wizard's access dialog,
- * which offers that take as the free way in. Its page is public, like its result, poster and clip.
+ * The id of the newest done pre-rendered sample generation (`is_prerendered`) of a seeded sample
+ * character and a sample motion's stored clip, or `null`: one query, for the wizard's access
+ * dialog, which offers that take as the free way in. Its page is public, like its result, poster
+ * and clip. A take of any other character or clip is never offered.
  */
 export function findSampleTakeId() {
   const row = database
     .prepare(
       `SELECT generations.id FROM generations
+      JOIN characters
+        ON characters.id = generations.character_id AND characters.is_sample = 1
       JOIN assets ON assets.sha256 = generations.recipe ->> '$.inputs.driving_video_sha256'
-      WHERE is_prerendered = 1 AND status = 'done' AND workflow_id = 'motion-transfer'
+      JOIN motions ON motions.source_asset_id = assets.id
+      WHERE generations.is_prerendered = 1 AND generations.status = 'done'
+        AND generations.workflow_id = 'motion-transfer'
         AND EXISTS (SELECT 1 FROM generation_outputs
           WHERE generation_id = generations.id AND name = 'video')
-      ORDER BY finished_at DESC LIMIT 1`,
+      ORDER BY generations.finished_at DESC LIMIT 1`,
     )
     .get();
 
   return row ? z.object({ id: z.string() }).parse(row).id : null;
 }
 
+/** An `assets` row as one JSON object (`assetSchema`'s fields), or SQL `NULL` without a row. */
+function assetJson(alias: string) {
+  return `CASE WHEN ${alias}.id IS NULL THEN NULL ELSE json_object(
+    'bytes', ${alias}.bytes, 'created_at', ${alias}.created_at,
+    'duration_ms', ${alias}.duration_ms, 'fps', ${alias}.fps,
+    'has_audio', CASE ${alias}.has_audio WHEN 1 THEN json('true') WHEN 0 THEN json('false') END,
+    'height', ${alias}.height, 'id', ${alias}.id, 'kind', ${alias}.kind, 'mime', ${alias}.mime,
+    'role', ${alias}.role, 'sha256', ${alias}.sha256, 'source_asset_id', ${alias}.source_asset_id,
+    'width', ${alias}.width) END`;
+}
+
+/** A column `assetJson` made, as the API shows the asset. */
+const assetColumn = z.string().transform((value) => assetSchema.parse(JSON.parse(value)));
+
 const wallRowSchema = z.object({
-  character_id: z.string().nullable(),
+  character_title: z.string(),
   id: z.string(),
-  poster_id: z.string().nullable(),
+  motion_title: z.string(),
+  poster: assetColumn.nullable(),
   share_slug: z.string(),
-  source_id: z.string(),
-  video_id: z.string(),
+  source: assetColumn,
+  video: assetColumn,
 });
 
+/** How many takes the studio home's result wall shows at most (`listPrerenderedTakes`). */
+const WALL_TAKES = 8;
+
 /**
- * Every done pre-rendered sample take (`is_prerendered`, the sample × sample matrix) with its
- * result, a share page and a stored motion clip, newest first, in one query: what the studio
- * home's result wall shows. Each one's share page (`/r/:slug`), result and poster are public
- * (`isSharedOutput`), and so is its `source` clip (a sample motion's). The titles are its
- * character's and its sample motion's; `null` for one no longer seeded.
+ * The done pre-rendered sample takes (`is_prerendered`) of a seeded sample character
+ * (`is_sample = 1`) and a sample motion's clip, with their result and a share page, in one
+ * query: what the studio home's result wall shows, at most `WALL_TAKES`, by motion title, then
+ * character title, then newest first. A take of any other character or clip is never listed.
+ * Each one's share page (`/r/:slug`), result and poster are public (`isSharedOutput`), and so is
+ * its `source` clip (a sample motion's).
  */
 export function listPrerenderedTakes() {
   return database
     .prepare(
-      `SELECT generations.id, generations.share_slug, generations.character_id,
-        source.id AS source_id, video.asset_id AS video_id, poster.asset_id AS poster_id
+      `SELECT generations.id, generations.share_slug, characters.title AS character_title,
+        motions.title AS motion_title, ${assetJson("source")} AS source,
+        ${assetJson("video_asset")} AS video, ${assetJson("poster_asset")} AS poster
       FROM generations
+      JOIN characters
+        ON characters.id = generations.character_id AND characters.is_sample = 1
       JOIN assets AS source
         ON source.sha256 = generations.recipe ->> '$.inputs.driving_video_sha256'
+      JOIN motions ON motions.source_asset_id = source.id
       JOIN generation_outputs AS video
         ON video.generation_id = generations.id AND video.name = 'video'
+      JOIN assets AS video_asset ON video_asset.id = video.asset_id
       LEFT JOIN generation_outputs AS poster
         ON poster.generation_id = generations.id AND poster.name = 'poster'
-      WHERE is_prerendered = 1 AND status = 'done' AND workflow_id = 'motion-transfer'
-        AND share_slug IS NOT NULL
-      ORDER BY finished_at DESC, generations.id`,
+      LEFT JOIN assets AS poster_asset ON poster_asset.id = poster.asset_id
+      WHERE generations.is_prerendered = 1 AND generations.status = 'done'
+        AND generations.workflow_id = 'motion-transfer' AND generations.share_slug IS NOT NULL
+      ORDER BY motions.title, characters.title, generations.finished_at DESC, generations.id
+      LIMIT ?`,
     )
-    .all()
+    .all(WALL_TAKES)
     .map((row) => {
       const take = wallRowSchema.parse(row);
 
       return {
-        characterTitle: take.character_id ? (getCharacter(take.character_id)?.title ?? null) : null,
+        characterTitle: take.character_title,
         id: take.id,
-        motionTitle: sampleMotionTitle(take.source_id),
-        poster: take.poster_id ? publicAsset(take.poster_id) : null,
-        result: publicAsset(take.video_id),
+        motionTitle: take.motion_title,
+        poster: take.poster,
+        result: take.video,
         shareSlug: take.share_slug,
-        source: publicAsset(take.source_id),
+        source: take.source,
       };
     });
 }

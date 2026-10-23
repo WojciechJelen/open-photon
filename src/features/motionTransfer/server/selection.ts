@@ -137,8 +137,8 @@ export function readSelection(
 
 /**
  * What the studio home `/` shows: the sample motions and characters, the pre-rendered sample
- * take (`findSampleTake`) when there is one, and every pre-rendered take for the result wall
- * (`listPrerenderedTakes`). Public, like the samples and the takes.
+ * take (`findSampleTake`) when there is one, and up to eight pre-rendered sample takes for the
+ * result wall (`listPrerenderedTakes`). Public, like the samples and the takes.
  */
 export function readStudio() {
   return {
