@@ -286,8 +286,8 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
   }
 
   /**
-   * A new enhancement of the description and controls `captionId` was made from (it failed, was
-   * cancelled, or its status is unknown): its own request key until it is answered.
+   * A new enhancement of the description and controls `captionId` was made from (it failed or
+   * was cancelled; an `unknown` one is never sent again): its own request key until answered.
    */
   function captionAgain(captionId: string, fresh = false) {
     const again = () => captionAgain(captionId);
@@ -474,6 +474,7 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
             onChange={setForm}
             onEnhance={() => enhance()}
             onGenerate={(caption, source) => generate(caption, source)}
+            onOpenImage={() => go({ step: "image" })}
             onTryAgain={(id) => captionAgain(id)}
             onUnlock={unlockThen}
             pending={pending}
