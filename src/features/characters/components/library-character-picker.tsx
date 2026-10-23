@@ -6,7 +6,12 @@ import { Button } from "#/components/ui/button";
 import { CharacterImage } from "#/features/characters/components/character-image";
 import { CharacterUpload } from "#/features/characters/components/character-upload";
 import type { PickableCharacter } from "#/features/characters/contracts";
-import { characterName, libraryHref, originLabel } from "#/features/characters/library";
+import {
+  characterName,
+  type CreateCharacterHref,
+  libraryHref,
+  originLabel,
+} from "#/features/characters/library";
 import { useCharacterList } from "#/features/characters/use-character-list";
 import type { CharacterPickerProps } from "#/features/motionTransfer/api";
 import { Viewfinder } from "#/shared/components/brand";
@@ -62,19 +67,21 @@ function CharacterTile({
  * `characterPicker` slot, mounted in `src/app/composer-slots.ts`): a photo upload with likeness
  * consent, then, with a session, every character of the library (uploads, saved generated
  * characters, samples; most recent first), else the samples and the picked character. Links open
- * the library and the builder carrying the composer draft (`draft`), so the picks and direction
- * survive the trip back. A tile toggles the pick (`onPick` with `undefined` unpicks).
+ * the library and, when the composition gives `createCharacterHref`, the builder, carrying the
+ * composer draft (`draft`), so the picks and direction survive the trip back. A tile toggles the
+ * pick (`onPick` with `undefined` unpicks).
  */
 export function LibraryCharacterPicker({
   character,
   characterId,
   characters,
+  createCharacterHref,
   draft,
   hold,
   onPick,
   release,
   signedIn,
-}: CharacterPickerProps) {
+}: CharacterPickerProps & { createCharacterHref?: CreateCharacterHref }) {
   const { reload, state: library } = useCharacterList({ enabled: signedIn });
   const listed = signedIn && library.kind === "ready" ? library.characters : characters;
   const missing = character && !listed.some(({ id }) => id === character.id) ? [character] : [];
@@ -92,12 +99,14 @@ export function LibraryCharacterPicker({
             Open the library
           </a>
         </Button>
-        <Button asChild size="sm" variant="ghost">
-          <a href={libraryHref("/characters/new", draft)}>
-            <SparklesIcon aria-hidden="true" />
-            Describe a character
-          </a>
-        </Button>
+        {createCharacterHref && (
+          <Button asChild size="sm" variant="ghost">
+            <a href={createCharacterHref(draft)}>
+              <SparklesIcon aria-hidden="true" />
+              Describe a character
+            </a>
+          </Button>
+        )}
         {signedIn && library.kind === "loading" && (
           <span className="text-sm text-muted-foreground" role="status">
             Loading your library…
