@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
@@ -69,14 +69,17 @@ export function seedSampleCharacters(database: DatabaseSync) {
       throw new Error(`src/features/characters/samples/characters/${sample.image} is not a PNG`);
     }
 
-    const sha256 = storeSampleFile(bytes, "png");
+    // The manifest's provenance is the render's only while the file is that render, byte for byte;
+    // checked before anything is stored.
+    const sha256 = createHash("sha256").update(bytes).digest("hex");
 
-    // The manifest's provenance is the render's only while the file is that render, byte for byte.
     if (sha256 !== sample.image_sha256) {
       throw new Error(
         `src/features/characters/samples/characters/${sample.image} is not the render its manifest entry names (SHA-256 ${sha256}, not ${sample.image_sha256})`,
       );
     }
+
+    storeSampleFile(bytes, "png");
 
     database
       .prepare(
