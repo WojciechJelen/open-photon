@@ -48,7 +48,7 @@ createdAt(generated.id, "2099-01-01T00:00:02.000Z");
 
 createdAt(newest.id, "2099-01-01T00:00:03.000Z");
 
-const samples = ["placeholder-blue", "placeholder-green", "placeholder-orange"].map((slug) =>
+const samples = ["arthur", "kenji", "maya", "rosa", "theo", "yuki"].map((slug) =>
   sampleCharacter(slug),
 );
 
@@ -97,15 +97,15 @@ test("GET /api/characters?q= finds a case-insensitive part of the title or the p
   assert.deepEqual(await ids("?q=ballet"), [newest.id]);
   assert.deepEqual(await ids("?q=%20RUNNER%20"), [older.id], "trimmed, any letter case");
   assert.deepEqual(await ids("?q=yellow%20rain"), [generated.id], "the prompt counts too");
-  assert.deepEqual(await ids("?q=placeholder%20GREEN"), [sampleCharacter("placeholder-green").id]);
-  assert.deepEqual(await ids("?q=placeholder&samples=0"), []);
+  assert.deepEqual(await ids("?q=KENJI"), [sampleCharacter("kenji").id]);
+  assert.deepEqual(await ids("?q=denim&samples=0"), [], "a sample's prompt is left out with it");
   assert.deepEqual(await ids("?q=nobody-has-this"), []);
   assert.deepEqual(await ids("?q=%25"), [], "a % is a character, not a wildcard");
   assert.deepEqual(await ids("?q="), await ids(), "a blank query lists everything");
 });
 
 test("GET /api/characters?favorites=1 lists only the favorites, still most recent first", async () => {
-  const sample = sampleCharacter("placeholder-orange");
+  const sample = sampleCharacter("maya");
 
   setFavorite(older.id, true);
   setFavorite(newest.id, true);

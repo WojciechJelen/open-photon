@@ -221,9 +221,7 @@ test("a character is renamed in a dialog, 1–80 characters, and keeps its name 
   await expect(card(page, name).getByRole("heading")).toHaveText(name);
 
   // A sample keeps its title: no Rename.
-  await expect(card(page, "Placeholder blue").getByRole("button", { name: /Rename/ })).toHaveCount(
-    0,
-  );
+  await expect(card(page, "Arthur").getByRole("button", { name: /Rename/ })).toHaveCount(0);
 });
 
 test("a favorite is marked with its star, the favorites filter shows only favorites, and both survive a reload", async ({
@@ -320,9 +318,9 @@ test("a workspace with only the samples says so and still offers the samples", a
   await expect(page.locator('[data-empty="workspace"]')).toContainText(
     "No characters of your own yet",
   );
-  await expect(card(page, "Placeholder blue")).toBeVisible();
-  await expect(card(page, "Placeholder blue").getByText("Sample", { exact: true })).toBeVisible();
-  await expect(page.getByText("3 characters")).toBeVisible();
+  await expect(card(page, "Arthur")).toBeVisible();
+  await expect(card(page, "Arthur").getByText("Sample", { exact: true })).toBeVisible();
+  await expect(page.getByText("6 characters")).toBeVisible();
 });
 
 test("without a session the library lists nothing, explains the access code, and opens once it is entered", async ({
@@ -370,10 +368,10 @@ test("Animate opens Motion Transfer with the character picked, keeping the motio
   await open(page, `/characters?draft=${encodeURIComponent(JSON.stringify(draft))}`);
   await expect(page.getByText("Your motion and direction are kept")).toBeVisible();
 
-  const sample = card(page, "Placeholder green");
+  const sample = card(page, "Kenji");
   const id = await sample.getAttribute("data-character-id");
 
-  await sample.getByRole("link", { name: "Animate Placeholder green" }).click();
+  await sample.getByRole("link", { name: "Animate Kenji" }).click();
   await page.waitForURL(/\/motionTransfer\?/);
 
   const search = new URL(page.url()).searchParams;
@@ -384,15 +382,11 @@ test("Animate opens Motion Transfer with the character picked, keeping the motio
   await page.locator("html[data-hydrated]").waitFor();
   // Both picks are there, so the wizard opens on Direct.
   await expect(page).toHaveURL(/step=direct|\/motionTransfer\?(?!.*step=)/);
-  await expect(page.getByRole("complementary", { name: "Your shot" })).toContainText(
-    "Placeholder green",
-  );
+  await expect(page.getByRole("complementary", { name: "Your shot" })).toContainText("Kenji");
 
   // Without a draft, the character alone: the wizard asks for a motion.
   await open(page, "/characters");
-  await card(page, "Placeholder green")
-    .getByRole("link", { name: "Animate Placeholder green" })
-    .click();
+  await card(page, "Kenji").getByRole("link", { name: "Animate Kenji" }).click();
   await page.waitForURL((url) => url.pathname === "/motionTransfer");
   expect(new URL(page.url()).searchParams.get("character")).toBe(id);
   expect(new URL(page.url()).searchParams.get("motion")).toBeNull();
@@ -423,19 +417,21 @@ test("the library fits a phone and a desktop without scrolling sideways, and wor
   await page.keyboard.press("Enter");
   await expect(filter).toHaveAttribute("aria-pressed", "false");
 
-  const sample = card(page, "Placeholder orange");
+  const sample = card(page, "Maya");
 
-  await sample.getByRole("button", { name: "Add Placeholder orange to favorites" }).focus();
+  await sample.getByRole("button", { name: "Add Maya to favorites" }).focus();
   await page.keyboard.press("Enter");
-  await expect(
-    sample.getByRole("button", { name: "Remove Placeholder orange from favorites" }),
-  ).toHaveAttribute("aria-pressed", "true");
+  await expect(sample.getByRole("button", { name: "Remove Maya from favorites" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await page.keyboard.press("Enter");
-  await expect(
-    sample.getByRole("button", { name: "Add Placeholder orange to favorites" }),
-  ).toHaveAttribute("aria-pressed", "false");
+  await expect(sample.getByRole("button", { name: "Add Maya to favorites" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
   await page.keyboard.press("Tab");
-  await expect(sample.getByRole("link", { name: "Animate Placeholder orange" })).toBeFocused();
+  await expect(sample.getByRole("link", { name: "Animate Maya" })).toBeFocused();
 });
 
 test("the composer's character step lists the workspace library and goes to it and back with the motion kept", async ({
@@ -452,7 +448,7 @@ test("the composer's character step lists the workspace library and goes to it a
 
   // Saved in the library before: offered here with the samples, most recent first.
   await expect(picker.getByRole("button", { name })).toBeVisible();
-  await expect(picker.getByRole("button", { name: "Placeholder blue" })).toBeVisible();
+  await expect(picker.getByRole("button", { name: "Arthur" })).toBeVisible();
 
   // The builder's link carries the draft too, its motion included.
   const builder = new URL(
@@ -519,7 +515,7 @@ test("a library that could not be read says so and loads on Try again", async ({
   await expect(alert).toContainText("The library is unavailable.");
   failing = false;
   await alert.getByRole("button", { name: "Try again" }).click();
-  await expect(card(page, "Placeholder blue")).toBeVisible();
+  await expect(card(page, "Arthur")).toBeVisible();
   await expect(alert).toHaveCount(0);
 });
 

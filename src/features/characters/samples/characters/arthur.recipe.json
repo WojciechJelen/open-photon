@@ -1,0 +1,56 @@
+{
+  "caption": "Digital illustration with clean shapes and soft painterly shading, showing a single dapper white gentleman in his sixties from head to toe against a plain warm ivory background. He stands upright in the center, facing directly toward the viewer in a relaxed neutral pose, with both hands resting at his sides and fully visible. His fair skin is framed by neatly combed silver-grey hair and a tidy grey beard trimmed into a short rounded shape around his jaw and upper lip. Round glasses with thin dark frames sit over attentive blue-grey eyes. He wears a tailored navy three-piece suit consisting of a fitted jacket, matching waistcoat, and straight trousers, layered over a crisp white dress shirt with a burgundy bow tie. The jacket has narrow lapels, two front buttons, and restrained tonal highlights along the shoulders and sleeves. Both hands are covered by white shirt cuffs extending beneath the jacket sleeves. Polished brown leather brogues complete the outfit, their rounded toes, perforated detailing, and low heels clearly shown on both feet. Soft, even lighting creates broad shadows beneath the chin, arms, and shoes without harsh contrast. A small diffuse grounding shadow rests below him while leaving the uncluttered background empty.",
+  "height": 1344,
+  "models": [
+    {
+      "file": "flux3-image-klein-int8-convrot.safetensors",
+      "license": "FLUX-Kommunity-1.0",
+      "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+    },
+    {
+      "file": "qwen3vl_4b_int8_convrot.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+    },
+    {
+      "file": "flux2-vae.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+    }
+  ],
+  "seed": 84975509816999,
+  "source": {
+    "controls": {
+      "outfit": "A navy three-piece suit, a burgundy bow tie and polished brown brogues",
+      "style": "illustration"
+    },
+    "description": "A dapper gentleman in his sixties with a neat grey beard and round glasses",
+    "enhancement": {
+      "caption": "Digital illustration with clean shapes and soft painterly shading, showing a single dapper white gentleman in his sixties from head to toe against a plain warm ivory background. He stands upright in the center, facing directly toward the viewer in a relaxed neutral pose, with both hands resting at his sides and fully visible. His fair skin is framed by neatly combed silver-grey hair and a tidy grey beard trimmed into a short rounded shape around his jaw and upper lip. Round glasses with thin dark frames sit over attentive blue-grey eyes. He wears a tailored navy three-piece suit consisting of a fitted jacket, matching waistcoat, and straight trousers, layered over a crisp white dress shirt with a burgundy bow tie. The jacket has narrow lapels, two front buttons, and restrained tonal highlights along the shoulders and sleeves. Both hands are covered by white shirt cuffs extending beneath the jacket sleeves. Polished brown leather brogues complete the outfit, their rounded toes, perforated detailing, and low heels clearly shown on both feet. Soft, even lighting creates broad shadows beneath the chin, arms, and shoes without harsh contrast. A small diffuse grounding shadow rests below him while leaving the uncluttered background empty.",
+      "edited": false,
+      "generation_id": "60700e51-44bf-4bf4-abe8-4c0805c3feea",
+      "model": "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+      "settings": {
+        "max_length": 3584,
+        "min_p": 0,
+        "mtp": "off",
+        "presence_penalty": 1.5,
+        "repetition_penalty": 1.05,
+        "sampling_mode": "on",
+        "temperature": 1,
+        "thinking": false,
+        "top_k": 1,
+        "top_p": 0.95,
+        "use_default_template": true
+      },
+      "system_prompt_sha256": "58736bfa60cabfd69196956b0b2da500233116fa5342ed219034a5f23bf1cee3"
+    }
+  },
+  "target": "cloud",
+  "width": 768,
+  "workflow": {
+    "id": "character-generation",
+    "sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+    "version": 1
+  }
+}
