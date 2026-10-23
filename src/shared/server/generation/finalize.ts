@@ -130,32 +130,40 @@ const FINALIZE_BACKOFF_MS = 30_000;
 const FINALIZE_ATTEMPTS = 3;
 
 /**
- * Whether `provider` may be asked about the row's job: it reaches the endpoint the job was
- * submitted to (`target`, `target_origin`). A row stored before origins were recorded has none
- * and is matched by its kind. Otherwise this logs the mismatch and the row is left as it is: a
- * server whose `COMFY_BASE_URL` changed must not ask another endpoint about a job it never got.
+ * Fails a row in flight whose job was submitted to another endpoint than the one `provider`
+ * reaches (`target`, `target_origin`; a row stored before origins were recorded is matched by its
+ * kind), with `target_mismatch`, and returns it; `null` when `provider` may be asked about it. A
+ * local decision, with no provider call: a server whose `COMFY_BASE_URL` changed cannot follow
+ * the job, which may still exist on its own endpoint, so it is never resubmitted; a retry renders
+ * it anew here. The code is not refunded: the other endpoint accepted the job.
  */
-export function askable(row: Generation, provider: Provider) {
+export function failElsewhere(row: Generation, provider: Provider) {
   const current = provider.target?.();
 
   if (
     !current ||
+    !["queued", "running", "finalizing"].includes(row.status) ||
     (row.target === current.kind &&
       (row.target_origin === null || row.target_origin === current.origin))
   ) {
-    return true;
+    return null;
   }
+
+  const recorded = row.target_origin ?? row.target;
 
   console.error(
     JSON.stringify({
       current: current.origin ?? current.kind,
       event: "generation.target-mismatch",
       id: row.id,
-      recorded: row.target_origin ?? row.target,
+      recorded,
     }),
   );
 
-  return false;
+  return transition(row.id, row.status, "failed", {
+    error_code: "target_mismatch",
+    error_message: `This generation was submitted to ${recorded}, not to the endpoint this server renders on now (${current.origin ?? current.kind}), so it cannot be followed from here. Its job may still exist there; a retry renders it again here.`,
+  });
 }
 
 async function settle(id: string, provider: Provider) {
@@ -169,14 +177,16 @@ async function settle(id: string, provider: Provider) {
     return row;
   }
 
+  const elsewhere = failElsewhere(row, provider);
+
+  if (elsewhere) {
+    return elsewhere;
+  }
+
   if (
     row.finalize_attempted_at !== null &&
     Date.now() < Date.parse(row.finalize_attempted_at) + row.finalize_attempts * FINALIZE_BACKOFF_MS
   ) {
-    return row;
-  }
-
-  if (!askable(row, provider)) {
     return row;
   }
 

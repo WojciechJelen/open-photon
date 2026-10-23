@@ -6,6 +6,8 @@ import test from "node:test";
 
 import { z } from "zod";
 
+import { recipeIdentitySchema } from "../../../shared/server/generation/definition.ts";
+import { hashRecipe } from "../../../shared/server/generation/generations.ts";
 import { recipeHash } from "../../../shared/server/generation/recipe-hash.ts";
 import { motionTransferDefinition } from "../workflows/definition.ts";
 
@@ -33,5 +35,12 @@ test("every historical recipe shape still decodes and hashes to its recorded rec
     const decoded = motionTransferDefinition.recipeSchema.parse(JSON.parse(recipe));
 
     assert.equal(recipeHash(decoded), recipe_hash, source);
+    // It carries the identity every recipe must, and the service's own path (identity checked,
+    // then hashed) gives the same bytes and hash.
+    assert.ok(recipeIdentitySchema.safeParse(decoded).success, source);
+    assert.deepEqual(hashRecipe(motionTransferDefinition, decoded), {
+      hash: recipe_hash,
+      recipe: decoded,
+    });
   }
 });

@@ -18,6 +18,11 @@ const failures: Record<ErrorCode, { lead: "change" | "retry"; text: string; titl
     text: "Comfy finished the render, but the app could not download or store the video after three tries. The job and its output stay in the Comfy account's history. A retry renders it again.",
     title: "The video couldn't be saved",
   },
+  target_mismatch: {
+    lead: "retry",
+    text: "This take was sent to another rendering endpoint than the one this server uses now, so it can't be followed from here. A retry renders it again on the current one.",
+    title: "This take ran somewhere else",
+  },
   interrupted: {
     lead: "retry",
     text: "The server stopped before it sent this take to Comfy, so nothing was rendered. Try again; your motion, character and direction are all still picked.",

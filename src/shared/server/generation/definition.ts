@@ -1,12 +1,35 @@
-import type { z } from "zod";
+import { z } from "zod";
 
 import type { AssetReference } from "../comfy-assets.ts";
 import type { ProviderTarget } from "../comfy-target.ts";
 import type { WorkflowGraph } from "../workflow-graph.ts";
 import type { Json } from "./recipe-hash.ts";
 
-/** What a recipe is stored as: a JSON object (`generations.recipe`). */
-export type RecipeJson = { [key: string]: Json | undefined };
+const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
+
+/**
+ * What every recipe says about itself, whatever else its workflow puts in it: where it renders
+ * (`target`), which workflow file made it (`workflow`: its definition's id and version, the file's
+ * SHA-256) and the model files that file loads (`models`, pinned by `models.lock`; empty for
+ * recipes made before pins). The service checks it before hashing (`hashRecipe`), so the hash of
+ * a recipe identifies its workflow too.
+ */
+export const recipeIdentitySchema = z.object({
+  models: z.array(
+    z.object({ file: z.string().min(1), license: z.string().min(1), sha256: sha256Schema }),
+  ),
+  target: z.enum(["cloud", "selfhost"]),
+  workflow: z.object({
+    id: z.string().min(1),
+    sha256: sha256Schema,
+    version: z.int().positive(),
+  }),
+});
+
+/** A recipe as it is stored (`generations.recipe`): a JSON object that carries its identity. */
+export type WorkflowRecipe = { [key: string]: Json | undefined } & z.infer<
+  typeof recipeIdentitySchema
+>;
 
 /**
  * One file a workflow's job produces, collected from the `SaveImage`/`SaveVideo` node `nodeId`
@@ -56,7 +79,7 @@ type RebaseContext = { seed: number; target: ProviderTarget };
  *   server's target now; `null` when this workflow can no longer render it (its file changed).
  * - `workflowHash`, `models`: the workflow file's SHA-256 and its model pins (`models.lock`).
  */
-export type WorkflowDefinition<Input, Recipe extends RecipeJson> = {
+export type WorkflowDefinition<Input, Recipe extends WorkflowRecipe> = {
   id: string;
   version: number;
   workflowHash: string;
@@ -75,7 +98,7 @@ export type WorkflowDefinition<Input, Recipe extends RecipeJson> = {
 };
 
 /** A definition as the registry holds it, whichever input and recipe it types. */
-type AnyWorkflowDefinition = WorkflowDefinition<Json, RecipeJson>;
+type AnyWorkflowDefinition = WorkflowDefinition<Json, WorkflowRecipe>;
 
 /** Why a definition's output declarations cannot be stored, or `null` when they can. */
 function outputsProblem(outputs: readonly OutputDeclaration[]) {
