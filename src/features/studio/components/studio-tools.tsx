@@ -76,7 +76,7 @@ function Filmstrip({
                 key={character.id}
               >
                 <img
-                  alt=""
+                  alt={`${character.title ?? "Sample character"}, an AI-generated image`}
                   className="absolute inset-0 size-full object-cover"
                   src={mediaUrl(character.image)}
                 />
