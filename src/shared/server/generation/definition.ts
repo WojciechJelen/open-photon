@@ -103,12 +103,13 @@ function outputsProblem(outputs: readonly OutputDeclaration[]) {
 
 /**
  * The workflows a server runs, found by the `(workflow_id, workflow_version)` a generation row
- * records. Two definitions with one id and version, or outputs that cannot be stored, throw.
+ * records. `register` adds one more (a test's own workflow, say); a second definition with one id
+ * and version, or outputs that cannot be stored, throw.
  */
 export function createWorkflowRegistry(definitions: readonly AnyWorkflowDefinition[]) {
   const byKey = new Map<string, AnyWorkflowDefinition>();
 
-  for (const definition of definitions) {
+  const register = (definition: AnyWorkflowDefinition) => {
     const key = `${definition.id}@${definition.version}`;
     const problem = outputsProblem(definition.outputs);
 
@@ -121,11 +122,16 @@ export function createWorkflowRegistry(definitions: readonly AnyWorkflowDefiniti
     }
 
     byKey.set(key, definition);
+  };
+
+  for (const definition of definitions) {
+    register(definition);
   }
 
   return {
     /** The definition of a stored generation; `undefined` when no feature registers it. */
     find: (row: { workflow_id: string; workflow_version: number }) =>
       byKey.get(`${row.workflow_id}@${row.workflow_version}`),
+    register,
   };
 }
