@@ -7,7 +7,7 @@ import { mintCode } from "../../../../tests/temp-database.ts";
 import { findAccessCode } from "../../../shared/server/access-codes.ts";
 import { createAccessGuard } from "../../../shared/server/access.server.ts";
 import { database } from "../../../shared/server/db.server.ts";
-import { workflows } from "../../../shared/server/generation/definition.ts";
+import { motionTransferWorkflow } from "../server/batches.ts";
 
 Object.assign(process.env, {
   COMFY_API_KEY: "",
@@ -21,15 +21,7 @@ Object.assign(process.env, {
 });
 
 /** Motion Transfer as the app composes it (`src/app/server.ts`, loaded by the temp database). */
-export const motionTransfer = (() => {
-  const definition = workflows.find({ workflow_id: "motion-transfer", workflow_version: 1 });
-
-  if (!definition) {
-    throw new Error("Motion Transfer v1 is not composed");
-  }
-
-  return definition;
-})();
+export const motionTransfer = motionTransferWorkflow();
 
 /** The seeded sample motion's clip: what a shot's `motion` names. */
 export const motion = z

@@ -1,8 +1,8 @@
-import { findAccessCodeById } from "../../../shared/server/access-codes.ts";
 // A batch's admission and reads. Admission is the generation service's (`submitMany`: every item
 // validated, quota checked and stored `waiting` at once, or nothing); the dispatcher renders the
 // items within `IN_FLIGHT_MAX` with no browser open. This module only records which generations
 // make up a batch, under the request key that admitted them.
+import { findAccessCodeById } from "../../../shared/server/access-codes.ts";
 import type { Session } from "../../../shared/server/access.server.ts";
 import type { Provider } from "../../../shared/server/comfy-provider.ts";
 import { database } from "../../../shared/server/db.server.ts";
@@ -36,6 +36,21 @@ import {
 // How many batches `GET /api/batches` lists.
 const LISTED = 50;
 
+// The workflow a batch renders: Motion Transfer, found in the composed registry (`workflows`,
+// set by `src/app/server.ts`) by its stored identity, so batches import none of its modules.
+const MOTION_TRANSFER = { workflow_id: "motion-transfer", workflow_version: 1 };
+
+/** Motion Transfer's definition as the app composes it; throws when it is not composed. */
+export function motionTransferWorkflow() {
+  const definition = workflows.find(MOTION_TRANSFER);
+
+  if (!definition) {
+    throw new Error("Motion Transfer v1 is not composed (src/app/server.ts)");
+  }
+
+  return definition;
+}
+
 /**
  * The Motion Transfer generation input (`POST /api/generate`'s body) of an item's draft, as the
  * wizard's Generate sends it: a blank look and the `"default"` seed are left out, so the
@@ -51,8 +66,8 @@ function generationInput(draft: DraftSnapshot) {
 }
 
 /**
- * An item's current generation: its first one, followed through the shared retry (a failed or
- * cancelled generation's child) to the latest attempt, and how many retries that took.
+ * An item's current generation: its first one, followed through each failed or cancelled
+ * generation's child (the shared retry or re-run) to the latest attempt, and how many that took.
  */
 function currentGeneration(item: ItemRow) {
   let row = findGeneration(item.generation_id);

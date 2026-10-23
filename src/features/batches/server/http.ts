@@ -6,14 +6,10 @@ import { z } from "zod";
 
 import { readSession } from "../../../shared/server/access.server.ts";
 import { comfyProvider, type Provider } from "../../../shared/server/comfy-provider.ts";
-import type {
-  WorkflowDefinition,
-  WorkflowRecipe,
-} from "../../../shared/server/generation/definition.ts";
 import { GenerateError } from "../../../shared/server/generation/errors.ts";
 import { answer, readInput } from "../../../shared/server/generation/http.ts";
 import { type Batch, createBatchInputSchema } from "../contracts.ts";
-import { createBatch, listWorkspaceBatches, readBatch } from "./batches.ts";
+import { createBatch, listWorkspaceBatches, motionTransferWorkflow, readBatch } from "./batches.ts";
 
 const accessRequired = () =>
   Response.json(
@@ -23,18 +19,15 @@ const accessRequired = () =>
 
 /**
  * `POST /api/batches` with a JSON `createBatchInputSchema` body and its `request_key` (a UUID,
- * required): `createBatch` for the request's session, through the generation service's request
- * answer (`answer`: the rate limit, and the refusal's status with `{ error, reason }`). 201 with
- * the batch (`batchSchema`) admitted now, 200 with the batch the key admitted before; 400
- * `invalid_input` for a body that is too large, not JSON, not the schema or without a key; 401,
- * 403 `code_exhausted` (nothing stored), 404/422 for an item the workflow refuses (nothing
+ * required): `createBatch` of Motion Transfer (the composed `motion-transfer` v1) for the
+ * request's session, through the generation service's request answer (`answer`: the rate limit,
+ * and the refusal's status with `{ error, reason }`). 201 with the batch (`batchSchema`)
+ * admitted now, 200 with the batch the key admitted before; 400 `invalid_input` for a body that
+ * is too large, not JSON, not the schema or without a key; 401, 403 `code_exhausted` (its new
+ * takes do not fit the code; nothing stored), 404/422 for an item the workflow refuses (nothing
  * stored), 409 `request_key_conflict`, 429, 503 `queue_full`.
  */
-export async function handleCreateBatch<Input, Recipe extends WorkflowRecipe>(
-  request: Request,
-  definition: WorkflowDefinition<Input, Recipe>,
-  provider: Provider = comfyProvider,
-) {
+export async function handleCreateBatch(request: Request, provider: Provider = comfyProvider) {
   let admitted: { batch: Batch | null; created: boolean } | undefined;
 
   const response = await answer(request, async (session, admit) => {
@@ -48,7 +41,12 @@ export async function handleCreateBatch<Input, Recipe extends WorkflowRecipe>(
       );
     }
 
-    admitted = createBatch(definition, input, { admit, provider, requestKey, session });
+    admitted = createBatch(motionTransferWorkflow(), input, {
+      admit,
+      provider,
+      requestKey,
+      session,
+    });
 
     const first = admitted.batch?.items[0];
 
