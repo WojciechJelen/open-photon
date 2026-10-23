@@ -27,19 +27,36 @@ function refuseWrites(page: Page) {
   return writes;
 }
 
-test("with no curated takes, the gallery says so and offers Motion Transfer", async ({ page }) => {
-  await open(page, "/explore");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Finished takes, ready to remake",
-  );
-  await expect(page.getByRole("heading", { name: "No examples yet" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open Motion Transfer" })).toHaveAttribute(
-    "href",
-    "/motionTransfer",
-  );
-  await expect(
-    page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Explore" }),
-  ).toHaveAttribute("aria-current", "page");
+// A fresh installation: the e2e database as seeded (`tests/e2e/seed.ts`), no take pre-rendered
+// and none added by this test, as before anyone runs `scripts/prerender-samples.mjs`.
+test("on an installation that has pre-rendered nothing, the gallery says why it is empty and offers Motion Transfer, on a desktop and a phone", async ({
+  page,
+}) => {
+  expect(count("generations WHERE is_prerendered = 1")).toBe(0);
+
+  for (const viewport of [
+    { height: 800, width: 1280 },
+    { height: 844, width: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await open(page, "/explore");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Finished takes, ready to remake",
+    );
+    await expect(page.getByRole("heading", { name: "No examples yet" })).toBeVisible();
+    await expect(page.getByText("there are none here yet")).toBeVisible();
+    await expect(page.getByText("scripts/prerender-samples.mjs")).toBeVisible();
+    await expect(page.getByRole("list", { name: "Examples" })).toHaveCount(0);
+    expect(await scrollsSideways(page)).toBe(false);
+    await expect(
+      page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Explore" }),
+    ).toHaveAttribute("aria-current", "page");
+  }
+
+  // The next step works: it opens the wizard on motion selection.
+  await page.getByRole("link", { name: "Start a shot in Motion Transfer" }).click();
+  await expect(page).toHaveURL(/\/motionTransfer(\?step=motion)?$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pick a motion");
 });
 
 test.describe("with the pre-rendered sample takes", () => {
