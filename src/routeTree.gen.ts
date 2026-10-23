@@ -17,6 +17,7 @@ import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiGenerateRouteImport } from './routes/api.generate'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as CharactersIndexRouteImport } from './routes/characters.index'
+import { Route as CharactersNewRouteImport } from './routes/characters.new'
 import { Route as GGenerationIdRouteImport } from './routes/g.$generationId'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
@@ -69,6 +70,11 @@ const ApiUploadsRoute = ApiUploadsRouteImport.update({
 const CharactersIndexRoute = CharactersIndexRouteImport.update({
   id: '/characters/',
   path: '/characters/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CharactersNewRoute = CharactersNewRouteImport.update({
+  id: '/characters/new',
+  path: '/characters/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GGenerationIdRoute = GGenerationIdRouteImport.update({
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/characters/new': typeof CharactersNewRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/characters/new': typeof CharactersNewRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
@@ -199,6 +207,7 @@ export interface FileRoutesById {
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/characters/new': typeof CharactersNewRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/api/characters'
     | '/api/generate'
     | '/api/uploads'
+    | '/characters/new'
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/api/characters'
     | '/api/generate'
     | '/api/uploads'
+    | '/characters/new'
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
     | '/api/characters'
     | '/api/generate'
     | '/api/uploads'
+    | '/characters/new'
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
@@ -294,6 +306,7 @@ export interface RootRouteChildren {
   ApiCharactersRoute: typeof ApiCharactersRouteWithChildren
   ApiGenerateRoute: typeof ApiGenerateRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
+  CharactersNewRoute: typeof CharactersNewRoute
   GGenerationIdRoute: typeof GGenerationIdRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
   RSlugRoute: typeof RSlugRoute
@@ -360,6 +373,13 @@ declare module '@tanstack/react-router' {
       path: '/characters'
       fullPath: '/characters/'
       preLoaderRoute: typeof CharactersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/characters/new': {
+      id: '/characters/new'
+      path: '/characters/new'
+      fullPath: '/characters/new'
+      preLoaderRoute: typeof CharactersNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/g/$generationId': {
@@ -513,6 +533,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCharactersRoute: ApiCharactersRouteWithChildren,
   ApiGenerateRoute: ApiGenerateRoute,
   ApiUploadsRoute: ApiUploadsRoute,
+  CharactersNewRoute: CharactersNewRoute,
   GGenerationIdRoute: GGenerationIdRoute,
   MediaFilenameRoute: MediaFilenameRoute,
   RSlugRoute: RSlugRoute,
