@@ -5,7 +5,10 @@
 Turn a short motion clip and a character image into a video of that character doing
 the same motion. Open Photon runs the open-weights Wan Animate 2 workflow on Comfy
 Cloud or your own GPU, with side-by-side playback, downloadable results, share
-pages and reproducible recipes.
+pages and reproducible recipes. Characters come from a workspace library: describe
+one and render it with the open-weights FLUX 3 Image Klein (`/characters/new`), or
+upload a photo with the person's consent, then find and animate it from
+`/characters`.
 
 Built with TanStack Start, React, Tailwind, shadcn, SQLite and the Comfy SDK.
 Browsing samples is public; uploads and new generations require an access code.
