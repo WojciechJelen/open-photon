@@ -161,7 +161,9 @@ share card's `og:image:alt`) and Download, and `?download=1` names an image outp
 Transfer's videos and posters included. An image's share page is titled "AI-generated image ·
 Open Photon" (`<title>`, `og:title`), and a Motion Transfer share page says "The character is
 AI-generated." when its character's origin is `generated` (`characterGenerated` of `readShare`),
-even when that image is private. Neither shows a recipe's enhanced caption.
+even when that image is private. Neither shows a recipe's enhanced caption. A generated
+character's image (a sample or a saved builder render) says "AI-generated image" in its alt text
+wherever it is shown (library, pickers, the studio home).
 
 ### Provider target identity
 
@@ -182,7 +184,7 @@ file stops startup. Foreign keys are not enforced while migrating, so a migratio
 table others point at (`shared/002-waiting-queue.sql`). Applied today: `shared/001`
 (outputs, `target_origin`, `submit_started_at`), `shared/002` (waiting queue), `shared/003`
 (`generation_requests`), `shared/004` (`assets.kind` `text`), `characters/001` (library columns,
-one character per generation).
+one character per generation), `motionTransfer/001` (the pre-rendered takes' partial index).
 
 ### Access policy and seeders
 
