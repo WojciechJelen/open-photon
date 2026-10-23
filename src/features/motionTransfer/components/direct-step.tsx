@@ -10,9 +10,9 @@ import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Textarea } from "#/components/ui/textarea";
 import { StepIntro } from "#/features/motionTransfer/components/step-intro";
 import type { AngleChoice } from "#/features/motionTransfer/contracts";
+import type { Direction, MotionTransferDraft } from "#/features/motionTransfer/draft";
 import { starters, toggleStarter } from "#/features/motionTransfer/look";
-import { type Direction, type Field, fieldMessages } from "#/features/motionTransfer/use-generate";
-import type { WizardSearch } from "#/features/motionTransfer/wizard";
+import { type Field, fieldMessages } from "#/features/motionTransfer/use-generate";
 import { Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
 import type { Refusal } from "#/shared/requests";
@@ -127,7 +127,7 @@ export function DirectStep({
   placeholderAngles,
 }: {
   angles: AngleChoice[];
-  back: WizardSearch;
+  back: MotionTransferDraft;
   direction: Direction;
   errors: Field[];
   failure: Refusal | null;

@@ -11,9 +11,16 @@ import {
   type HeaderStep,
 } from "#/features/motionTransfer/components/motion-transfer-header";
 import { ShotSlate, type SlateRow } from "#/features/motionTransfer/components/shot-slate";
+import {
+  defaultDirection,
+  type Direction,
+  type MotionTransferDraft,
+  shownStep,
+  startingDirection,
+  type WizardStep,
+} from "#/features/motionTransfer/draft";
 import type { loadSelection } from "#/features/motionTransfer/selection.functions";
-import { type Direction, generateHold, useGenerate } from "#/features/motionTransfer/use-generate";
-import { shownStep, type WizardSearch, type WizardStep } from "#/features/motionTransfer/wizard";
+import { generateHold, useGenerate } from "#/features/motionTransfer/use-generate";
 import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
 import { PageGlow } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
@@ -23,6 +30,21 @@ import { useAccessCode } from "#/shared/use-access-code";
 
 type Selection = Awaited<ReturnType<typeof loadSelection>>;
 
+/** How a draft change enters the history: a step change adds an entry, anything else replaces it. */
+type DraftEntry = "push" | "replace";
+
+type WizardProps = {
+  /** The draft shown: the URL's of `/motionTransfer`, validated by `motionTransferDraftSchema`. */
+  draft: MotionTransferDraft;
+  /**
+   * Takes each draft the wizard moves to (a pick, a step, the step it corrects a link to).
+   * Without it, the wizard writes the draft to the URL of `/motionTransfer`, which then comes
+   * back as `draft`.
+   */
+  onDraftChange?: (next: MotionTransferDraft, entry: DraftEntry) => void;
+  selection: Selection;
+};
+
 const nextStep: Record<WizardStep, WizardStep> = {
   character: "direct",
   direct: "direct",
@@ -30,22 +52,24 @@ const nextStep: Record<WizardStep, WizardStep> = {
 };
 
 /**
- * The Motion Transfer wizard at `/motionTransfer`: Motion → Character → Direct, one decision per screen, then
- * Generate opens Render at `/g/:id`. The step and both picks live in the URL (`search`), so a
- * reload, Back and Forward and a deep link land on the same screen; a step whose prerequisites
- * are missing shows the furthest one it can reach (`shownStep`), and the URL follows it. A pick
- * replaces the history entry, a step change adds one. The direction (angle, look, seed) stays
- * while the wizard is open; a link `from` a take ("Change the shot", the remixes) starts it with
- * that take's. The access code is asked for by one dialog, which then carries on
- * with what asked for it (an upload, Generate).
+ * The Motion Transfer wizard at `/motionTransfer`: Motion → Character → Direct, one decision per
+ * screen, then Generate opens Render at `/g/:id`. It shows `draft` (controlled) and reports every
+ * change to it (`onDraftChange`, by default the URL), so a reload, Back and Forward and a deep
+ * link land on the same screen; a step whose prerequisites are missing shows the furthest one it
+ * can reach (`shownStep`), and the draft follows it. A pick replaces the history entry, a step
+ * change adds one. The direction (angle, look, seed) is the Direct step's form while the wizard is
+ * open; it starts from the draft's direction fields over the direction of the take the draft
+ * comes `from` ("Change the shot", the remixes), and another such start opens the form afresh.
+ * The access code is asked for by one dialog, which then carries on with what asked for it (an
+ * upload, Generate).
  */
-export function MotionTransferWizard({
-  search,
-  selection,
-}: {
-  search: WizardSearch;
-  selection: Selection;
-}) {
+export function MotionTransferWizard(props: WizardProps) {
+  const { angle, from, prompt, seed } = props.draft;
+
+  return <Wizard key={JSON.stringify([from, angle, prompt, seed])} {...props} />;
+}
+
+function Wizard({ draft, onDraftChange, selection }: WizardProps) {
   const navigate = useNavigate();
 
   const {
@@ -61,35 +85,44 @@ export function MotionTransferWizard({
     signedIn,
   } = selection;
 
-  // The URL's choices, whether or not their details show: an upload needs the code to show, and
+  // The draft's choices, whether or not their details show: an upload needs the code to show, and
   // keeps its id through that.
   const motionChoice = motionId ?? undefined;
   const characterChoice = characterId ?? undefined;
-  const step = shownStep(search.step, { character: characterId, motion: motionId });
+  const step = shownStep(draft.step, { character: characterId, motion: motionId });
   const formId = useId();
   const main = useRef<HTMLElement>(null);
   const shownBefore = useRef(step);
 
-  // The take the URL comes from sets where the direction starts; else As filmed, blank, default.
-  const [direction, setDirection] = useState<Direction>(
-    () => selection.direction ?? { angle: "none", prompt: "", seed: "" },
+  // The draft's direction fields, over the take it comes from; else As filmed, blank, default.
+  const [direction, setDirection] = useState<Direction>(() =>
+    startingDirection(
+      draft,
+      selection.direction ?? defaultDirection,
+      angles.map(({ id }) => id),
+    ),
   );
 
   const access = useAccessCode();
   const { release } = access;
   const generate = useGenerate(access.hold);
 
-  // The URL names the step shown, so Back and Forward retrace it.
-  useEffect(() => {
-    if (search.step !== step) {
-      void navigate({
-        replace: true,
-        resetScroll: false,
-        search: (previous) => ({ ...previous, step }),
-        to: "/motionTransfer",
-      });
+  const changeDraft = (next: MotionTransferDraft, entry: DraftEntry) => {
+    if (onDraftChange) {
+      onDraftChange(next, entry);
+    } else if (entry === "push") {
+      void navigate({ search: next, to: "/motionTransfer" });
+    } else {
+      void navigate({ replace: true, resetScroll: false, search: next, to: "/motionTransfer" });
     }
-  }, [navigate, search.step, step]);
+  };
+
+  // The draft names the step shown, so Back and Forward retrace it.
+  useEffect(() => {
+    if (draft.step !== step) {
+      changeDraft({ ...draft, step }, "replace");
+    }
+  });
 
   // A Generate that waited for the code is let go once its step is left: nothing shows it then.
   useEffect(() => {
@@ -106,23 +139,13 @@ export function MotionTransferWizard({
     }
   }, [step]);
 
-  const at = (target: WizardStep): WizardSearch => ({ ...search, step: target });
+  const at = (target: WizardStep): MotionTransferDraft => ({ ...draft, step: target });
 
   const pickMotion = (assetId: string | undefined) =>
-    navigate({
-      replace: true,
-      resetScroll: false,
-      search: (previous) => ({ ...previous, motion: assetId, step }),
-      to: "/motionTransfer",
-    });
+    changeDraft({ ...draft, motion: assetId, step }, "replace");
 
   const pickCharacter = (id: string | undefined) =>
-    navigate({
-      replace: true,
-      resetScroll: false,
-      search: (previous) => ({ ...previous, character: id, step }),
-      to: "/motionTransfer",
-    });
+    changeDraft({ ...draft, character: id, step }, "replace");
 
   const sampleMotion = motions.find(({ clip }) => clip.id === motionChoice);
   const angleLabel = angles.find(({ id }) => id === direction.angle)?.label ?? "As filmed";
@@ -216,7 +239,7 @@ export function MotionTransferWizard({
       <Button
         disabled={!picked}
         key="continue"
-        onClick={() => void navigate({ search: at(nextStep[step]), to: "/motionTransfer" })}
+        onClick={() => changeDraft(at(nextStep[step]), "push")}
         size={place === "panel" ? "lg" : "default"}
         type="button"
       >
@@ -270,7 +293,7 @@ export function MotionTransferWizard({
                 motion={motion}
                 motionId={motionChoice}
                 motions={motions}
-                onPick={(assetId) => void pickMotion(assetId)}
+                onPick={pickMotion}
                 release={release}
                 signedIn={signedIn}
               />
@@ -282,7 +305,7 @@ export function MotionTransferWizard({
                 characterId={characterChoice}
                 characters={characters}
                 hold={access.hold}
-                onPick={(id) => void pickCharacter(id)}
+                onPick={pickCharacter}
                 release={release}
                 signedIn={signedIn}
               />

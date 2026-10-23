@@ -16,8 +16,8 @@ import {
 } from "#/features/motionTransfer/components/render-ended";
 import { RenderProgress, stageTitle } from "#/features/motionTransfer/components/render-progress";
 import { ResultView } from "#/features/motionTransfer/components/result-view";
+import type { MotionTransferDraft } from "#/features/motionTransfer/draft";
 import { loadResult } from "#/features/motionTransfer/generate.functions";
-import type { WizardSearch } from "#/features/motionTransfer/wizard";
 import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
 import { Hud, PageGlow, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
@@ -373,7 +373,7 @@ function MotionTransferView({ data }: { data: MotionTransferResult }) {
   }
 
   // The wizard with this take's picks and direction (`from`), at a step.
-  const shot: WizardSearch = {
+  const shot: MotionTransferDraft = {
     character: generation.character_id ?? undefined,
     from: generation.id,
     motion: source.id,

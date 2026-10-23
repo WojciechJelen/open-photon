@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { type GenerateInput, generateInputSchema } from "#/features/motionTransfer/contracts";
+import { type Direction, formSeed } from "#/features/motionTransfer/draft";
 import { generationReceiptSchema } from "#/shared/contracts";
 import { callApi, type Refusal } from "#/shared/requests";
 import type { HoldForCode } from "#/shared/use-access-code";
@@ -25,9 +26,6 @@ function isField(key: PropertyKey | undefined): key is Field {
 
 /** The key a Generate waiting for the access code is held under (`useAccessCode`). */
 export const generateHold = "generate";
-
-/** The Direct step's choices, as the form holds them: `none` is "As filmed", blank is default. */
-export type Direction = { angle: string; prompt: string; seed: string };
 
 /**
  * Generate, for the wizard: the choices are checked against `generateInputSchema` in the browser
@@ -85,7 +83,7 @@ export function useGenerate(hold: HoldForCode) {
       motion_asset_id: picks.motion,
       prompt: prompt.trim() || undefined,
       // Anything but digits becomes NaN, which the schema refuses.
-      seed: seed.trim() === "" ? undefined : /^\d+$/.test(seed.trim()) ? Number(seed) : Number.NaN,
+      seed: formSeed(seed),
     });
 
     setFailure(null);

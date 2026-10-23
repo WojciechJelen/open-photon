@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { cn } from "cn";
 import { ArrowLeftIcon } from "lucide-react";
 
-import type { WizardSearch } from "#/features/motionTransfer/wizard";
+import type { MotionTransferDraft } from "#/features/motionTransfer/draft";
 import { Hud } from "#/shared/components/brand";
 
 /**
@@ -15,7 +15,7 @@ export function StepIntro({
   label,
   title,
 }: {
-  back?: { label: string; search: WizardSearch };
+  back?: { label: string; search: MotionTransferDraft };
   children: React.ReactNode;
   label: string;
   title: string;

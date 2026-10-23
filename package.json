@@ -19,7 +19,7 @@
     "format": "oxfmt",
     "fix": "oxlint --fix --type-aware && oxfmt && npm run typecheck",
     "test:e2e": "playwright test",
-    "test:server": "node --experimental-strip-types --test 'tests/*.test.ts' 'src/features/*/server/**/*.test.ts' 'src/shared/server/**/*.test.ts'",
+    "test:server": "node --experimental-strip-types --test 'tests/*.test.ts' 'src/features/*/server/**/*.test.ts' 'src/features/*/tests/*.test.ts' 'src/shared/server/**/*.test.ts'",
     "check:models": "node scripts/check-models-lock.mjs",
     "check:open-weights": "node scripts/check-open-weights.mjs",
     "check:client": "node scripts/check-client-secrets.mjs",

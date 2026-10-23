@@ -4,7 +4,7 @@ import { CharacterUpload } from "#/features/motionTransfer/components/character-
 import { PickTile, tileMedia } from "#/features/motionTransfer/components/pick-tile";
 import { StepIntro, TipsPanel } from "#/features/motionTransfer/components/step-intro";
 import type { PickableCharacter } from "#/features/motionTransfer/contracts";
-import type { WizardSearch } from "#/features/motionTransfer/wizard";
+import type { MotionTransferDraft } from "#/features/motionTransfer/draft";
 import { Hud } from "#/shared/components/brand";
 import { mediaUrl } from "#/shared/media";
 import type { HoldForCode } from "#/shared/use-access-code";
@@ -24,7 +24,7 @@ export function CharacterStep({
   release,
   signedIn,
 }: {
-  back: WizardSearch;
+  back: MotionTransferDraft;
   character: PickableCharacter | null;
   characterId: string | undefined;
   characters: PickableCharacter[];
