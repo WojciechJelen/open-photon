@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { cn } from "cn";
 import { ArrowRightIcon, ChevronsLeftRightIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -70,7 +71,7 @@ function HeroMonitor({
         <div className="relative overflow-hidden">
           {character && (
             <img
-              alt={`Sample character: ${character.title ?? "a sample"}`}
+              alt={`Sample character: ${character.title ?? "a sample"}, an AI-generated image`}
               className="absolute inset-0 size-full object-cover"
               src={mediaUrl(character.image)}
             />
@@ -116,7 +117,13 @@ export function StudioHero({
   wall: WallTake[];
 }) {
   return (
-    <section className="mx-auto grid w-full max-w-330 items-center gap-14 px-4 pt-14 pb-20 sm:px-8 lg:grid-cols-2 lg:pt-16 lg:pb-26">
+    <section
+      className={cn(
+        "mx-auto grid w-full max-w-330 items-center gap-14 px-4 pt-14 pb-20 sm:px-8 lg:grid-cols-2 lg:pt-16 lg:pb-26",
+        // Beside the wall, the pitch stays at the top however many rows the wall grows to.
+        wall.length > 0 && "lg:items-start",
+      )}
+    >
       <div className="flex min-w-0 flex-col gap-7">
         <span className="self-start">
           <Badge variant="brand">
