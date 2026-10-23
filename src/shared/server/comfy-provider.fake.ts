@@ -15,7 +15,9 @@ import type { WorkflowGraph } from "./workflow-graph.ts";
  * What a fake job does, chosen per submit (`scenarioFor`):
  * - `success`: runs (progress 25/50/75 %) and succeeds; every `Save*Video` node outputs
  *   `tests/fixtures/fake-output.mp4`, every `SaveImage`/`PreviewImage` node
- *   `tests/fixtures/fake-output.png`.
+ *   `tests/fixtures/fake-output.png`, every `SaveText` node the text file
+ *   `tests/fixtures/fake-output.txt` (as Comfy's jobs API reports one: type `file`, no content
+ *   type, a `.txt` name).
  * - `provider_failed`: runs (progress 50 %) and fails, as a job Comfy could not finish.
  * - `ambiguous`: Comfy accepts the job (it then succeeds like `success`), but the submit call
  *   throws a timeout, so the app cannot know it was accepted.
@@ -24,10 +26,14 @@ const fakeScenarios = ["success", "provider_failed", "ambiguous"] as const;
 
 type FakeScenario = (typeof fakeScenarios)[number];
 
+const fakeMedia = ["image", "video", "text"] as const;
+
+type FakeMedia = (typeof fakeMedia)[number];
+
 /** A fake job: its output nodes, its scenario and when it was submitted (epoch ms). */
 type FakeJob = {
   id: string;
-  outputs: Array<[nodeId: string, media: "image" | "video"]>;
+  outputs: Array<[nodeId: string, media: FakeMedia]>;
   scenario: FakeScenario;
   submittedAt: number;
 };
@@ -35,7 +41,7 @@ type FakeJob = {
 // What a fake job id carries after its key's hash, so a restarted server (whose fake is new) can
 // still be asked about a job the stopped one accepted.
 const fakeJobSchema = z.object({
-  outputs: z.array(z.tuple([z.string(), z.enum(["image", "video"])])),
+  outputs: z.array(z.tuple([z.string(), z.enum(fakeMedia)])),
   scenario: z.enum(fakeScenarios),
   submittedAt: z.int().nonnegative(),
 });
@@ -62,6 +68,7 @@ function readJobId(id: string): FakeJob | null {
 // Resolved from the working directory, like the workflows; the fake runs from a checkout only.
 const fixtures = {
   image: { contentType: "image/png", path: resolve("tests/fixtures/fake-output.png") },
+  text: { contentType: "", path: resolve("tests/fixtures/fake-output.txt") },
   video: { contentType: "video/mp4", path: resolve("tests/fixtures/fake-output.mp4") },
 };
 
@@ -104,13 +111,15 @@ function outputNodes(graph: WorkflowGraph) {
       outputs.push([nodeId, "video"]);
     } else if (node.class_type === "SaveImage" || node.class_type === "PreviewImage") {
       outputs.push([nodeId, "image"]);
+    } else if (node.class_type === "SaveText") {
+      outputs.push([nodeId, "text"]);
     }
   }
 
   return outputs;
 }
 
-function fixtureOutput(media: "image" | "video") {
+function fixtureOutput(media: FakeMedia) {
   const fixture = fixtures[media];
 
   const output: ProviderOutput = {
@@ -122,6 +131,7 @@ function fixtureOutput(media: "image" | "video") {
 
       return path;
     },
+    type: media === "text" ? "file" : media,
   };
 
   return output;

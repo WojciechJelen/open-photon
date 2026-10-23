@@ -6,7 +6,9 @@ import { fakeProvider } from "./comfy-provider.fake.ts";
 import { comfyTarget, type ProviderTarget, providerTarget } from "./comfy-target.ts";
 import type { WorkflowGraph } from "./workflow-graph.ts";
 
-export type ProviderOutput = Pick<Output, "contentType" | "name" | "sizeBytes" | "toFile">;
+/** One file of a finished job; `type` is Comfy's output kind (`image`, `text`, …) when it says. */
+export type ProviderOutput = Pick<Output, "contentType" | "name" | "sizeBytes" | "toFile"> &
+  Partial<Pick<Output, "type">>;
 
 export type ProviderJob = Pick<Job, "error" | "events" | "id" | "status"> & {
   getOutputs(nodeId: string): ProviderOutput[];

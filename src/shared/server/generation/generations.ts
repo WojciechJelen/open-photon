@@ -1,4 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type { SQLOutputValue } from "node:sqlite";
 
 import { z } from "zod";
@@ -7,6 +9,7 @@ import {
   assetSchema,
   type GenerationOutput,
   generationSchema,
+  type GenerationSnapshotOutput,
   type generationStatusSchema,
 } from "../../contracts.ts";
 import { findAsset, type StoredAsset } from "../assets.ts";
@@ -14,6 +17,7 @@ import { assetReferenceSchema } from "../comfy-assets.ts";
 import type { ProviderTarget } from "../comfy-target.ts";
 import { database } from "../db.server.ts";
 import { transaction } from "../migrate.ts";
+import { assetsDirectory } from "../paths.ts";
 import {
   recipeIdentitySchema,
   type WorkflowDefinition,
@@ -86,8 +90,8 @@ const providerInputsColumn = jsonColumn(z.record(z.string(), assetReferenceSchem
 
 type ProviderInputs = z.output<typeof providerInputsColumn>;
 
-// A row as stored: everything the API shows but `position` (`snapshot` computes it).
-const generationRowSchema = generationSchema.omit({ position: true }).extend({
+// A row as stored: everything the API shows but `position` and `outputs` (`snapshot` adds them).
+const generationRowSchema = generationSchema.omit({ outputs: true, position: true }).extend({
   access_code_id: z.string().nullable(),
   // `<request key>` of the multi-item request that made it (`submitMany`).
   batch_key: z.string().nullable(),
@@ -406,9 +410,20 @@ function queuePosition(row: Pick<Generation, "id" | "status">) {
   );
 }
 
-/** A row as the API shows it (`generationSchema`): a `waiting` one with its `position`. */
+/**
+ * A row as the API shows it (`generationSchema`): a `waiting` one with its `position`, a `done`
+ * one with every named output whose asset is stored: files with their asset, texts inline (at
+ * most `TEXT_OUTPUT_MAX_BYTES`, which finalize enforces).
+ */
 export function snapshot(row: Omit<Generation, "recipe">) {
-  return generationSchema.parse({ ...row, position: queuePosition(row) });
+  return generationSchema.parse({
+    ...row,
+    outputs:
+      row.status === "done"
+        ? storedOutputs(row.id).map(({ name, stored }) => apiOutput(name, stored))
+        : [],
+    position: queuePosition(row),
+  });
 }
 
 /**
@@ -582,8 +597,13 @@ export function transition(
 
   const finishedAt = ["done", "failed", "cancelled"].includes(to) ? new Date().toISOString() : null;
 
-  const shareSlug = to === "done" ? randomBytes(8).toString("hex") : null;
   const outputs = Object.entries(outcome.outputs ?? {});
+
+  // A share page shows a file: a generation whose outputs are all text gets none.
+  const onlyText =
+    outputs.length > 0 && outputs.every(([, assetId]) => findAsset(assetId)?.kind === "text");
+
+  const shareSlug = to === "done" && !onlyText ? randomBytes(8).toString("hex") : null;
 
   const row = transaction(database, () => {
     const updated = parseRow(
@@ -675,30 +695,49 @@ export function countFinalizeAttempt(id: string) {
 
 const storedOutputSchema = z.object({ asset_id: z.string(), name: z.string() });
 
-/**
- * A generation's named outputs whose assets are stored, by name, each with its asset as the API
- * shows it and its media (the asset's kind).
- */
-export function readOutputs(generationId: string): GenerationOutput[] {
+/** A generation's named outputs whose assets are stored, by name, with their stored asset. */
+function storedOutputs(generationId: string) {
   return database
     .prepare("SELECT name, asset_id FROM generation_outputs WHERE generation_id = ? ORDER BY name")
     .all(generationId)
     .flatMap((row) => {
       const { asset_id, name } = storedOutputSchema.parse(row);
       const stored = findAsset(asset_id);
-      const asset = stored ? assetSchema.parse(stored) : null;
 
-      return asset ? [{ asset, media: asset.kind, name }] : [];
+      return stored ? [{ name, stored }] : [];
     });
+}
+
+/** A stored output as the API shows it: a file with its asset, a text inline. */
+function apiOutput(name: string, stored: StoredAsset): GenerationSnapshotOutput {
+  const { kind } = stored;
+
+  return kind === "text"
+    ? { media: kind, name, text: readFileSync(resolve(assetsDirectory(), stored.path), "utf8") }
+    : { asset: assetSchema.parse(stored), media: kind, name };
+}
+
+/**
+ * A generation's named file outputs whose assets are stored, by name, each with its asset as the
+ * API shows it and its media (the asset's kind): what result and share pages show and a character
+ * is saved from. Text outputs are left out (`snapshot` shows them).
+ */
+export function readOutputs(generationId: string): GenerationOutput[] {
+  return storedOutputs(generationId).flatMap(({ name, stored }) => {
+    const { kind } = stored;
+
+    return kind === "text" ? [] : [{ asset: assetSchema.parse(stored), media: kind, name }];
+  });
 }
 
 /**
  * Whether a done generation with a share page (`share_slug`) lists this asset among its outputs:
- * such files are public, like the page. One indexed lookup (`generation_outputs_asset`), as it
- * runs for every public media request.
+ * such files are public, like the page. A text output never is. One indexed lookup
+ * (`generation_outputs_asset`), as it runs for every public media request.
  */
 export function isSharedOutput(asset: StoredAsset) {
   return (
+    asset.kind !== "text" &&
     database
       .prepare(
         `SELECT EXISTS (SELECT 1 FROM generation_outputs

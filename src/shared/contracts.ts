@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-/** An `assets` row as the API returns it (no server path). */
+/**
+ * An `assets` row as the API returns it (no server path). A `text` asset is a UTF-8 `.txt` file a
+ * workflow produced (`OutputDeclaration` media `text`); it is never public.
+ */
 export const assetSchema = z.object({
   bytes: z.int().nonnegative(),
   created_at: z.iso.datetime(),
@@ -9,7 +12,7 @@ export const assetSchema = z.object({
   has_audio: z.boolean().nullable(),
   height: z.int().nullable(),
   id: z.uuid(),
-  kind: z.enum(["video", "image", "poster"]),
+  kind: z.enum(["video", "image", "poster", "text"]),
   mime: z.string(),
   role: z.enum(["upload", "trimmed", "sample", "provider_output", "final", "poster"]),
   sha256: z.string().regex(/^[a-f0-9]{64}$/),
@@ -70,12 +73,52 @@ const generationErrorCodeSchema = z.enum([
 ]);
 
 /**
+ * One named file output of a done generation, as result and share pages get it: the `name` its
+ * workflow declares (`video`, `image`, …, and `poster` for the still cut from a video output that
+ * asks for one), what it is (`media`: the stored asset's kind) and the asset, served at
+ * `/media/<asset id>.<ext>`. A page shows a generation by the media of its outputs. Text outputs
+ * are never among them (`generationTextOutputSchema`).
+ */
+const generationOutputSchema = z.object({
+  asset: assetSchema,
+  media: z.enum(["image", "video", "poster"]),
+  name: z.string().min(1),
+});
+
+export type GenerationOutput = z.infer<typeof generationOutputSchema>;
+
+/** The most bytes of UTF-8 a text output may hold; a longer one fails its generation. */
+export const TEXT_OUTPUT_MAX_BYTES = 16 * 1024;
+
+/**
+ * One named text output of a done generation (a text file a `SaveText` node saved, such as an
+ * enhanced caption), inline: the text exactly as the job produced it, at most
+ * `TEXT_OUTPUT_MAX_BYTES` of UTF-8. Stored as a private `text` asset; only the generation's API
+ * shows it, never a public page or `/media` without a session.
+ */
+const generationTextOutputSchema = z.object({
+  media: z.literal("text"),
+  name: z.string().min(1),
+  text: z.string(),
+});
+
+/** An output as a generation snapshot lists it: a file (`GenerationOutput`) or a text, inline. */
+const generationSnapshotOutputSchema = z.discriminatedUnion("media", [
+  generationOutputSchema,
+  generationTextOutputSchema,
+]);
+
+export type GenerationSnapshotOutput = z.infer<typeof generationSnapshotOutputSchema>;
+
+/**
  * A generation as `GET /api/generations/:id` and its event stream return it. A `done` row has
- * `share_slug`: its public share page is `/r/<share_slug>`. Its files are its named outputs
- * (`generationOutputSchema`); `final_asset_id` and `poster_asset_id` name the outputs `video` (an
- * MP4) and `poster` (a JPEG) of the workflows that have them, as they did before outputs had
- * names, and are `null` for any other. `position` is a `waiting` generation's place in line (1:
- * the next to start), `null` in any other status.
+ * `share_slug` when it has a file to show: its public share page is `/r/<share_slug>` (a
+ * generation whose outputs are all text has none). `outputs` lists a `done` generation's named
+ * outputs by name (files with their asset, texts inline) and is empty in any other status;
+ * `final_asset_id` and `poster_asset_id` name the outputs `video` (an MP4) and `poster` (a JPEG) of
+ * the workflows that have them, as they did before outputs had names, and are `null` for any
+ * other. `position` is a `waiting` generation's place in line (1: the next to start), `null` in
+ * any other status.
  */
 export const generationSchema = z.object({
   character_id: z.uuid().nullable(),
@@ -85,6 +128,7 @@ export const generationSchema = z.object({
   final_asset_id: z.uuid().nullable(),
   finished_at: z.iso.datetime().nullable(),
   id: z.uuid(),
+  outputs: z.array(generationSnapshotOutputSchema).default([]),
   parent_id: z.uuid().nullable(),
   position: z.int().positive().nullable().default(null),
   poster_asset_id: z.uuid().nullable(),
@@ -113,20 +157,6 @@ export const generationEventSchema = z.object({
 });
 
 export type GenerationEvent = z.infer<typeof generationEventSchema>;
-
-/**
- * One named output of a done generation, as result and share pages get it: the `name` its
- * workflow declares (`video`, `image`, …, and `poster` for the still cut from a video output that
- * asks for one), what it is (`media`: the stored asset's kind) and the asset, served at
- * `/media/<asset id>.<ext>`. A page shows a generation by the media of its outputs.
- */
-const generationOutputSchema = z.object({
-  asset: assetSchema,
-  media: assetSchema.shape.kind,
-  name: z.string().min(1),
-});
-
-export type GenerationOutput = z.infer<typeof generationOutputSchema>;
 
 /**
  * The answer to a request that starts a generation (`POST /api/generate`, a retry or a re-run):

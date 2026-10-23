@@ -1,5 +1,6 @@
-import { rm, stat } from "node:fs/promises";
+import { readFile, rm, stat } from "node:fs/promises";
 
+import { TEXT_OUTPUT_MAX_BYTES } from "../../contracts.ts";
 import { hashFile, incomingPath, type NewAsset, storeAsset } from "../assets.ts";
 import { comfyProvider, type Provider, type ProviderOutput } from "../comfy-provider.ts";
 import { cutPoster } from "../media/poster.ts";
@@ -13,14 +14,34 @@ import {
   transition,
 } from "./generations.ts";
 
-/** The file of `declared` among what its node produced: an MP4 for a video, a still for an image. */
-function pickOutput(candidates: ProviderOutput[], declared: OutputDeclaration) {
-  return candidates.find((candidate) =>
-    declared.media === "video"
-      ? candidate.contentType === "video/mp4" || candidate.name.endsWith(".mp4")
-      : candidate.contentType.startsWith("image/") || /\.(?:png|jpe?g|webp)$/i.test(candidate.name),
-  );
+/** Whether `candidate` is the kind of file `declared` asks for: an MP4, a still, or a text. */
+function isDeclaredKind(candidate: ProviderOutput, declared: OutputDeclaration) {
+  switch (declared.media) {
+    case "video":
+      return candidate.contentType === "video/mp4" || candidate.name.endsWith(".mp4");
+    case "image":
+      return (
+        candidate.contentType.startsWith("image/") || /\.(?:png|jpe?g|webp)$/i.test(candidate.name)
+      );
+    case "text":
+      return (
+        candidate.type === "text" ||
+        candidate.contentType.startsWith("text/") ||
+        /\.txt$/i.test(candidate.name)
+      );
+  }
 }
+
+/** The words a missing output of `declared`'s media is named by in a failure. */
+const missingNames = { image: "image", text: "text", video: "MP4" } as const;
+
+/**
+ * An output that came down whole but cannot be stored as its workflow declares it (a blank or
+ * oversized text): no attempt will do better, so the generation fails at once.
+ */
+class UnusableOutput extends Error {}
+
+const utf8 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 
 /** Downloads `output` to `path`, checking it is all there. */
 async function download(output: ProviderOutput, path: string) {
@@ -35,6 +56,68 @@ async function download(output: ProviderOutput, path: string) {
 }
 
 const stillAsset = { duration_ms: null, fps: null, has_audio: null } as const;
+
+const textAsset = { ...stillAsset, height: null, width: null } as const;
+
+/**
+ * Downloads the text outputs of a `text` declaration in Comfy's order and stores the first that is
+ * not blank, byte for byte, as a private `.txt` asset. A text that is not UTF-8 or is longer than
+ * `TEXT_OUTPUT_MAX_BYTES`, or no text that is not blank, is an `UnusableOutput`.
+ */
+async function rehostText(
+  outputs: ProviderOutput[],
+  declared: OutputDeclaration,
+): Promise<Array<[name: string, assetId: string]>> {
+  for (const output of outputs) {
+    const file = await incomingPath();
+
+    try {
+      await output.toFile(file, { timeoutMs: 180_000 });
+      const bytes = await readFile(file);
+
+      if (output.sizeBytes > 0 && output.sizeBytes !== bytes.length) {
+        throw new Error(`Downloaded ${bytes.length} bytes of a ${output.sizeBytes}-byte output`);
+      }
+
+      if (bytes.length > TEXT_OUTPUT_MAX_BYTES) {
+        throw new UnusableOutput(
+          `Comfy's text output ${declared.name} is ${bytes.length} bytes, more than the ${TEXT_OUTPUT_MAX_BYTES} a text output may hold.`,
+        );
+      }
+
+      let text: string;
+
+      try {
+        text = utf8.decode(bytes);
+      } catch {
+        throw new UnusableOutput(`Comfy's text output ${declared.name} is not UTF-8 text.`);
+      }
+
+      if (text.trim() === "") {
+        continue;
+      }
+
+      const stored = await storeAsset(file, {
+        ...textAsset,
+        bytes: bytes.length,
+        ext: "txt",
+        kind: "text",
+        mime: "text/plain; charset=utf-8",
+        role: "provider_output",
+        sha256: await hashFile(file),
+        source_asset_id: null,
+      });
+
+      return [[declared.name, stored.asset.id]];
+    } finally {
+      await rm(file, { force: true });
+    }
+  }
+
+  throw new UnusableOutput(
+    `Comfy finished the job, but its text output ${declared.name} is blank.`,
+  );
+}
 
 /**
  * Downloads one declared output and stores it as a content-addressed asset: an image as it is
@@ -218,16 +301,18 @@ async function settle(id: string, provider: Provider) {
   }
 
   const files = definition.outputs.map((declared) => ({
+    candidates: job
+      .getOutputs(declared.nodeId)
+      .filter((candidate) => isDeclaredKind(candidate, declared)),
     declared,
-    output: pickOutput(job.getOutputs(declared.nodeId), declared),
   }));
 
-  const missing = files.find(({ output }) => !output);
+  const missing = files.find(({ candidates }) => candidates.length === 0);
 
   if (missing) {
     return transition(id, current.status, "failed", {
       error_code: "provider_failed",
-      error_message: `Comfy finished the job without its ${missing.declared.media === "video" ? "MP4" : "image"} output.`,
+      error_message: `Comfy finished the job without its ${missingNames[missing.declared.media]} output.`,
     });
   }
 
@@ -240,14 +325,25 @@ async function settle(id: string, provider: Provider) {
   try {
     const stored = [];
 
-    for (const { declared, output } of files) {
-      if (output) {
-        stored.push(...(await rehost(output, declared)));
+    for (const { candidates, declared } of files) {
+      const [first] = candidates;
+
+      if (declared.media === "text") {
+        stored.push(...(await rehostText(candidates, declared)));
+      } else if (first) {
+        stored.push(...(await rehost(first, declared)));
       }
     }
 
     return transition(id, "finalizing", "done", { outputs: Object.fromEntries(stored) });
   } catch (error) {
+    if (error instanceof UnusableOutput) {
+      return transition(id, "finalizing", "failed", {
+        error_code: "provider_failed",
+        error_message: error.message,
+      });
+    }
+
     const message = error instanceof Error ? error.message : "unknown error";
 
     if (countFinalizeAttempt(id).finalize_attempts < FINALIZE_ATTEMPTS) {
@@ -273,7 +369,9 @@ const finalizing = new Map<string, Promise<Generation | null>>();
  * untouched; a failed, cancelled or expired job fails it. One run per id at a time; concurrent
  * callers share it. A failed download or FFmpeg run throws and leaves the row `finalizing`; a
  * call within the backoff after it returns the row without asking Comfy, a later one tries again,
- * and the third failure fails the row (`finalize_failed`) instead of throwing.
+ * and the third failure fails the row (`finalize_failed`) instead of throwing. A text output that
+ * came down but cannot be stored (blank, not UTF-8, too long) fails the row at once
+ * (`provider_failed`): no attempt would do better.
  */
 export function finalize(id: string, provider: Provider = comfyProvider) {
   const pending = finalizing.get(id);
