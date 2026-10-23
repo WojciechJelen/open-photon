@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { composerSlots } from "#/app/composer-slots";
 import { MotionTransferWizard } from "#/features/motionTransfer/components/motion-transfer-wizard";
 import { motionTransferDraftSchema } from "#/features/motionTransfer/draft";
 import { loadSelection } from "#/features/motionTransfer/selection.functions";
@@ -18,5 +19,12 @@ export const Route = createFileRoute("/motionTransfer")({
 });
 
 function MotionTransfer() {
-  return <MotionTransferWizard draft={Route.useSearch()} selection={Route.useLoaderData()} />;
+  return (
+    <MotionTransferWizard
+      directionEditor={composerSlots.directionEditor}
+      draft={Route.useSearch()}
+      generationActions={composerSlots.directGenerationActions}
+      selection={Route.useLoaderData()}
+    />
+  );
 }

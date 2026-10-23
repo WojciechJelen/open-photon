@@ -9,10 +9,12 @@ import {
   type SampleMotion,
   sampleMotionSchema,
 } from "../contracts.ts";
+import type { Direction } from "../draft.ts";
 import { findCharacter, listSampleCharacters } from "./characters.server.ts";
 import { findGeneration } from "./generations.ts";
 import { anglePresets, generateDefaults } from "./presets.ts";
 import { isPublicAsset } from "./public-access.ts";
+import type { Recipe } from "./recipe.ts";
 import {
   findSampleTake,
   findSampleTakeId,
@@ -58,21 +60,12 @@ function listSampleMotions(): SampleMotion[] {
 }
 
 /**
- * The direction a generation was made with, as the wizard's Direct step holds it, so "Change the
- * shot" and the remixes open it ready to tweak: the angle's preset id (`none`: As filmed), the
- * look as it was sent (its angle phrasing taken off the end again; the default description is a
- * blank look) and the seed (the fixed default is a blank one). `null` for an unknown id, or for a
- * generation the visitor may not read: without a session (`signedIn`), only a pre-rendered
- * sample's.
+ * The direction `recipe` was made with, as the wizard's Direct step holds it, so "Change the
+ * shot", the remixes and a take's generation actions start from it: the angle's preset id
+ * (`none`: As filmed), the look as it was sent (its angle phrasing taken off the end again; the
+ * default description is a blank look) and the seed (the fixed default is a blank one).
  */
-function readDirection(id: string, signedIn: boolean) {
-  const row = findGeneration(id);
-
-  if (!row || !(signedIn || row.is_prerendered)) {
-    return null;
-  }
-
-  const { angle: angleId, params } = row.recipe;
+export function directionOf({ angle: angleId, params }: Recipe): Direction {
   const angle = anglePresets.angles.find((preset) => preset.id === angleId);
   const phrasing = angle ? ` ${angle.fragment}` : "";
 
@@ -86,6 +79,17 @@ function readDirection(id: string, signedIn: boolean) {
     prompt: look === generateDefaults.prompt ? "" : look,
     seed: params.seed === generateDefaults.seed ? "" : String(params.seed),
   };
+}
+
+/**
+ * The direction of the generation `id` (`directionOf`); `null` for an unknown id, or for a
+ * generation the visitor may not read: without a session (`signedIn`), only a pre-rendered
+ * sample's.
+ */
+function readDirection(id: string, signedIn: boolean) {
+  const row = findGeneration(id);
+
+  return row && (signedIn || row.is_prerendered) ? directionOf(row.recipe) : null;
 }
 
 /**

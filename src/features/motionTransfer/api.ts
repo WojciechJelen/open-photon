@@ -1,7 +1,8 @@
 // Motion Transfer's public module: what other features may import from it
 // (`scripts/check-import-boundaries.mjs`). Client-safe and loadable by Node: contracts, the draft
-// (prefill, remix and "Animate this character" links, snapshots for generation actions),
-// server-function types, and test fixtures (`tests/fixtures.ts`).
+// (prefill, remix and "Animate this character" links, snapshots for generation actions), the
+// composer's slot contracts and server-function types. Slot components are mounted in
+// `src/app/composer-slots.ts`; test fixtures are in `tests/fixtures.ts`.
 export type { PickableCharacter, SampleMotion } from "./contracts.ts";
 
 export {
@@ -18,6 +19,13 @@ export {
 } from "./draft.ts";
 
 export type { loadStudio } from "./selection.functions.ts";
+
+export type {
+  ComposerSlots,
+  DirectGenerationActionsProps,
+  DirectionEditorProps,
+  ResultGenerationActionsProps,
+} from "./slots.ts";
 
 // Frozen props for other features' tests of their slot components and links.
 export {

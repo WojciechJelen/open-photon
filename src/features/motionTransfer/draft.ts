@@ -118,6 +118,11 @@ export function formSeed(text: string) {
   return trimmed === "" ? undefined : /^\d+$/.test(trimmed) ? Number(trimmed) : Number.NaN;
 }
 
+/** The draft's direction fields for what the form holds (`snapshotDraft` drops what is not valid). */
+export function directionFields(direction: Direction): MotionTransferDraft {
+  return { angle: direction.angle, prompt: direction.prompt, seed: formSeed(direction.seed) };
+}
+
 /**
  * The direction the Direct step starts with: each direction field the draft sets, over `start`
  * (the direction of the take the draft comes `from`, else `defaultDirection`). An angle that is

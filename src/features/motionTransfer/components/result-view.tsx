@@ -1,12 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import {
-  ArrowRightIcon,
-  Columns2Icon,
-  DownloadIcon,
-  ChevronsLeftRightIcon,
-  RotateCwIcon,
-} from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { ArrowRightIcon, Columns2Icon, DownloadIcon, ChevronsLeftRightIcon } from "lucide-react";
+import { type ComponentType, useState, useSyncExternalStore } from "react";
 
 import { Button } from "#/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
@@ -18,8 +12,9 @@ import { RecipePanel } from "#/features/motionTransfer/components/recipe-panel";
 import type { ChildState } from "#/features/motionTransfer/components/render-ended";
 import { ShareLink } from "#/features/motionTransfer/components/share-link";
 import type { PickableCharacter } from "#/features/motionTransfer/contracts";
-import type { MotionTransferDraft } from "#/features/motionTransfer/draft";
+import type { DraftSnapshot, MotionTransferDraft } from "#/features/motionTransfer/draft";
 import type { Recipe } from "#/features/motionTransfer/server/recipe";
+import type { ResultGenerationActionsProps } from "#/features/motionTransfer/slots";
 import { Hud } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
 import { OpenWeightsBadge } from "#/shared/components/site";
@@ -78,13 +73,16 @@ function RemixCard({
  * Step 5, the result: the source and the result on one clock, side by side or as a swipe (swipe
  * by default below 640 px); Download first; the share link; "Make another take", which opens the
  * wizard with the motion or the character kept and this take's direction (`from`) to start from;
- * and the recipe, folded, with Re-run.
+ * and the recipe, folded, with the generation actions (`generationActions`, by default Re-run)
+ * and how a re-run went.
  */
 export function ResultView({
   character,
   child,
+  draft,
   final,
   generation,
+  generationActions: GenerationActions,
   onRerun,
   origin,
   poster,
@@ -94,8 +92,11 @@ export function ResultView({
 }: {
   character: PickableCharacter | null;
   child: ChildState;
+  /** This take as a draft, for the generation actions. */
+  draft: DraftSnapshot;
   final: Asset;
   generation: GenerationSnapshot;
+  generationActions: ComponentType<ResultGenerationActionsProps>;
   onRerun: () => void;
   origin: string;
   poster: string | undefined;
@@ -202,15 +203,12 @@ export function ResultView({
 
         <RecipePanel recipe={recipe}>
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              disabled={child.state === "running"}
-              onClick={onRerun}
-              size="sm"
-              variant="outline"
-            >
-              <RotateCwIcon />
-              {child.state === "running" ? "Re-running…" : "Re-run recipe"}
-            </Button>
+            <GenerationActions
+              child={child}
+              draft={draft}
+              generation={generation}
+              onRerun={onRerun}
+            />
             <Button asChild size="sm" variant="ghost">
               <a href={`/api/generations/${generation.id}/recipe.json`}>Recipe JSON</a>
             </Button>

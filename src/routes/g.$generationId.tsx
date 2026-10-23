@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
+import { composerSlots } from "#/app/composer-slots";
 import { GenerationView } from "#/features/motionTransfer/components/generation-view";
 import { loadResult } from "#/features/motionTransfer/generate.functions";
 import { Problem } from "#/shared/components/problem";
@@ -29,5 +30,11 @@ function GenerationPage() {
   const data = Route.useLoaderData();
 
   // Keyed by id: a retry or re-run opens its child here, with a stream of its own.
-  return <GenerationView data={data} key={data.generation.id} />;
+  return (
+    <GenerationView
+      data={data}
+      generationActions={composerSlots.resultGenerationActions}
+      key={data.generation.id}
+    />
+  );
 }

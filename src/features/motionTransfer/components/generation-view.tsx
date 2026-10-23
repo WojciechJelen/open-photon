@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
 import { TriangleAlertIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ComponentType, useEffect, useState } from "react";
 import { z } from "zod";
 
 import {
@@ -16,8 +16,13 @@ import {
 } from "#/features/motionTransfer/components/render-ended";
 import { RenderProgress, stageTitle } from "#/features/motionTransfer/components/render-progress";
 import { ResultView } from "#/features/motionTransfer/components/result-view";
-import type { MotionTransferDraft } from "#/features/motionTransfer/draft";
+import {
+  directionFields,
+  type MotionTransferDraft,
+  snapshotDraft,
+} from "#/features/motionTransfer/draft";
 import { loadResult } from "#/features/motionTransfer/generate.functions";
+import type { ResultGenerationActionsProps } from "#/features/motionTransfer/slots";
 import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
 import { Hud, PageGlow, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
@@ -290,13 +295,21 @@ function OutputsView({ data }: { data: OutputsResult }) {
   );
 }
 
+type GenerationActions = ComponentType<ResultGenerationActionsProps>;
+
 /**
- * `/g/:id`: a Motion Transfer take (`MotionTransferView`), or a generation of another workflow by
- * the media of its outputs (`OutputsView`).
+ * `/g/:id`: a Motion Transfer take (`MotionTransferView`, its result with `generationActions`),
+ * or a generation of another workflow by the media of its outputs (`OutputsView`).
  */
-export function GenerationView({ data }: { data: Result }) {
+export function GenerationView({
+  data,
+  generationActions,
+}: {
+  data: Result;
+  generationActions: GenerationActions;
+}) {
   return data.view === "motionTransfer" ? (
-    <MotionTransferView data={data} />
+    <MotionTransferView data={data} generationActions={generationActions} />
   ) : (
     <OutputsView data={data} />
   );
@@ -309,8 +322,16 @@ export function GenerationView({ data }: { data: Result }) {
  * re-run of a done generation answers with this one, which the page says. An action that needs
  * the access code asks for it in the dialog, then carries on.
  */
-function MotionTransferView({ data }: { data: MotionTransferResult }) {
-  const { character, motionTitle, origin, recipe, rerunOfParent, signedIn, source } = data;
+function MotionTransferView({
+  data,
+  generationActions,
+}: {
+  data: MotionTransferResult;
+  generationActions: GenerationActions;
+}) {
+  const { character, direction, motionTitle, origin, recipe, rerunOfParent, signedIn, source } =
+    data;
+
   const live = useLiveGeneration(data.generation);
   const { providerUnavailable } = live;
 
@@ -451,8 +472,10 @@ function MotionTransferView({ data }: { data: MotionTransferResult }) {
             <ResultView
               character={character}
               child={child}
+              draft={snapshotDraft({ ...shot, ...directionFields(direction) })}
               final={final}
               generation={generation}
+              generationActions={generationActions}
               onRerun={() => void startChild("rerun")}
               origin={origin}
               poster={poster ? mediaUrl(poster) : undefined}
