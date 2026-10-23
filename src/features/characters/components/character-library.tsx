@@ -11,6 +11,7 @@ import type { CharacterSummary } from "#/features/characters/contracts";
 import {
   animateHref,
   type LibrarySearch,
+  type CreateCharacterHref,
   libraryHref,
   patchCharacter,
 } from "#/features/characters/library";
@@ -32,12 +33,16 @@ const HELD = "library-list";
  * recent first, with search, a favorites filter, upload with likeness consent, rename, favorite,
  * and "Animate", which opens Motion Transfer with the character picked and the carried composer
  * draft (`search.draft`) kept. Without a session it lists nothing and explains the access code.
- * `onSearch` changes the page's search (the URL), replacing its history entry.
+ * `onSearch` changes the page's search (the URL), replacing its history entry. The builder's
+ * "Describe a character" shows only when the composition gives `createCharacterHref` (the route
+ * that mounts the page passes it once the builder exists), so the page never links nowhere.
  */
 export function CharacterLibrary({
+  createCharacterHref,
   onSearch,
   search,
 }: {
+  createCharacterHref?: CreateCharacterHref;
   onSearch: (next: Partial<LibrarySearch>) => void;
   search: LibrarySearch;
 }) {
@@ -103,12 +108,14 @@ export function CharacterLibrary({
             <h1 className="font-display text-4xl leading-none font-bold tracking-display sm:text-5xl">
               Characters
             </h1>
-            <Button asChild variant="outline">
-              <a href={libraryHref("/characters/new", search.draft)}>
-                <SparklesIcon aria-hidden="true" />
-                Describe a character
-              </a>
-            </Button>
+            {createCharacterHref && (
+              <Button asChild variant="outline">
+                <a href={createCharacterHref(search.draft)}>
+                  <SparklesIcon aria-hidden="true" />
+                  Describe a character
+                </a>
+              </Button>
+            )}
           </div>
           <p className="flex max-w-2xl flex-wrap items-center gap-x-3 gap-y-2 text-soft-foreground">
             <Badge>

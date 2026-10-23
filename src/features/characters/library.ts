@@ -62,6 +62,12 @@ export function libraryHref(
 }
 
 /**
+ * Where "Describe a character" leads, carrying the composer draft: given by the composition
+ * (`libraryHref("/characters/new", draft)` once the builder's page exists), never assumed here.
+ */
+export type CreateCharacterHref = (draft: DraftSnapshot | undefined) => string;
+
+/**
  * `GET /api/characters`: the workspace library and the samples, most recent first; `q` and
  * `favorites` filter it.
  */

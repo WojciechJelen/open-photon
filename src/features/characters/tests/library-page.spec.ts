@@ -62,6 +62,8 @@ test("a photo uploaded with consent joins the library, newest first, and stays a
 
   await open(page, "/characters");
   await expect(page.getByText("Shared workspace")).toBeVisible();
+  // No builder is composed in: no link to it.
+  await expect(page.getByRole("link", { name: "Describe a character" })).toHaveCount(0);
   await expect(grid(page)).toBeVisible();
 
   const upload = page.getByRole("region", { name: "Add a photo" });
@@ -412,6 +414,7 @@ test("the composer's character step lists the workspace library and goes to it a
   // Saved in the library before: offered here with the samples, most recent first.
   await expect(picker.getByRole("button", { name })).toBeVisible();
   await expect(picker.getByRole("button", { name: "Placeholder blue" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Describe a character" })).toHaveCount(0);
 
   await page.getByRole("link", { name: "Open the library" }).click();
   await page.waitForURL((url) => url.pathname === "/characters");
