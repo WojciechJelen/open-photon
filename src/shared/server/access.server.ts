@@ -56,7 +56,7 @@ function nextPath(url: URL) {
 }
 
 /** A small request body (a login, a JSON action) as text, or `null` when it is over `limit` bytes. */
-export async function readLimitedBody(request: Request, limit: number) {
+async function readLimitedBody(request: Request, limit: number) {
   const reader = request.body?.getReader();
 
   if (!reader) {
@@ -89,6 +89,17 @@ export async function readLimitedBody(request: Request, limit: number) {
   }
 
   return Buffer.concat(chunks).toString("utf8");
+}
+
+/**
+ * A small JSON body (at most `limit` bytes) as `schema`: `{ data }`, or `{ error }` saying why it
+ * is not (too large, not JSON, not the schema), for a 400.
+ */
+export async function readJsonBody<T>(request: Request, schema: z.ZodType<T>, limit: number) {
+  const text = await readLimitedBody(request, limit);
+  const body = schema.safeParse(await new Response(text ?? "").json().catch(() => null));
+
+  return body.success ? { data: body.data } : { error: z.prettifyError(body.error) };
 }
 
 /** The code a login carries: the `/access` form's `code` field, or `POST /api/session`'s `{ code }`. */

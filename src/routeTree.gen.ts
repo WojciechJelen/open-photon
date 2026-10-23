@@ -17,6 +17,7 @@ import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as GGenerationIdRouteImport } from './routes/g.$generationId'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
+import { Route as ApiCharactersCharacterIdRouteImport } from './routes/api.characters.$characterId'
 import { Route as ApiDebugHeartbeatRouteImport } from './routes/api.debug.heartbeat'
 import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
 import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
@@ -66,6 +67,12 @@ const RSlugRoute = RSlugRouteImport.update({
   path: '/r/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCharactersCharacterIdRoute =
+  ApiCharactersCharacterIdRouteImport.update({
+    id: '/$characterId',
+    path: '/$characterId',
+    getParentRoute: () => ApiCharactersRoute,
+  } as any)
 const ApiDebugHeartbeatRoute = ApiDebugHeartbeatRouteImport.update({
   id: '/api/debug/heartbeat',
   path: '/api/debug/heartbeat',
@@ -115,12 +122,13 @@ const ApiGenerationsGenerationIdRetryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
-  '/api/characters': typeof ApiCharactersRoute
+  '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
+  '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
@@ -133,12 +141,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
-  '/api/characters': typeof ApiCharactersRoute
+  '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
+  '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
@@ -152,12 +161,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
-  '/api/characters': typeof ApiCharactersRoute
+  '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
   '/r/$slug': typeof RSlugRoute
+  '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
+    | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
+    | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
@@ -214,6 +226,7 @@ export interface FileRouteTypes {
     | '/g/$generationId'
     | '/media/$filename'
     | '/r/$slug'
+    | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
@@ -227,7 +240,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MotionTransferRoute: typeof MotionTransferRoute
-  ApiCharactersRoute: typeof ApiCharactersRoute
+  ApiCharactersRoute: typeof ApiCharactersRouteWithChildren
   ApiGenerateRoute: typeof ApiGenerateRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   GGenerationIdRoute: typeof GGenerationIdRoute
@@ -297,6 +310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/characters/$characterId': {
+      id: '/api/characters/$characterId'
+      path: '/$characterId'
+      fullPath: '/api/characters/$characterId'
+      preLoaderRoute: typeof ApiCharactersCharacterIdRouteImport
+      parentRoute: typeof ApiCharactersRoute
+    }
     '/api/debug/heartbeat': {
       id: '/api/debug/heartbeat'
       path: '/api/debug/heartbeat'
@@ -356,6 +376,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ApiCharactersRouteChildren {
+  ApiCharactersCharacterIdRoute: typeof ApiCharactersCharacterIdRoute
+}
+
+const ApiCharactersRouteChildren: ApiCharactersRouteChildren = {
+  ApiCharactersCharacterIdRoute: ApiCharactersCharacterIdRoute,
+}
+
+const ApiCharactersRouteWithChildren = ApiCharactersRoute._addFileChildren(
+  ApiCharactersRouteChildren,
+)
+
 interface ApiGenerationsGenerationIdRouteChildren {
   ApiGenerationsGenerationIdEventsRoute: typeof ApiGenerationsGenerationIdEventsRoute
   ApiGenerationsGenerationIdRecipeDotjsonRoute: typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
@@ -381,7 +413,7 @@ const ApiGenerationsGenerationIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MotionTransferRoute: MotionTransferRoute,
-  ApiCharactersRoute: ApiCharactersRoute,
+  ApiCharactersRoute: ApiCharactersRouteWithChildren,
   ApiGenerateRoute: ApiGenerateRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   GGenerationIdRoute: GGenerationIdRoute,

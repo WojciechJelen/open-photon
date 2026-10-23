@@ -2,10 +2,9 @@ import { rm, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import type { ServerRequest } from "srvx";
-import { z } from "zod";
 
 import { assetSchema } from "../../../shared/contracts.ts";
-import { readLimitedBody } from "../../../shared/server/access.server.ts";
+import { readJsonBody } from "../../../shared/server/access.server.ts";
 import {
   findAsset,
   hashFile,
@@ -130,12 +129,10 @@ export function uploadVideo(request: ServerRequest) {
  * 4 KiB), the response an asset.
  */
 export async function trimAsset(request: Request, assetId: string) {
-  const text = await readLimitedBody(request, 4096);
+  const body = await readJsonBody(request, trimRequestSchema, 4096);
 
-  const body = trimRequestSchema.safeParse(await new Response(text ?? "").json().catch(() => null));
-
-  if (!body.success) {
-    return Response.json({ error: z.prettifyError(body.error) }, { status: 400 });
+  if (body.error !== undefined) {
+    return Response.json({ error: body.error }, { status: 400 });
   }
 
   const source = findAsset(assetId);

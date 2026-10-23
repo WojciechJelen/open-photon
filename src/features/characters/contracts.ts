@@ -57,3 +57,17 @@ export type CharacterSummary = z.infer<typeof characterSummarySchema>;
 
 /** A character's title as a user gives it: trimmed, 1–80 characters. */
 export const characterTitleSchema = z.string().trim().min(1).max(80);
+
+/**
+ * `PATCH /api/characters/:id` JSON body (a session is needed): a new `title`
+ * (`characterTitleSchema`), `favorite` to mark or unmark it, or both. 200 with the character
+ * (`characterSummarySchema`); 400 for a body that is none of these; 404 for an id no character
+ * has; 409 `{ error, reason: "sample" }` for a new title on a sample, whose title is the
+ * manifest's.
+ */
+export const characterPatchSchema = z
+  .object({ favorite: z.boolean().optional(), title: characterTitleSchema.optional() })
+  .strict()
+  .refine((patch) => patch.favorite !== undefined || patch.title !== undefined, {
+    message: "Give a title, favorite, or both.",
+  });
