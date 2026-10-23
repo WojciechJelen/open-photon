@@ -55,7 +55,7 @@ jobs:
       - run: npm run test:server
       - name: Install Chromium for the browser tests
         run: npx playwright install --with-deps chromium
-      - name: Browser tests (own dev server, database and minted access code; Comfy at a dead port)
+      - name: Browser tests (two own dev servers, databases and access codes; Comfy at a dead port, and the fake provider for *.fake.spec.ts)
         run: npm run test:e2e
       - name: Build production image and scan client output
         run: docker build --platform linux/amd64 --tag open-photon:ci .

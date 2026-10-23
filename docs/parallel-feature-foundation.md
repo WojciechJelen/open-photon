@@ -43,7 +43,7 @@ one per workflow version, owned by its feature (`src/features/motionTransfer/wor
 | `recipeSchema` | Strict schema decoding every recipe this version stored. Every recipe carries `recipeIdentitySchema` (`target`, `workflow { id, version, sha256 }`, `models`); the type is `WorkflowRecipe`. `hashRecipe` refuses a recipe naming another workflow before hashing. |
 | `assetInputs(recipe)` | Stored files (by SHA-256) to upload, keyed by graph param; `{}` for a scalar-only workflow, which submits without an upload and stores no `provider_inputs`. |
 | `buildGraph(recipe, providerInputs)` | The API graph; both workflows use the shared binder `buildGraph(graph, inputsMap, values)` (`src/shared/server/workflow-graph.ts`). An inputs-map entry is one binding or a non-empty list of bindings (`inputsMapSchema`); every binding must name a node of its `class_type` and a literal field. |
-| `outputs` | `OutputDeclaration[]`: `{ name, nodeId, media: "image" \| "video", poster? }`. One asset per name; at most one `poster`, on a video. |
+| `outputs` | `OutputDeclaration[]`: `{ name, nodeId, media: "image" \| "video" \| "text", poster? }`. One asset per name; at most one `poster`, on a video. |
 | `seedOf`, `rebase(recipe, { seed, target })` | The recipe's seed, and the recipe a re-run (same seed) or retry (new seed) renders on the current target; `null` when the workflow file changed. |
 | `promptOf` (optional) | The text prompt, read as provenance when a generated character is saved. |
 
@@ -80,8 +80,13 @@ Client-safe contracts are in `src/shared/contracts.ts`:
 - `generationStatusSchema`: `waiting → preparing → queued → running → finalizing → done`, or
   `failed`, `unknown` (the provider may have the job; never resubmitted), `cancelled` (a waiting
   row taken out of line).
-- `generationSchema` (a snapshot with `position` while waiting) and the error codes, including
-  `target_mismatch`.
+- `generationSchema` (a snapshot with `position` while waiting, and `outputs` once done) and the
+  error codes, including `target_mismatch`. `outputs` (`GenerationSnapshotOutput[]`, by name) is
+  every named output of a done generation: a file as `{ name, media: "image" | "video" |
+  "poster", asset }`, a text inline as `{ name, media: "text", text }`; `[]` in any other status.
+  `GET /api/generations/:id` and every event-stream snapshot carry it, so a client needs no
+  other read to show a result. `useLiveGeneration(initial)` (`src/shared/use-live-generation.ts`)
+  follows a generation's stream for any feature.
 
 ### Named outputs and publishing
 
@@ -91,12 +96,26 @@ mirroring the two Motion Transfer outputs. `finalize.ts` downloads each declared
 is stored as downloaded (`kind: "image"`, no FFmpeg), a video as an MP4, and a `poster: true`
 video also gets a JPEG still at 0.5 s (`src/shared/server/media/poster.ts`).
 
-Every done generation gets a `share_slug` (`/r/<slug>`). `generationAccess`
-(`src/shared/server/generation/public-access.ts`) makes public: share pages, exactly the outputs
-of done generations that have a share page (`isSharedOutput`), and the pages and API of
-pre-rendered samples. Inputs are not public through it: Motion Transfer's declaration adds the
-source clip its share page shows; uploaded character images stay private. Every `/r/<slug>` and
-`/media/<id>.<ext>` URL that existed before the backfill still answers.
+A `text` output is a text file the node saved: core `SaveText` (format `txt`). Comfy's jobs API
+(`GET /api/v2/jobs/:id`, Cloud and the self-host proxy alike) lists it as a `.txt` file (`type:
+"file"`, no content type); it does not list a `PreviewAny` node's text (measured by DEV-297 on
+Cloud). Finalize takes the node's outputs of type `text`, a `text/*` content type or a `.txt`
+name, downloads them in order and stores the first that is not blank byte for byte as a `kind:
+"text"` asset (`role: "provider_output"`, `text/plain; charset=utf-8`, `<sha256>.txt`;
+`shared/004-text-assets.sql` widens `assets.kind`). One that is not UTF-8 or longer than
+`TEXT_OUTPUT_MAX_BYTES` (16 KiB), or none that is not blank, fails the generation at once
+(`provider_failed`, no finalize retries). The fake provider answers a `SaveText` node with
+`tests/fixtures/fake-output.txt`.
+
+A done generation gets a `share_slug` (`/r/<slug>`) unless every output it stored is a text.
+`generationAccess` (`src/shared/server/generation/public-access.ts`) makes public: share pages,
+exactly the file outputs of done generations that have a share page (`isSharedOutput`; a text
+asset never is), and the pages and API of pre-rendered samples. `readOutputs` (what `/g/:id`,
+`/r/:slug` and `createFromGeneration` read) returns file outputs only, so a text-only generation
+has no share page and shows no output on its result page. Inputs are not public through it:
+Motion Transfer's declaration adds the source clip its share page shows; uploaded character
+images stay private. Every `/r/<slug>` and `/media/<id>.<ext>` URL that existed before the
+backfill still answers.
 
 ### Provider target identity
 
@@ -116,7 +135,8 @@ domains alphabetically, numeric within one. The file's SHA-256 is recorded; a ch
 file stops startup. Foreign keys are not enforced while migrating, so a migration may rebuild a
 table others point at (`shared/002-waiting-queue.sql`). Applied today: `shared/001`
 (outputs, `target_origin`, `submit_started_at`), `shared/002` (waiting queue), `shared/003`
-(`generation_requests`), `characters/001` (library columns, one character per generation).
+(`generation_requests`), `shared/004` (`assets.kind` `text`), `characters/001` (library columns,
+one character per generation).
 
 ### Access policy and seeders
 
@@ -134,8 +154,9 @@ boot (`src/app/boot.ts`) and in `scripts/seed-samples.mjs`, `tests/temp-database
 ### Characters
 
 `src/features/characters/api.ts` (server) and `index.ts` (client: `characterSchema`,
-`characterSummarySchema`, `CharacterSummary`, `PickableCharacter`). Policy: a workspace library;
-every non-sample character is visible to whoever holds a session; there is no per-user owner.
+`characterSummarySchema`, `CharacterSummary`, `PickableCharacter`, `characterTitleSchema`,
+`characterListQuerySchema`, `characterListSchema`). Policy: a workspace library; every
+non-sample character is visible to whoever holds a session; there is no per-user owner.
 
 - `createFromUpload({ assetId, consentAt, title? })`.
 - `createFromGeneration({ generationId, outputName, title? })`: a user action after seeing the
@@ -146,7 +167,41 @@ every non-sample character is visible to whoever holds a session; there is no pe
 - `getCharacter`, `listCharacters({ includeSamples })`, `listSampleCharacters`,
   `visibleCharacter`, `renameCharacter`, `setFavorite`; errors are `CharacterError` with a status.
 - HTTP: `POST /api/characters` (upload with consent), `PATCH /api/characters/:id` (title,
-  favorite; a sample's title is refused with 409). Both need a session.
+  favorite; a sample's title is refused with 409). Both need a session. `GET /api/characters`
+  (DEV-293; session, else 401): query `characterListQuerySchema` (`q`: title or prompt
+  substring, case-insensitive; `favorites=1`; `samples=0` leaves samples out), answer
+  `characterListSchema` `{ characters }`, most recent first (`created_at` descending, then `id`).
+
+### Character builder
+
+`src/features/characterBuilder/index.ts` (client) exports the contracts of `contracts.ts`
+(FLUX 3 Image Klein distilled, DEV-294/DEV-297):
+
+- `characterControlsSchema` (`appearance`, `outfit`: trimmed, ≤200, blank is none; `style`:
+  `characterStyles`, `realistic | stylized-3d | illustration | anime`) and
+  `compileCharacterRequest(description, controls)`: pure; the description as a sentence, each
+  control, then `CHARACTER_FRAMING` (one person, full body head to toe with hands and feet, neutral
+  standing pose, plain background, even light). The server recomputes it; a client never sends it.
+- `POST /api/character-captions`, `characterCaptionInputSchema` (`description` 1–1000 trimmed,
+  `controls?`, `seed?`) plus `request_key?`: the upsampler-only `character-caption` workflow
+  (`CHARACTER_CAPTION_WORKFLOW`), one text output `caption` (`CAPTION_OUTPUT`).
+- `POST /api/character-generations`, `characterGenerationInputSchema` (`caption` 1–4000, not
+  blank, byte-exact; `seed?`, `width?`/`height?` via `imageSideSchema`; `source?: { description?,
+  controls?, caption_generation_id? }`) plus `request_key?`: `character-generation`
+  (`CHARACTER_GENERATION_WORKFLOW`), one image output `image` (`IMAGE_OUTPUT`). With
+  `caption_generation_id` (a done caption generation, else 404/409) the server copies the
+  description, controls and enhancement provenance and records `edited`; without it the
+  provenance is the client's `description`/`controls` and `enhancement: null`. Both endpoints
+  answer `generationReceiptSchema` like `POST /api/generate`.
+- `POST /api/character-generations/:generationId/character`, `saveCharacterInputSchema`
+  (`title?`): `createFromGeneration` of the `image` output; 201 new / 200 existing
+  `CharacterSummary`, 401, 404, 409. Only an explicit user action calls it.
+- Fixtures (`tests/fixtures.ts`): `captionInputFixture`, `captionGenerationFixture` (text output),
+  `enhancedCaptionFixture`, `generationInputFixture`, `imageGenerationFixture` (image output),
+  `savedCharacterFixture`, `captionGenerationId`, `imageGenerationId`.
+
+Until DEV-297 replaces it, the FLUX.2 `character-generation.v1` definition keeps its own prompt
+body (`PromptInput` in `workflows/definition.ts`); the contracts above describe the FLUX 3 one.
 
 ### Motion Transfer draft and composer slots
 
@@ -154,17 +209,28 @@ every non-sample character is visible to whoever holds a session; there is no pe
 `motionTransferDraftSchema` (`step`, `motion`, `character`, `from`, `angle`, `prompt`, `seed`;
 `prompt: ""` clears the look, `seed: "default"` resets the seed), `parseDraft` (never throws,
 drops invalid members), `draftHref(draft)` (the `/motionTransfer?…` link), `snapshotDraft`,
-`withSeed`, `withCharacter`, `defaultDirection`, and test fixtures (`draftFixture`,
-`snapshotFixture`, `directionFixture`, `sampleCharacterId`, `sampleMotionId`). The wizard owns its
-URL; another feature opens it with `draftHref`, never by holding its state. "Animate this
-character" is `draftHref({ character: id, motion? })`: with a motion it opens on Direct, without
-one on motion selection.
+`withSeed`, `withCharacter`, `defaultDirection`, `carriedDraft`, `carryDraft`, and test fixtures
+(`draftFixture`, `snapshotFixture`, `directionFixture`, `sampleCharacterId`, `sampleMotionId`).
+The wizard owns its URL; another feature opens it with `draftHref`, never by holding its state.
+"Animate this character" is `draftHref({ character: id, motion? })`: with a motion it opens on
+Direct, without one on motion selection.
 
-Slots (`src/features/motionTransfer/slots.ts`): `directionEditor` (`DirectionEditorProps`:
-`value`, `onChange`), `directGenerationActions` (`DirectGenerationActionsProps`) and
-`resultGenerationActions` (`ResultGenerationActionsProps`), both receiving an immutable
-`DraftSnapshot`. Defaults: `DefaultDirectionEditor`, `GenerateButton`, `RerunButton`. They are
-filled in one place, `src/app/composer-slots.ts`.
+Carrying the draft through another page (the library `/characters`, the builder
+`/characters/new`): the link carries the shot in one search member, `draft`, a JSON object
+(`carryDraft(draft)` → `{ draft }`, or `{}` when there is nothing to carry); the page declares
+`draft: carriedDraft(search.draft)` in `validateSearch` (validated like `parseDraft`, without
+`step` and `character`, frozen, `undefined` when empty; never throws); "Animate" returns with
+`draftHref(withCharacter(draft ?? {}, id))`, keeping the motion and the direction.
+
+Slots (`src/features/motionTransfer/slots.ts`): `characterPicker` (`CharacterPickerProps`:
+`characters` the loader has, `character`, `characterId`, `onPick`, `hold`, `release`,
+`signedIn`, and `draft`, the shot without its character, for links that carry it),
+`directionEditor` (`DirectionEditorProps`: `value`, `onChange`), `directGenerationActions`
+(`DirectGenerationActionsProps`) and `resultGenerationActions` (`ResultGenerationActionsProps`),
+both receiving an immutable `DraftSnapshot`. Defaults: `DefaultCharacterPicker` (the upload tile,
+the visitor's own photo and the samples; the Character step keeps its intro and tips around the
+slot), `DefaultDirectionEditor`, `GenerateButton`, `RerunButton`. They are filled in one place,
+`src/app/composer-slots.ts`.
 
 ### Import boundaries
 
@@ -293,8 +359,17 @@ the committed tree is stale. `npm run check` stays read-only.
 | DEV-290 Explore/remix | `explore` | Share pages `/r/:slug` and published outputs (`generation_outputs`, `generationAccess`); remix links `draftHref({ from, … })`. |
 | DEV-291 looks | `looks` | The `directionEditor` slot (`DirectionEditorProps`), mounted in `src/app/composer-slots.ts`. |
 | DEV-292 batches | `batches` | The `directGenerationActions`/`resultGenerationActions` slots with `DraftSnapshot`, `withSeed`/`withCharacter`; `submitMany` with a request key; the dispatcher and `waiting` receipts. It adds its own HTTP route and migration namespace. |
-| DEV-293 character library | `characters` (exists) | `src/features/characters/api.ts` and `index.ts`, `POST /api/characters`, `PATCH /api/characters/:id`, `tests/fixtures.ts`. |
-| DEV-294 character generation | `characterBuilder` (exists) | `POST /api/character-generations` (`character-generation.v1`), `createFromGeneration({ generationId, outputName: "image" })` from its own server function, then `draftHref({ character, motion? })` for "Animate this character". |
+| DEV-293 character library | `characters` (exists) | `src/features/characters/api.ts` and `index.ts` (`listCharacters`, `characterListQuerySchema`, `characterListSchema`), `POST /api/characters`, `PATCH /api/characters/:id`, its `GET /api/characters` and `/characters`; the `characterPicker` slot with `carryDraft`/`carriedDraft`. |
+| DEV-294 character builder UI | `characterBuilder` (`components/`, client helpers, `tests/*.spec.ts`; `/characters/new`) | The contracts of `characterBuilder/index.ts` and `tests/fixtures.ts`, `generationSchema.outputs`, `useLiveGeneration`, `carriedDraft` and `draftHref(withCharacter(…))` for "Use for animation". |
+| DEV-297 FLUX 3 workflows | `characterBuilder` (`workflows/`, `server/`, its server tests; the caption, generation and save routes), `selfhost/`, the model scripts | `OutputDeclaration` media `text`, `models.lock` pins of BFL's FLUX 3 repository; implements the contracts of `characterBuilder/contracts.ts`. |
+
+For DEV-293/294/297 the integration owner (one agent at a time) owns `src/shared/**` (migrations
+too), `src/app/**`, the committed `src/routeTree.gen.ts`, `package.json` and the lockfile,
+`playwright.config.ts`, `.github/workflows/ci.yml`, `.fallowrc.jsonc`, Motion Transfer's slot
+seams, `src/features/studio/**`, `characterBuilder/{contracts,index,api}.ts`,
+`characters/contracts.ts`, this document and `AGENTS.md`. A track that needs a change there asks
+the owner; the owner may grant a one-line composition edit (mounting a slot component or
+composing a workflow definition) on the track's branch.
 
 ## Running and verifying the foundation
 
@@ -319,9 +394,14 @@ npm run check:comfy             # the configured Comfy target answers and author
 
 Test discovery: `tests/*.test.ts`, `src/features/*/server/**/*.test.ts`,
 `src/features/*/tests/*.test.ts`, `src/shared/server/**/*.test.ts`; Playwright `tests/**/*.spec.ts`
-(project `chromium`) and `src/features/*/tests/*.spec.ts` (project `features`). The e2e server runs
-with Comfy at a dead port and `IN_FLIGHT_MAX=2`, because `tests/e2e/seed.ts` seeds one `queued`
-generation that takes a place.
+(project `chromium`), `src/features/*/tests/*.spec.ts` (project `features`) and
+`src/features/*/tests/*.fake.spec.ts` (project `fake`). `test:e2e` starts two dev servers, each on
+a fresh database seeded by `tests/e2e/seed.ts` with its own access code and signed-in browser
+state (`sign-in` and `fake-sign-in`): at `BASE_URL`, Comfy at a dead port and `IN_FLIGHT_MAX=2`,
+because the seed adds one `queued` generation that takes a place; at `FAKE_BASE_URL` (default:
+`BASE_URL`'s port + 1), `COMFY_PROVIDER=fake` with `COMFY_FAKE_STEP_MS=100` and
+`IN_FLIGHT_MAX=4`, for flows whose generations must finish (no seeded `queued` row there). Name a
+browser test `*.fake.spec.ts` when it needs a generation to succeed; it then runs only in `fake`.
 
 ### Environment
 
@@ -334,8 +414,9 @@ generation that takes a place.
 | `COMFY_FAKE_STEP_MS` | 250 | `comfy-provider.fake.ts` | Time between a fake job's events. |
 | `PORT` | 3030 | `vite.config.ts`, the built server, `compose.yaml` | Dev server port; Compose host port. |
 | `DATABASE_PATH` | `data/app.sqlite` | `paths.ts` | Database; stored files go in `assets/` beside it. |
-| `BASE_URL` | `http://127.0.0.1:3032` | `playwright.config.ts` | The e2e dev server. |
-| `E2E_DATABASE_PATH` | a new temporary directory | `playwright.config.ts` | The e2e database. |
+| `BASE_URL` | `http://127.0.0.1:3032` | `playwright.config.ts` | The e2e dev server (Comfy at a dead port). |
+| `FAKE_BASE_URL` | `BASE_URL`'s port + 1 | `playwright.config.ts` | The e2e dev server on the fake provider (project `fake`). |
+| `E2E_DATABASE_PATH`, `E2E_FAKE_DATABASE_PATH` | a new temporary directory each | `playwright.config.ts` | The two e2e databases. |
 | `COMPOSE_PROJECT_NAME` | the directory name | Docker Compose | Compose project and volume (`<name>_sqlite-data`). |
 | `IN_FLIGHT_MAX` | 1 | `limits.ts` | Generations `preparing..finalizing` at once; 0 refuses new ones. |
 | `GENERATION_DISPATCH_MS` | 3000 | `dispatcher.ts` | Dispatcher wake and poll interval. |
@@ -352,7 +433,9 @@ COMFY_PROVIDER=fake COMFY_API_KEY= COMFY_BASE_URL=http://127.0.0.1:1 npm run dev
 ```
 
 Every `Save*Video` node returns `tests/fixtures/fake-output.mp4`, every `SaveImage`/`PreviewImage`
-node `tests/fixtures/fake-output.png`, with progress at 25/50/75 %. `provider_failed` fails the
+node `tests/fixtures/fake-output.png`, every `SaveText` node the text file
+`tests/fixtures/fake-output.txt` (type `file`, a `.txt` name), with progress at 25/50/75 %.
+`provider_failed` fails the
 job; `ambiguous` accepts it and then throws from `submit`, which leaves the row `unknown`. A
 reused idempotency key throws the SDK's `IdempotencyKeyReuse`. Fake job ids describe the job, so a
 restarted server can still follow a job the stopped one submitted. Server tests set

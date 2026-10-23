@@ -11,8 +11,8 @@ npx shadcn@latest add button
 - `src/features/<feature>/`: everything one feature owns: `components/`, `server/`,
   `workflows/`, `samples/`, `tests/`, contracts (zod schemas and types), client helpers and
   server functions. Features: `motionTransfer` (the wizard, `/motionTransfer`), `characters`
-  (workspace character library, sample characters), `characterBuilder` (FLUX.2 Klein character
-  images, `POST /api/character-generations`; no UI yet), `studio` (home page `/`) and
+  (workspace character library, sample characters), `characterBuilder` (character images:
+  caption, generation and save contracts, `POST /api/character-generations`), `studio` (home page `/`) and
   `motion-score` (a Python/ComfyUI PoC: nothing imports it and no workflow of it is a runtime
   workflow, but both images package its `workflows/` and the app image its `samples/`).
 - A feature's public surface is `api.ts` (server code of other features) and `index.ts`
@@ -103,10 +103,13 @@ npm run test:e2e     # Playwright; starts its own dev server on :3032 with a fre
 - **Test discovery.** `test:server` runs `tests/*.test.ts`,
   `src/features/*/server/**/*.test.ts`, `src/features/*/tests/*.test.ts` and
   `src/shared/server/**/*.test.ts`. Playwright runs `tests/**/*.spec.ts` (project `chromium`)
-  and `src/features/*/tests/*.spec.ts` (project `features`). A feature's tests and fixtures live
+  and `src/features/*/tests/*.spec.ts` (project `features`) against a server with Comfy at a
+  dead port, and `src/features/*/tests/*.fake.spec.ts` (project `fake`) against a second one on
+  the fake provider (`FAKE_BASE_URL`, default `BASE_URL`'s port + 1), for flows whose
+  generations must finish. A feature's tests and fixtures live
   in the feature; a server test that loads the database imports `tests/temp-database.ts` first.
 - **Fake provider.** `COMFY_PROVIDER=fake` (`src/shared/server/comfy-provider.fake.ts`) answers
-  every Comfy call in process with `tests/fixtures/fake-output.{mp4,png}`. Per submit it runs
+  every Comfy call in process with `tests/fixtures/fake-output.{mp4,png,txt}`. Per submit it runs
   the graph's `[fake:<scenario>]` marker, else `COMFY_FAKE_SCENARIO`, else `success`
   (`success`, `provider_failed`, `ambiguous`); `COMFY_FAKE_STEP_MS` paces its progress. A
   target must still resolve (`COMFY_API_KEY= COMFY_BASE_URL=http://127.0.0.1:1`). A built
