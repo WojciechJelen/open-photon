@@ -3,32 +3,42 @@
 ## Experiment, not shipped
 
 Motion Score is a parked proof of concept, not a feature of Open Photon. Nothing in the app imports
-it: no route, no studio card, no navigation entry, no runtime workflow. It is kept as a record of
-what was tried and makes no claim beyond the evidence below.
+it: no route, no studio card, no navigation entry, no runtime workflow. Its `workflows/` and
+`samples/` are in the Docker images only because the images package every feature's folders. It is
+kept as a record of what was tried and makes no claim beyond the evidence below.
 
 **What works: driver retiming.** Three source→target frame pins (28→32, 52→48, 64→64) retime the
-driver clip inside ComfyUI with stock nodes, before Wan Animate 2. Decoding the Comfy Cloud output
-puts source frames 28, 52 and 64 at output frames 32, 48 and 64: zero-frame error on all three pins
-(`verification/render-check.json`). Moving one target (32→31) moves its frame with it
-(`verification/changed-result.json`); non-increasing pins are rejected (`verification/invalid-result.json`).
+driver clip inside ComfyUI with stock nodes, before Wan Animate 2. Decoding
+`samples/results/retimed-driver.mp4` puts source frames 28, 52 and 64 at output frames 32, 48 and
+64: zero-frame error on all three pins (`verification/render-check.json`). Moving target 1 from 32
+to 31 maps source frame 28 to output frame 31 (`workflows/test_poc.py`); the Cloud run with that
+change succeeded (`verification/changed-result.json`, which records the status only). Pins that are
+not strictly increasing interior frames, segment speeds outside 0.75–1.5× and a source that is not
+81 frames are rejected: the graph's VALIDATE node (id 30) fails with `division by zero`
+(`workflows/build_poc.py`; the failed Cloud run is `verification/invalid-result.json`).
 
 **What does not: the character.** The generated character moves but does not reliably reproduce
-every pinned pose. The raised-arms gesture at the first pin was missed by both renders, the default
-one and a stronger one at 384×672, eight steps, pose strength 1.3
-(`verification/stronger-result.json`). The timing of the character's gestures was never measured:
-every audit reports `UNMEASURED` (`verification/final-editor-run.json`,
-`verification/fixed-seed-run.json`). There is no pose or beat detector, no custom-node pack and no
-app integration. Exact driver pins do not certify generated gestures.
+every pinned pose. In `samples/results/character.mp4` the raised-arms pose of pin 1 (target frame
+32, 2 s) is not clearly reproduced. A second render did not recover it: job `2f2596c3…`
+(`verification/stronger-result.json`, which records status and timing only; 384×672, eight steps,
+pose strength 1.3 per the Oct 21 notes; its video is not kept). The timing of the character's
+gestures was never measured: every audit of a character render reports `UNMEASURED`
+(`verification/final-editor-run.json`, `verification/fixed-seed-run.json`). There is no pose or
+beat detector, no custom-node pack and no app integration. Exact driver pins do not certify
+generated gestures.
 
-**Cloud evidence** (`samples/results/`, returned by Comfy Cloud job
-`eb4247cd-4ac8-46fa-b210-ee570ba4f998`, `verification/generation-result.json`):
+**Cloud evidence** (`samples/results/`), matching the four outputs of Comfy Cloud job
+`eb4247cd-4ac8-46fa-b210-ee570ba4f998` (`verification/generation-result.json`, nodes 41, 44, 61 and
+64; the files were renamed from the Cloud output names):
 
-- `retimed-driver.mp4`: the driver after retiming.
-- `before-after.mp4`: original and retimed driver side by side.
-- `character.mp4`: the generated character.
-- `driver-character.mp4`: retimed driver and character side by side.
+- `retimed-driver.mp4` (`driver_00001_.mp4`): the driver after retiming.
+- `before-after.mp4` (`before-after_00001_.mp4`): original and retimed driver side by side.
+- `character.mp4` (`character_00001_.mp4`): the generated character.
+- `driver-character.mp4` (`driver-character_00001_.mp4`): retimed driver and character side by
+  side.
 
-All four decode to 81 frames at 16 fps, 5.0625 s, with the 120 BPM click track.
+All four decode to 81 frames at 16 fps, 5.0625 s, with an audio track
+(`verification/render-check.json`).
 
 ## What the graph does
 
@@ -48,8 +58,8 @@ recognition is implemented.
 | 3 | 64 / 4 s | 64 / 4 s | 0.75× from pin 2 to pin 3, 1× after |
 
 `samples/score-120bpm.wav` is a procedural click track with accents at 2, 3 and 4 s; the source
-audio is not reused. The character render is one 81-frame Wan Animate 2 fragment, six steps, fixed
-seed 218734.
+audio is not reused. The built graph renders one 81-frame Wan Animate 2 fragment with six steps and
+fixed seed 218734 (`workflows/motion-score.api.json`, nodes 591 and 597).
 
 The audit takes three OBSERVED frame numbers that a person enters after watching the render (`-1`
 for unknown) and reports signed errors in milliseconds, or `UNMEASURED` unless all three are valid.

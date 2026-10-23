@@ -73,7 +73,7 @@ Wan may alter or omit gestures: the retimed driver's exact pins do not
 prove that the generated character followed them. Audit is manual.
 
 Use the separate Motion Score preview workflow for fast retiming-only runs.
-Full setup, provenance and measured results: features/motion-score.md.
+Full setup, provenance and measured results: src/features/motion-score/README.md.
 '''],
 }
 workflow['nodes'] = [n for n in workflow['nodes'] if n['id'] != 900] + [note]

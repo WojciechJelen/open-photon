@@ -547,9 +547,10 @@ rebuild and step 5 were not run). To repeat them, someone with a Runpod pod:
 - `/g/:id` titles every result "Your take · Motion Transfer · Open Photon"
   (`src/routes/g.$generationId.tsx`), image generations included; the page shell belongs to
   Motion Transfer.
-- `src/features/motion-score/` is an unwired Python PoC; it is never imported and none of its
-  files is a runtime workflow, but the app image packages its `workflows/` and `samples/` and the
-  self-host image its `workflows/`. Decide whether it stays under `src/features/`.
+- `src/features/motion-score/` is an unwired Python PoC, parked as an experiment (DEV-287); it is
+  never imported and none of its files is a runtime workflow, but the app image packages its
+  `workflows/` and `samples/` and the self-host image its `workflows/`. Its status, what it proved
+  and what it did not: `src/features/motion-score/README.md`.
 - No HTTP route calls `submitMany` and no route cancels a waiting generation; batches (DEV-292)
   own both.
 - Waiting queue against a real provider (step 5 above), packaged-runtime and two-worktree
