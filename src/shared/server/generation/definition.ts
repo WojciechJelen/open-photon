@@ -86,6 +86,9 @@ type RebaseContext = { seed: number; target: ProviderTarget };
  * - `promptOf` (optional): the text prompt a recipe renders, which what is saved from its output
  *   keeps as its provenance (`readGenerationProvenance`: a generated character's `prompt`). A
  *   workflow without a text prompt leaves it out.
+ * - `shareRecipe` (optional): what the public share page (`/r/:slug`, `readGenerationShare`) may
+ *   show of a recipe; without it, the recipe. A workflow whose recipe holds private text (an
+ *   enhanced caption, which is a private text output) leaves that out here.
  */
 export type WorkflowDefinition<Input, Recipe extends WorkflowRecipe> = {
   id: string;
@@ -104,6 +107,7 @@ export type WorkflowDefinition<Input, Recipe extends WorkflowRecipe> = {
   seedOf(recipe: Recipe): number;
   rebase(recipe: Recipe, context: RebaseContext): Recipe | null;
   promptOf?(recipe: Recipe): string;
+  shareRecipe?(recipe: Recipe): Json;
 };
 
 /** A definition as the registry holds it, whichever input and recipe it types. */

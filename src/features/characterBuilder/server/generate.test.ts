@@ -16,7 +16,10 @@ import {
   readOutputs,
   snapshot,
 } from "../../../shared/server/generation/generations.ts";
-import { readGenerationResult } from "../../../shared/server/generation/pages.ts";
+import {
+  readGenerationResult,
+  readGenerationShare,
+} from "../../../shared/server/generation/pages.ts";
 import type { Json } from "../../../shared/server/generation/recipe-hash.ts";
 import { readGeneration, rerun, retry } from "../../../shared/server/generation/service.ts";
 import type { WorkflowGraph } from "../../../shared/server/workflow-graph.ts";
@@ -215,6 +218,25 @@ test("an image from an enhanced caption copies the enhancement's provenance, ign
     assert.deepEqual([output?.name, output?.media], ["image", "image"]);
     assert.equal(findAsset(output?.asset.id ?? "")?.mime, "image/png");
     assert.ok(done?.share_slug);
+
+    // The public share page shows the rendered caption, never the enhanced one (a private text).
+    const shared = readGenerationShare(done.share_slug, "https://photon.example");
+    const { enhancement } = recipe.source;
+
+    assert.ok(enhancement);
+    assert.deepEqual(shared?.recipe, {
+      ...recipe,
+      source: {
+        ...recipe.source,
+        enhancement: {
+          edited: enhancement.edited,
+          generation_id: enhancement.generation_id,
+          model: enhancement.model,
+          settings: enhancement.settings,
+          system_prompt_sha256: enhancement.system_prompt_sha256,
+        },
+      },
+    });
   }
 });
 
@@ -256,7 +278,7 @@ test("an image Comfy fails fails with provider_failed and cannot be saved", asyn
   assert.deepEqual(readOutputs(id), []);
 
   const saved = await handleSaveCharacter(
-    post(`/api/character-generations/${id}/character`, ""),
+    post(`/api/character-generations/${id}/character`, {}),
     id,
   );
 
@@ -395,6 +417,14 @@ test("POST /api/character-generations/:id/character saves the image once, explic
   assert.equal(findGeneration(id)?.character_id, null);
 
   const path = `/api/character-generations/${id}/character`;
+
+  // A body that is missing, not JSON, too large or not the schema is refused and saves nothing.
+  for (const body of ["", "not json", { title: "x".repeat(5000) }, { title: 5 }]) {
+    const refused = await handleSaveCharacter(post(path, body), id);
+
+    assert.deepEqual([refused.status, (await refused.json()).reason], [400, "invalid_input"]);
+  }
+
   const created = await handleSaveCharacter(post(path, { title: "Musician" }), id);
   const character = await created.json();
   const [output] = readOutputs(id);
@@ -416,8 +446,8 @@ test("POST /api/character-generations/:id/character saves the image once, explic
   });
   assert.deepEqual(getCharacter(character.id)?.id, character.id);
 
-  // Idempotent: the same character again, with an empty body too.
-  for (const body of ["", {}, { title: "Another" }]) {
+  // Idempotent: the same character again, whatever title is sent then.
+  for (const body of [{}, { title: "Another" }]) {
     const again = await handleSaveCharacter(post(path, body), id);
 
     assert.deepEqual([again.status, (await again.json()).id], [200, character.id]);
@@ -428,7 +458,7 @@ test("POST /api/character-generations/:id/character saves the image once, explic
     [captionId, 409, "not_character_generation"],
   ] as const) {
     const refused = await handleSaveCharacter(
-      post(`/api/character-generations/${target}/character`, ""),
+      post(`/api/character-generations/${target}/character`, {}),
       target,
     );
 
@@ -436,13 +466,9 @@ test("POST /api/character-generations/:id/character saves the image once, explic
   }
 
   const malformed = await handleSaveCharacter(
-    post("/api/character-generations/x/character", ""),
+    post("/api/character-generations/x/character", {}),
     "x",
   );
 
   assert.equal(malformed.status, 400);
-
-  const badBody = await handleSaveCharacter(post(path, { title: 5 }), id);
-
-  assert.deepEqual([badBody.status, (await badBody.json()).reason], [400, "invalid_input"]);
 });

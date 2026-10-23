@@ -194,5 +194,20 @@ export const characterGenerationDefinition: WorkflowDefinition<
   recipeSchema,
   seedOf: (recipe) => recipe.seed,
   version: WORKFLOW_VERSION,
+  // The enhanced caption is the caption generation's private text output: a public share page
+  // shows the rendered caption and the rest of the provenance, not that text.
+  shareRecipe: ({ source, ...recipe }) => ({
+    ...recipe,
+    source: {
+      ...source,
+      enhancement: source.enhancement && {
+        edited: source.enhancement.edited,
+        generation_id: source.enhancement.generation_id,
+        model: source.enhancement.model,
+        settings: source.enhancement.settings,
+        system_prompt_sha256: source.enhancement.system_prompt_sha256,
+      },
+    },
+  }),
   workflowHash: imageWorkflow.sha256,
 };

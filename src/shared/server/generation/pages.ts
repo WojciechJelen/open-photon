@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { mediaUrl } from "../../media.ts";
+import { workflows } from "./definition.ts";
 import { findGeneration, findShared, readOutputs, snapshot } from "./generations.ts";
 import { settleAbandoned } from "./service.ts";
 
@@ -34,7 +35,9 @@ export function readGenerationResult(id: string) {
 /**
  * What `/r/:slug` shows of a done generation whatever its workflow, or `null` for a slug no done
  * generation with outputs has: its named outputs, each with its absolute URL from `origin` (for
- * the Open Graph tags), the page's own URL, when it finished, its recipe and its workflow.
+ * the Open Graph tags), the page's own URL, when it finished, its recipe as its workflow lets a
+ * public page show it (`shareRecipe`; the stored recipe for a workflow without one) and its
+ * workflow.
  */
 export function readGenerationShare(slug: string, origin: string) {
   const row = /^[0-9a-f]{16}$/.test(slug) ? findShared(slug) : null;
@@ -44,11 +47,17 @@ export function readGenerationShare(slug: string, origin: string) {
     return null;
   }
 
+  const definition = workflows.find(row);
+
+  const recipe = definition?.shareRecipe
+    ? definition.shareRecipe(definition.recipeSchema.parse(row.recipe))
+    : row.recipe;
+
   return {
     finishedAt: row.finished_at,
     outputs: outputs.map((output) => ({ ...output, url: `${origin}${mediaUrl(output.asset)}` })),
     pageUrl: `${origin}/r/${slug}`,
-    recipe: row.recipe,
+    recipe,
     workflow: { id: row.workflow_id, version: row.workflow_version },
   };
 }

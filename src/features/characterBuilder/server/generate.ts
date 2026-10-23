@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 import type { Session } from "../../../shared/server/access.server.ts";
 import { readJsonBody } from "../../../shared/server/access.server.ts";
 import { comfyProvider, type Provider } from "../../../shared/server/comfy-provider.ts";
@@ -95,12 +93,13 @@ export function handleCharacterGeneration(request: Request, provider: Provider =
 }
 
 /**
- * `POST /api/character-generations/:generationId/character` with an optional JSON body
- * `{ title? }` (`saveCharacterInputSchema`; an empty body is no title): saves the `image` output
+ * `POST /api/character-generations/:generationId/character` with a JSON body `{ title? }`
+ * (`saveCharacterInputSchema`, at most 4 KiB; `{}` for no title): saves the `image` output
  * of a done character generation to the workspace library, the user's explicit action
  * (`createFromGeneration` of the characters API, which takes the prompt and provenance from the
  * stored recipe). 201 with the new `CharacterSummary`, 200 with the one already saved from it; 400
- * `invalid_input` for a malformed id or body, 404 `not_found` for no such generation, 409
+ * `invalid_input` for a malformed id, or a body that is missing, too large, not JSON or not the
+ * schema (like `readInput`: nothing is saved then), 404 `not_found` for no such generation, 409
  * `not_character_generation` for a generation of another workflow, then the characters API's
  * refusals (409 `not_done`, 422 `invalid_title`, …). Not public: the access guard answers 401
  * without a session.
@@ -112,8 +111,7 @@ export async function handleSaveCharacter(request: Request, generationId: string
     return id;
   }
 
-  // An empty body is no title, like `{}`.
-  const body = await readJsonBody(request, saveCharacterInputSchema.or(z.null()), 4096);
+  const body = await readJsonBody(request, saveCharacterInputSchema, 4096);
 
   if (body.error !== undefined) {
     return Response.json({ error: body.error, reason: "invalid_input" }, { status: 400 });
@@ -139,7 +137,7 @@ export async function handleSaveCharacter(request: Request, generationId: string
     const { character, created } = createFromGeneration({
       generationId: id,
       outputName: IMAGE_OUTPUT,
-      title: body.data?.title,
+      title: body.data.title,
     });
 
     return Response.json(character, { status: created ? 201 : 200 });
