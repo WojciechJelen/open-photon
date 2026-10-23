@@ -8,10 +8,9 @@ import { callApi, type Refusal } from "#/shared/requests";
 import type { HoldForCode } from "#/shared/use-access-code";
 import { useRequestSignal } from "#/shared/use-request-signal";
 
-export type Field = "angle" | "character_id" | "motion_asset_id" | "prompt" | "seed";
+export type Field = "character_id" | "motion_asset_id" | "prompt" | "seed";
 
 export const fieldMessages: Record<Field, string> = {
-  angle: "Choose one of the angles.",
   character_id: "Pick a character first.",
   motion_asset_id: "Pick a motion first.",
   prompt: "Keep the look under 500 characters.",

@@ -166,14 +166,14 @@ export function StudioTools({
             Motion Transfer
           </h3>
           <p className="text-base text-soft-foreground">
-            Pick a move, add a photo of a character, and watch them perform it. Reshoot it from
-            another angle if you like.
+            Pick a move, add a photo of a character, and watch them perform it. Restyle the look if
+            you like.
           </p>
           <ol className="flex flex-col gap-2.5">
             {[
               "Pick a motion",
               "Add a character",
-              "Direct the shot: angle and look",
+              "Direct the shot: look and seed",
               "Render, compare, share",
             ].map((item, index) => (
               <li className="flex items-center gap-3" key={item}>

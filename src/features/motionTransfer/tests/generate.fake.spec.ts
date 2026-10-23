@@ -16,7 +16,6 @@ test("Generate follows a take to its result: the stream reports it done, the pag
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Placeholder blue" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByLabel("Profile").check();
   await page.getByRole("button", { name: "Generate" }).click();
   await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}$/);
 

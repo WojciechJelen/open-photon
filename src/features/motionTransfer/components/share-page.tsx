@@ -3,7 +3,7 @@ import { ArrowRightIcon, DownloadIcon, LockIcon } from "lucide-react";
 
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { angleName, RecipePanel } from "#/features/motionTransfer/components/recipe-panel";
+import { RecipePanel } from "#/features/motionTransfer/components/recipe-panel";
 import type { loadShare } from "#/features/motionTransfer/generate.functions";
 import { Hud, PageGlow, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
@@ -243,8 +243,6 @@ function MotionTransferSharePage({ share }: { share: Extract<Share, { view: "mot
                 <dd className="font-mono text-xs leading-5">
                   {recipe.workflow.id} v{recipe.workflow.version}
                 </dd>
-                <dt className="text-muted-foreground">Angle</dt>
-                <dd>{angleName(recipe.angle)}</dd>
                 <dt className="text-muted-foreground">Size</dt>
                 <dd className="font-mono text-xs leading-5">
                   {recipe.params.width}×{recipe.params.height}

@@ -24,9 +24,8 @@ export const sampleCharacterId = "5d0f6c1e-8a43-4f2b-9c7e-2b1a0d9e8f71";
  */
 export const sampleMotionId = "a3e9b7d2-6c15-4e08-b4f3-7d2c9e1a5b60";
 
-/** A direction as the Direct step's form holds it: a preset angle, a starter look, a seed. */
+/** A direction as the Direct step's form holds it: a starter look, a seed. */
 export const directionFixture: Direction = {
-  angle: "front",
   prompt: "Background: a rooftop at golden hour.",
   seed: "7",
 };
@@ -36,7 +35,6 @@ export const draftFixture: MotionTransferDraft = {
   step: "direct",
   motion: sampleMotionId,
   character: sampleCharacterId,
-  angle: directionFixture.angle,
   prompt: directionFixture.prompt,
   seed: Number(directionFixture.seed),
 };

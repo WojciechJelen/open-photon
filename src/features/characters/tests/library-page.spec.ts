@@ -365,7 +365,7 @@ test("Animate opens Motion Transfer with the character picked, keeping the motio
   page,
 }) => {
   const motion = seededResult().sourceAssetId;
-  const draft = { angle: "none", motion, prompt: "Neon street at night" };
+  const draft = { motion, prompt: "Neon street at night" };
 
   await open(page, `/characters?draft=${encodeURIComponent(JSON.stringify(draft))}`);
   await expect(page.getByText("Your motion and direction are kept")).toBeVisible();
@@ -380,7 +380,6 @@ test("Animate opens Motion Transfer with the character picked, keeping the motio
 
   expect(search.get("character")).toBe(id);
   expect(search.get("motion")).toBe(motion);
-  expect(search.get("angle")).toBe("none");
   expect(search.get("prompt")).toBe("Neon street at night");
   await page.locator("html[data-hydrated]").waitFor();
   // Both picks are there, so the wizard opens on Direct.

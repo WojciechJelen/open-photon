@@ -17,16 +17,11 @@ function Entry({ code, label, value }: { code?: boolean; label: string; value: s
   );
 }
 
-/** A reshoot preset's id in words: `three-quarter` reads "Three-quarter". */
-export function angleName(angle: string | undefined) {
-  return angle ? `${angle.charAt(0).toUpperCase()}${angle.slice(1)}` : "As filmed";
-}
-
 /**
  * The stored recipe of a generation, folded into one line ("Recipe · workflow · seed") until
- * opened: the workflow file and its SHA-256, the models, every parameter (with the reshoot
- * angle), the SHA-256 of both input files and the target. Everything that decides the render, and
- * so its `recipe_hash`. `children` are its actions (Re-run, the JSON), shown inside.
+ * opened: the workflow file and its SHA-256, the models, every parameter, the SHA-256 of both
+ * input files and the target. Everything that decides the render, and so its `recipe_hash`.
+ * `children` are its actions (Re-run, the JSON), shown inside.
  */
 export function RecipePanel({ children, recipe }: { children?: React.ReactNode; recipe: Recipe }) {
   return (
@@ -77,7 +72,6 @@ export function RecipePanel({ children, recipe }: { children?: React.ReactNode; 
                   )}
                 </dd>
               </div>
-              <Entry label="Reshoot angle" value={angleName(recipe.angle)} />
               <Entry
                 code
                 label="Size"

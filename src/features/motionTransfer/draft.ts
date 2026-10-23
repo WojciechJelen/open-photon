@@ -11,7 +11,7 @@ const wizardSteps = ["motion", "character", "direct"] as const;
 
 export type WizardStep = (typeof wizardSteps)[number];
 
-const { angle, prompt, seed } = generateInputSchema.shape;
+const { prompt, seed } = generateInputSchema.shape;
 
 const seedSchema = seed.unwrap();
 
@@ -24,14 +24,13 @@ const defaultSeed = "default";
  *
  * - `step` and the picks: `motion` (the id of a stored 3–8 s video asset: a sample motion's clip,
  *   an upload or a cut of one) and `character` (a character's id);
- * - `from`, the generation whose direction (angle, look, seed) the Direct step starts with
- *   ("Change the shot", the remixes);
+ * - `from`, the generation whose direction (look, seed) the Direct step starts with ("Change the
+ *   shot", the remixes);
  * - the direction fields, which prefill the Direct step over `from`'s, each on its own; a field
  *   left out keeps `from`'s (or the default), and each has a value that resets it explicitly:
- *   `angle` (a reshoot preset's id of `workflows/angles.json`, or `none` for As filmed; an id the
- *   wizard does not offer is ignored), `prompt` (the look: appearance and background, up to 500
- *   characters once trimmed; `""` is the photo's look, the workflow's own description) and `seed`
- *   (a whole number from 0 to `Number.MAX_SAFE_INTEGER`, or `"default"` for the fixed default).
+ *   `prompt` (the look: appearance and background, up to 500 characters once trimmed; `""` is
+ *   the photo's look, the workflow's own description) and `seed` (a whole number from 0 to
+ *   `Number.MAX_SAFE_INTEGER`, or `"default"` for the fixed default).
  *   A reset becomes a parameter left out only when the take is generated, so it makes the same
  *   recipe as a blank field.
  *
@@ -44,7 +43,6 @@ export const motionTransferDraftSchema = z.object({
   motion: z.uuid().optional().catch(undefined),
   character: z.uuid().optional().catch(undefined),
   from: z.uuid().optional().catch(undefined),
-  angle: angle.catch(undefined),
   prompt: z
     .string()
     .trim()
@@ -117,14 +115,14 @@ export function shownStep(
 }
 
 /**
- * The Direct step's choices, as its form holds them while they are edited: `angle` `none` is As
- * filmed, a blank `prompt` the workflow's own description, a blank `seed` the fixed default. The
- * seed is the text typed, which may not be a number yet.
+ * The Direct step's choices, as its form holds them while they are edited: a blank `prompt` is
+ * the workflow's own description, a blank `seed` the fixed default. The seed is the text typed,
+ * which may not be a number yet.
  */
-export type Direction = { angle: string; prompt: string; seed: string };
+export type Direction = { prompt: string; seed: string };
 
-/** As filmed, the photo's look, the fixed seed. */
-export const defaultDirection: Direction = { angle: "none", prompt: "", seed: "" };
+/** The photo's look, the fixed seed. */
+export const defaultDirection: Direction = { prompt: "", seed: "" };
 
 /** The seed the form's text stands for: none when blank; anything but digits is NaN, which no schema takes. */
 function formSeed(text: string) {
@@ -135,15 +133,14 @@ function formSeed(text: string) {
 
 /**
  * What Generate sends for the picks and the form's choices, before `generateInputSchema` checks
- * it: As filmed, a blank look and a blank seed (however they came: typed, or a reset of the
- * draft) are left out, so the workflow's defaults fill them and the recipe is the same.
+ * it: a blank look and a blank seed (however they came: typed, or a reset of the draft) are
+ * left out, so the workflow's defaults fill them and the recipe is the same.
  */
 export function generateRequest(
   picks: { character: string | undefined; motion: string | undefined },
-  { angle, prompt, seed }: Direction,
+  { prompt, seed }: Direction,
 ) {
   return {
-    angle: angle === "none" ? undefined : angle,
     character_id: picks.character,
     motion_asset_id: picks.motion,
     prompt: prompt.trim() || undefined,
@@ -159,7 +156,6 @@ export function generateRequest(
  */
 export function directionFields(direction: Direction): MotionTransferDraft {
   return {
-    angle: direction.angle,
     prompt: direction.prompt.trim() === "" ? "" : direction.prompt,
     seed: direction.seed.trim() === "" ? defaultSeed : formSeed(direction.seed),
   };
@@ -169,18 +165,9 @@ export function directionFields(direction: Direction): MotionTransferDraft {
  * The direction the Direct step starts with: each direction field the draft sets, over `start`
  * (the direction of the take the draft comes `from`, else `defaultDirection`). A reset (`""`
  * look, `"default"` seed) starts the field blank, which Generate sends as a parameter left out.
- * An angle that is neither `none` nor one of `angles` (the presets the wizard offers) keeps
- * `start`'s.
  */
-export function startingDirection(
-  draft: MotionTransferDraft,
-  start: Direction,
-  angles: readonly string[],
-): Direction {
-  const offered = draft.angle === "none" || angles.includes(draft.angle ?? "");
-
+export function startingDirection(draft: MotionTransferDraft, start: Direction): Direction {
   return {
-    angle: offered && draft.angle ? draft.angle : start.angle,
     prompt: draft.prompt ?? start.prompt,
     seed:
       draft.seed === undefined ? start.seed : draft.seed === defaultSeed ? "" : String(draft.seed),

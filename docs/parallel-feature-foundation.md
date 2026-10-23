@@ -232,7 +232,7 @@ caption off the public share page). FLUX.2 is gone: no fallback, no legacy recip
 ### Motion Transfer draft and composer slots
 
 `src/features/motionTransfer/api.ts` exports the draft contract (`draft.ts`):
-`motionTransferDraftSchema` (`step`, `motion`, `character`, `from`, `angle`, `prompt`, `seed`;
+`motionTransferDraftSchema` (`step`, `motion`, `character`, `from`, `prompt`, `seed`;
 `prompt: ""` clears the look, `seed: "default"` resets the seed), `parseDraft` (never throws,
 drops invalid members), `draftHref(draft)` (the `/motionTransfer?…` link), `snapshotDraft`,
 `withSeed`, `withCharacter`, `defaultDirection`, `carriedDraft`, `carryDraft`, and test fixtures

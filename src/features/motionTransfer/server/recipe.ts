@@ -10,8 +10,9 @@ const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
  * (`recipeHash`, `src/shared/server/generation/recipe-hash.ts`).
  */
 export const recipeSchema = z.strictObject({
-  // The reshoot-angle preset (`src/features/motionTransfer/workflows/angles.json`) whose phrasing `params.prompt` ends with.
-  // Absent without one, so a recipe that has no angle hashes as it did before angles existed.
+  // The reshoot-angle preset whose phrasing `params.prompt` ends with, on takes made before the
+  // angle benchmark (`docs/angle-benchmark-2026-10-23/`) removed the presets. Kept so their
+  // stored recipes still parse and hash as they did; new recipes have none.
   angle: z
     .string()
     .regex(/^[a-z][a-z-]*$/)

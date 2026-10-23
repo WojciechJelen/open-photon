@@ -113,8 +113,6 @@ test("with Comfy at a dead port, Generate opens a failed generation with the rea
 
   const { character, motion } = Object.fromEntries(new URL(page.url()).searchParams);
 
-  await page.getByLabel("Profile").check();
-  await expect(page.getByRole("complementary", { name: "Your shot" })).toContainText("Profile");
   await page.getByRole("button", { name: "Generate" }).click();
   await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}$/);
 
@@ -149,7 +147,7 @@ test("with Comfy at a dead port, Generate opens a failed generation with the rea
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Direct the shot");
 });
 
-test("Change the shot on a failed take opens Direct with its angle, look and seed, to tweak and retry", async ({
+test("Change the shot on a failed take opens Direct with its look and seed, to tweak and retry", async ({
   page,
 }) => {
   const look = "Red jacket.\n\nRain  on glass.";
@@ -159,7 +157,6 @@ test("Change the shot on a failed take opens Direct with its angle, look and see
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Placeholder green" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByLabel("Three-quarter").check();
   await page.getByLabel("Look").fill(look);
   await page.getByRole("button", { name: /Advanced/ }).click();
   await page.getByLabel("Seed", { exact: true }).fill("777");
@@ -181,7 +178,6 @@ test("Change the shot on a failed take opens Direct with its angle, look and see
     }
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Direct the shot");
-    await expect(page.getByLabel("Three-quarter")).toBeChecked();
     await expect(page.getByLabel("Look")).toHaveValue(look);
     await expect(page.getByRole("button", { name: /Advanced/ })).toContainText("Seed: 777");
   }
@@ -189,7 +185,6 @@ test("Change the shot on a failed take opens Direct with its angle, look and see
   const slate = page.getByRole("complementary", { name: "Your shot" });
 
   await expect(slate).toContainText("Placeholder green");
-  await expect(slate).toContainText("Three-quarter");
 });
 
 test("with every place in flight taken, Generate puts the take in line and its page shows its place", async ({

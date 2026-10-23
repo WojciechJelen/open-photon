@@ -7,7 +7,6 @@ import {
   MotionTransferHeader,
   type HeaderStep,
 } from "#/features/motionTransfer/components/motion-transfer-header";
-import { angleName } from "#/features/motionTransfer/components/recipe-panel";
 import {
   type ChildState,
   endingTitle,
@@ -515,8 +514,7 @@ function MotionTransferView({
                   )}
                 </span>
                 <span className="text-sm text-soft-foreground">
-                  {motionTitle ?? "Your clip"} · {characterName} · {angleName(recipe.angle)} · seed{" "}
-                  {recipe.params.seed}
+                  {motionTitle ?? "Your clip"} · {characterName} · seed {recipe.params.seed}
                 </span>
               </div>
             </div>

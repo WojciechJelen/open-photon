@@ -405,28 +405,6 @@ test("retry refuses an unknown generation with 409 and recovery instructions", a
   assert.equal(submits.length, 1);
 });
 
-test("an angle appends its phrasing to the prompt and is part of the recipe; an unknown one is refused", async () => {
-  const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
-  const same = { ...input(), prompt: "A dancer" };
-
-  const angled = findGeneration(
-    (await generate({ ...same, angle: "profile" }, session, double)).id,
-  );
-
-  const plain = findGeneration((await generate(same, session, double)).id);
-
-  assert.equal(angled?.recipe.angle, "profile");
-  assert.match(angled?.recipe.params.prompt ?? "", /^A dancer Profile view: /);
-  assert.equal(plain?.recipe.angle, undefined);
-  assert.equal(plain?.recipe.params.prompt, "A dancer");
-  assert.notEqual(plain?.recipe_hash, angled?.recipe_hash);
-
-  await assert.rejects(generate({ ...input(), angle: "upside-down" }, session, double), {
-    status: 422,
-  });
-  assert.equal(submits.length, 2);
-});
-
 /** A generation of `inputs` (fresh ones by default) taken to `done` (nothing is downloaded). */
 async function doneGeneration(double: Provider, inputs = input()) {
   const { id } = await generate(inputs, session, double);
@@ -440,11 +418,7 @@ test("a take's direction comes back as the Direct step held it, for whoever may 
   const { double } = provider((key) => Promise.resolve(`job-${key}`));
   const look = "Red jacket.\n\nRain  on glass.";
 
-  const shot = await generate(
-    { ...input(), angle: "three-quarter", prompt: look, seed: 777 },
-    session,
-    double,
-  );
+  const shot = await generate({ ...input(), prompt: look, seed: 777 }, session, double);
 
   const blank = await generate(
     { character_id: character.id, motion_asset_id: motion.id },
@@ -452,19 +426,11 @@ test("a take's direction comes back as the Direct step held it, for whoever may 
     double,
   );
 
-  // The look as it was typed (its angle phrasing taken off again), line breaks and all.
-  assert.deepEqual(readSelection({ from: shot.id }, true).direction, {
-    angle: "three-quarter",
-    prompt: look,
-    seed: "777",
-  });
+  // The look as it was typed, line breaks and all.
+  assert.deepEqual(readSelection({ from: shot.id }, true).direction, { prompt: look, seed: "777" });
 
   // The defaults read as a blank form, as they were sent.
-  assert.deepEqual(readSelection({ from: blank.id }, true).direction, {
-    angle: "none",
-    prompt: "",
-    seed: "",
-  });
+  assert.deepEqual(readSelection({ from: blank.id }, true).direction, { prompt: "", seed: "" });
 
   // Without a session a take that is not a pre-rendered sample stays private; an unknown id is none.
   assert.equal(readSelection({ from: shot.id }, false).direction, null);

@@ -6,7 +6,7 @@ import { buildGraph } from "../../../shared/server/workflow-graph.ts";
 import { getCharacter } from "../../characters/api.ts";
 import { type GenerateInput, generateInputSchema, MAX_CLIP_MS } from "../contracts.ts";
 import { stitchCompare } from "../server/media/compare.ts";
-import { anglePresets, generateDefaults } from "../server/presets.ts";
+import { generateDefaults } from "../server/presets.ts";
 import { type Recipe, recipeSchema } from "../server/recipe.ts";
 import { motionTransferParamsSchema } from "./params.ts";
 import { motionTransferModels, motionTransferWorkflow } from "./registry.ts";
@@ -26,10 +26,9 @@ function sampleMotionId(assetId: string) {
  * `stitchCompare`; a take whose stitch fails is done without it).
  *
  * The input is `generateInputSchema`. The motion must be a stored, probed video of at most 8 s;
- * the character a generated one or an upload with consent; an angle one of `angles.json`, whose
- * phrasing is appended to the prompt (it is a prompt fragment, not a node field:
- * `workflows/README.md`). A blank prompt and seed are the fixed defaults of `defaults.json`, so
- * the same choices are the same recipe and reuse its result.
+ * the character a generated one or an upload with consent. A blank prompt and seed are the
+ * fixed defaults of `defaults.json`, so the same choices are the same recipe and reuse its
+ * result.
  */
 export const motionTransferDefinition: WorkflowDefinition<GenerateInput, Recipe> = {
   assetInputs: ({ inputs }) => ({
@@ -73,23 +72,12 @@ export const motionTransferDefinition: WorkflowDefinition<GenerateInput, Recipe>
       throw new GenerateError(422, "This character was uploaded without likeness consent.");
     }
 
-    const angle =
-      input.angle === undefined
-        ? undefined
-        : anglePresets.angles.find((preset) => preset.id === input.angle);
-
-    if (input.angle !== undefined && !angle) {
-      throw new GenerateError(422, `There is no reshoot angle “${input.angle}”.`);
-    }
-
     const portrait = motion.height >= motion.width;
-    const prompt = input.prompt ?? generateDefaults.prompt;
 
     return {
       characterId: character.id,
       motionId: sampleMotionId(motion.id),
       recipe: {
-        angle: angle?.id,
         inputs: {
           driving_video_sha256: motion.sha256,
           reference_image_sha256: character.image.sha256,
@@ -98,7 +86,7 @@ export const motionTransferDefinition: WorkflowDefinition<GenerateInput, Recipe>
         params: {
           fragment_length: 81,
           height: portrait ? 848 : 480,
-          prompt: angle ? `${prompt.trimEnd()} ${angle.fragment}` : prompt,
+          prompt: input.prompt ?? generateDefaults.prompt,
           // A fixed default, so the same choices are the same recipe (and reuse its result).
           seed: input.seed ?? generateDefaults.seed,
           width: portrait ? 480 : 848,
