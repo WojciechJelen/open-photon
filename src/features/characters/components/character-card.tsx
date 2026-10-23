@@ -22,7 +22,7 @@ function Provenance({ character }: { character: CharacterSummary }) {
           ? "Sample character"
           : character.origin === "upload"
             ? `Uploaded ${created}`
-            : `Generated ${created}`}
+            : `AI image, generated ${created}`}
       </span>
       {character.prompt && (
         <p className="line-clamp-2 text-soft-foreground" title={character.prompt}>

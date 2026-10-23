@@ -142,7 +142,9 @@ export function originLabel(character: CharacterIdentity) {
     return "Sample";
   }
 
-  return character.origin === "upload" ? "Uploaded" : "Generated";
+  // A generated character's image is a model's output: said so plainly (the FLUX licence asks
+  // for AI-generated outputs to be disclosed as such).
+  return character.origin === "upload" ? "Uploaded" : "AI-generated";
 }
 
 /** A model file's name without its extension, as the provenance line shows it. */

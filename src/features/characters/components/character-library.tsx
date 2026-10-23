@@ -60,36 +60,40 @@ export function CharacterLibrary({
 
   const askForCode = useCallback(() => access.hold(HELD, "unlock", reload), [access.hold, reload]);
 
-  // Whether a changed character still belongs in the list the filters asked for, as
-  // `GET /api/characters` decides it: a favorite under `favorites`, a title or prompt with `q`.
-  const matches = useCallback(
-    (character: CharacterSummary) => {
-      const needle = q?.toLocaleLowerCase() ?? "";
+  // The filters the list shows now. A change that completes later (a rename answered after the
+  // search changed) is judged by these, never by the ones of the render that started it.
+  const filters = useRef({ favorites, q });
 
-      return (
-        (!favorites || character.favorite_at !== null) &&
-        (needle === "" ||
-          [character.title, character.prompt].some((text) =>
-            text?.toLocaleLowerCase().includes(needle),
-          ))
-      );
-    },
-    [favorites, q],
-  );
+  useEffect(() => {
+    filters.current = { favorites, q };
+  }, [favorites, q]);
 
+  // Puts a changed character in the list it belongs to, as `GET /api/characters` decides it: a
+  // favorite under `favorites`, a title or prompt containing `q`; else out of the list.
   const replace = useCallback(
     (character: CharacterSummary) =>
-      setState((current) =>
-        current.kind === "ready"
-          ? {
-              ...current,
-              characters: current.characters.flatMap((each) =>
-                each.id !== character.id ? [each] : matches(character) ? [character] : [],
-              ),
-            }
-          : current,
-      ),
-    [matches, setState],
+      setState((current) => {
+        if (current.kind !== "ready") {
+          return current;
+        }
+
+        const needle = filters.current.q?.toLocaleLowerCase() ?? "";
+
+        const matches =
+          (!filters.current.favorites || character.favorite_at !== null) &&
+          (needle === "" ||
+            [character.title, character.prompt].some((text) =>
+              text?.toLocaleLowerCase().includes(needle),
+            ));
+
+        return {
+          ...current,
+          characters: current.characters.flatMap((each) =>
+            each.id !== character.id ? [each] : matches ? [character] : [],
+          ),
+        };
+      }),
+    [setState],
   );
 
   function startRename(character: CharacterSummary) {
@@ -218,7 +222,10 @@ export function CharacterLibrary({
         onRenamed={(character, session) => {
           // The list takes every saved name; only the dialog that saved it closes, not one
           // opened for another character since.
+          // At once, then as the server lists it now (a read started before the save landed
+          // would otherwise bring the old name back).
           replace(character);
+          reload();
           setRenaming((current) => (current?.id === session ? null : current));
         }}
         session={renaming}
