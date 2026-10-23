@@ -93,6 +93,8 @@ test("a scalar-only workflow runs submit → done through the fake provider: no 
   assert.deepEqual(result?.outputs, outputs);
   assert.deepEqual(result?.workflow, { id: "test-image", version: 1 });
   assert.equal(share?.outputs[0]?.url, `https://photon.example/media/${image?.id}.png`);
+  // A workflow without `shareRecipe` shares its stored recipe as it is.
+  assert.deepEqual(share?.recipe, queued?.recipe);
   assert.equal(isPublicRequest("GET", `/media/${image?.id}.png`), true);
 
   // The same input is the same recipe: its result comes back, nothing is sent.

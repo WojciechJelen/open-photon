@@ -46,6 +46,7 @@ one per workflow version, owned by its feature (`src/features/motionTransfer/wor
 | `outputs` | `OutputDeclaration[]`: `{ name, nodeId, media: "image" \| "video" \| "text", poster? }`. One asset per name; at most one `poster`, on a video. |
 | `seedOf`, `rebase(recipe, { seed, target })` | The recipe's seed, and the recipe a re-run (same seed) or retry (new seed) renders on the current target; `null` when the workflow file changed. |
 | `promptOf` (optional) | The text prompt, read as provenance when a generated character is saved. |
+| `shareRecipe` (optional) | What the public share page `/r/:slug` (`readGenerationShare`) shows of the recipe; without it, the stored recipe. The character image leaves out the enhanced caption, a private text output. |
 
 The registry is `workflows` in the same file: `src/app/server.ts` sets the composed definitions
 with `workflows.compose([...])`; tests add theirs with `workflows.register`. Duplicate
