@@ -1,9 +1,9 @@
 import { setTimeout as delay } from "node:timers/promises";
 
-import { type GenerationEvent, generationSchema } from "../../contracts.ts";
+import type { GenerationEvent } from "../../contracts.ts";
 import { comfyProvider, type Provider } from "../comfy-provider.ts";
 import { failElsewhere, finalize } from "./finalize.ts";
-import { findGeneration, type Generation, markRunning } from "./generations.ts";
+import { findGeneration, type Generation, markRunning, snapshot } from "./generations.ts";
 import { settleAbandoned } from "./service.ts";
 
 type Update = { generation: Generation; kind: GenerationEvent["kind"] };
@@ -39,9 +39,12 @@ function current(id: string) {
 
 /**
  * The generation's events: the stored row first, then each change Comfy reports. A row that is
- * `done`, `failed` or `unknown` yields once and never reaches Comfy. When Comfy cannot be asked
- * (unreachable, or an error answer), the last event is `provider_unavailable` with the stored row:
- * the row stays as it is. `signal` ends the Comfy subscription.
+ * `done`, `failed`, `unknown` or `cancelled` yields once and never reaches Comfy. A `waiting` or
+ * `preparing` row is read again every second, and yields whenever its status or its place in
+ * line changes, until the dispatcher (or the request that admitted it) has submitted it. When
+ * Comfy cannot be asked (unreachable, or an error answer), the last event is
+ * `provider_unavailable` with the stored row: the row stays as it is. `signal` ends the Comfy
+ * subscription.
  */
 async function* generationUpdates(
   id: string,
@@ -50,13 +53,20 @@ async function* generationUpdates(
 ): AsyncGenerator<Update> {
   signal.throwIfAborted();
   let row = current(id);
+  let shown = snapshot(row);
   yield { generation: row, kind: "snapshot" };
 
-  // This process is still submitting it: wait until the job id is saved or the submit failed.
-  while (row.status === "preparing") {
+  // In line, or being submitted: wait until the job id is saved or the submit failed.
+  while (row.status === "waiting" || row.status === "preparing") {
     await delay(1000, undefined, { signal });
     row = current(id);
-    yield { generation: row, kind: "snapshot" };
+
+    const next = snapshot(row);
+
+    if (next.status !== shown.status || next.position !== shown.position) {
+      shown = next;
+      yield { generation: row, kind: "snapshot" };
+    }
   }
 
   if (row.provider_job_id === null || !["queued", "running", "finalizing"].includes(row.status)) {
@@ -235,7 +245,7 @@ export function streamGeneration(request: Request, id: string, provider: Provide
             ? `retry: ${retry.ms}\nid: provider-unavailable:${retry.failures}`
             : "id:";
 
-        yield `${fields}\ndata: ${JSON.stringify({ generation: generationSchema.parse(generation), kind })}\n\n`;
+        yield `${fields}\ndata: ${JSON.stringify({ generation: snapshot(generation), kind })}\n\n`;
       }
     },
     (reason, message) => {

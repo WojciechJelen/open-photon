@@ -55,6 +55,20 @@ const failures: Record<ErrorCode, { lead: "change" | "retry"; text: string; titl
   },
 };
 
+/** A take cancelled while it waited in line: nothing was sent, so nothing was charged. */
+const cancelledEnding = {
+  lead: "retry",
+  text: "This take was cancelled while it waited for a rendering slot, so nothing was rendered or charged. Retry it, or change the shot; your motion, character and direction are all still picked.",
+  title: "This take was cancelled",
+} as const;
+
+/** How a take that is not a video ended, in plain words (`failures`, `cancelledEnding`). */
+function endingOf(generation: GenerationSnapshot) {
+  return generation.status === "cancelled"
+    ? cancelledEnding
+    : failures[generation.error_code ?? "unknown"];
+}
+
 /** What a child action (a retry or a re-run) is doing, as `GenerationView` tracks it. */
 export type ChildState =
   | { state: "idle" | "reused" }
@@ -62,11 +76,11 @@ export type ChildState =
   | { action: "rerun" | "retry"; message: string; state: "refused" };
 
 /**
- * The endings that are not a video. `failed`: the reason in plain words, the stored message and
- * code as the alert, and what the API can do about it: Retry with a new seed
- * (`POST …/retry`), Re-run the same recipe (`POST …/rerun`), or change the shot (the wizard with
- * the same picks). `unknown`: Comfy may still be rendering it, so it is never sent again; only a
- * new take is offered.
+ * The endings that are not a video. `failed` (or `cancelled` in line): the reason in plain
+ * words, the stored message and code as the alert, and what the API can do about it: Retry with
+ * a new seed (`POST …/retry`), Re-run the same recipe (`POST …/rerun`), or change the shot (the
+ * wizard with the same picks). `unknown`: Comfy may still be rendering it, so it is never sent
+ * again; only a new take is offered.
  */
 export function RenderEnded({
   child,
@@ -82,7 +96,7 @@ export function RenderEnded({
   shot: MotionTransferDraft;
 }) {
   const unknown = generation.status === "unknown";
-  const failure = failures[generation.error_code ?? "unknown"];
+  const failure = endingOf(generation);
   const busy = child.state === "running";
 
   const changeShot = (
@@ -176,5 +190,5 @@ export function RenderEnded({
 export function endingTitle(generation: GenerationSnapshot) {
   return generation.status === "unknown"
     ? "This take's status is unknown"
-    : failures[generation.error_code ?? "unknown"].title;
+    : endingOf(generation).title;
 }

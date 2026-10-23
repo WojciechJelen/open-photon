@@ -102,6 +102,22 @@ export function takeLastInFlightPlace() {
 }
 
 /**
+ * Cancels the `waiting` generation `id` (a no-op for any other), as the service does: the access
+ * code's count comes back by the database's trigger.
+ */
+export function cancelWaiting(id: string) {
+  query(
+    (database) =>
+      database
+        .prepare(
+          "UPDATE generations SET status = 'cancelled', finished_at = ? WHERE id = ? AND status = 'waiting'",
+        )
+        .run(new Date().toISOString(), id),
+    true,
+  );
+}
+
+/**
  * Stores `id` as done with the seeded result and poster (its outputs `video` and `poster`, and
  * the columns that mirror them), as `finalize` would once Comfy finished it; the page sees it on
  * its next read.

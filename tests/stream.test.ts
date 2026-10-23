@@ -11,6 +11,7 @@ import { motionTransferDefinition } from "../src/features/motionTransfer/workflo
 import { generationEventSchema } from "../src/shared/contracts.ts";
 import type { Provider, ProviderJob } from "../src/shared/server/comfy-provider.ts";
 import {
+  cancelWaiting,
   createGeneration,
   findGeneration,
   markQueued,
@@ -124,6 +125,61 @@ test("a done generation produces one terminal snapshot without calling Comfy", a
   assert.equal(events[0]?.data.generation.id, row.id);
   assert.equal(events[0]?.data.generation.status, "done");
   assert.equal(streamDiagnostics().active, 0);
+});
+
+test("a waiting generation streams its place in line, again as it moves up, and its end once cancelled", async () => {
+  const inLine = () => {
+    seed += 1;
+
+    const recipe: Recipe = {
+      inputs: { driving_video_sha256: "a".repeat(64), reference_image_sha256: "b".repeat(64) },
+      models: [],
+      params: { fragment_length: 81, height: 848, prompt: "In line", seed, width: 480 },
+      target: "cloud",
+      workflow: { id: "motion-transfer", sha256: "c".repeat(64), version: 1 },
+    };
+
+    return createGeneration(motionTransferDefinition, { recipe, status: "waiting", target: cloud });
+  };
+
+  const ahead = inLine();
+  const row = inLine();
+  const response = streamGeneration(new Request("http://localhost/events"), row.id, unreachable);
+  const reader = response.body?.pipeThrough(new TextDecoderStream()).getReader();
+  let body = "";
+
+  /** Reads the stream until it has sent `count` events. */
+  const events = async (count: number) => {
+    while (parseEvents(body).length < count) {
+      const { done, value } = (await reader?.read()) ?? { done: true, value: "" };
+
+      if (done) {
+        break;
+      }
+
+      body += value;
+    }
+
+    return parseEvents(body).map(({ data }) => [data.generation.status, data.generation.position]);
+  };
+
+  assert.deepEqual(await events(1), [["waiting", 2]]);
+
+  cancelWaiting(ahead.id);
+
+  assert.deepEqual(await events(2), [
+    ["waiting", 2],
+    ["waiting", 1],
+  ]);
+
+  cancelWaiting(row.id);
+
+  assert.deepEqual(await events(3), [
+    ["waiting", 2],
+    ["waiting", 1],
+    ["cancelled", null],
+  ]);
+  assert.equal((await reader?.read())?.done, true);
 });
 
 test("with Comfy unreachable the stored snapshot still comes first, then a notice and a clean end with a growing retry delay", async () => {

@@ -23,10 +23,12 @@ import { comfyTarget, providerTarget } from "../src/shared/server/comfy-target.t
 import { database } from "../src/shared/server/db.server.ts";
 import { GenerateError } from "../src/shared/server/generation/errors.ts";
 import {
+  cancelWaiting,
   countInFlight,
   createGeneration,
   findPending,
   markQueued,
+  markSubmitting,
   recordProviderInputs,
   transition,
 } from "../src/shared/server/generation/generations.ts";
@@ -145,33 +147,36 @@ test("a row a stopped server left preparing is settled on its next read, never r
     workflow: { id: "motion-transfer", sha256: "c".repeat(64), version: 1 },
   });
 
-  // Stopped while uploading: nothing was sent.
+  // Stopped while uploading: nothing was sent, so it goes back in line, its count kept.
   const beforeSubmit = createGeneration(motionTransferDefinition, {
     recipe: recipe(1),
     target: cloud,
   });
 
-  const interrupted = await readGeneration(beforeSubmit.id);
-
-  assert.deepEqual([interrupted?.status, interrupted?.error_code], ["failed", "interrupted"]);
-
-  // Stopped after the uploads: the submit may have reached Comfy.
-  const afterUploads = createGeneration(motionTransferDefinition, {
-    recipe: recipe(2),
-    target: cloud,
-  });
-
-  recordProviderInputs(afterUploads.id, {
+  recordProviderInputs(beforeSubmit.id, {
     driving_video: { __type: "core/ASSET", info: { id: "video" } },
     reference_image: { __type: "core/ASSET", info: { id: "image" } },
   });
 
-  assert.equal((await readGeneration(afterUploads.id))?.status, "unknown");
-  assert.equal(
-    findPending(afterUploads.recipe_hash, motionTransferDefinition)?.id,
-    afterUploads.id,
+  const released = await readGeneration(beforeSubmit.id);
+
+  assert.deepEqual(
+    [released?.status, released?.position, findGeneration(beforeSubmit.id)?.claimed_by],
+    ["waiting", 1, null],
   );
-  assert.equal(findGeneration(afterUploads.id)?.provider_job_id, null);
+  cancelWaiting(beforeSubmit.id);
+
+  // Stopped once the graph was handed to Comfy: the submit may have reached it.
+  const afterSubmit = createGeneration(motionTransferDefinition, {
+    recipe: recipe(2),
+    target: cloud,
+  });
+
+  markSubmitting(afterSubmit.id);
+
+  assert.equal((await readGeneration(afterSubmit.id))?.status, "unknown");
+  assert.equal(findPending(afterSubmit.recipe_hash, motionTransferDefinition)?.id, afterSubmit.id);
+  assert.equal(findGeneration(afterSubmit.id)?.provider_job_id, null);
 });
 
 test("after a restart, generating the same recipe again settles the row the stopped server left preparing", async () => {
@@ -182,7 +187,7 @@ test("after a restart, generating the same recipe again settles the row the stop
   const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
 
   /** Fresh inputs, plus the row a stopped server left `preparing` with the recipe they build. */
-  const abandon = async (uploaded: boolean) => {
+  const abandon = async (submitted: boolean) => {
     const inputs = input();
     const failed = findGeneration((await generate(inputs, session, refusing.double)).id);
 
@@ -194,30 +199,28 @@ test("after a restart, generating the same recipe again settles the row the stop
       target: providerTarget(),
     });
 
-    if (uploaded) {
-      recordProviderInputs(id, {
-        driving_video: { __type: "core/ASSET", info: { id: "video" } },
-        reference_image: { __type: "core/ASSET", info: { id: "image" } },
-      });
+    if (submitted) {
+      markSubmitting(id);
     }
 
     return { id, inputs };
   };
 
-  // Stopped while uploading: nothing reached Comfy, so a fresh generation is submitted.
+  // Stopped before the submit: nothing reached Comfy, so it is back in line, and the same
+  // recipe again gets it (the dispatcher submits it) rather than a second row.
   const interrupted = await abandon(false);
-  const fresh = await generate(interrupted.inputs, session, double);
 
-  assert.equal(fresh.reused, false);
-  assert.notEqual(fresh.id, interrupted.id);
-  assert.equal(submits.length, 1);
-  assert.equal(findGeneration(fresh.id)?.status, "queued");
-  assert.deepEqual(
-    [findGeneration(interrupted.id)?.status, findGeneration(interrupted.id)?.error_code],
-    ["failed", "interrupted"],
-  );
+  assert.deepEqual(await generate(interrupted.inputs, session, double), {
+    id: interrupted.id,
+    position: 1,
+    reused: true,
+    status: "waiting",
+  });
+  assert.equal(submits.length, 0);
+  cancelWaiting(interrupted.id);
 
-  // Stopped after the uploads: Comfy may be rendering it, so it is returned, never resubmitted.
+  // Stopped after the submit started: Comfy may be rendering it, so it is returned, never
+  // resubmitted.
   const uncertain = await abandon(true);
 
   assert.deepEqual(await generate(uncertain.inputs, session, double), {
@@ -225,7 +228,7 @@ test("after a restart, generating the same recipe again settles the row the stop
     reused: true,
   });
   assert.equal(findGeneration(uncertain.id)?.status, "unknown");
-  assert.equal(submits.length, 1);
+  assert.equal(submits.length, 0);
 });
 
 test("Comfy's errors map to error codes: a refusal fails the row, an uncertain submit makes it unknown", async () => {
@@ -740,34 +743,62 @@ test("generate, retry and re-run are limited to 3 a minute per code and per clie
   assert.equal(submits.length, 1);
 });
 
-test("with the in-flight cap full, a new generation is a 503 queue_full with Retry-After and no row; an existing result still comes back", async () => {
+test("with the in-flight cap full, a new generation waits in line (a 202 with its place, nothing submitted); IN_FLIGHT_MAX=0 still refuses with a 503 queue_full", async () => {
   const { double, submits } = provider((key) => Promise.resolve(`job-${key}`));
 
   double.job = () => Promise.resolve(comfyJob("running"));
 
   const sample = input();
   const done = await doneGeneration(double, sample);
-  const cookie = await sessionCookie(mintCode(10));
+  const code = mintCode(10);
+  const cookie = await sessionCookie(code);
   const before = rows();
 
-  process.env.IN_FLIGHT_MAX = "0";
+  process.env.IN_FLIGHT_MAX = String(countInFlight());
 
   try {
-    const full = await handleGenerate(
-      post("/api/generate", "c1", cookie, JSON.stringify(input())),
-      double,
+    const ask = async (client: string) => {
+      const response = await handleGenerate(
+        post("/api/generate", client, cookie, JSON.stringify(input())),
+        double,
+      );
+
+      return { body: await response.json(), status: response.status };
+    };
+
+    const first = await ask("c1");
+    const second = await ask("c1");
+
+    assert.deepEqual(
+      [first.status, first.body.reused, first.body.status, first.body.position],
+      [202, false, "waiting", 1],
     );
+    assert.deepEqual([second.status, second.body.position], [202, 2]);
+    assert.equal(findGeneration(first.body.id)?.status, "waiting");
+    assert.equal((await readGeneration(second.body.id))?.position, 2);
 
-    const body = await full.json();
-
-    assert.equal(full.status, 503);
-    assert.equal(body.reason, "queue_full");
-    assert.equal(full.headers.get("Retry-After"), String(body.retry_after));
-    assert.ok(body.retry_after > 0);
+    // An existing result still comes back at once, for free.
     assert.deepEqual(await generate(sample, session, double), { id: done.id, reused: true });
     assert.deepEqual(await rerun(done.id, null, double), { id: done.id, reused: true });
-    assert.equal(rows(), before);
+    assert.equal(rows(), before + 2);
     assert.equal(submits.length, 1);
+    assert.equal(findAccessCode(code)?.used, 2);
+
+    // Switched off: refused, with Retry-After, and nothing stored.
+    process.env.IN_FLIGHT_MAX = "0";
+
+    const closed = await ask("c2");
+
+    assert.deepEqual([closed.status, closed.body.reason], [503, "queue_full"]);
+    assert.ok(closed.body.retry_after > 0);
+    assert.equal(rows(), before + 2);
+
+    // Cancelling a waiting generation gives its count back.
+    cancelWaiting(first.body.id);
+    cancelWaiting(second.body.id);
+
+    assert.equal(findGeneration(first.body.id)?.status, "cancelled");
+    assert.equal(findAccessCode(code)?.used, 0);
   } finally {
     process.env.IN_FLIGHT_MAX = "1000";
   }
@@ -779,8 +810,8 @@ test("a full cap is refreshed first: generations that ended while nobody watched
 
   assert.ok(abandoned);
 
-  // Left `preparing` by a stopped server, and queued on Comfy where the job then failed; both the
-  // oldest in flight, so the refresh reaches them.
+  // Left `preparing` by a stopped server once the graph was handed to Comfy, and queued on Comfy
+  // where the job then failed; both the oldest in flight, so the refresh reaches them.
   const stopped = createGeneration(motionTransferDefinition, {
     characterId: character.id,
     recipe: {
@@ -790,6 +821,7 @@ test("a full cap is refreshed first: generations that ended while nobody watched
     target: providerTarget(),
   });
 
+  markSubmitting(stopped.id);
   database
     .prepare("UPDATE generations SET created_at = ? WHERE id IN (?, ?)")
     .run("2000-01-01T00:00:00.000Z", abandoned.id, stopped.id);
@@ -806,8 +838,8 @@ test("a full cap is refreshed first: generations that ended while nobody watched
     assert.equal(findGeneration(fresh.id)?.status, "queued");
     assert.equal(submits.length, 2);
     assert.deepEqual(
-      [findGeneration(abandoned.id)?.error_code, findGeneration(stopped.id)?.error_code],
-      ["provider_failed", "interrupted"],
+      [findGeneration(abandoned.id)?.error_code, findGeneration(stopped.id)?.status],
+      ["provider_failed", "unknown"],
     );
   } finally {
     process.env.IN_FLIGHT_MAX = "1000";

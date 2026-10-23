@@ -9,15 +9,17 @@ import type { Admit } from "./service.ts";
 
 /**
  * The answer to a request that starts a generation: 201 with its receipt for a submitted one,
- * 200 with `reused: true` for an existing one returned instead, or the `GenerateError`'s status
- * with `{ error, reason?, retry_after? }` (and `Retry-After`).
+ * 202 with `status: "waiting"` and its `position` for one admitted in line while every place in
+ * flight is taken, 200 with `reused: true` for an existing one returned instead, or the
+ * `GenerateError`'s status with `{ error, reason?, retry_after? }` (and `Retry-After`).
  *
  * Every answer but an existing result takes a token from the request's client and access code
  * (`takeToken`, `GENERATE_RATE_LIMIT` a minute): a new row before it is created (`admit`), a
  * refusal (a malformed body, a missing clip, no code…) as it is answered. Without a token the
  * answer is a 429 `rate_limited` instead, and no row is created; an existing result stays free,
  * even one found only after `admit` (another request made it while the full cap was refreshed):
- * its token is given back.
+ * its token is given back. A request repeated with its `request_key` gets its generation back
+ * without a token.
  */
 export async function answer(
   request: Request,
@@ -53,7 +55,9 @@ export async function answer(
       returnToken("generate", requesterKeys(request, session));
     }
 
-    return Response.json(result, { status: result.reused ? 200 : 201 });
+    return Response.json(result, {
+      status: result.reused ? 200 : result.status === "waiting" ? 202 : 201,
+    });
   } catch (error) {
     if (!(error instanceof GenerateError)) {
       throw error;
@@ -72,18 +76,35 @@ export async function answer(
   }
 }
 
+// The optional client key of a request body (`request_key`, a UUID): the same key again returns
+// the generation the first request made (`submit`).
+const requestKeySchema = z.object({ request_key: z.uuid().optional() });
+
 /**
- * A request's JSON body (at most `limit` bytes) as `schema`, a workflow's input; a 400
- * `invalid_input` for a body that is too large, not JSON, or not the schema.
+ * A request's JSON body (at most `limit` bytes) as `schema`, a workflow's input, and its optional
+ * `request_key`; a 400 `invalid_input` for a body that is too large, not JSON, not the schema, or
+ * with a `request_key` that is not a UUID.
  */
 export async function readInput<Input>(request: Request, schema: z.ZodType<Input>, limit: number) {
-  const body = await readJsonBody(request, schema, limit);
+  const body = await readJsonBody(request, z.json(), limit);
 
   if (body.error !== undefined) {
     throw new GenerateError(400, body.error, "invalid_input");
   }
 
-  return body.data;
+  const input = schema.safeParse(body.data);
+
+  if (!input.success) {
+    throw new GenerateError(400, z.prettifyError(input.error), "invalid_input");
+  }
+
+  const key = requestKeySchema.safeParse(body.data);
+
+  if (!key.success) {
+    throw new GenerateError(400, z.prettifyError(key.error), "invalid_input");
+  }
+
+  return { input: input.data, requestKey: key.data.request_key };
 }
 
 /**

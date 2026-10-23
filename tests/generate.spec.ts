@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { generationSchema } from "../src/shared/contracts.ts";
 import {
   addQueuedGeneration,
+  cancelWaiting,
   count,
   finishGeneration,
   open,
@@ -190,28 +191,31 @@ test("Change the shot on a failed take opens Direct with its angle, look and see
   await expect(slate).toContainText("Three-quarter");
 });
 
-test("with every place in flight taken, Generate says the queue is full and starts nothing", async ({
+test("with every place in flight taken, Generate puts the take in line and its page shows its place", async ({
   page,
 }) => {
   const release = takeLastInFlightPlace();
+  let waiting = "";
 
   try {
     await open(page, directStep());
 
-    const choices = page.url();
     const rows = count("generations");
-    const generate = page.getByRole("button", { name: "Generate" });
 
-    await generate.click();
+    await page.getByRole("button", { name: "Generate" }).click();
+    await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}$/);
 
-    const refusal = page.getByRole("alert", { name: "Not started" });
+    waiting = page.url().split("/g/")[1] ?? "";
 
-    await expect(refusal).toHaveAttribute("data-reason", "queue_full");
-    await expect(refusal).not.toBeEmpty();
-    await expect(generate).toBeEnabled();
-    expect(page.url()).toBe(choices);
-    expect(count("generations")).toBe(rows);
+    await expect(status(page)).toHaveAttribute("data-status", "waiting");
+    await expect(status(page)).toContainText("In line · #1");
+    await expect(
+      page.getByRole("list", { name: "Render stages" }).locator('[aria-current="step"]'),
+    ).toContainText("Number 1 in line for a free rendering slot");
+    expect(count("generations")).toBe(rows + 1);
   } finally {
+    // Out of line before the place is given back, so the server's dispatcher never sends it.
+    cancelWaiting(waiting);
     release();
   }
 });

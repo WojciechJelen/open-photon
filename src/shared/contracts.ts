@@ -24,11 +24,15 @@ export type Asset = z.infer<typeof assetSchema>;
 // from the request's access-code session, never from anything a client sends.
 
 /**
- * `preparing → queued → running → finalizing → done | failed`. `unknown`: the server stopped
- * between sending the job to Comfy and saving its id, so Comfy may be rendering it; such a row
- * is never submitted again (docs/priv/motion-transfer.md, "Generation state and recovery").
+ * `waiting → preparing → queued → running → finalizing → done | failed`. `waiting`: admitted while
+ * every place in flight was taken (`IN_FLIGHT_MAX`), in line for the server's dispatcher, nothing
+ * sent to Comfy yet; it can be `cancelled` (nothing rendered, nothing charged). `unknown`: the
+ * server stopped between sending the job to Comfy and saving its id, so Comfy may be rendering it;
+ * such a row is never submitted again (docs/priv/motion-transfer.md, "Generation state and
+ * recovery").
  */
 export const generationStatusSchema = z.enum([
+  "waiting",
   "preparing",
   "queued",
   "running",
@@ -36,6 +40,7 @@ export const generationStatusSchema = z.enum([
   "done",
   "failed",
   "unknown",
+  "cancelled",
 ]);
 
 /**
@@ -69,7 +74,8 @@ const generationErrorCodeSchema = z.enum([
  * `share_slug`: its public share page is `/r/<share_slug>`. Its files are its named outputs
  * (`generationOutputSchema`); `final_asset_id` and `poster_asset_id` name the outputs `video` (an
  * MP4) and `poster` (a JPEG) of the workflows that have them, as they did before outputs had
- * names, and are `null` for any other.
+ * names, and are `null` for any other. `position` is a `waiting` generation's place in line (1:
+ * the next to start), `null` in any other status.
  */
 export const generationSchema = z.object({
   character_id: z.uuid().nullable(),
@@ -80,6 +86,7 @@ export const generationSchema = z.object({
   finished_at: z.iso.datetime().nullable(),
   id: z.uuid(),
   parent_id: z.uuid().nullable(),
+  position: z.int().positive().nullable().default(null),
   poster_asset_id: z.uuid().nullable(),
   progress: z.int().min(0).max(100).nullable(),
   share_slug: z
@@ -94,8 +101,9 @@ export type GenerationSnapshot = z.infer<typeof generationSchema>;
 
 /**
  * `GET /api/generations/:id/events` (`text/event-stream`): one `data:` line per event, a `: ping`
- * comment every 15 s. A `snapshot` is the generation as stored; the stream ends once it is
- * `done`, `failed` or `unknown`, and a finished generation gets one snapshot and no call to Comfy.
+ * comment every 15 s. A `snapshot` is the generation as stored (a `waiting` one with its
+ * `position`, sent again whenever it moves up); the stream ends once it is `done`, `failed`,
+ * `unknown` or `cancelled`, and a finished generation gets one snapshot and no call to Comfy.
  * `provider_unavailable` (with the stored generation, unchanged) says Comfy could not be asked
  * about it; the stream then ends with a `retry:` delay, and the browser reconnects after it.
  */
@@ -123,9 +131,15 @@ export type GenerationOutput = z.infer<typeof generationOutputSchema>;
 /**
  * The answer to a request that starts a generation (`POST /api/generate`, a retry or a re-run):
  * the generation's `id`, and `reused` when an existing one with the same recipe (done, or still
- * on its way) is returned instead of submitting a new one. Its status is the generation's own
- * (`GET /api/generations/:id` and its events).
+ * on its way) is returned instead of submitting a new one. A new one admitted while every place
+ * in flight is taken also says `status: "waiting"` and its `position` in line (a 202); otherwise
+ * its status is the generation's own (`GET /api/generations/:id` and its events).
  */
-export const generationReceiptSchema = z.object({ id: z.uuid(), reused: z.boolean() });
+export const generationReceiptSchema = z.object({
+  id: z.uuid(),
+  position: z.int().positive().optional(),
+  reused: z.boolean(),
+  status: z.literal("waiting").optional(),
+});
 
 export type GenerationReceipt = z.infer<typeof generationReceiptSchema>;

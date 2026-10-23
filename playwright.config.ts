@@ -8,8 +8,10 @@ import { storageStatePath } from "./tests/e2e/session.ts";
 
 // The browser tests start their own dev server, never reuse one: on a fresh database seeded by
 // `tests/e2e/seed.ts`, with Comfy at a dead port so no click can submit a paid job. The seeded
-// `queued` generation takes one place in flight, so two are allowed; the rate limits are high
-// enough for the whole run, which comes from one client with one code.
+// `queued` generation takes one place in flight, so two are allowed: a Generate then still goes
+// to the dead port at once (and fails), instead of waiting in line behind the seeded row, which
+// the dispatcher never moves on; a spec takes the second place to see a take wait in line. The
+// rate limits are high enough for the whole run, which comes from one client with one code.
 const baseURL = process.env.BASE_URL ?? "http://127.0.0.1:3032";
 const { hostname, port } = new URL(baseURL);
 

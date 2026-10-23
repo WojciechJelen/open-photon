@@ -13,6 +13,7 @@ import { fakeProvider } from "../comfy-provider.fake.ts";
 import type { Provider } from "../comfy-provider.ts";
 import { providerTarget } from "../comfy-target.ts";
 import {
+  cancelWaiting,
   createGeneration,
   findGeneration,
   findInFlight,
@@ -168,13 +169,14 @@ test("a scalar-only row a stopped server left mid-submit is unknown, though it u
       target: providerTarget(),
     });
 
-  // Stopped before the graph went out: nothing was sent.
+  // Stopped before the graph went out: nothing was sent, so it is back in line.
   const beforeSubmit = row(100);
 
   assert.deepEqual(
     [(await readGeneration(beforeSubmit.id))?.status, beforeSubmit.provider_inputs],
-    ["failed", null],
+    ["waiting", null],
   );
+  cancelWaiting(beforeSubmit.id);
 
   // Stopped while the provider was being asked: the job may exist there.
   const midSubmit = row(101);

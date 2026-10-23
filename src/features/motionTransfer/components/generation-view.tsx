@@ -43,7 +43,7 @@ type MotionTransferResult = Extract<Result, { view: "motionTransfer" }>;
 
 type OutputsResult = Extract<Result, { view: "outputs" }>;
 
-const finished = new Set(["done", "failed", "unknown"]);
+const finished = new Set(["done", "failed", "unknown", "cancelled"]);
 
 /**
  * The generation as its event stream reports it, until it is done, failed or unknown, and
@@ -98,14 +98,21 @@ function RenderMonitor({
   target: string;
 }) {
   const running = !finished.has(generation.status);
-  const failed = generation.status === "failed";
+  const cancelled = generation.status === "cancelled";
+  const failed = generation.status === "failed" || cancelled;
 
   return (
     <div className="mx-auto flex w-full max-w-52 shrink-0 flex-col gap-3 sm:max-w-72 lg:mx-0 lg:max-w-105">
       <div aria-hidden="true" className="flex items-center justify-between gap-3">
         <Hud className="inline-flex items-center gap-2" tone={running ? "foreground" : "soft"}>
           <StatusDot tone={running ? "tally" : failed ? "danger" : "warning"} />
-          {running ? "Rendering" : failed ? "Stopped" : "Unknown"}
+          {running
+            ? generation.status === "waiting"
+              ? "In line"
+              : "Rendering"
+            : failed
+              ? "Stopped"
+              : "Unknown"}
         </Hud>
         <Hud>{size}</Hud>
       </div>
@@ -141,7 +148,7 @@ function RenderMonitor({
                 {generation.progress ?? 0}
                 <span className="text-3xl text-soft-foreground sm:text-4xl">%</span>
               </span>
-              <Hud tone="foreground">{stageTitle(generation.status)}</Hud>
+              <Hud tone="foreground">{stageTitle(generation)}</Hud>
             </>
           ) : (
             <>
@@ -156,11 +163,13 @@ function RenderMonitor({
                 <TriangleAlertIcon className="size-7" />
               </span>
               <Hud tone="foreground">
-                {failed
-                  ? generation.progress
-                    ? `Stopped at ${generation.progress}%`
-                    : "Stopped"
-                  : "Status unknown"}
+                {cancelled
+                  ? "Cancelled"
+                  : failed
+                    ? generation.progress
+                      ? `Stopped at ${generation.progress}%`
+                      : "Stopped"
+                    : "Status unknown"}
               </Hud>
             </>
           )}
@@ -277,7 +286,7 @@ function OutputsView({ data }: { data: OutputsResult }) {
             ? "Done"
             : finished.has(status)
               ? endingTitle(live.generation)
-              : stageTitle(status)}
+              : stageTitle({ position: live.generation.position, status })}
           {live.providerUnavailable && " · Comfy is not answering"}
         </p>
         {images.map(({ asset, name }) => (
@@ -400,7 +409,7 @@ function MotionTransferView({
     motion: source.id,
   };
 
-  const failedRender = generation.status === "failed" || generation.status === "unknown";
+  const failedRender = ["failed", "unknown", "cancelled"].includes(generation.status);
   const running = !finished.has(generation.status);
   const portrait = recipe.params.height >= recipe.params.width;
   const takeName = `Take ${generation.id.slice(0, 8)}`;
@@ -431,10 +440,12 @@ function MotionTransferView({
       {done
         ? `${takeName} · Done · ${duration(final.duration_ms ?? 0)}`
         : running
-          ? `Step 4 of 4 · ${stageTitle(generation.status)}`
+          ? `Step 4 of 4 · ${stageTitle(generation)}`
           : generation.status === "unknown"
             ? "Status unknown"
-            : "Render stopped"}
+            : generation.status === "cancelled"
+              ? "Cancelled"
+              : "Render stopped"}
     </p>
   );
 

@@ -1,16 +1,16 @@
 import { z } from "zod";
 
-import { generationSchema } from "../../contracts.ts";
 import { mediaUrl } from "../../media.ts";
-import { findGeneration, findShared, readOutputs } from "./generations.ts";
+import { findGeneration, findShared, readOutputs, snapshot } from "./generations.ts";
 import { settleAbandoned } from "./service.ts";
 
 /**
  * What `/g/:id` shows of a generation whatever its workflow, for a page that renders it by the
  * media of its outputs: the generation as stored (a `preparing` row a stopped server left is
- * settled first), its named outputs once done, whether it is a pre-rendered sample (whose page is
- * public), its recipe and its workflow; `null` for a malformed or unknown id. It never asks
- * Comfy: the page's event stream finalizes a row Comfy has finished.
+ * settled first; a `waiting` one with its place in line), its named outputs once done, whether it
+ * is a pre-rendered sample (whose page is public), its recipe and its workflow; `null` for a
+ * malformed or unknown id. It never asks Comfy: the page's event stream finalizes a row Comfy has
+ * finished.
  */
 export function readGenerationResult(id: string) {
   const parsed = z.uuid().safeParse(id);
@@ -23,7 +23,7 @@ export function readGenerationResult(id: string) {
   const row = settleAbandoned(stored);
 
   return {
-    generation: generationSchema.parse(row),
+    generation: snapshot(row),
     outputs: row.status === "done" ? readOutputs(row.id) : [],
     prerendered: row.is_prerendered,
     recipe: row.recipe,

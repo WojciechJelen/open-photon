@@ -204,3 +204,49 @@ test("POST /api/character-generations answers 201, then 200 reused, and 400 for 
 
   assert.equal(anonymous?.status, 401);
 });
+
+test("POST /api/character-generations with a request_key and no seed, sent again after a lost answer, returns the same generation and pays once", async () => {
+  const cookie =
+    (
+      await createAccessGuard({ production: true })(
+        new Request("http://localhost/api/session", {
+          body: JSON.stringify({ code }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        }),
+      )
+    )?.headers
+      .get("Set-Cookie")
+      ?.split(";")[0] ?? "";
+
+  const post = (body: { prompt: string; request_key?: string }) =>
+    handleCharacterGeneration(
+      new Request("http://localhost/api/character-generations", {
+        body: JSON.stringify(body),
+        headers: { Cookie: cookie, "X-Client": "character-builder-key" },
+        method: "POST",
+      }),
+    );
+
+  const request = { prompt: "A lost answer", request_key: crypto.randomUUID() };
+  const before = { submits: fakeProvider.calls.submit, used: findAccessCode(code)?.used ?? 0 };
+  const first = await post(request);
+  const receipt = await first.json();
+  const again = await post(request);
+
+  assert.deepEqual([first.status, again.status], [201, 201]);
+  assert.deepEqual(await again.json(), receipt);
+  assert.equal(findGeneration(receipt.id)?.request_key, request.request_key);
+  assert.equal(fakeProvider.calls.submit - before.submits, 1);
+  assert.equal(findAccessCode(code)?.used, before.used + 1);
+
+  // Without the key, the same blank-seed request draws another seed: another generation.
+  const unkeyed = await (await post({ prompt: "A lost answer" })).json();
+
+  assert.notEqual(unkeyed.id, receipt.id);
+
+  // A key that is not a UUID is refused.
+  const malformed = await post({ prompt: "A lost answer", request_key: "again" });
+
+  assert.deepEqual([malformed.status, (await malformed.json()).reason], [400, "invalid_input"]);
+});

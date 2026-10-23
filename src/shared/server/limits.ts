@@ -46,7 +46,8 @@ function setting(name: string, fallback: number, min: number) {
 
 /**
  * The most generations in flight at once (`IN_FLIGHT_MAX`, default 1: Comfy Cloud Standard runs
- * one workflow at a time); 0 refuses every new one.
+ * one workflow at a time): `preparing` to `finalizing`. Beyond it a new one waits in line
+ * (`waiting`) for the dispatcher; 0 refuses every new one.
  */
 export function inFlightMax() {
   return setting("IN_FLIGHT_MAX", 1, 0);
