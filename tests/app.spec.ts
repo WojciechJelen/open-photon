@@ -19,11 +19,28 @@ test("the studio home features Motion Transfer and links its live character tool
   await expect(page.getByRole("list", { name: "Coming soon" })).toHaveCount(0);
   await expect(tools.getByText("Soon", { exact: true })).toHaveCount(0);
 
-  // The main navigation lists only the tools that ship: nothing disabled, nothing to come.
+  // The main navigation lists only the tools that ship: nothing disabled, nothing to come, in
+  // its buttons or in the menus they open (rendered outside the nav).
   const navigation = page.getByRole("navigation", { name: "Main" });
 
   await expect(navigation.getByRole("button")).toHaveText(["Image", "Video", "Library"]);
   await expect(navigation).not.toContainText(/soon/i);
+
+  for (const [label, tools] of [
+    ["Image", ["Create character"]],
+    ["Video", ["Motion Transfer"]],
+    ["Library", ["Characters"]],
+  ] as const) {
+    await navigation.getByRole("button", { name: label }).click();
+
+    const menu = page.getByRole("menu");
+
+    await expect(menu.getByRole("menuitem")).toHaveCount(tools.length);
+    await expect(menu.getByRole("menuitem", { name: tools[0] })).toBeVisible();
+    await expect(menu).not.toContainText(/soon/i);
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+  }
 
   const cards = page.getByRole("list", { name: "Character tools" }).getByRole("listitem");
 
