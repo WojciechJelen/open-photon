@@ -15,6 +15,9 @@ const { angle, prompt, seed } = generateInputSchema.shape;
 
 const seedSchema = seed.unwrap();
 
+/** The value of `seed` that sets the fixed default explicitly, over `from`'s seed. */
+const defaultSeed = "default";
+
 /**
  * Motion Transfer's draft, the published prefill and remix contract, held in the URL of
  * `/motionTransfer` so a reload, Back and Forward and a shared link land on the same screen:
@@ -23,10 +26,14 @@ const seedSchema = seed.unwrap();
  *   an upload or a cut of one) and `character` (a character's id);
  * - `from`, the generation whose direction (angle, look, seed) the Direct step starts with
  *   ("Change the shot", the remixes);
- * - the direction fields, which prefill the Direct step over `from`'s, each on its own: `angle`
- *   (a reshoot preset's id of `workflows/angles.json`, or `none` for As filmed; an id the wizard
- *   does not offer is ignored), `prompt` (the look: appearance and background, 1–500 characters
- *   once trimmed) and `seed` (a whole number from 0 to `Number.MAX_SAFE_INTEGER`).
+ * - the direction fields, which prefill the Direct step over `from`'s, each on its own; a field
+ *   left out keeps `from`'s (or the default), and each has a value that resets it explicitly:
+ *   `angle` (a reshoot preset's id of `workflows/angles.json`, or `none` for As filmed; an id the
+ *   wizard does not offer is ignored), `prompt` (the look: appearance and background, up to 500
+ *   characters once trimmed; `""` is the photo's look, the workflow's own description) and `seed`
+ *   (a whole number from 0 to `Number.MAX_SAFE_INTEGER`, or `"default"` for the fixed default).
+ *   A reset becomes a parameter left out only when the take is generated, so it makes the same
+ *   recipe as a blank field.
  *
  * A link is untrusted: a member that does not validate comes out `undefined`, so a mangled link
  * falls back to no choice (as the route's search, the `undefined` overrides the raw value the
@@ -38,8 +45,16 @@ export const motionTransferDraftSchema = z.object({
   character: z.uuid().optional().catch(undefined),
   from: z.uuid().optional().catch(undefined),
   angle: angle.catch(undefined),
-  prompt: prompt.catch(undefined),
-  seed: seed.catch(undefined),
+  prompt: z
+    .string()
+    .trim()
+    .pipe(z.union([z.literal(""), prompt.unwrap()]))
+    .optional()
+    .catch(undefined),
+  seed: z
+    .union([seedSchema, z.literal(defaultSeed)])
+    .optional()
+    .catch(undefined),
 });
 
 export type MotionTransferDraft = z.output<typeof motionTransferDraftSchema>;
@@ -112,21 +127,50 @@ export type Direction = { angle: string; prompt: string; seed: string };
 export const defaultDirection: Direction = { angle: "none", prompt: "", seed: "" };
 
 /** The seed the form's text stands for: none when blank; anything but digits is NaN, which no schema takes. */
-export function formSeed(text: string) {
+function formSeed(text: string) {
   const trimmed = text.trim();
 
   return trimmed === "" ? undefined : /^\d+$/.test(trimmed) ? Number(trimmed) : Number.NaN;
 }
 
-/** The draft's direction fields for what the form holds (`snapshotDraft` drops what is not valid). */
+/**
+ * What Generate sends for the picks and the form's choices, before `generateInputSchema` checks
+ * it: As filmed, a blank look and a blank seed (however they came: typed, or a reset of the
+ * draft) are left out, so the workflow's defaults fill them and the recipe is the same.
+ */
+export function generateRequest(
+  picks: { character: string | undefined; motion: string | undefined },
+  { angle, prompt, seed }: Direction,
+) {
+  return {
+    angle: angle === "none" ? undefined : angle,
+    character_id: picks.character,
+    motion_asset_id: picks.motion,
+    prompt: prompt.trim() || undefined,
+    // Anything but digits becomes NaN, which the schema refuses.
+    seed: formSeed(seed),
+  };
+}
+
+/**
+ * The draft's direction fields for what the form holds, every one explicit: a blank look is `""`
+ * and a blank seed `"default"`, so a remix whose look was cleared does not get `from`'s back. A
+ * seed that is not a number yet comes out NaN, which `snapshotDraft` drops.
+ */
 export function directionFields(direction: Direction): MotionTransferDraft {
-  return { angle: direction.angle, prompt: direction.prompt, seed: formSeed(direction.seed) };
+  return {
+    angle: direction.angle,
+    prompt: direction.prompt.trim() === "" ? "" : direction.prompt,
+    seed: direction.seed.trim() === "" ? defaultSeed : formSeed(direction.seed),
+  };
 }
 
 /**
  * The direction the Direct step starts with: each direction field the draft sets, over `start`
- * (the direction of the take the draft comes `from`, else `defaultDirection`). An angle that is
- * neither `none` nor one of `angles` (the presets the wizard offers) keeps `start`'s.
+ * (the direction of the take the draft comes `from`, else `defaultDirection`). A reset (`""`
+ * look, `"default"` seed) starts the field blank, which Generate sends as a parameter left out.
+ * An angle that is neither `none` nor one of `angles` (the presets the wizard offers) keeps
+ * `start`'s.
  */
 export function startingDirection(
   draft: MotionTransferDraft,
@@ -138,7 +182,8 @@ export function startingDirection(
   return {
     angle: offered && draft.angle ? draft.angle : start.angle,
     prompt: draft.prompt ?? start.prompt,
-    seed: draft.seed === undefined ? start.seed : String(draft.seed),
+    seed:
+      draft.seed === undefined ? start.seed : draft.seed === defaultSeed ? "" : String(draft.seed),
   };
 }
 

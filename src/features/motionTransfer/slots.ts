@@ -1,6 +1,8 @@
 // The Motion Transfer composer's slots: the parts other features replace (DEV-291's look
 // controls, DEV-292's batch actions). A slot is an ordinary React component; which one fills each
-// slot is decided in one place, `src/app/composer-slots.ts`, never inside the wizard.
+// slot is decided in one place, `src/app/composer-slots.ts`, never inside the wizard. The wizard
+// owns its URL (`/motionTransfer`): a slot or another page never holds its draft, and prefills it
+// by linking there with `draftHref`.
 import type { ComponentType } from "react";
 
 import type { ChildState } from "#/features/motionTransfer/components/render-ended";

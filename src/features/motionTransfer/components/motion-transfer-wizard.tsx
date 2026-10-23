@@ -36,9 +36,6 @@ import { useAccessCode } from "#/shared/use-access-code";
 
 type Selection = Awaited<ReturnType<typeof loadSelection>>;
 
-/** How a draft change enters the history: a step change adds an entry, anything else replaces it. */
-type DraftEntry = "push" | "replace";
-
 type WizardProps = {
   /** The draft shown: the URL's of `/motionTransfer`, validated by `motionTransferDraftSchema`. */
   draft: MotionTransferDraft;
@@ -46,12 +43,6 @@ type WizardProps = {
   directionEditor: ComponentType<DirectionEditorProps>;
   /** Fills the Direct step's generation actions slot, in the slate (`src/app/composer-slots.ts`). */
   generationActions: ComponentType<DirectGenerationActionsProps>;
-  /**
-   * Takes each draft the wizard moves to (a pick, a step, the step it corrects a link to).
-   * Without it, the wizard writes the draft to the URL of `/motionTransfer`, which then comes
-   * back as `draft`.
-   */
-  onDraftChange?: (next: MotionTransferDraft, entry: DraftEntry) => void;
   selection: Selection;
 };
 
@@ -63,15 +54,15 @@ const nextStep: Record<WizardStep, WizardStep> = {
 
 /**
  * The Motion Transfer wizard at `/motionTransfer`: Motion → Character → Direct, one decision per
- * screen, then Generate opens Render at `/g/:id`. It shows `draft` (controlled) and reports every
- * change to it (`onDraftChange`, by default the URL), so a reload, Back and Forward and a deep
- * link land on the same screen; a step whose prerequisites are missing shows the furthest one it
- * can reach (`shownStep`), and the draft follows it. A pick replaces the history entry, a step
- * change adds one. The direction (angle, look, seed) is the Direct step's form while the wizard is
- * open; it starts from the draft's direction fields over the direction of the take the draft
- * comes `from` ("Change the shot", the remixes), and another such start opens the form afresh.
- * The access code is asked for by one dialog, which then carries on with what asked for it (an
- * upload, Generate).
+ * screen, then Generate opens Render at `/g/:id`. It owns its URL: it shows `draft`, the URL's,
+ * and writes every change to the URL, so a reload, Back and Forward and a deep link land on the
+ * same screen; a step whose prerequisites are missing shows the furthest one it can reach
+ * (`shownStep`), and the URL follows it. A pick replaces the history entry, a step change adds
+ * one. Another page opens it on a draft with `draftHref`. The direction (angle, look, seed) is
+ * the Direct step's form while the wizard is open; it starts from the draft's direction fields
+ * over the direction of the take the draft comes `from` ("Change the shot", the remixes), and
+ * another such start opens the form afresh. The access code is asked for by one dialog, which
+ * then carries on with what asked for it (an upload, Generate).
  */
 export function MotionTransferWizard(props: WizardProps) {
   const { angle, from, prompt, seed } = props.draft;
@@ -83,7 +74,6 @@ function Wizard({
   draft,
   directionEditor,
   generationActions: GenerationActions,
-  onDraftChange,
   selection,
 }: WizardProps) {
   const navigate = useNavigate();
@@ -123,22 +113,17 @@ function Wizard({
   const { release } = access;
   const generate = useGenerate(access.hold);
 
-  const changeDraft = (next: MotionTransferDraft, entry: DraftEntry) => {
-    if (onDraftChange) {
-      onDraftChange(next, entry);
-    } else if (entry === "push") {
-      void navigate({ search: next, to: "/motionTransfer" });
-    } else {
-      void navigate({ replace: true, resetScroll: false, search: next, to: "/motionTransfer" });
-    }
-  };
-
-  // The draft names the step shown, so Back and Forward retrace it.
+  // The URL names the step shown, so Back and Forward retrace it.
   useEffect(() => {
     if (draft.step !== step) {
-      changeDraft({ ...draft, step }, "replace");
+      void navigate({
+        replace: true,
+        resetScroll: false,
+        search: (previous) => ({ ...previous, step }),
+        to: "/motionTransfer",
+      });
     }
-  });
+  }, [navigate, draft.step, step]);
 
   // A Generate that waited for the code is let go once its step is left: nothing shows it then.
   useEffect(() => {
@@ -158,10 +143,20 @@ function Wizard({
   const at = (target: WizardStep): MotionTransferDraft => ({ ...draft, step: target });
 
   const pickMotion = (assetId: string | undefined) =>
-    changeDraft({ ...draft, motion: assetId, step }, "replace");
+    navigate({
+      replace: true,
+      resetScroll: false,
+      search: (previous) => ({ ...previous, motion: assetId, step }),
+      to: "/motionTransfer",
+    });
 
   const pickCharacter = (id: string | undefined) =>
-    changeDraft({ ...draft, character: id, step }, "replace");
+    navigate({
+      replace: true,
+      resetScroll: false,
+      search: (previous) => ({ ...previous, character: id, step }),
+      to: "/motionTransfer",
+    });
 
   const sampleMotion = motions.find(({ clip }) => clip.id === motionChoice);
   const angleLabel = angles.find(({ id }) => id === direction.angle)?.label ?? "As filmed";
@@ -259,7 +254,7 @@ function Wizard({
       <Button
         disabled={!picked}
         key="continue"
-        onClick={() => changeDraft(at(nextStep[step]), "push")}
+        onClick={() => void navigate({ search: at(nextStep[step]), to: "/motionTransfer" })}
         size={place === "panel" ? "lg" : "default"}
         type="button"
       >
@@ -313,7 +308,7 @@ function Wizard({
                 motion={motion}
                 motionId={motionChoice}
                 motions={motions}
-                onPick={pickMotion}
+                onPick={(assetId) => void pickMotion(assetId)}
                 release={release}
                 signedIn={signedIn}
               />
@@ -325,7 +320,7 @@ function Wizard({
                 characterId={characterChoice}
                 characters={characters}
                 hold={access.hold}
-                onPick={pickCharacter}
+                onPick={(id) => void pickCharacter(id)}
                 release={release}
                 signedIn={signedIn}
               />
