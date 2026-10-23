@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-import { generationSchema } from "../../../shared/contracts.ts";
 import type { Session } from "../../../shared/server/access.server.ts";
 import { comfyProvider, type Provider } from "../../../shared/server/comfy-provider.ts";
 import {
   findGeneration as findStoredGeneration,
   readOutputs,
+  snapshot,
 } from "../../../shared/server/generation/generations.ts";
 import { answer, readInput } from "../../../shared/server/generation/http.ts";
 import { type Admit, settleAbandoned, submit } from "../../../shared/server/generation/service.ts";
@@ -21,39 +21,45 @@ import { sampleMotionTitle, sourceClip } from "./shot.ts";
  * recipe `motionTransferDefinition`'s, submitted through the generation service (`submit`). A
  * generation with the same recipe that is done or still on its way is returned instead
  * (`reused`). Without a session (`session` is `null`) it answers only with a done pre-rendered
- * sample generation of the same recipe, the free sample × sample lookup.
+ * sample generation of the same recipe, the free sample × sample lookup. With the client's
+ * `requestKey`, the same request again returns the generation the first one made.
  */
 export function generate(
   input: GenerateInput,
   session: Session | null,
   provider: Provider = comfyProvider,
   admit?: Admit,
+  requestKey?: string,
 ) {
   return submit(motionTransferDefinition, input, {
     admit,
     provider,
+    requestKey,
     scope: { free: (existing) => existing.status === "done" && existing.is_prerendered, session },
   });
 }
 
 /**
- * `POST /api/generate` with a JSON `generateInputSchema` body: `generate`, answered by `answer`;
- * 400 for a body that is too large, not JSON, or not the schema.
+ * `POST /api/generate` with a JSON `generateInputSchema` body and an optional `request_key` (a
+ * UUID): `generate`, answered by `answer` (a 202 with its place in line while every place in
+ * flight is taken); 400 for a body that is too large, not JSON, or not the schema.
  */
 export function handleGenerate(request: Request, provider: Provider = comfyProvider) {
-  return answer(request, async (session, admit) =>
-    generate(
-      await readInput(request, motionTransferDefinition.inputSchema, 16_384),
-      session,
-      provider,
-      admit,
-    ),
-  );
+  return answer(request, async (session, admit) => {
+    const { input, requestKey } = await readInput(
+      request,
+      motionTransferDefinition.inputSchema,
+      16_384,
+    );
+
+    return generate(input, session, provider, admit, requestKey);
+  });
 }
 
 /**
  * What `/g/:id` shows of a Motion Transfer generation: the generation as stored (a `preparing`
- * row a stopped server left is settled first), its recipe, its named outputs once done
+ * row a stopped server left is settled first; a `waiting` one with its place in line), its
+ * recipe, its named outputs once done
  * (`outputs`; the result and its poster as `final` and `poster`), the motion clip it was made
  * from (`source`, the asset the wizard's `?motion=` names) with its sample title if it is one
  * (`motionTitle`), the character with its image as `signedIn` may see it (`visibleCharacter`),
@@ -81,7 +87,7 @@ export function readResult(id: string, signedIn: boolean) {
     character: visibleCharacter(character, signedIn),
     direction: directionOf(row.recipe),
     final: outputs.find(({ name }) => name === "video")?.asset ?? null,
-    generation: generationSchema.parse(row),
+    generation: snapshot(row),
     motionTitle: sampleMotionTitle(source.id),
     outputs,
     poster: outputs.find(({ name }) => name === "poster")?.asset ?? null,

@@ -54,7 +54,7 @@ type PrepareContext = { target: ProviderTarget };
  * The resolved recipe of a request, with the rows it links to: the character it renders
  * (`generations.character_id`) and the sample motion it was made from (`motion_id`), if any.
  */
-type PreparedRecipe<Recipe> = { characterId?: string; motionId?: string; recipe: Recipe };
+export type PreparedRecipe<Recipe> = { characterId?: string; motionId?: string; recipe: Recipe };
 
 /** What a re-run (`seed` unchanged) or a retry (a new one) of a recipe renders with. */
 type RebaseContext = { seed: number; target: ProviderTarget };

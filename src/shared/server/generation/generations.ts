@@ -24,19 +24,51 @@ import { recipeHash } from "./recipe-hash.ts";
 type GenerationStatus = z.infer<typeof generationStatusSchema>;
 
 /**
- * `preparing → queued → running → finalizing → done | failed`. Comfy can finish a job without
- * ever reporting `running`, so `queued` may go straight to `finalizing`. `unknown` is a crash
- * between `submit()` and `markQueued`: the job may exist, so the row is never resubmitted.
+ * `waiting → preparing → queued → running → finalizing → done | failed`. `waiting` is in line
+ * for a place in flight (`IN_FLIGHT_MAX`): the dispatcher claims it (`preparing`), or it is
+ * `cancelled`. A `preparing` row goes back to `waiting` only when a restart finds it was never
+ * handed to the provider (`releaseClaim`). Comfy can finish a job without ever reporting
+ * `running`, so `queued` may go straight to `finalizing`. `unknown` is a crash between `submit()`
+ * and `markQueued`: the job may exist, so the row is never resubmitted.
  */
 const nextStatuses: Record<GenerationStatus, readonly GenerationStatus[]> = {
+  cancelled: [],
   done: [],
   failed: [],
   finalizing: ["done", "failed"],
-  preparing: ["queued", "failed", "unknown"],
+  preparing: ["queued", "failed", "unknown", "waiting"],
   queued: ["running", "finalizing", "failed"],
   running: ["finalizing", "failed"],
   unknown: [],
+  waiting: ["preparing", "cancelled"],
 };
+
+/**
+ * This process, as `claimed_by` records it on the rows it takes out of the queue: its pid and a
+ * random suffix, as a pid is reused after a restart.
+ */
+const CLAIMANT = `${process.pid}-${randomBytes(4).toString("hex")}`;
+
+const queueListeners = new Set<() => void>();
+
+/**
+ * Calls `listener` (synchronously, so it should only schedule work) after a row joins the queue
+ * or changes status: a place in flight may have opened, or a row may be waiting for one. Returns
+ * the function that stops it. The dispatcher (`dispatcher.ts`) wakes on it.
+ */
+export function onQueueChange(listener: () => void) {
+  queueListeners.add(listener);
+
+  return () => {
+    queueListeners.delete(listener);
+  };
+}
+
+function queueChanged() {
+  for (const listener of queueListeners) {
+    listener();
+  }
+}
 
 function jsonColumn<T extends z.ZodType>(schema: T) {
   return z.codec(z.string(), schema, {
@@ -54,8 +86,15 @@ const providerInputsColumn = jsonColumn(z.record(z.string(), assetReferenceSchem
 
 type ProviderInputs = z.output<typeof providerInputsColumn>;
 
-const generationRowSchema = generationSchema.extend({
+// A row as stored: everything the API shows but `position` (`snapshot` computes it).
+const generationRowSchema = generationSchema.omit({ position: true }).extend({
   access_code_id: z.string().nullable(),
+  // `<request key>` of the multi-item request that made it (`submitMany`).
+  batch_key: z.string().nullable(),
+  // When a process took it to submit (`waiting → preparing`, or created it `preparing`), and
+  // which one (`CLAIMANT`).
+  claimed_at: z.iso.datetime().nullable(),
+  claimed_by: z.string().nullable(),
   finalize_attempted_at: z.iso.datetime().nullable(),
   finalize_attempts: z.int().nonnegative(),
   idempotency_key: z.uuid(),
@@ -66,6 +105,9 @@ const generationRowSchema = generationSchema.extend({
   provider_job_id: z.string().min(1).nullable(),
   recipe: recipeColumn,
   recipe_hash: z.string().regex(/^[a-f0-9]{64}$/),
+  // The client's key for the request that made it: `<key>`, or `<key>#<index>` for an item of a
+  // multi-item request.
+  request_key: z.string().nullable(),
   // When the graph was handed to the provider: from then on the job may exist there.
   submit_started_at: z.iso.datetime().nullable(),
   // The endpoint the job runs on (`ProviderTarget`): `target_origin` is null on Cloud, and on a
@@ -108,37 +150,48 @@ export function hashRecipe<Input, Recipe extends WorkflowRecipe>(
 }
 
 /**
- * Inserts a `preparing` row whose idempotency key exists before anything reaches the provider,
- * for `definition`'s workflow and the recipe it decodes (`hashRecipe`), on `target`, with the
- * access code that asked for it (which counts it, `006-access-codes.sql`) and the rows it links
- * to (`characterId`, the sample `motionId`). The row comes back with that recipe.
+ * Inserts a row whose idempotency key exists before anything reaches the provider, for
+ * `definition`'s workflow and the recipe it decodes (`hashRecipe`), on `target`, with the access
+ * code that asked for it (which counts it, `006-access-codes.sql`), the rows it links to
+ * (`characterId`, the sample `motionId`) and the client's request key (`requestKey`, and
+ * `batchKey` for an item of a multi-item request). It is `preparing`, claimed by this process
+ * (`CLAIMANT`), unless it is `waiting` in line for a place in flight. The row comes back with
+ * that recipe. A request key the workflow already has throws (`generations_request_key`).
  */
 export function createGeneration<Input, Recipe extends WorkflowRecipe>(
   definition: WorkflowDefinition<Input, Recipe>,
   {
     accessCodeId,
+    batchKey,
     characterId,
     motionId,
     parentId,
     recipe,
+    requestKey,
+    status = "preparing",
     target,
   }: {
     accessCodeId?: string;
+    batchKey?: string;
     characterId?: string;
     motionId?: string;
     parentId?: string;
     recipe: Recipe;
+    requestKey?: string;
+    status?: "preparing" | "waiting";
     target: ProviderTarget;
   },
 ): DecodedGeneration<Recipe> {
   const { hash, recipe: parsed } = hashRecipe(definition, recipe);
+  const now = new Date().toISOString();
+  const claimed = status === "preparing";
 
   const row = database
     .prepare(
       `INSERT INTO generations (id, parent_id, motion_id, character_id, workflow_id,
         workflow_version, recipe, recipe_hash, idempotency_key, target, target_origin, status,
-        access_code_id, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparing', ?, ?)
+        access_code_id, created_at, claimed_at, claimed_by, request_key, batch_key)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *`,
     )
     .get(
@@ -153,9 +206,18 @@ export function createGeneration<Input, Recipe extends WorkflowRecipe>(
       randomUUID(),
       target.kind,
       target.origin,
+      status,
       accessCodeId ?? null,
-      new Date().toISOString(),
+      now,
+      claimed ? now : null,
+      claimed ? CLAIMANT : null,
+      requestKey ?? null,
+      batchKey ?? null,
     );
+
+  if (!claimed) {
+    queueChanged();
+  }
 
   return { ...generationRowSchema.parse(row), recipe: parsed };
 }
@@ -197,17 +259,17 @@ export function findReusable(hash: string, workflow: WorkflowKey) {
 const UNKNOWN_REUSE_MS = 24 * 60 * 60 * 1000;
 
 /**
- * A generation of `workflow` with this recipe that may still produce its output: on its way, or
- * `unknown` (Comfy may be rendering it) for up to a day. Submitting the recipe again would pay
- * for a second job; an `unknown` row older than that is left alone, so the recipe can be
- * generated again.
+ * A generation of `workflow` with this recipe that may still produce its output: in line, on its
+ * way, or `unknown` (Comfy may be rendering it) for up to a day. Submitting the recipe again
+ * would pay for a second job; an `unknown` row older than that is left alone, so the recipe can
+ * be generated again.
  */
 export function findPending(hash: string, workflow: WorkflowKey) {
   return parseRow(
     database
       .prepare(
         `SELECT * FROM generations WHERE recipe_hash = ? AND workflow_id = ? AND workflow_version = ?
-          AND (status IN ('preparing', 'queued', 'running', 'finalizing')
+          AND (status IN ('waiting', 'preparing', 'queued', 'running', 'finalizing')
             OR (status = 'unknown' AND created_at > ?))
         ORDER BY created_at DESC LIMIT 1`,
       )
@@ -217,6 +279,15 @@ export function findPending(hash: string, workflow: WorkflowKey) {
         workflow.version,
         new Date(Date.now() - UNKNOWN_REUSE_MS).toISOString(),
       ),
+  );
+}
+
+/** The generation of `workflowId` a client's request key (`createGeneration`) made, if any. */
+export function findByRequestKey(workflowId: string, requestKey: string) {
+  return parseRow(
+    database
+      .prepare("SELECT * FROM generations WHERE workflow_id = ? AND request_key = ?")
+      .get(workflowId, requestKey),
   );
 }
 
@@ -249,6 +320,128 @@ export function findInFlight(limit: number, target?: ProviderTarget) {
   return database
     .prepare(`SELECT id FROM generations WHERE ${IN_FLIGHT} ORDER BY created_at LIMIT :limit`)
     .all({ ...onTarget(target), limit })
+    .map((row) => String(row.id));
+}
+
+// In line for `target` exactly: the endpoint a waiting row will be submitted to is the one its
+// recipe was resolved for.
+const WAITING_ON = "status = 'waiting' AND target = :kind AND target_origin IS :origin";
+
+/** How many generations wait in line for `target`. */
+export function countWaiting(target: ProviderTarget) {
+  return Number(
+    database
+      .prepare(`SELECT count(*) AS count FROM generations WHERE ${WAITING_ON}`)
+      .get(onTarget(target))?.count,
+  );
+}
+
+/**
+ * A `waiting` generation's place in line among those for its endpoint (1: the next one claimed),
+ * by `created_at` and then insertion order, as `claimNextWaiting` takes them; `null` for any
+ * other row.
+ */
+function queuePosition(row: Pick<Generation, "id" | "status">) {
+  if (row.status !== "waiting") {
+    return null;
+  }
+
+  return Number(
+    database
+      .prepare(
+        `SELECT count(*) AS position FROM generations AS other
+        JOIN generations AS self ON self.id = :id
+        WHERE other.status = 'waiting' AND other.target = self.target
+          AND other.target_origin IS self.target_origin
+          AND (other.created_at < self.created_at
+            OR (other.created_at = self.created_at AND other.rowid <= self.rowid))`,
+      )
+      .get({ id: row.id })?.position,
+  );
+}
+
+/** A row as the API shows it (`generationSchema`): a `waiting` one with its `position`. */
+export function snapshot(row: Omit<Generation, "recipe">) {
+  return generationSchema.parse({ ...row, position: queuePosition(row) });
+}
+
+/**
+ * Takes the oldest `waiting` generation for `target` out of the queue for this process
+ * (`waiting → preparing`, `claimed_at`, `claimed_by` = `CLAIMANT`) while fewer than `max` are in
+ * flight there, in one `BEGIN IMMEDIATE` transaction: the count and the claim see the same rows.
+ * `null` when the line is empty or every place is taken.
+ */
+export function claimNextWaiting(target: ProviderTarget, max: number) {
+  return transaction(database, () => {
+    if (countInFlight(target) >= max) {
+      return null;
+    }
+
+    return parseRow(
+      database
+        .prepare(
+          `UPDATE generations SET status = 'preparing', claimed_at = :now, claimed_by = :claimant
+          WHERE id = (SELECT id FROM generations WHERE ${WAITING_ON}
+            ORDER BY created_at, rowid LIMIT 1)
+          RETURNING *`,
+        )
+        .get({ ...onTarget(target), claimant: CLAIMANT, now: new Date().toISOString() }),
+    );
+  });
+}
+
+/**
+ * Puts a `preparing` row that was never handed to the provider (no `submit_started_at`) back in
+ * line (`preparing → waiting`), unclaimed, keeping its place (`created_at`) and its access code's
+ * count. `null` when the row is not such a row any more.
+ */
+export function releaseClaim(id: string) {
+  const row = parseRow(
+    database
+      .prepare(
+        `UPDATE generations SET status = 'waiting', claimed_at = NULL, claimed_by = NULL
+        WHERE id = ? AND status = 'preparing' AND submit_started_at IS NULL
+        RETURNING *`,
+      )
+      .get(id),
+  );
+
+  if (row) {
+    queueChanged();
+  }
+
+  return row;
+}
+
+/** The ids of the `waiting` generations that are not for `target`, oldest first. */
+export function findWaitingElsewhere(target: ProviderTarget) {
+  return database
+    .prepare(
+      `SELECT id FROM generations WHERE status = 'waiting'
+        AND NOT (target = :kind AND target_origin IS :origin)
+      ORDER BY created_at, rowid`,
+    )
+    .all(onTarget(target))
+    .map((row) => String(row.id));
+}
+
+/** The ids of the generations that have a provider job and are not finished, oldest first. */
+export function findFollowable() {
+  return database
+    .prepare(
+      `SELECT id FROM generations
+      WHERE status IN ('queued', 'running', 'finalizing') AND provider_job_id IS NOT NULL
+      ORDER BY created_at`,
+    )
+    .all()
+    .map((row) => String(row.id));
+}
+
+/** The ids of the `preparing` generations, oldest first. */
+export function findPreparing() {
+  return database
+    .prepare("SELECT id FROM generations WHERE status = 'preparing' ORDER BY created_at")
+    .all()
     .map((row) => String(row.id));
 }
 
@@ -328,7 +521,8 @@ type Outcome = Partial<Pick<Generation, "error_code" | "error_message">> & {
  * storing the error or the named outputs that come with the new status (`generation_outputs`).
  * A row that becomes `done` gets its `share_slug` (`/r/<slug>`): 16 random hex characters, 64
  * bits nobody can guess. The outputs `video` and `poster` are also kept in `final_asset_id` and
- * `poster_asset_id`, the columns that held them before outputs had names, for their readers.
+ * `poster_asset_id`, the columns that held them before outputs had names, for their readers. A
+ * row goes back in line only through `releaseClaim`, which checks it was never submitted.
  */
 export function transition(
   id: string,
@@ -336,11 +530,12 @@ export function transition(
   to: GenerationStatus,
   outcome: Outcome = {},
 ) {
-  if (!nextStatuses[from].includes(to)) {
+  if (!nextStatuses[from].includes(to) || to === "waiting") {
     throw new Error(`A generation cannot go from ${from} to ${to}`);
   }
 
-  const finishedAt = to === "done" || to === "failed" ? new Date().toISOString() : null;
+  const finishedAt = ["done", "failed", "cancelled"].includes(to) ? new Date().toISOString() : null;
+
   const shareSlug = to === "done" ? randomBytes(8).toString("hex") : null;
   const outputs = Object.entries(outcome.outputs ?? {});
 
@@ -389,12 +584,28 @@ export function transition(
     throw new Error(`Generation ${id} is not ${from}`);
   }
 
+  queueChanged();
+
   return row;
 }
 
 /** For a row left `preparing` by a crash after `submit()` may have reached the provider. */
 export function markUnknown(id: string, outcome: Outcome = {}) {
   return transition(id, "preparing", "unknown", outcome);
+}
+
+/**
+ * Takes a `waiting` row out of line for good (`waiting → cancelled`): nothing was sent, so its
+ * access code gets its count back (`access_codes_return_cancelled`). `null` when it is not
+ * waiting (any more).
+ */
+export function cancelWaiting(id: string, outcome: Outcome = {}) {
+  return findGeneration(id)?.status === "waiting"
+    ? transition(id, "waiting", "cancelled", {
+        error_message: "Cancelled before it was sent to Comfy: nothing was rendered or charged.",
+        ...outcome,
+      })
+    : null;
 }
 
 /** Records a finalize that failed (a download or FFmpeg error) and when; returns the row. */

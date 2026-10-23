@@ -8,6 +8,12 @@ import type { GenerationSnapshot } from "#/shared/contracts";
 
 const stages = [
   {
+    active: "Waiting for a free rendering slot",
+    done: "A rendering slot opened",
+    status: "waiting",
+    title: "In line",
+  },
+  {
     active: "Sending the clip and photo to Comfy",
     done: "Clip and photo sent to Comfy",
     status: "preparing",
@@ -40,17 +46,22 @@ function stageIndex(status: GenerationSnapshot["status"]) {
   return index === -1 ? stages.length : index;
 }
 
-/** The title of the stage a generation is in, for its status line. */
-export function stageTitle(status: GenerationSnapshot["status"]) {
-  return stages[stageIndex(status)]?.title ?? "Finishing";
+/** The title of the stage a generation is in, for its status line (`In line · #2`). */
+export function stageTitle(generation: Pick<GenerationSnapshot, "position" | "status">) {
+  const title = stages[stageIndex(generation.status)]?.title ?? "Finishing";
+
+  return generation.status === "waiting" && generation.position !== null
+    ? `${title} · #${generation.position}`
+    : title;
 }
 
 /**
- * Step 4 while it renders: the named stages, `preparing → queued → running → finalizing`, the
- * current one with the real progress Comfy reports (never a time estimate, which Comfy does not
- * give; Comfy may skip `running` and go straight to finishing), a notice while Comfy cannot be
- * asked, and the link back to this page. The render goes on on Comfy whether or not the page is
- * open: the page's stream (or the next visit) collects it, so leaving is safe.
+ * Step 4 while it renders: the named stages, `waiting → preparing → queued → running →
+ * finalizing`, the current one with the real progress Comfy reports (never a time estimate,
+ * which Comfy does not give; Comfy may skip `running` and go straight to finishing) or, in line,
+ * its place, a notice while Comfy cannot be asked, and the link back to this page. The render
+ * goes on on the server and Comfy whether or not the page is open: the server's dispatcher sends
+ * it once a slot opens and collects it, so leaving is safe.
  */
 export function RenderProgress({
   generation,
@@ -63,6 +74,7 @@ export function RenderProgress({
 }) {
   const current = stageIndex(generation.status);
   const percent = generation.progress ?? 0;
+  const position = generation.status === "waiting" ? generation.position : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -99,7 +111,11 @@ export function RenderProgress({
                     {stage.title}
                   </b>
                   <span className="text-sm text-soft-foreground">
-                    {state === "done" ? stage.done : stage.active}
+                    {state === "done"
+                      ? stage.done
+                      : stage.status === "waiting" && position !== null
+                        ? `Number ${position} in line for a free rendering slot`
+                        : stage.active}
                   </span>
                 </span>
                 {state === "current" && stage.status === "running" && (
@@ -112,7 +128,9 @@ export function RenderProgress({
                   : state === "current"
                     ? stage.status === "running"
                       ? `${percent}%`
-                      : "Now"
+                      : position !== null && stage.status === "waiting"
+                        ? `#${position}`
+                        : "Now"
                     : index === current + 1
                       ? "Next"
                       : ""}
