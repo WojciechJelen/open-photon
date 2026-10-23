@@ -5,17 +5,20 @@ import type { GenerationSnapshot } from "#/shared/contracts";
 import type { Refusal } from "#/shared/requests";
 import { useLiveGeneration } from "#/shared/use-live-generation";
 
-type Loaded =
+type Loaded<T> =
   | { state: "loading" }
   | { refusal: Refusal; state: "refused" }
-  | { generation: GenerationSnapshot; state: "ready" };
+  | { data: T; state: "ready" };
+
+type Read<T> = (id: string) => Promise<{ data: T } | { refusal: Refusal }>;
 
 /**
- * A generation's stored snapshot (`GET /api/generations/:id`), read once for the page that opens
- * it by id; `reload` reads it again after a refusal (no connection, the access code expired).
+ * What `read` answers for `id` (a generation's snapshot, its recipe), read once for the screen
+ * that shows it; `reload` reads it again after a refusal (no connection, the access code
+ * expired).
  */
-export function useStoredGeneration(id: string) {
-  const [loaded, setLoaded] = useState<Loaded>({ state: "loading" });
+export function useStored<T>(id: string, read: Read<T>) {
+  const [loaded, setLoaded] = useState<Loaded<T>>({ state: "loading" });
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -23,12 +26,12 @@ export function useStoredGeneration(id: string) {
 
     setLoaded({ state: "loading" });
 
-    void readGeneration(id).then((answer) => {
+    void read(id).then((answer) => {
       if (!stopped) {
         setLoaded(
           "refusal" in answer
             ? { refusal: answer.refusal, state: "refused" }
-            : { generation: answer.data, state: "ready" },
+            : { data: answer.data, state: "ready" },
         );
       }
     });
@@ -36,9 +39,14 @@ export function useStoredGeneration(id: string) {
     return () => {
       stopped = true;
     };
-  }, [id, attempt]);
+  }, [id, read, attempt]);
 
   return { loaded, reload: () => setAttempt((count) => count + 1) };
+}
+
+/** A generation's stored snapshot (`GET /api/generations/:id`), as `useStored` reads it. */
+export function useStoredGeneration(id: string) {
+  return useStored(id, readGeneration);
 }
 
 // How long to wait before reading a done generation again whose output is not there yet.

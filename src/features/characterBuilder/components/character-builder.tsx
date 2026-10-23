@@ -8,16 +8,25 @@ import {
   readImageRecipe,
   requestCaption,
   requestImage,
-  retryGeneration,
   saveCharacter,
 } from "#/features/characterBuilder/builder-client";
-import { controlsOf, seedOf, withDescribed } from "#/features/characterBuilder/builder-form";
 import {
+  type CaptionSource,
+  captionRequest,
+  controlsOf,
+  imageRequest,
+  seedOf,
+  withDescribed,
+} from "#/features/characterBuilder/builder-form";
+import {
+  attemptKeyFor,
   type BuilderForm,
   emptyForm,
+  keysPersist,
   recallForm,
   rememberForm,
   requestKeyFor,
+  settleAttempt,
 } from "#/features/characterBuilder/builder-memory";
 import {
   type BuilderSearch,
@@ -27,6 +36,7 @@ import {
 import {
   type CaptionField,
   CaptionStep,
+  imageSource,
 } from "#/features/characterBuilder/components/caption-step";
 import {
   type DescribeField,
@@ -34,24 +44,21 @@ import {
 } from "#/features/characterBuilder/components/describe-step";
 import { ImageStep } from "#/features/characterBuilder/components/image-step";
 import { RefusalNotice } from "#/features/characterBuilder/components/refusal-notice";
-import {
-  characterCaptionInputSchema,
-  type CharacterGenerationInput,
-  characterGenerationInputSchema,
-} from "#/features/characterBuilder/contracts";
 import type { CharacterSummary } from "#/features/characters";
 import { AccessCodeDialog, AccessStatus } from "#/shared/components/access-code-dialog";
 import { PageGlow } from "#/shared/components/brand";
 import { SiteHeader } from "#/shared/components/site";
-import type { GenerationReceipt } from "#/shared/contracts";
 import type { Refusal } from "#/shared/requests";
 import { useAccessCode } from "#/shared/use-access-code";
 import { useRequestSignal } from "#/shared/use-request-signal";
 
-type Pending = "another" | "enhance" | "generate" | "retry" | "save";
+/** The action under way; one at a time. `again`: a new attempt of a shown caption or image. */
+type Pending = "again" | "enhance" | "generate" | "save";
 
-/** A refused request, and how to send it again: the same request, or as a new one. */
+/** A refused action, and how to send it again: the same request, or as a new one. */
 type Refused = { fresh?: () => void; refusal: Refusal; retry: () => void };
+
+type Answer<T> = { data: T } | { refusal: Refusal };
 
 const stepLabels: Record<BuilderStep, string> = {
   caption: "Caption",
@@ -59,16 +66,22 @@ const stepLabels: Record<BuilderStep, string> = {
   image: "Image",
 };
 
+const describeFields = new Set<PropertyKey>(["appearance", "description", "outfit"]);
+
 /**
  * `/characters/new`: describe a character, enhance the description into a caption, edit it,
  * render it with FLUX 3 Image Klein, then save it to the workspace library and animate it.
  *
- * The URL holds the generations (`builder-search.ts`), so a reload follows them instead of
- * starting new ones; the tab's storage holds what is typed but not sent, and the request key of
- * each request (`requestKeyFor`), so sending the same request again (a double click, a resend
- * after a lost answer) returns the generation the first one made. A deliberate new attempt
- * ("Another image", a new enhancement after one whose status is unknown) is a new request.
- * Anything that needs the access code asks for it and then carries on.
+ * Nothing is ever paid for twice by accident:
+ * - one action at a time: an action takes the page's lock before its first `await` and keeps
+ *   every action disabled until it is answered (`act`);
+ * - every generation request carries a request key (`builder-memory.ts`): Enhance and Generate
+ *   send the same key for the same request, so a double click, a resend after a lost answer or
+ *   a reload answers with the generation the first one made; a new attempt of a shown caption
+ *   or image ("Try again", "Another image") has one key until an answer names its generation;
+ * - the URL holds the generations (`builder-search.ts`), so a reload follows them.
+ * The tab's storage keeps what is typed but not sent. Anything that needs the access code asks
+ * for it and then carries on.
  */
 export function CharacterBuilder({ search }: { search: BuilderSearch }) {
   const navigate = useNavigate({ from: "/characters/new" });
@@ -84,11 +97,14 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
   const [refused, setRefused] = useState<Refused | null>(null);
   const [signedIn, setSignedIn] = useState(true);
   const [savedCharacter, setSavedCharacter] = useState<CharacterSummary | null>(null);
+  const [persistent, setPersistent] = useState(true);
+  const busy = useRef(false);
 
   // The form this tab typed before a reload; after that, every edit is kept.
   useEffect(() => {
     setForm(recallForm() ?? emptyForm);
     setRecalled(true);
+    setPersistent(keysPersist());
   }, []);
 
   useEffect(() => {
@@ -102,7 +118,7 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
   const describedFrom = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!recalled || !search.caption || form.description !== "") {
+    if (!recalled || !search.caption || search.image || form.description !== "") {
       return;
     }
 
@@ -119,7 +135,7 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
         );
       }
     });
-  }, [recalled, search.caption, form.description]);
+  }, [recalled, search.caption, search.image, form.description]);
 
   // The new screen's heading takes focus, never on the first render.
   const shown = useRef(step);
@@ -137,53 +153,69 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
   }
 
   /**
-   * Sends one request and acts on its answer: `onAnswer` with the receipt, or the refusal shown
-   * with its recovery (`again` sends the same request; `fresh` a new one). One that needs the
-   * access code waits for it, then is sent again with the same key.
+   * Runs one action: it takes the page's lock at once, before anything is awaited, so a second
+   * click (or another action) while it runs does nothing, and the buttons say so (`pending`).
    */
-  async function send<T>(
-    kind: Pending,
-    request: () => Promise<{ data: T } | { refusal: Refusal }>,
-    onAnswer: (data: T) => void,
-    fresh?: () => void,
-  ) {
-    // Not passed to the request: one that reached the server finishes there; leaving the page
-    // only drops what this page does with its answer.
-    const signal = nextSignal();
-    const again = () => void send(kind, request, onAnswer, fresh);
-
-    setPending(kind);
-    setRefused(null);
-
-    const answer = await request();
-
-    if (signal.aborted) {
+  async function act(kind: Pending, work: (signal: AbortSignal) => Promise<void>) {
+    if (busy.current) {
       return;
     }
 
-    setPending(null);
+    busy.current = true;
+    setPending(kind);
+    setRefused(null);
 
-    if ("data" in answer) {
-      onAnswer(answer.data);
-    } else if (answer.refusal.reason === "access_required") {
-      setSignedIn(false);
-      access.hold(kind, kind === "save" ? "unlock" : "generate", again);
-    } else {
-      setRefused({ fresh, refusal: answer.refusal, retry: again });
+    try {
+      // Not passed to the requests: one that reached the server finishes there; leaving the page
+      // only drops what this page does with its answer.
+      await work(nextSignal());
+    } finally {
+      busy.current = false;
+      setPending(null);
     }
   }
 
-  function enhance(fresh: boolean) {
-    const parsed = characterCaptionInputSchema.safeParse({
-      controls: controlsOf(form),
-      description: form.description,
-    });
+  /**
+   * A refusal, and its recovery: the access code asked for, then `again`; or shown, with
+   * `again` (the same request, its same key) and `fresh` (a new request).
+   */
+  function refuse(kind: Pending, refusal: Refusal, again: () => void, fresh?: () => void) {
+    if (refusal.reason === "access_required") {
+      setSignedIn(false);
+      access.hold(kind, kind === "save" ? "unlock" : "generate", again);
+    } else {
+      setRefused({ fresh, refusal, retry: again });
+    }
+  }
+
+  /** The answer of a request, unless the page has left it: its data, or `null` once refused. */
+  function settle<T>(
+    signal: AbortSignal,
+    kind: Pending,
+    answer: Answer<T>,
+    again: () => void,
+    fresh?: () => void,
+  ) {
+    if (signal.aborted) {
+      return null;
+    }
+
+    if ("refusal" in answer) {
+      refuse(kind, answer.refusal, again, fresh);
+
+      return null;
+    }
+
+    return answer.data;
+  }
+
+  function enhance(fresh = false) {
+    const parsed = captionRequest({ controls: controlsOf(form), description: form.description });
 
     if (!parsed.success) {
       setDescribeErrors(
         [...new Set(parsed.error.issues.map(({ path }) => path.at(-1)))].filter(
-          (field): field is DescribeField =>
-            field === "description" || field === "appearance" || field === "outfit",
+          (field): field is DescribeField => describeFields.has(field ?? ""),
         ),
       );
       go({ step: "describe" });
@@ -193,39 +225,28 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
 
     setDescribeErrors([]);
 
-    const key = requestKeyFor("caption", parsed.data, fresh);
+    const input = parsed.data;
 
-    void send(
-      "enhance",
-      () => requestCaption(parsed.data, key),
-      (receipt: GenerationReceipt) => {
-        setForm((current) => ({ ...current, caption: null, captionFor: null }));
+    void act("enhance", async (signal) => {
+      const answer = await requestCaption(input, requestKeyFor("caption", input, fresh));
+
+      const receipt = settle(
+        signal,
+        "enhance",
+        answer,
+        () => enhance(),
+        () => enhance(true),
+      );
+
+      if (receipt) {
         go({ caption: receipt.id, image: undefined, saved: undefined, step: "caption" });
-      },
-      () => enhance(true),
-    );
+      }
+    });
   }
 
-  function generate(caption: string) {
-    const seed = seedOf(form);
-
-    // With an enhancement, the server takes the description and controls from it.
-    const source: NonNullable<CharacterGenerationInput["source"]> = search.caption
-      ? { caption_generation_id: search.caption }
-      : { controls: controlsOf(form) };
-
-    if (!search.caption && form.description.trim() !== "") {
-      source.description = form.description;
-    }
-
-    // The caption goes as typed: what the visitor approved is what is rendered.
-    const input: CharacterGenerationInput = { caption, source };
-
-    if (seed !== undefined) {
-      input.seed = seed;
-    }
-
-    const parsed = characterGenerationInputSchema.safeParse(input);
+  function generate(caption: string, source: CaptionSource, fresh = false) {
+    // The caption goes exactly as typed: what the visitor approved is what is rendered.
+    const parsed = imageRequest(caption, source, seedOf(form));
 
     if (!parsed.success) {
       const fields = new Set(parsed.error.issues.map(({ path }) => path[0]));
@@ -243,74 +264,109 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
     }
 
     setCaptionErrors([]);
-    sendImage(input, false);
+
+    const input = parsed.data;
+
+    void act("generate", async (signal) => {
+      const answer = await requestImage(input, requestKeyFor("image", input, fresh));
+
+      const receipt = settle(
+        signal,
+        "generate",
+        answer,
+        () => generate(caption, source),
+        () => generate(caption, source, true),
+      );
+
+      if (receipt) {
+        setSavedCharacter(null);
+        go({ image: receipt.id, saved: undefined, step: "image" });
+      }
+    });
   }
 
   /**
-   * Starts the image `input` describes: the same request again (`fresh` false) finds the image
-   * it made; a fresh one renders anew.
+   * A new enhancement of the description and controls `captionId` was made from (it failed, was
+   * cancelled, or its status is unknown): its own request key until it is answered.
    */
-  function sendImage(input: CharacterGenerationInput, fresh: boolean) {
-    const key = requestKeyFor("image", input, fresh);
+  function captionAgain(captionId: string, fresh = false) {
+    const again = () => captionAgain(captionId);
 
-    void send(
-      fresh ? "another" : "generate",
-      () => requestImage(input, key),
-      (receipt: GenerationReceipt) => {
+    void act("again", async (signal) => {
+      const recipe = settle(signal, "again", await readCaptionRecipe(captionId), again);
+      const parsed = recipe && captionRequest(recipe);
+
+      if (!parsed?.success) {
+        if (parsed) {
+          refuse(
+            "again",
+            { message: "This caption can't be sent again. Edit the description." },
+            () => go({ step: "describe" }),
+          );
+        }
+
+        return;
+      }
+
+      const action = `caption-again:${captionId}`;
+      const key = attemptKeyFor(action, parsed.data, fresh);
+      const answer = await requestCaption(parsed.data, key);
+
+      const receipt = settle(signal, "again", answer, again, () => captionAgain(captionId, true));
+
+      if (receipt) {
+        settleAttempt(action, "caption");
+        go({ caption: receipt.id, image: undefined, saved: undefined, step: "caption" });
+      }
+    });
+  }
+
+  /**
+   * A new image of the caption and source `imageId` was made from, with a seed the server draws
+   * ("Another image, same caption", or a failed image tried again): its own request key until it
+   * is answered.
+   */
+  function imageAgain(imageId: string, fresh = false) {
+    const again = () => imageAgain(imageId);
+
+    void act("again", async (signal) => {
+      const recipe = settle(signal, "again", await readImageRecipe(imageId), again);
+      const parsed = recipe && imageRequest(recipe.caption, imageSource(recipe), undefined);
+
+      if (!parsed?.success) {
+        if (parsed) {
+          refuse("again", { message: "This image can't be made again. Edit the caption." }, () =>
+            go({ step: "caption" }),
+          );
+        }
+
+        return;
+      }
+
+      const action = `image-again:${imageId}`;
+      const key = attemptKeyFor(action, parsed.data, fresh);
+      const answer = await requestImage(parsed.data, key);
+      const receipt = settle(signal, "again", answer, again, () => imageAgain(imageId, true));
+
+      if (receipt) {
+        settleAttempt(action, "image");
         setSavedCharacter(null);
         go({ image: receipt.id, saved: undefined, step: "image" });
-      },
-      () => sendImage(input, true),
-    );
-  }
-
-  function retry(generationId: string, kind: "caption" | "image") {
-    void send(
-      "retry",
-      () => retryGeneration(generationId),
-      (receipt: GenerationReceipt) =>
-        go(kind === "caption" ? { caption: receipt.id } : { image: receipt.id, saved: undefined }),
-    );
-  }
-
-  async function another() {
-    const image = search.image;
-
-    if (!image) {
-      return;
-    }
-
-    // The shown image's own caption and source, exactly, with a random seed: a new image.
-    const answer = await readImageRecipe(image);
-
-    if ("refusal" in answer) {
-      setRefused({ refusal: answer.refusal, retry: () => void another() });
-
-      return;
-    }
-
-    const { caption, source } = answer.data;
-    const from: NonNullable<CharacterGenerationInput["source"]> = {};
-
-    if (source.enhancement) {
-      from.caption_generation_id = source.enhancement.generation_id;
-    } else {
-      from.description = source.description ?? undefined;
-      from.controls = source.controls ?? undefined;
-    }
-
-    sendImage({ caption, source: from }, true);
+      }
+    });
   }
 
   function save(generationId: string, title: string | undefined) {
-    void send(
-      "save",
-      () => saveCharacter(generationId, title),
-      (character: CharacterSummary) => {
+    void act("save", async (signal) => {
+      const character = settle(signal, "save", await saveCharacter(generationId, title), () =>
+        save(generationId, title),
+      );
+
+      if (character) {
         setSavedCharacter(character);
         go({ saved: character.id });
-      },
-    );
+      }
+    });
   }
 
   const notice = refused && (
@@ -389,15 +445,22 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
           </ol>
         </nav>
 
+        {!persistent && (
+          <p className="text-sm text-soft-foreground" role="note">
+            This browser does not let the page remember its requests across a reload. Clicking again
+            is safe; after a reload, check a request's result before sending it again.
+          </p>
+        )}
+
         {step === "describe" && (
           <DescribeStep
             errors={describeErrors}
             form={form}
             notice={notice}
             onChange={setForm}
-            onEnhance={() => enhance(false)}
-            onWriteOwn={() => go({ caption: undefined, step: "caption" })}
-            pending={pending === "enhance"}
+            onEnhance={() => enhance()}
+            onWriteOwn={() => go({ caption: undefined, image: undefined, step: "caption" })}
+            pending={pending !== null}
           />
         )}
         {step === "caption" && (
@@ -405,18 +468,15 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
             captionId={search.caption}
             errors={captionErrors}
             form={form}
+            imageId={search.image}
             notice={notice}
             onBack={() => go({ step: "describe" })}
             onChange={setForm}
-            onEnhance={enhance}
-            onGenerate={generate}
-            onRetry={(id) => retry(id, "caption")}
+            onEnhance={() => enhance()}
+            onGenerate={(caption, source) => generate(caption, source)}
+            onTryAgain={(id) => captionAgain(id)}
             onUnlock={unlockThen}
-            pending={
-              pending === "enhance" || pending === "generate" || pending === "retry"
-                ? pending
-                : null
-            }
+            pending={pending}
           />
         )}
         {step === "image" && search.image && (
@@ -424,17 +484,14 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
             draft={search.draft}
             imageId={search.image}
             notice={notice}
-            onAnother={() => void another()}
             onBack={() =>
               go({ caption: undefined, image: undefined, saved: undefined, step: "describe" })
             }
             onEditCaption={() => go({ step: "caption" })}
-            onRetry={(id) => retry(id, "image")}
             onSave={save}
+            onTryAgain={(id) => imageAgain(id)}
             onUnlock={unlockThen}
-            pending={
-              pending === "another" || pending === "retry" || pending === "save" ? pending : null
-            }
+            pending={pending}
             saved={
               search.saved
                 ? {

@@ -1,8 +1,9 @@
 // The builder page's one typed client for the HTTP API it drives: the caption enhancement
 // (`POST /api/character-captions`), the image generation (`POST /api/character-generations`),
-// the explicit save (`POST /api/character-generations/:id/character`), the shared retry and the
-// shared reads of a generation and its stored recipe. Every call answers `{ data }` or
-// `{ refusal }` (`callApi`); nothing here holds state.
+// both with a request key, the explicit save (`POST /api/character-generations/:id/character`),
+// and the shared reads of a generation and its stored recipe. A failed generation is tried again
+// as a new keyed request of its own workflow, never through the shared, unkeyed retry. Every
+// call answers `{ data }` or `{ refusal }` (`callApi`); nothing here holds state.
 import { z } from "zod";
 
 import {
@@ -46,11 +47,6 @@ export function requestImage(input: CharacterGenerationInput, requestKey: string
   );
 }
 
-/** The shared retry of a failed or cancelled generation: the same request with a new seed. */
-export function retryGeneration(id: string) {
-  return callApi(generationReceiptSchema, `/api/generations/${id}/retry`, { method: "POST" });
-}
-
 /**
  * Saves a done image generation's `image` as a workspace character; the same generation again
  * answers with the character it made the first time.
@@ -74,8 +70,6 @@ const captionRecipeSchema = z.object({
   description: z.string(),
 });
 
-export type CaptionRecipe = z.output<typeof captionRecipeSchema>;
-
 /** A caption generation's stored recipe (`GET /api/generations/:id/recipe.json`). */
 export function readCaptionRecipe(id: string) {
   return callApi(captionRecipeSchema, `/api/generations/${id}/recipe.json`, { method: "GET" });
@@ -92,7 +86,10 @@ const imageRecipeSchema = z.object({
   source: z.object({
     controls: characterControlsSchema.nullable(),
     description: z.string().nullable(),
-    enhancement: z.object({ edited: z.boolean(), generation_id: z.uuid() }).loose().nullable(),
+    enhancement: z
+      .object({ caption: z.string(), edited: z.boolean(), generation_id: z.uuid() })
+      .loose()
+      .nullable(),
   }),
   width: z.int(),
 });
