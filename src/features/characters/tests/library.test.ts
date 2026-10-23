@@ -87,7 +87,7 @@ test("a character is renamed with a trimmed title of 1–80 characters; a sample
   assertRefused(() => renameCharacter(sampleCharacter().id, "Mine now"), 409, "sample");
   assertRefused(() => renameCharacter(crypto.randomUUID(), "Nobody"), 404, "not_found");
   assert.equal(getCharacter(character.id)?.title, "Stage name");
-  assert.equal(sampleCharacter().title, "Placeholder blue");
+  assert.equal(sampleCharacter().title, "Arthur");
 });
 
 test("a favorite keeps the time it was first marked until it is unmarked; samples can be favorites", async () => {
@@ -102,7 +102,7 @@ test("a favorite keeps the time it was first marked until it is unmarked; sample
   assert.equal(unmarked.favorite_at, null);
   assert.equal(getCharacter(character.id)?.favorite_at, null);
 
-  const sample = sampleCharacter("placeholder-green");
+  const sample = sampleCharacter("kenji");
 
   assert.ok(setFavorite(sample.id, true).favorite_at);
   assert.equal(setFavorite(sample.id, false).favorite_at, null);
@@ -144,7 +144,7 @@ test("the library lists the workspace's characters, the newest first, a favorite
   );
   assert.deepEqual(
     new Set(all.filter(({ is_sample }) => is_sample).map(({ title }) => title)),
-    new Set(["Placeholder blue", "Placeholder green", "Placeholder orange"]),
+    new Set(["Arthur", "Kenji", "Maya", "Rosa", "Theo", "Yuki"]),
   );
 
   setFavorite(older.id, false);

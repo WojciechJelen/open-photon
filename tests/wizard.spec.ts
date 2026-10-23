@@ -66,7 +66,7 @@ test("Back and Forward retrace the steps, a reload keeps the step, and the slate
   await open(page, "/motionTransfer");
   await page.getByRole("button", { name: "Street dance" }).click();
   await slate(page).getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Placeholder green" }).click();
+  await page.getByRole("button", { name: "Kenji" }).click();
   await slate(page).getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Direct the shot");
 
@@ -78,22 +78,19 @@ test("Back and Forward retrace the steps, a reload keeps the step, and the slate
   expect(page.url()).toBe(direct);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Direct the shot");
   await expect(slate(page)).toContainText("Street dance");
-  await expect(slate(page)).toContainText("Placeholder green");
+  await expect(slate(page)).toContainText("Kenji");
 
   await page.goBack();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who performs it?");
-  await expect(page.getByRole("button", { name: "Placeholder green" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(page.getByRole("button", { name: "Kenji" })).toHaveAttribute("aria-pressed", "true");
   await page.goForward();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Direct the shot");
 
   // "Change" on the slate opens the step with its pick still made.
   await slate(page).getByRole("link", { name: "Change character" }).click();
   await expect(page).toHaveURL(/step=character/);
-  await page.getByRole("button", { name: "Placeholder orange" }).click();
-  await expect(page.getByRole("button", { name: "Placeholder green" })).toHaveAttribute(
+  await page.getByRole("button", { name: "Maya" }).click();
+  await expect(page.getByRole("button", { name: "Kenji" })).toHaveAttribute(
     "aria-pressed",
     "false",
   );
@@ -101,7 +98,7 @@ test("Back and Forward retrace the steps, a reload keeps the step, and the slate
     .getByRole("navigation", { name: "Steps" })
     .getByRole("link", { name: "Direct" })
     .click();
-  await expect(slate(page)).toContainText("Placeholder orange");
+  await expect(slate(page)).toContainText("Maya");
 });
 
 test("a link to the old picker opens the wizard with its picks", async ({ page }) => {

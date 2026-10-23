@@ -5,9 +5,10 @@ import type { PickableCharacter } from "#/features/characters/contracts";
 import { mediaUrl } from "#/shared/media";
 
 /**
- * A character's reference image, filling its positioned frame. When the image does not load (its
- * file is gone, or the visitor may no longer see it), a placeholder says so; the character stays
- * renameable and selectable.
+ * A character's reference image, filling its positioned frame. A generated one (a sample or a
+ * builder render, a FLUX Kommunity output) says it is AI-generated in its alt text. When the image
+ * does not load (its file is gone, or the visitor may no longer see it), a placeholder says so;
+ * the character stays renameable and selectable.
  */
 export function CharacterImage({ character }: { character: PickableCharacter }) {
   const [failed, setFailed] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export function CharacterImage({ character }: { character: PickableCharacter }) 
 
   return (
     <img
-      alt=""
+      alt={character.origin === "generated" ? "AI-generated image" : ""}
       className="absolute inset-0 size-full object-cover"
       decoding="async"
       loading="lazy"

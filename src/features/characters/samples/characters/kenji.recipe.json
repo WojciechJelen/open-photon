@@ -1,0 +1,56 @@
+{
+  "caption": "Stylized 3D character render with soft, rounded materials and a muted neutral palette, showing one tall, lanky young East Asian man in his twenties standing full-body from head to toe against a plain warm off-white background. He faces the camera directly in a relaxed upright pose, centered with generous empty space around him; both hands are fully visible at his sides, and both feet rest completely within the image. His long limbs, narrow shoulders, prominent knees, and elongated torso give him a lean build. Tousled black hair rises unevenly across his forehead, with loose strands framing his face. He has fair skin, dark eyes, raised cheeks, and a friendly open grin showing his upper teeth. He wears a medium-blue denim jacket with broad lapels, copper-colored buttons, and rolled cuffs over a cream T-shirt patterned with evenly spaced navy horizontal stripes. The jacket hangs loosely from his shoulders. Beige chinos are cuffed into neat rolls above the ankles, revealing the fabric folds around each knee. White canvas sneakers with tan rubber soles and simple tied laces cover his feet. His arms hang comfortably away from his body, elbows bent by only a few degrees, with relaxed open hands and separated fingers. Soft, even studio lighting creates restrained shadows beneath his chin, sleeves, trouser folds, and shoes while keeping the uncluttered background uniform.",
+  "height": 1344,
+  "models": [
+    {
+      "file": "flux3-image-klein-int8-convrot.safetensors",
+      "license": "FLUX-Kommunity-1.0",
+      "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+    },
+    {
+      "file": "qwen3vl_4b_int8_convrot.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+    },
+    {
+      "file": "flux2-vae.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+    }
+  ],
+  "seed": 189610027830730,
+  "source": {
+    "controls": {
+      "outfit": "A denim jacket over a striped T-shirt, rolled-up beige chinos and canvas sneakers",
+      "style": "stylized-3d"
+    },
+    "description": "A tall, lanky young man with tousled black hair and a friendly grin",
+    "enhancement": {
+      "caption": "Stylized 3D character render with soft, rounded materials and a muted neutral palette, showing one tall, lanky young East Asian man in his twenties standing full-body from head to toe against a plain warm off-white background. He faces the camera directly in a relaxed upright pose, centered with generous empty space around him; both hands are fully visible at his sides, and both feet rest completely within the image. His long limbs, narrow shoulders, prominent knees, and elongated torso give him a lean build. Tousled black hair rises unevenly across his forehead, with loose strands framing his face. He has fair skin, dark eyes, raised cheeks, and a friendly open grin showing his upper teeth. He wears a medium-blue denim jacket with broad lapels, copper-colored buttons, and rolled cuffs over a cream T-shirt patterned with evenly spaced navy horizontal stripes. The jacket hangs loosely from his shoulders. Beige chinos are cuffed into neat rolls above the ankles, revealing the fabric folds around each knee. White canvas sneakers with tan rubber soles and simple tied laces cover his feet. His arms hang comfortably away from his body, elbows bent by only a few degrees, with relaxed open hands and separated fingers. Soft, even studio lighting creates restrained shadows beneath his chin, sleeves, trouser folds, and shoes while keeping the uncluttered background uniform.",
+      "edited": false,
+      "generation_id": "302f8139-e960-4c9a-a807-ab2407b93610",
+      "model": "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+      "settings": {
+        "max_length": 3584,
+        "min_p": 0,
+        "mtp": "off",
+        "presence_penalty": 1.5,
+        "repetition_penalty": 1.05,
+        "sampling_mode": "on",
+        "temperature": 1,
+        "thinking": false,
+        "top_k": 1,
+        "top_p": 0.95,
+        "use_default_template": true
+      },
+      "system_prompt_sha256": "58736bfa60cabfd69196956b0b2da500233116fa5342ed219034a5f23bf1cee3"
+    }
+  },
+  "target": "cloud",
+  "width": 768,
+  "workflow": {
+    "id": "character-generation",
+    "sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+    "version": 1
+  }
+}

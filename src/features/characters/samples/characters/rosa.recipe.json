@@ -1,0 +1,56 @@
+{
+  "caption": "Studio photograph, full-body portrait shot straight-on at eye level with soft, even lighting against a plain warm-gray seamless background. A woman in her forties with olive skin and dark brown hair tied in a long ponytail stands centered from head to toe, facing the camera in an upright, relaxed neutral pose. Her expression is composed, with closed lips and direct forward gaze. The ponytail falls behind one shoulder and extends down past her waist without covering either hand or foot. She wears a sleeveless emerald-green jumpsuit made from matte woven fabric, fitted through the torso and legs, with natural folds around the hips and knees. A wide matching belt circles her waist, secured by a large rectangular gold buckle. Both hands rest loosely at her sides with open fingers fully visible. Flat gold sandals cover both feet, their broad metallic straps crossing over simple soles. Her entire figure remains unobstructed: she has medium-length arms, two clearly separated hands, and two complete feet planted parallel on the floor. Small facial details include fine lines around her eyes and realistic pores across her cheeks and forehead; individual strands of dark hair gather into the high ponytail. The jumpsuit shows stitched seams along the armholes, side panels, and lower hem, while minor creases run beneath the belt and above the ankles. The pale gray studio floor merges cleanly into the background, with only a diffuse contact shadow directly beneath her sandals.",
+  "height": 1344,
+  "models": [
+    {
+      "file": "flux3-image-klein-int8-convrot.safetensors",
+      "license": "FLUX-Kommunity-1.0",
+      "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+    },
+    {
+      "file": "qwen3vl_4b_int8_convrot.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+    },
+    {
+      "file": "flux2-vae.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+    }
+  ],
+  "seed": 115930881778589,
+  "source": {
+    "controls": {
+      "outfit": "A sleeveless emerald-green jumpsuit with a wide belt and flat gold sandals",
+      "style": "realistic"
+    },
+    "description": "A woman in her forties with olive skin and a long dark ponytail",
+    "enhancement": {
+      "caption": "Studio photograph, full-body portrait shot straight-on at eye level with soft, even lighting against a plain warm-gray seamless background. A woman in her forties with olive skin and dark brown hair tied in a long ponytail stands centered from head to toe, facing the camera in an upright, relaxed neutral pose. Her expression is composed, with closed lips and direct forward gaze. The ponytail falls behind one shoulder and extends down past her waist without covering either hand or foot. She wears a sleeveless emerald-green jumpsuit made from matte woven fabric, fitted through the torso and legs, with natural folds around the hips and knees. A wide matching belt circles her waist, secured by a large rectangular gold buckle. Both hands rest loosely at her sides with open fingers fully visible. Flat gold sandals cover both feet, their broad metallic straps crossing over simple soles. Her entire figure remains unobstructed: she has medium-length arms, two clearly separated hands, and two complete feet planted parallel on the floor. Small facial details include fine lines around her eyes and realistic pores across her cheeks and forehead; individual strands of dark hair gather into the high ponytail. The jumpsuit shows stitched seams along the armholes, side panels, and lower hem, while minor creases run beneath the belt and above the ankles. The pale gray studio floor merges cleanly into the background, with only a diffuse contact shadow directly beneath her sandals.",
+      "edited": false,
+      "generation_id": "a0c019e4-5b22-40a8-a845-e4b5fc94a353",
+      "model": "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+      "settings": {
+        "max_length": 3584,
+        "min_p": 0,
+        "mtp": "off",
+        "presence_penalty": 1.5,
+        "repetition_penalty": 1.05,
+        "sampling_mode": "on",
+        "temperature": 1,
+        "thinking": false,
+        "top_k": 1,
+        "top_p": 0.95,
+        "use_default_template": true
+      },
+      "system_prompt_sha256": "58736bfa60cabfd69196956b0b2da500233116fa5342ed219034a5f23bf1cee3"
+    }
+  },
+  "target": "cloud",
+  "width": 768,
+  "workflow": {
+    "id": "character-generation",
+    "sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+    "version": 1
+  }
+}

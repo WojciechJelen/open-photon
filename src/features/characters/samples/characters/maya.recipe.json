@@ -1,0 +1,57 @@
+{
+  "caption": "Full-color outdoor photograph, full-body portrait shot at eye level with soft, even daylight and a plain warm-gray studio-like background. A single Black woman in her late twenties stands centered from head to toe against the uncluttered backdrop, shown as a street dancer with an athletic build, warm brown skin, shoulder-length black box braids, and a confident closed-mouth smile with raised cheeks and direct eye contact. She faces the camera upright in a relaxed neutral pose, feet set hip-width apart and both arms resting loosely at her sides so that both hands remain fully visible. Her oversized mustard-yellow hoodie has dropped shoulders, roomy sleeves gathered around her wrists, a loose hood behind her neck, and natural folds across the chest and waist. The braid ends fall over the front of the hoodie without covering her face. She wears wide black cargo pants with large side pockets, articulated knees, creases around the ankles, and a few shallow fabric wrinkles. Both feet are enclosed in plain white canvas high-top sneakers with white laces, rubber toe caps, and clean unmarked surfaces free of logos or graphics. Soft shadows define pores, individual braids, knit texture, seams, pocket stitching, and sneaker material. The entire figure remains sharply resolved, including every finger and both shoes, with open space surrounding her silhouette and no props, signage, crowd, or additional people.",
+  "height": 1344,
+  "models": [
+    {
+      "file": "flux3-image-klein-int8-convrot.safetensors",
+      "license": "FLUX-Kommunity-1.0",
+      "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+    },
+    {
+      "file": "qwen3vl_4b_int8_convrot.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+    },
+    {
+      "file": "flux2-vae.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+    }
+  ],
+  "seed": 211590144509874,
+  "source": {
+    "controls": {
+      "appearance": "Shoulder-length black box braids, athletic build",
+      "outfit": "An oversized mustard-yellow hoodie, black cargo pants and plain unbranded white canvas high-top sneakers with no logos",
+      "style": "realistic"
+    },
+    "description": "A street dancer in her late twenties with warm brown skin and a confident smile",
+    "enhancement": {
+      "caption": "Full-color outdoor photograph, full-body portrait shot at eye level with soft, even daylight and a plain warm-gray studio-like background. A single Black woman in her late twenties stands centered from head to toe against the uncluttered backdrop, shown as a street dancer with an athletic build, warm brown skin, shoulder-length black box braids, and a confident closed-mouth smile with raised cheeks and direct eye contact. She faces the camera upright in a relaxed neutral pose, feet set hip-width apart and both arms resting loosely at her sides so that both hands remain fully visible. Her oversized mustard-yellow hoodie has dropped shoulders, roomy sleeves gathered around her wrists, a loose hood behind her neck, and natural folds across the chest and waist. The braid ends fall over the front of the hoodie without covering her face. She wears wide black cargo pants with large side pockets, articulated knees, creases around the ankles, and a few shallow fabric wrinkles. Both feet are enclosed in plain white canvas high-top sneakers with white laces, rubber toe caps, and clean unmarked surfaces free of logos or graphics. Soft shadows define pores, individual braids, knit texture, seams, pocket stitching, and sneaker material. The entire figure remains sharply resolved, including every finger and both shoes, with open space surrounding her silhouette and no props, signage, crowd, or additional people.",
+      "edited": false,
+      "generation_id": "2d806fcf-8a19-4fe4-ab9a-9897fb84b336",
+      "model": "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+      "settings": {
+        "max_length": 3584,
+        "min_p": 0,
+        "mtp": "off",
+        "presence_penalty": 1.5,
+        "repetition_penalty": 1.05,
+        "sampling_mode": "on",
+        "temperature": 1,
+        "thinking": false,
+        "top_k": 1,
+        "top_p": 0.95,
+        "use_default_template": true
+      },
+      "system_prompt_sha256": "58736bfa60cabfd69196956b0b2da500233116fa5342ed219034a5f23bf1cee3"
+    }
+  },
+  "target": "cloud",
+  "width": 768,
+  "workflow": {
+    "id": "character-generation",
+    "sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+    "version": 1
+  }
+}

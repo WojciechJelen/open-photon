@@ -14,7 +14,7 @@ test("Generate follows a take to its result: the stream reports it done, the pag
   await open(page, "/motionTransfer");
   await page.getByRole("button", { name: "Street dance" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Placeholder blue" }).click();
+  await page.getByRole("button", { name: "Arthur" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Generate" }).click();
   await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}$/);

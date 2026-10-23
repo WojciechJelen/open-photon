@@ -60,7 +60,9 @@ export function DefaultCharacterPicker({
       {characters.map((sample) => (
         <li key={sample.id}>
           <PickTile
-            media={<img alt="" className={tileMedia} src={mediaUrl(sample.image)} />}
+            media={
+              <img alt="AI-generated image" className={tileMedia} src={mediaUrl(sample.image)} />
+            }
             onToggle={() => onPick(sample.id === characterId ? undefined : sample.id)}
             picked={sample.id === characterId}
             tag="Sample"

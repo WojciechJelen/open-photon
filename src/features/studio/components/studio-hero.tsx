@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { cn } from "cn";
 import { ArrowRightIcon, ChevronsLeftRightIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -6,6 +7,7 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import type { PickableCharacter } from "#/features/characters";
 import type { loadStudio, SampleMotion } from "#/features/motionTransfer/api";
+import { ResultWall, type WallTake } from "#/features/studio/components/result-wall";
 import { Hud, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { LoopingVideo } from "#/shared/components/looping-video";
 import { mediaUrl } from "#/shared/media";
@@ -23,32 +25,25 @@ function runningTimecode(seconds: number, fps: number) {
 }
 
 /**
- * The split monitor: the source motion on the left and, on the right, the pre-rendered sample
- * take's result when there is one, else a sample character (what you would pick to make it). A
- * REC readout runs with the clip. With no sample motion at all, it is left out.
+ * The split monitor, before any sample take is pre-rendered: the source motion on the left and a
+ * sample character on the right (what you would pick to make the take). A REC readout runs with
+ * the clip. With no sample motion at all, it is left out.
  */
 function HeroMonitor({
   character,
   motion,
-  take,
 }: {
   character: PickableCharacter | undefined;
   motion: SampleMotion | undefined;
-  take: SampleTake | null;
 }) {
   const [time, setTime] = useState(0);
-  const source = take?.source ?? motion?.clip;
 
-  if (!source) {
+  if (!motion) {
     return null;
   }
 
+  const source = motion.clip;
   const fps = Math.round(source.fps ?? 24);
-  const motionTitle = take ? take.motionTitle : motion?.title;
-
-  const caption = take
-    ? `${motionTitle ?? "A sample motion"}, performed by ${take.characterTitle ?? "a sample character"}. Rendered with Wan Animate 2.`
-    : `${motionTitle ?? "A sample motion"} and ${character?.title ?? "a sample character"}: pick them in Motion Transfer to render the take.`;
 
   return (
     <figure className="flex min-w-0 flex-col gap-3">
@@ -65,7 +60,7 @@ function HeroMonitor({
         <div className="relative overflow-hidden">
           <LoopingVideo
             className="absolute inset-0 size-full rounded-none object-cover"
-            label={`Source motion: ${motionTitle ?? "a sample clip"}`}
+            label={`Source motion: ${motion.title}`}
             onTime={setTime}
             src={mediaUrl(source)}
           />
@@ -74,24 +69,17 @@ function HeroMonitor({
           </span>
         </div>
         <div className="relative overflow-hidden">
-          {take ? (
-            <LoopingVideo
-              className="absolute inset-0 size-full rounded-none object-cover"
-              label="Result: the sample character performing the same move"
-              poster={take.poster ? mediaUrl(take.poster) : undefined}
-              src={mediaUrl(take.result)}
-            />
-          ) : character ? (
+          {character && (
             <img
-              alt={`Sample character: ${character.title ?? "a sample"}`}
+              alt={`Sample character: ${character.title ?? "a sample"}, an AI-generated image`}
               className="absolute inset-0 size-full object-cover"
               src={mediaUrl(character.image)}
             />
-          ) : null}
+          )}
           <span className="absolute top-4 right-4">
             <Badge variant="solid">
               <StatusDot tone="brand" />
-              {take ? "Result" : "Your character"}
+              Your character
             </Badge>
           </span>
         </div>
@@ -107,23 +95,35 @@ function HeroMonitor({
         </span>
         <Viewfinder />
       </div>
-      <figcaption className="text-sm text-muted-foreground">{caption}</figcaption>
+      <figcaption className="text-sm text-muted-foreground">
+        {motion.title} and {character?.title ?? "a sample character"}: pick them in Motion Transfer
+        to render the take.
+      </figcaption>
     </figure>
   );
 }
 
-/** The studio's opening: the pitch, the way into Motion Transfer, and the split monitor. */
+/**
+ * The studio's opening: the pitch, the way into Motion Transfer and, beside it, the result wall
+ * of pre-rendered sample takes, or the split monitor before there is one.
+ */
 export function StudioHero({
   characters,
   motions,
-  take,
+  wall,
 }: {
   characters: PickableCharacter[];
   motions: SampleMotion[];
-  take: SampleTake | null;
+  wall: WallTake[];
 }) {
   return (
-    <section className="mx-auto grid w-full max-w-330 items-center gap-14 px-4 pt-14 pb-20 sm:px-8 lg:grid-cols-2 lg:pt-20 lg:pb-26">
+    <section
+      className={cn(
+        "mx-auto grid w-full max-w-330 items-center gap-14 px-4 pt-14 pb-20 sm:px-8 lg:grid-cols-2 lg:pt-16 lg:pb-26",
+        // Beside the wall, the pitch stays at the top however many rows the wall grows to.
+        wall.length > 0 && "lg:items-start",
+      )}
+    >
       <div className="flex min-w-0 flex-col gap-7">
         <span className="self-start">
           <Badge variant="brand">
@@ -159,7 +159,11 @@ export function StudioHero({
           <Hud>Recipe on every render</Hud>
         </div>
       </div>
-      <HeroMonitor character={characters[0]} motion={motions[0]} take={take} />
+      {wall.length > 0 ? (
+        <ResultWall takes={wall} />
+      ) : (
+        <HeroMonitor character={characters[0]} motion={motions[0]} />
+      )}
     </section>
   );
 }

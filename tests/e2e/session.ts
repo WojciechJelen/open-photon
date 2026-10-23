@@ -215,6 +215,73 @@ export function finishGeneration(id: string) {
 }
 
 /**
+ * Adds, for each sample character (by title), a done pre-rendered take with the seeded result and
+ * poster, as `scripts/prerender-samples.mjs` leaves one after finalize: its outputs, a share slug
+ * and `is_prerendered = 1`. Returns them (title, id, share slug) and a function that removes them.
+ */
+export function addPrerenderedTakes() {
+  const takes = query((database) =>
+    database
+      .prepare(
+        `SELECT characters.id AS character_id, characters.title, assets.sha256
+        FROM characters JOIN assets ON assets.id = characters.image_asset_id
+        WHERE characters.is_sample = 1 ORDER BY characters.title`,
+      )
+      .all()
+      .map((row) => ({
+        characterId: String(row.character_id),
+        id: randomUUID(),
+        imageSha256: String(row.sha256),
+        shareSlug: randomUUID().replaceAll("-", "").slice(0, 16),
+        title: String(row.title),
+      })),
+  );
+
+  query((database) => {
+    for (const take of takes) {
+      database
+        .prepare(
+          `INSERT INTO generations (id, character_id, workflow_id, workflow_version, recipe,
+            recipe_hash, idempotency_key, provider_job_id, target, target_origin, status, progress,
+            final_asset_id, poster_asset_id, share_slug, is_prerendered, created_at, submitted_at,
+            finished_at)
+          SELECT ?, ?, workflow_id, workflow_version,
+            json_set(recipe, '$.inputs.reference_image_sha256', ?), ?, ?, ?, target,
+            target_origin, 'done', 100, final_asset_id, poster_asset_id, ?, 1, created_at,
+            submitted_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+          FROM generations WHERE provider_job_id = ?`,
+        )
+        .run(
+          take.id,
+          take.characterId,
+          take.imageSha256,
+          createHash("sha256").update(take.id).digest("hex"),
+          randomUUID(),
+          `e2e-prerendered-${take.id}`,
+          take.shareSlug,
+          SEEDED_JOB_ID,
+        );
+      database
+        .prepare(
+          `INSERT INTO generation_outputs (generation_id, name, asset_id)
+          SELECT ?, name, asset_id FROM generation_outputs
+          WHERE generation_id = (SELECT id FROM generations WHERE provider_job_id = ?)`,
+        )
+        .run(take.id, SEEDED_JOB_ID);
+    }
+  }, true);
+
+  return {
+    remove: () => {
+      for (const { id } of takes) {
+        removeGeneration(id);
+      }
+    },
+    takes,
+  };
+}
+
+/**
  * The `done` generation `seed.ts` adds: its id, its character, the motion clip it was made from,
  * its result and its share slug.
  */
@@ -240,12 +307,10 @@ export function seededResult() {
   };
 }
 
-/** A seeded sample character (`placeholder-blue`): its id and its image's asset id. */
+/** A seeded sample character (`arthur`): its id and its image's asset id. */
 export function sampleCharacter() {
   const row = query((database) =>
-    database
-      .prepare("SELECT id, image_asset_id FROM characters WHERE slug = 'placeholder-blue'")
-      .get(),
+    database.prepare("SELECT id, image_asset_id FROM characters WHERE slug = 'arthur'").get(),
   );
 
   return { id: String(row?.id), imageAssetId: String(row?.image_asset_id) };
