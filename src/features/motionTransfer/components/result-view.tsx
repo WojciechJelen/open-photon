@@ -195,19 +195,18 @@ export function ResultView({
             search={{ from: generation.id, motion: source.id, step: "character" }}
             thumb={<ClipStill src={mediaUrl(source)} />}
           />
-          {generation.character_id && (
+          {/* A character no longer stored (a retired sample, say) cannot be kept. */}
+          {character && (
             <RemixCard
               keeps="Same character"
               next="New motion"
-              search={{ character: generation.character_id, from: generation.id, step: "motion" }}
+              search={{ character: character.id, from: generation.id, step: "motion" }}
               thumb={
-                character && (
-                  <img
-                    alt=""
-                    className="absolute inset-0 size-full object-cover"
-                    src={mediaUrl(character.image)}
-                  />
-                )
+                <img
+                  alt=""
+                  className="absolute inset-0 size-full object-cover"
+                  src={mediaUrl(character.image)}
+                />
               }
             />
           )}
