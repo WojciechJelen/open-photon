@@ -29,6 +29,54 @@ test.describe("without the access code", () => {
 
     await expect(page).toHaveURL(/\/access\?next=%2Fcharacters%2Fnew/);
   });
+
+  test("reached by a link inside the app, the builder says it needs the code, and Enhance asks for it", async ({
+    page,
+  }) => {
+    const before = count(captions);
+
+    await open(page, "/");
+    await page
+      .locator("#tools")
+      .getByRole("link", { name: /Describe a character/ })
+      .click();
+    await page.waitForURL((url) => url.pathname === "/characters/new");
+    await expect(page.getByRole("heading", { name: "Describe your character" })).toBeVisible();
+
+    await expect(page.getByText("Code active")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Access code" })).toBeVisible();
+
+    await page.getByLabel("Description", { exact: true }).fill("A lighthouse keeper");
+    await page.getByRole("button", { name: "Enhance caption" }).click();
+    await expect(page.getByRole("dialog", { name: "Enter your access code" })).toBeVisible();
+    expect(count(captions)).toBe(before);
+  });
+});
+
+test("Start over clears the description, controls and seed, here and after a reload, and keeps what was sent", async ({
+  page,
+}) => {
+  const before = count(captions);
+
+  await describe(page, "A keeper who starts over");
+  await page.getByLabel("Appearance (optional)").fill("Grey beard");
+  await page.getByRole("button", { name: "Enhance caption" }).click();
+  await expect(page).toHaveURL(/caption=[0-9a-f-]{36}/);
+  expect(count(captions)).toBe(before + 1);
+
+  await page.getByRole("button", { name: "Start over" }).click();
+  await expect(page).toHaveURL((url) => url.pathname === "/characters/new" && url.search === "");
+  await expect(page.getByRole("heading", { name: "Describe your character" })).toBeVisible();
+  await expect(page.getByLabel("Description", { exact: true })).toHaveValue("");
+  await expect(page.getByLabel("Appearance (optional)")).toHaveValue("");
+
+  await page.reload();
+  await page.locator("html[data-hydrated]").waitFor();
+  await expect(page.getByLabel("Description", { exact: true })).toHaveValue("");
+  await expect(page.getByLabel("Appearance (optional)")).toHaveValue("");
+
+  // The caption sent before is still stored; nothing was sent or deleted by starting over.
+  expect(count(captions)).toBe(before + 1);
 });
 
 test("Enhance checks the description in the browser and sends nothing invalid", async ({

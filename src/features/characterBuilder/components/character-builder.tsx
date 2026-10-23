@@ -1,8 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, RotateCcwIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { Button } from "#/components/ui/button";
 import {
   readCaptionRecipe,
   readImageRecipe,
@@ -83,7 +84,14 @@ const describeFields = new Set<PropertyKey>(["appearance", "description", "outfi
  * The tab's storage keeps what is typed but not sent. Anything that needs the access code asks
  * for it and then carries on.
  */
-export function CharacterBuilder({ search }: { search: BuilderSearch }) {
+export function CharacterBuilder({
+  search,
+  signedIn: hasSession,
+}: {
+  search: BuilderSearch;
+  /** Whether the visitor had an access session when the page loaded (`loadBuilderAccess`). */
+  signedIn: boolean;
+}) {
   const navigate = useNavigate({ from: "/characters/new" });
   const access = useAccessCode();
   const nextSignal = useRequestSignal();
@@ -95,7 +103,7 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
   const [captionErrors, setCaptionErrors] = useState<CaptionField[]>([]);
   const [pending, setPending] = useState<Pending | null>(null);
   const [refused, setRefused] = useState<Refused | null>(null);
-  const [signedIn, setSignedIn] = useState(true);
+  const [signedIn, setSignedIn] = useState(hasSession);
   const [savedCharacter, setSavedCharacter] = useState<CharacterSummary | null>(null);
   const [persistent, setPersistent] = useState(true);
   const busy = useRef(false);
@@ -150,6 +158,27 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
 
   function go(next: Partial<BuilderSearch>) {
     void navigate({ search: (previous) => ({ ...previous, ...next }) });
+  }
+
+  /**
+   * "Start over": a blank description, controls, seed and caption, in the form and in the tab's
+   * storage, and the describe screen with no generation in the URL; the Motion Transfer draft the
+   * visitor came with stays. Nothing stored is touched: saved characters and generations remain,
+   * and a request already sent still answers a repeat with its first generation.
+   */
+  async function startOver() {
+    if (busy.current) {
+      return;
+    }
+
+    // The URL first: with its caption still in it, a blank description would be filled again
+    // from that caption's recipe (above).
+    await navigate({ search: { draft: search.draft } });
+    setForm(emptyForm);
+    setDescribeErrors([]);
+    setCaptionErrors([]);
+    setRefused(null);
+    setSavedCharacter(null);
   }
 
   /**
@@ -396,54 +425,66 @@ export function CharacterBuilder({ search }: { search: BuilderSearch }) {
         <AccessStatus onOpen={access.unlock} signedIn={signedIn} />
       </SiteHeader>
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pt-6 pb-18 sm:px-8 lg:pt-10">
-        <nav aria-label="Character builder steps">
-          <ol className="flex flex-wrap items-center gap-2 sm:gap-3">
-            {(["describe", "caption", "image"] as const).map((id, index) => {
-              const state =
-                id === step
-                  ? "current"
-                  : index < ["describe", "caption", "image"].indexOf(step)
-                    ? "done"
-                    : "todo";
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <nav aria-label="Character builder steps">
+            <ol className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {(["describe", "caption", "image"] as const).map((id, index) => {
+                const state =
+                  id === step
+                    ? "current"
+                    : index < ["describe", "caption", "image"].indexOf(step)
+                      ? "done"
+                      : "todo";
 
-              return (
-                <li className="flex items-center gap-2 sm:gap-3" key={id}>
-                  {index > 0 && <span aria-hidden="true" className="h-px w-4 bg-border sm:w-8" />}
-                  <button
-                    aria-current={state === "current" ? "step" : undefined}
-                    className={cn(
-                      "inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-default",
-                      state === "todo" ? "text-muted-foreground" : "text-foreground",
-                    )}
-                    disabled={state === "current" || !reached[id]}
-                    onClick={() => go({ step: id })}
-                    type="button"
-                  >
-                    <span
-                      aria-hidden="true"
+                return (
+                  <li className="flex items-center gap-2 sm:gap-3" key={id}>
+                    {index > 0 && <span aria-hidden="true" className="h-px w-4 bg-border sm:w-8" />}
+                    <button
+                      aria-current={state === "current" ? "step" : undefined}
                       className={cn(
-                        "grid size-7 place-items-center rounded-full border border-input font-mono text-xs",
-                        state === "done" && "border-brand/50 bg-brand/16 text-brand",
-                        state === "current" &&
-                          "border-transparent bg-linear-100 from-brand via-brand-mid to-brand-2 font-semibold text-primary-foreground",
+                        "inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-default",
+                        state === "todo" ? "text-muted-foreground" : "text-foreground",
                       )}
+                      disabled={state === "current" || !reached[id]}
+                      onClick={() => go({ step: id })}
+                      type="button"
                     >
-                      {state === "done" ? (
-                        <CheckIcon className="size-3.5" strokeWidth={3} />
-                      ) : (
-                        index + 1
-                      )}
-                    </span>
-                    {/* Below `sm` only the current step is named; every step stays labelled. */}
-                    <span className={state === "current" ? undefined : "sr-only sm:not-sr-only"}>
-                      {stepLabels[id]}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "grid size-7 place-items-center rounded-full border border-input font-mono text-xs",
+                          state === "done" && "border-brand/50 bg-brand/16 text-brand",
+                          state === "current" &&
+                            "border-transparent bg-linear-100 from-brand via-brand-mid to-brand-2 font-semibold text-primary-foreground",
+                        )}
+                      >
+                        {state === "done" ? (
+                          <CheckIcon className="size-3.5" strokeWidth={3} />
+                        ) : (
+                          index + 1
+                        )}
+                      </span>
+                      {/* Below `sm` only the current step is named; every step stays labelled. */}
+                      <span className={state === "current" ? undefined : "sr-only sm:not-sr-only"}>
+                        {stepLabels[id]}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+          <Button
+            disabled={pending !== null}
+            onClick={() => void startOver()}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            <RotateCcwIcon aria-hidden="true" />
+            Start over
+          </Button>
+        </div>
 
         {!persistent && (
           <p className="text-sm text-soft-foreground" role="note">

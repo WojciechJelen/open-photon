@@ -2,6 +2,7 @@
 // shared code (`scripts/check-import-boundaries.mjs`). A feature with public routes, assets or
 // server functions adds its `PublicAccessDeclaration` here; one with data every database needs
 // adds its seeder; one with a workflow the generation service runs adds its definition.
+import { characterBuilderAccess } from "../features/characterBuilder/server/public-access.ts";
 import { characterCaptionDefinition } from "../features/characterBuilder/workflows/caption-definition.ts";
 import { characterGenerationDefinition } from "../features/characterBuilder/workflows/definition.ts";
 import { charactersAccess } from "../features/characters/server/public-access.ts";
@@ -18,7 +19,7 @@ import { transaction } from "../shared/server/migrate.ts";
 
 /** The composed access rules (`createAccessPolicy`); anything no feature declares is private. */
 export const { isIndexable, isPublicAsset, isPublicRequest, isPublicServerFn } = createAccessPolicy(
-  [generationAccess, studioAccess, charactersAccess, motionTransferAccess],
+  [generationAccess, studioAccess, charactersAccess, characterBuilderAccess, motionTransferAccess],
 );
 
 // The workflows the generation service runs (`workflows`, `src/shared/server/generation/`), found
