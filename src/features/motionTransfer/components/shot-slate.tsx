@@ -2,13 +2,13 @@ import { Link } from "@tanstack/react-router";
 import { cn } from "cn";
 import { CheckIcon } from "lucide-react";
 
-import type { WizardSearch } from "#/features/motionTransfer/wizard";
+import type { MotionTransferDraft } from "#/features/motionTransfer/draft";
 import { Hud } from "#/shared/components/brand";
 
 /** One line of the slate: a pick or a direction, with its thumbnail and a link to change it. */
 export type SlateRow = {
   /** A link back to the step that sets it, once it is set and that step is behind. */
-  change?: WizardSearch;
+  change?: MotionTransferDraft;
   done: boolean;
   /** Shown while `value` is unset. */
   empty: string;

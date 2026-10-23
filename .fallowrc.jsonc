@@ -15,6 +15,7 @@
     // Feature-local tests: `npm run test:server` and Playwright find them by these globs.
     "src/features/*/server/**/*.test.ts",
     "src/shared/server/**/*.test.ts",
+    "src/features/*/tests/*.test.ts",
     "src/features/*/tests/*.spec.ts",
   ],
   // The vendored plugin is upstream source, as in oxlint.config.ts.

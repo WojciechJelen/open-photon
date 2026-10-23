@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { CircleAlertIcon, RotateCwIcon } from "lucide-react";
 
 import { Button } from "#/components/ui/button";
-import type { WizardSearch } from "#/features/motionTransfer/wizard";
+import type { MotionTransferDraft } from "#/features/motionTransfer/draft";
 import type { GenerationSnapshot } from "#/shared/contracts";
 
 type ErrorCode = NonNullable<GenerationSnapshot["error_code"]>;
@@ -79,7 +79,7 @@ export function RenderEnded({
   generation: GenerationSnapshot;
   onChild: (action: "rerun" | "retry") => void;
   seed: number;
-  shot: WizardSearch;
+  shot: MotionTransferDraft;
 }) {
   const unknown = generation.status === "unknown";
   const failure = failures[generation.error_code ?? "unknown"];

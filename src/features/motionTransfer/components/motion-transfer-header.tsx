@@ -3,7 +3,7 @@ import { cn } from "cn";
 import { CheckIcon, XIcon } from "lucide-react";
 
 import { Button } from "#/components/ui/button";
-import type { WizardSearch } from "#/features/motionTransfer/wizard";
+import type { MotionTransferDraft } from "#/features/motionTransfer/draft";
 import { AccessStatus } from "#/shared/components/access-code-dialog";
 import { BrandLogo, BrandMark, Hud } from "#/shared/components/brand";
 import { SiteNavigation } from "#/shared/components/site-navigation";
@@ -11,7 +11,7 @@ import { SiteNavigation } from "#/shared/components/site-navigation";
 /** One step of the stepper: where it stands, and the wizard screen it opens, if it opens one. */
 export type HeaderStep = {
   label: string;
-  search: WizardSearch | null;
+  search: MotionTransferDraft | null;
   state: "current" | "done" | "failed" | "todo";
 };
 

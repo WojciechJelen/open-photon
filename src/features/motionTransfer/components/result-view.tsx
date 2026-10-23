@@ -18,8 +18,8 @@ import { RecipePanel } from "#/features/motionTransfer/components/recipe-panel";
 import type { ChildState } from "#/features/motionTransfer/components/render-ended";
 import { ShareLink } from "#/features/motionTransfer/components/share-link";
 import type { PickableCharacter } from "#/features/motionTransfer/contracts";
+import type { MotionTransferDraft } from "#/features/motionTransfer/draft";
 import type { Recipe } from "#/features/motionTransfer/server/recipe";
-import type { WizardSearch } from "#/features/motionTransfer/wizard";
 import { Hud } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
 import { OpenWeightsBadge } from "#/shared/components/site";
@@ -53,7 +53,7 @@ function RemixCard({
 }: {
   keeps: string;
   next: string;
-  search: WizardSearch;
+  search: MotionTransferDraft;
   thumb: React.ReactNode;
 }) {
   return (
