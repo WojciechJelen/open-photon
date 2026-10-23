@@ -18,9 +18,10 @@ const label =
   "absolute inset-x-0 bottom-0 bg-linear-to-t from-background/90 to-transparent px-3 pt-8 pb-2.5 text-sm font-semibold";
 
 /**
- * The result wall: the pre-rendered sample takes (at most eight), grouped by motion, each group led
- * by its source clip. A take loops while it is on screen (`LoopingVideo` `lazy`) and opens its
- * public share page (the result beside the clip, and the recipe).
+ * The result wall: the pre-rendered sample takes (eight tiles at most, source clips included),
+ * grouped by motion, each group led by its source clip. A take loops while it is on screen
+ * (`LoopingVideo` `lazy`) and opens its public share page (the result beside the clip, and the
+ * recipe).
  */
 export function ResultWall({ takes }: { takes: WallTake[] }) {
   // The first take of each motion, in the takes' order: where that motion's group starts.
