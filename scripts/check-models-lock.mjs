@@ -112,7 +112,12 @@ try {
       }
 
       if (!problems.size) {
-        console.log(`${label}: ${models.length} model files, ${models.length} locked, 0 missing`);
+        // The licences, as the lock declares them: not every pinned file is OSI-licensed.
+        const licenses = [...new Set(models.map(({ license }) => license))].sort().join(", ");
+
+        console.log(
+          `${label}: ${models.length} model files, ${models.length} locked, 0 missing${licenses ? ` (${licenses})` : ""}`,
+        );
       }
     } catch (error) {
       problems.add(error.message);

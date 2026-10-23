@@ -2,7 +2,6 @@ import "../../../../tests/temp-database.ts";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
 import test from "node:test";
 
 import { mintCode } from "../../../../tests/temp-database.ts";
@@ -11,17 +10,26 @@ import { createAccessGuard } from "../../../shared/server/access.server.ts";
 import { findAsset } from "../../../shared/server/assets.ts";
 import { fakeProvider } from "../../../shared/server/comfy-provider.fake.ts";
 import type { Provider } from "../../../shared/server/comfy-provider.ts";
-import { findGeneration, readOutputs } from "../../../shared/server/generation/generations.ts";
+import { GenerateError } from "../../../shared/server/generation/errors.ts";
 import {
-  readGenerationResult,
-  readGenerationShare,
-} from "../../../shared/server/generation/pages.ts";
-import { readGeneration } from "../../../shared/server/generation/service.ts";
-import { assetsDirectory } from "../../../shared/server/paths.ts";
+  findGeneration,
+  readOutputs,
+  snapshot,
+} from "../../../shared/server/generation/generations.ts";
+import { readGenerationResult } from "../../../shared/server/generation/pages.ts";
+import type { Json } from "../../../shared/server/generation/recipe-hash.ts";
+import { readGeneration, rerun, retry } from "../../../shared/server/generation/service.ts";
 import type { WorkflowGraph } from "../../../shared/server/workflow-graph.ts";
-import { createFromGeneration } from "../../characters/api.ts";
+import { getCharacter } from "../../characters/api.ts";
+import { characterCaptionDefinition } from "../workflows/caption-definition.ts";
 import { characterGenerationDefinition } from "../workflows/definition.ts";
-import { generateCharacter, handleCharacterGeneration } from "./generate.ts";
+import {
+  enhanceCaption,
+  generateCharacter,
+  handleCharacterCaption,
+  handleCharacterGeneration,
+  handleSaveCharacter,
+} from "./generate.ts";
 
 // `comfyProvider` (the default of every call below) is the fake, as in the generation service's
 // tests: a self-hosted dead port, so nothing could reach a real Comfy.
@@ -38,15 +46,25 @@ process.env.COMFY_BASE_URL = "http://127.0.0.1:1";
 process.env.IN_FLIGHT_MAX = "1000";
 
 // Every answer below but a reused result takes a token; the default (3 a minute) would refuse.
-process.env.GENERATE_RATE_LIMIT = "100";
+process.env.GENERATE_RATE_LIMIT = "1000";
 
-const code = mintCode(100);
+const code = mintCode(1000);
 const session = { codeId: findAccessCode(code)?.id ?? "" };
+const fixtureCaption = await readFile("tests/fixtures/fake-output.txt", "utf8");
+const guard = createAccessGuard({ production: true });
 
-const sha256 = async (path: string) =>
-  createHash("sha256")
-    .update(await readFile(path))
-    .digest("hex");
+const cookie =
+  (
+    await guard(
+      new Request("http://localhost/api/session", {
+        body: JSON.stringify({ code }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      }),
+    )
+  )?.headers
+    .get("Set-Cookie")
+    ?.split(";")[0] ?? "";
 
 /** The fake provider, keeping every graph it is sent. */
 function recording() {
@@ -64,189 +82,367 @@ function recording() {
   return { graphs, provider };
 }
 
-test("a character generation runs submit → done on the fake provider into one image output, no poster, no upload", async () => {
+/** A request to `path` with the session cookie (or none): a string body as is, else as JSON. */
+function post(path: string, body: Json, withSession = true) {
+  return new Request(`http://localhost${path}`, {
+    body: typeof body === "string" ? body : JSON.stringify(body),
+    headers: { "X-Client": "character-builder-test", ...(withSession && { Cookie: cookie }) },
+    method: "POST",
+  });
+}
+
+/** A done caption enhancement of `description`, with the fake's caption. */
+async function doneCaption(description: string) {
+  const { id } = await enhanceCaption({ description, seed: 1 }, session);
+
+  assert.equal((await readGeneration(id))?.status, "done");
+
+  return id;
+}
+
+/** A done character image of `caption`. */
+async function doneImage(caption: string) {
+  const { id } = await generateCharacter({ caption, seed: 1 }, session);
+
+  assert.equal((await readGeneration(id))?.status, "done");
+
+  return id;
+}
+
+test("a caption enhancement runs on the fake provider into one private text output, the caption", async () => {
   const { graphs, provider } = recording();
-  const before = { ...fakeProvider.calls };
-  const prompt = "A street dancer in a red hoodie, full body, plain background";
-  const { id, reused } = await generateCharacter({ prompt, seed: 11 }, session, provider);
-  const queued = findGeneration(id);
+  const controls = { outfit: "a green tweed suit", style: "realistic" as const };
+
+  const { id, reused } = await enhanceCaption(
+    { controls, description: "An elderly gentleman", seed: 4 },
+    session,
+    { provider },
+  );
+
+  const recipe = characterCaptionDefinition.recipeSchema.parse(findGeneration(id)?.recipe);
 
   assert.equal(reused, false);
-  assert.equal(queued?.status, "queued");
-  assert.equal(queued?.provider_inputs, null);
-  assert.deepEqual([queued?.workflow_id, queued?.workflow_version], ["character-generation", 1]);
-  assert.equal(fakeProvider.calls.upload - before.upload, 0);
-  assert.equal(graphs.length, 1);
-  assert.deepEqual(
-    graphs[0],
-    characterGenerationDefinition.buildGraph(
-      characterGenerationDefinition.recipeSchema.parse(queued?.recipe),
-      {},
-    ),
-  );
-  assert.equal(graphs[0]?.["77:74"]?.inputs.text, prompt);
+  assert.deepEqual(graphs, [characterCaptionDefinition.buildGraph(recipe, {})]);
+  assert.equal(graphs[0]?.["18:11"]?.inputs.prompt, recipe.request);
+  assert.deepEqual([recipe.description, recipe.controls], ["An elderly gentleman", controls]);
 
   const done = await readGeneration(id);
+  const row = findGeneration(id);
 
   assert.equal(done?.status, "done");
-  assert.deepEqual([done?.final_asset_id, done?.poster_asset_id], [null, null]);
+  assert.deepEqual(row && snapshot(row).outputs, [
+    { media: "text", name: "caption", text: fixtureCaption },
+  ]);
+  // A text-only generation has no file to show: no share page, no public output.
+  assert.equal(done?.share_slug, null);
+  assert.deepEqual(readOutputs(id), []);
+  assert.deepEqual(readGenerationResult(id)?.outputs ?? [], []);
 
-  const outputs = readOutputs(id);
-  const image = findAsset(outputs[0]?.asset.id ?? "");
-  const fixture = await sha256("tests/fixtures/fake-output.png");
-
+  // The same request again is the same recipe: its result comes back and nothing is sent.
   assert.deepEqual(
-    outputs.map(({ media, name }) => ({ media, name })),
-    [{ media: "image", name: "image" }],
+    await enhanceCaption({ controls, description: "An elderly gentleman", seed: 4 }, session, {
+      provider,
+    }),
+    { id, reused: true },
   );
-  assert.deepEqual([image?.kind, image?.mime, image?.sha256], ["image", "image/png", fixture]);
-  assert.equal(await sha256(resolve(assetsDirectory(), image?.path ?? "")), fixture);
-
-  // `/g/:id` and `/r/:slug` render it by its outputs.
-  assert.deepEqual(readGenerationResult(id)?.workflow, { id: "character-generation", version: 1 });
-  assert.deepEqual(readGenerationResult(id)?.outputs, outputs);
-  assert.equal(
-    readGenerationShare(done?.share_slug ?? "", "https://photon.example")?.outputs[0]?.url,
-    `https://photon.example/media/${image?.id}.png`,
-  );
-
-  // The same input is the same recipe: its result comes back and nothing is sent.
-  assert.deepEqual(await generateCharacter({ prompt, seed: 11 }, session, provider), {
-    id,
-    reused: true,
-  });
   assert.equal(graphs.length, 1);
+});
 
-  // DEV-294's save: the image becomes a generated character carrying the recipe's provenance.
-  const { character, created } = createFromGeneration({ generationId: id, outputName: "image" });
+test("a caption enhancement Comfy fails fails with provider_failed and stores no caption", async () => {
+  const { id } = await enhanceCaption({ description: "[fake:provider_failed] A knight" }, session);
+  const failed = await readGeneration(id);
+  const row = findGeneration(id);
 
-  assert.equal(created, true);
+  assert.deepEqual([failed?.status, failed?.error_code], ["failed", "provider_failed"]);
+  assert.deepEqual(row && snapshot(row).outputs, []);
+});
+
+test("an image from an enhanced caption copies the enhancement's provenance, ignores the client's, and sends the caption byte for byte", async () => {
+  const captionId = await doneCaption("A dancer in a red tank top");
+
+  const captionRecipe = characterCaptionDefinition.recipeSchema.parse(
+    findGeneration(captionId)?.recipe,
+  );
+
+  const edited = `${fixtureCaption.trimEnd()}  She smiles.\n`;
+  const { graphs, provider } = recording();
+
+  for (const [caption, wasEdited] of [
+    [fixtureCaption, false],
+    [edited, true],
+  ] as const) {
+    const { id } = await generateCharacter(
+      {
+        caption,
+        seed: 21,
+        source: {
+          caption_generation_id: captionId,
+          controls: { style: "anime" },
+          description: "Not what was enhanced",
+        },
+      },
+      session,
+      { provider },
+    );
+
+    const recipe = characterGenerationDefinition.recipeSchema.parse(findGeneration(id)?.recipe);
+
+    assert.equal(recipe.caption, caption);
+    assert.equal(graphs.at(-1)?.["18:4"]?.inputs.text, caption);
+    assert.deepEqual(recipe.source, {
+      controls: null,
+      description: "A dancer in a red tank top",
+      enhancement: {
+        caption: fixtureCaption,
+        edited: wasEdited,
+        generation_id: captionId,
+        model: "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+        settings: captionRecipe.upsampler.settings,
+        system_prompt_sha256: createHash("sha256")
+          .update(captionRecipe.upsampler.system_prompt)
+          .digest("hex"),
+      },
+    });
+    // The image graph never runs the upsampler.
+    assert.ok(
+      Object.values(graphs.at(-1) ?? {}).every(({ class_type }) => class_type !== "TextGenerate"),
+    );
+
+    const done = await readGeneration(id);
+    const [output] = readOutputs(id);
+
+    assert.equal(done?.status, "done");
+    assert.deepEqual([output?.name, output?.media], ["image", "image"]);
+    assert.equal(findAsset(output?.asset.id ?? "")?.mime, "image/png");
+    assert.ok(done?.share_slug);
+  }
+});
+
+test("an image refuses a caption generation that is missing, not a caption or not done", async () => {
+  const imageId = await doneImage("A knight");
+
+  const failedCaption = (await enhanceCaption({ description: "[fake:provider_failed] x" }, session))
+    .id;
+
+  await readGeneration(failedCaption);
+
+  for (const [captionId, status, reason] of [
+    [crypto.randomUUID(), 404, "caption_not_found"],
+    [imageId, 409, "not_caption"],
+    [failedCaption, 409, "caption_not_done"],
+  ] as const) {
+    await assert.rejects(
+      generateCharacter({ caption: "x", source: { caption_generation_id: captionId } }, session),
+      (error) =>
+        error instanceof GenerateError && error.status === status && error.reason === reason,
+    );
+
+    const answer = await handleCharacterGeneration(
+      post("/api/character-generations", {
+        caption: "x",
+        source: { caption_generation_id: captionId },
+      }),
+    );
+
+    assert.deepEqual([answer.status, (await answer.json()).reason], [status, reason]);
+  }
+});
+
+test("an image Comfy fails fails with provider_failed and cannot be saved", async () => {
+  const { id } = await generateCharacter({ caption: "[fake:provider_failed] A knight" }, session);
+  const failed = await readGeneration(id);
+
+  assert.deepEqual([failed?.status, failed?.error_code], ["failed", "provider_failed"]);
+  assert.deepEqual(readOutputs(id), []);
+
+  const saved = await handleSaveCharacter(
+    post(`/api/character-generations/${id}/character`, ""),
+    id,
+  );
+
+  assert.deepEqual([saved.status, (await saved.json()).reason], [409, "not_done"]);
+});
+
+test("a retry keeps the caption and its source with a new seed; a re-run of a done image is the image", async () => {
+  const captionId = await doneCaption("A retried robot");
+
+  const { id } = await generateCharacter(
+    {
+      caption: "[fake:provider_failed] Robot ",
+      seed: 3,
+      source: { caption_generation_id: captionId },
+    },
+    session,
+  );
+
+  await readGeneration(id);
+
+  const parent = characterGenerationDefinition.recipeSchema.parse(findGeneration(id)?.recipe);
+  const child = await retry(id, session);
+  const recipe = characterGenerationDefinition.recipeSchema.parse(findGeneration(child.id)?.recipe);
+
+  assert.notEqual(recipe.seed, parent.seed);
+  assert.deepEqual({ ...recipe, seed: parent.seed }, parent);
+
+  const doneId = await doneImage("A rerun robot");
+
+  assert.deepEqual(await rerun(doneId, session), { id: doneId, reused: true });
+});
+
+test("POST /api/character-captions and /api/character-generations answer 201, 200 reused, and 400 for bodies that are not their input", async () => {
+  const captioned = await handleCharacterCaption(
+    post("/api/character-captions", { description: "A knight", seed: 13 }),
+  );
+
+  const receipt = await captioned.json();
+
+  assert.deepEqual([captioned.status, receipt.reused], [201, false]);
+
+  const again = await handleCharacterCaption(
+    post("/api/character-captions", { description: "A knight", seed: 13 }),
+  );
+
+  assert.deepEqual([again.status, await again.json()], [200, { id: receipt.id, reused: true }]);
+
+  const body = { caption: " A knight ", height: 1216, seed: 13, width: 832 };
+  const created = await handleCharacterGeneration(post("/api/character-generations", body));
+  const image = await created.json();
+
+  assert.equal(created.status, 201);
+  assert.equal(
+    characterGenerationDefinition.recipeSchema.parse(findGeneration(image.id)?.recipe).caption,
+    " A knight ",
+  );
+
+  for (const [handler, path, invalid] of [
+    [handleCharacterCaption, "/api/character-captions", { description: " " }],
+    [
+      handleCharacterCaption,
+      "/api/character-captions",
+      { controls: { style: "x" }, description: "x" },
+    ],
+    [handleCharacterGeneration, "/api/character-generations", { prompt: "x" }],
+    [handleCharacterGeneration, "/api/character-generations", { caption: "x", width: 100 }],
+    [handleCharacterGeneration, "/api/character-generations", "not json"],
+  ] as const) {
+    const refused = await handler(post(path, invalid));
+
+    assert.deepEqual([refused.status, (await refused.json()).reason], [400, "invalid_input"]);
+  }
+
+  // Not public: without a session the access guard answers 401 before any handler runs.
+  for (const path of [
+    "/api/character-captions",
+    "/api/character-generations",
+    `/api/character-generations/${image.id}/character`,
+  ]) {
+    assert.equal((await guard(post(path, {}, false)))?.status, 401, path);
+  }
+});
+
+test("the same request_key returns the first generation without another submit, and never enhances again", async () => {
+  const before = { submits: fakeProvider.calls.submit, used: findAccessCode(code)?.used ?? 0 };
+  const captionKey = crypto.randomUUID();
+  const captionBody = { description: "A lost answer", request_key: captionKey };
+
+  const first = await (
+    await handleCharacterCaption(post("/api/character-captions", captionBody))
+  ).json();
+
+  await readGeneration(first.id);
+
+  const repeated = await handleCharacterCaption(post("/api/character-captions", captionBody));
+
+  assert.deepEqual(await repeated.json(), first);
+
+  const imageBody = {
+    caption: fixtureCaption,
+    request_key: crypto.randomUUID(),
+    source: { caption_generation_id: first.id },
+  };
+
+  const image = await (
+    await handleCharacterGeneration(post("/api/character-generations", imageBody))
+  ).json();
+
+  const again = await handleCharacterGeneration(post("/api/character-generations", imageBody));
+
+  assert.deepEqual(await again.json(), image);
+  assert.equal(findGeneration(image.id)?.request_key, imageBody.request_key);
+  // One caption and one image submitted; no second caption, no second image.
+  assert.equal(fakeProvider.calls.submit - before.submits, 2);
+  assert.equal(findAccessCode(code)?.used, before.used + 2);
+
+  // Without the key, the same blank-seed request draws another seed: another generation.
+  const unkeyed = await (
+    await handleCharacterGeneration(post("/api/character-generations", { caption: fixtureCaption }))
+  ).json();
+
+  assert.notEqual(unkeyed.id, image.id);
+});
+
+test("POST /api/character-generations/:id/character saves the image once, explicitly, and refuses anything else", async () => {
+  const captionId = await doneCaption("A saved musician");
+
+  const { id } = await generateCharacter(
+    { caption: fixtureCaption, seed: 8, source: { caption_generation_id: captionId } },
+    session,
+  );
+
+  await readGeneration(id);
+
+  // Nothing is saved on its own.
+  assert.equal(findGeneration(id)?.character_id, null);
+
+  const path = `/api/character-generations/${id}/character`;
+  const created = await handleSaveCharacter(post(path, { title: "Musician" }), id);
+  const character = await created.json();
+  const [output] = readOutputs(id);
+
+  assert.equal(created.status, 201);
   assert.deepEqual(
-    [character.origin, character.generation_id, character.image_asset_id, character.prompt],
-    ["generated", id, image?.id, prompt],
+    [
+      character.origin,
+      character.generation_id,
+      character.image_asset_id,
+      character.prompt,
+      character.title,
+    ],
+    ["generated", id, output?.asset.id, fixtureCaption, "Musician"],
   );
   assert.deepEqual(character.provenance, {
     models: characterGenerationDefinition.models,
     workflow: findGeneration(id)?.recipe.workflow,
   });
-  assert.deepEqual(createFromGeneration({ generationId: id, outputName: "image" }), {
-    character,
-    created: false,
-  });
-});
+  assert.deepEqual(getCharacter(character.id)?.id, character.id);
 
-test("a job Comfy fails fails the generation with provider_failed and stores no output", async () => {
-  const { id } = await generateCharacter(
-    { prompt: "[fake:provider_failed] A knight", seed: 12 },
-    session,
-  );
+  // Idempotent: the same character again, with an empty body too.
+  for (const body of ["", {}, { title: "Another" }]) {
+    const again = await handleSaveCharacter(post(path, body), id);
 
-  const failed = await readGeneration(id);
-
-  assert.deepEqual([failed?.status, failed?.error_code], ["failed", "provider_failed"]);
-  assert.deepEqual(readOutputs(id), []);
-  assert.throws(() => createFromGeneration({ generationId: id, outputName: "image" }), {
-    reason: "not_done",
-  });
-});
-
-test("POST /api/character-generations answers 201, then 200 reused, and 400 for a body that is not the input", async () => {
-  const guard = createAccessGuard({ production: true });
-
-  const login = await guard(
-    new Request("http://localhost/api/session", {
-      body: JSON.stringify({ code }),
-      headers: { "Content-Type": "application/json" },
-      method: "POST",
-    }),
-  );
-
-  const cookie = login?.headers.get("Set-Cookie")?.split(";")[0] ?? "";
-
-  const post = (body: string) =>
-    handleCharacterGeneration(
-      new Request("http://localhost/api/character-generations", {
-        body,
-        headers: { Cookie: cookie, "X-Client": "character-builder" },
-        method: "POST",
-      }),
-    );
-
-  const body = JSON.stringify({ height: 1216, prompt: "A knight", seed: 13, width: 832 });
-  const created = await post(body);
-  const receipt = await created.json();
-
-  assert.equal(created.status, 201);
-  assert.equal(receipt.reused, false);
-  assert.deepEqual(findGeneration(receipt.id)?.recipe.params, {
-    height: 1216,
-    prompt: "A knight",
-    seed: 13,
-    width: 832,
-  });
-
-  const again = await post(body);
-
-  assert.equal(again.status, 200);
-  assert.deepEqual(await again.json(), { id: receipt.id, reused: true });
-
-  for (const invalid of ["{}", JSON.stringify({ prompt: "x", width: 100 }), "not json"]) {
-    const refused = await post(invalid);
-
-    assert.equal(refused.status, 400);
-    assert.equal((await refused.json()).reason, "invalid_input");
+    assert.deepEqual([again.status, (await again.json()).id], [200, character.id]);
   }
 
-  // Not public: without a session the access guard answers 401 before the handler runs.
-  const anonymous = await guard(
-    new Request("http://localhost/api/character-generations", { body, method: "POST" }),
-  );
-
-  assert.equal(anonymous?.status, 401);
-});
-
-test("POST /api/character-generations with a request_key and no seed, sent again after a lost answer, returns the same generation and pays once", async () => {
-  const cookie =
-    (
-      await createAccessGuard({ production: true })(
-        new Request("http://localhost/api/session", {
-          body: JSON.stringify({ code }),
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-        }),
-      )
-    )?.headers
-      .get("Set-Cookie")
-      ?.split(";")[0] ?? "";
-
-  const post = (body: { prompt: string; request_key?: string }) =>
-    handleCharacterGeneration(
-      new Request("http://localhost/api/character-generations", {
-        body: JSON.stringify(body),
-        headers: { Cookie: cookie, "X-Client": "character-builder-key" },
-        method: "POST",
-      }),
+  for (const [target, status, reason] of [
+    [crypto.randomUUID(), 404, "not_found"],
+    [captionId, 409, "not_character_generation"],
+  ] as const) {
+    const refused = await handleSaveCharacter(
+      post(`/api/character-generations/${target}/character`, ""),
+      target,
     );
 
-  const request = { prompt: "A lost answer", request_key: crypto.randomUUID() };
-  const before = { submits: fakeProvider.calls.submit, used: findAccessCode(code)?.used ?? 0 };
-  const first = await post(request);
-  const receipt = await first.json();
-  const again = await post(request);
+    assert.deepEqual([refused.status, (await refused.json()).reason], [status, reason]);
+  }
 
-  assert.deepEqual([first.status, again.status], [201, 201]);
-  assert.deepEqual(await again.json(), receipt);
-  assert.equal(findGeneration(receipt.id)?.request_key, request.request_key);
-  assert.equal(fakeProvider.calls.submit - before.submits, 1);
-  assert.equal(findAccessCode(code)?.used, before.used + 1);
+  const malformed = await handleSaveCharacter(
+    post("/api/character-generations/x/character", ""),
+    "x",
+  );
 
-  // Without the key, the same blank-seed request draws another seed: another generation.
-  const unkeyed = await (await post({ prompt: "A lost answer" })).json();
+  assert.equal(malformed.status, 400);
 
-  assert.notEqual(unkeyed.id, receipt.id);
+  const badBody = await handleSaveCharacter(post(path, { title: 5 }), id);
 
-  // A key that is not a UUID is refused.
-  const malformed = await post({ prompt: "A lost answer", request_key: "again" });
-
-  assert.deepEqual([malformed.status, (await malformed.json()).reason], [400, "invalid_input"]);
+  assert.deepEqual([badBody.status, (await badBody.json()).reason], [400, "invalid_input"]);
 });

@@ -1,70 +1,65 @@
 {
-  "78": {
+  "9": {
     "inputs": {
-      "filename_prefix": "Flux2-Klein",
-      "images": ["77:65", 0]
+      "filename_prefix": "image_flux3_klein_distilled_t2i",
+      "images": ["18:8", 0]
     },
     "class_type": "SaveImage",
     "_meta": {
       "title": "Save Image"
     }
   },
-  "77:61": {
+  "18:1": {
     "inputs": {
-      "sampler_name": "euler"
+      "unet_name": "flux3-image-klein-int8-convrot.safetensors",
+      "weight_dtype": "default"
     },
-    "class_type": "KSamplerSelect",
+    "class_type": "UNETLoader",
     "_meta": {
-      "title": "KSamplerSelect"
+      "title": "Load Diffusion Model"
     }
   },
-  "77:62": {
+  "18:2": {
     "inputs": {
-      "steps": 4,
-      "width": 1024,
-      "height": 1024
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "flux3",
+      "device": "default"
     },
-    "class_type": "Flux2Scheduler",
+    "class_type": "CLIPLoader",
     "_meta": {
-      "title": "Flux2Scheduler"
+      "title": "Load CLIP"
     }
   },
-  "77:63": {
+  "18:3": {
     "inputs": {
-      "cfg": 1,
-      "model": ["77:70", 0],
-      "positive": ["77:74", 0],
-      "negative": ["77:76", 0]
+      "vae_name": "flux2-vae.safetensors"
     },
-    "class_type": "CFGGuider",
+    "class_type": "VAELoader",
     "_meta": {
-      "title": "CFG Guider"
+      "title": "Load VAE"
     }
   },
-  "77:64": {
+  "18:4": {
     "inputs": {
-      "noise": ["77:73", 0],
-      "guider": ["77:63", 0],
-      "sampler": ["77:61", 0],
-      "sigmas": ["77:62", 0],
-      "latent_image": ["77:66", 0]
+      "text": "A close-up photograph of a red fox standing in fresh snow at sunrise. The fox faces the camera with alert ears and amber eyes, its thick orange fur dusted with snowflakes. Soft golden light comes from the left, the background is a blurred line of snow-covered pine trees, shallow depth of field.",
+      "clip": ["18:2", 0]
     },
-    "class_type": "SamplerCustomAdvanced",
+    "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "SamplerCustomAdvanced"
+      "title": "CLIP Text Encode (Prompt)"
     }
   },
-  "77:65": {
+  "18:5": {
     "inputs": {
-      "samples": ["77:64", 0],
-      "vae": ["77:72", 0]
+      "text": "",
+      "clip": ["18:2", 0]
     },
-    "class_type": "VAEDecode",
+    "class_type": "CLIPTextEncode",
     "_meta": {
-      "title": "VAE Decode"
+      "title": "CLIP Text Encode (Prompt)"
     }
   },
-  "77:66": {
+  "18:6": {
     "inputs": {
       "width": 1024,
       "height": 1024,
@@ -75,62 +70,32 @@
       "title": "Empty Flux 2 Latent"
     }
   },
-  "77:70": {
+  "18:7": {
     "inputs": {
-      "unet_name": "flux-2-klein-4b.safetensors",
-      "weight_dtype": "default"
+      "seed": 605452029419059,
+      "steps": 16,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": ["18:1", 0],
+      "positive": ["18:4", 0],
+      "negative": ["18:5", 0],
+      "latent_image": ["18:6", 0]
     },
-    "class_type": "UNETLoader",
+    "class_type": "KSampler",
     "_meta": {
-      "title": "Load Diffusion Model"
+      "title": "KSampler"
     }
   },
-  "77:71": {
+  "18:8": {
     "inputs": {
-      "clip_name": "qwen_3_4b.safetensors",
-      "type": "flux2",
-      "device": "default"
+      "samples": ["18:7", 0],
+      "vae": ["18:3", 0]
     },
-    "class_type": "CLIPLoader",
+    "class_type": "VAEDecode",
     "_meta": {
-      "title": "Load CLIP"
-    }
-  },
-  "77:72": {
-    "inputs": {
-      "vae_name": "flux2-vae.safetensors"
-    },
-    "class_type": "VAELoader",
-    "_meta": {
-      "title": "Load VAE"
-    }
-  },
-  "77:73": {
-    "inputs": {
-      "noise_seed": 432262096973490
-    },
-    "class_type": "RandomNoise",
-    "_meta": {
-      "title": "RandomNoise"
-    }
-  },
-  "77:74": {
-    "inputs": {
-      "text": "A hedgehog wearing a tiny party hat surrounded by confetti, early digital camera style, slight noise, flash photography, candid moment, 2000s digicam aesthetic, festive birthday celebration atmosphere\n",
-      "clip": ["77:71", 0]
-    },
-    "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Positive Prompt)"
-    }
-  },
-  "77:76": {
-    "inputs": {
-      "conditioning": ["77:74", 0]
-    },
-    "class_type": "ConditioningZeroOut",
-    "_meta": {
-      "title": "Conditioning Zero Out"
+      "title": "VAE Decode"
     }
   }
 }

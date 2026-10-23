@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MotionTransferRouteImport } from './routes/motionTransfer'
+import { Route as ApiCharacterCaptionsRouteImport } from './routes/api.character-captions'
 import { Route as ApiCharacterGenerationsRouteImport } from './routes/api.character-generations'
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiGenerateRouteImport } from './routes/api.generate'
@@ -24,6 +25,7 @@ import { Route as ApiDebugHeartbeatRouteImport } from './routes/api.debug.heartb
 import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
 import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
 import { Route as ApiAssetsAssetIdTrimRouteImport } from './routes/api.assets.$assetId.trim'
+import { Route as ApiCharacterGenerationsGenerationIdCharacterRouteImport } from './routes/api.character-generations.$generationId.character'
 import { Route as ApiGenerationsGenerationIdEventsRouteImport } from './routes/api.generations.$generationId.events'
 import { Route as ApiGenerationsGenerationIdRecipeDotjsonRouteImport } from './routes/api.generations.$generationId.recipe[.]json'
 import { Route as ApiGenerationsGenerationIdRerunRouteImport } from './routes/api.generations.$generationId.rerun'
@@ -37,6 +39,11 @@ const IndexRoute = IndexRouteImport.update({
 const MotionTransferRoute = MotionTransferRouteImport.update({
   id: '/motionTransfer',
   path: '/motionTransfer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCharacterCaptionsRoute = ApiCharacterCaptionsRouteImport.update({
+  id: '/api/character-captions',
+  path: '/api/character-captions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCharacterGenerationsRoute = ApiCharacterGenerationsRouteImport.update({
@@ -106,6 +113,12 @@ const ApiAssetsAssetIdTrimRoute = ApiAssetsAssetIdTrimRouteImport.update({
   path: '/api/assets/$assetId/trim',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCharacterGenerationsGenerationIdCharacterRoute =
+  ApiCharacterGenerationsGenerationIdCharacterRouteImport.update({
+    id: '/$generationId/character',
+    path: '/$generationId/character',
+    getParentRoute: () => ApiCharacterGenerationsRoute,
+  } as any)
 const ApiGenerationsGenerationIdEventsRoute =
   ApiGenerationsGenerationIdEventsRouteImport.update({
     id: '/events',
@@ -134,7 +147,8 @@ const ApiGenerationsGenerationIdRetryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
-  '/api/character-generations': typeof ApiCharacterGenerationsRoute
+  '/api/character-captions': typeof ApiCharacterCaptionsRoute
+  '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -147,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
+  '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
   '/api/generations/$generationId/recipe.json': typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
@@ -155,7 +170,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
-  '/api/character-generations': typeof ApiCharacterGenerationsRoute
+  '/api/character-captions': typeof ApiCharacterCaptionsRoute
+  '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -168,6 +184,7 @@ export interface FileRoutesByTo {
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
+  '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
   '/api/generations/$generationId/recipe.json': typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
@@ -177,7 +194,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
-  '/api/character-generations': typeof ApiCharacterGenerationsRoute
+  '/api/character-captions': typeof ApiCharacterCaptionsRoute
+  '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -190,6 +208,7 @@ export interface FileRoutesById {
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
+  '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
   '/api/generations/$generationId/recipe.json': typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
@@ -200,6 +219,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/motionTransfer'
+    | '/api/character-captions'
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
@@ -213,6 +233,7 @@ export interface FileRouteTypes {
     | '/api/debug/streams'
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
+    | '/api/character-generations/$generationId/character'
     | '/api/generations/$generationId/events'
     | '/api/generations/$generationId/recipe.json'
     | '/api/generations/$generationId/rerun'
@@ -221,6 +242,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/motionTransfer'
+    | '/api/character-captions'
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
@@ -234,6 +256,7 @@ export interface FileRouteTypes {
     | '/api/debug/streams'
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
+    | '/api/character-generations/$generationId/character'
     | '/api/generations/$generationId/events'
     | '/api/generations/$generationId/recipe.json'
     | '/api/generations/$generationId/rerun'
@@ -242,6 +265,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/motionTransfer'
+    | '/api/character-captions'
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
@@ -255,6 +279,7 @@ export interface FileRouteTypes {
     | '/api/debug/streams'
     | '/api/generations/$generationId'
     | '/api/assets/$assetId/trim'
+    | '/api/character-generations/$generationId/character'
     | '/api/generations/$generationId/events'
     | '/api/generations/$generationId/recipe.json'
     | '/api/generations/$generationId/rerun'
@@ -264,7 +289,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MotionTransferRoute: typeof MotionTransferRoute
-  ApiCharacterGenerationsRoute: typeof ApiCharacterGenerationsRoute
+  ApiCharacterCaptionsRoute: typeof ApiCharacterCaptionsRoute
+  ApiCharacterGenerationsRoute: typeof ApiCharacterGenerationsRouteWithChildren
   ApiCharactersRoute: typeof ApiCharactersRouteWithChildren
   ApiGenerateRoute: typeof ApiGenerateRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
@@ -292,6 +318,13 @@ declare module '@tanstack/react-router' {
       path: '/motionTransfer'
       fullPath: '/motionTransfer'
       preLoaderRoute: typeof MotionTransferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/character-captions': {
+      id: '/api/character-captions'
+      path: '/api/character-captions'
+      fullPath: '/api/character-captions'
+      preLoaderRoute: typeof ApiCharacterCaptionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/character-generations': {
@@ -385,6 +418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAssetsAssetIdTrimRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/character-generations/$generationId/character': {
+      id: '/api/character-generations/$generationId/character'
+      path: '/$generationId/character'
+      fullPath: '/api/character-generations/$generationId/character'
+      preLoaderRoute: typeof ApiCharacterGenerationsGenerationIdCharacterRouteImport
+      parentRoute: typeof ApiCharacterGenerationsRoute
+    }
     '/api/generations/$generationId/events': {
       id: '/api/generations/$generationId/events'
       path: '/events'
@@ -415,6 +455,21 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ApiCharacterGenerationsRouteChildren {
+  ApiCharacterGenerationsGenerationIdCharacterRoute: typeof ApiCharacterGenerationsGenerationIdCharacterRoute
+}
+
+const ApiCharacterGenerationsRouteChildren: ApiCharacterGenerationsRouteChildren =
+  {
+    ApiCharacterGenerationsGenerationIdCharacterRoute:
+      ApiCharacterGenerationsGenerationIdCharacterRoute,
+  }
+
+const ApiCharacterGenerationsRouteWithChildren =
+  ApiCharacterGenerationsRoute._addFileChildren(
+    ApiCharacterGenerationsRouteChildren,
+  )
 
 interface ApiCharactersRouteChildren {
   ApiCharactersCharacterIdRoute: typeof ApiCharactersCharacterIdRoute
@@ -453,7 +508,8 @@ const ApiGenerationsGenerationIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MotionTransferRoute: MotionTransferRoute,
-  ApiCharacterGenerationsRoute: ApiCharacterGenerationsRoute,
+  ApiCharacterCaptionsRoute: ApiCharacterCaptionsRoute,
+  ApiCharacterGenerationsRoute: ApiCharacterGenerationsRouteWithChildren,
   ApiCharactersRoute: ApiCharactersRouteWithChildren,
   ApiGenerateRoute: ApiGenerateRoute,
   ApiUploadsRoute: ApiUploadsRoute,

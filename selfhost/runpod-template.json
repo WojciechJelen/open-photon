@@ -9,6 +9,6 @@
   "disk": 50,
   "mounts": { "persistent": { "size": 50, "path": "/workspace" } },
   "ports": ["8189/http"],
-  "env": { "PROXY_TOKEN": "" },
+  "env": { "PROXY_TOKEN": "", "HF_TOKEN": "" },
   "allowedCudaVersions": ["13.0", "13.1", "13.2", "13.4"]
 }

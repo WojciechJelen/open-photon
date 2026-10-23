@@ -2,6 +2,7 @@
 // shared code (`scripts/check-import-boundaries.mjs`). A feature with public routes, assets or
 // server functions adds its `PublicAccessDeclaration` here; one with data every database needs
 // adds its seeder; one with a workflow the generation service runs adds its definition.
+import { characterCaptionDefinition } from "../features/characterBuilder/workflows/caption-definition.ts";
 import { characterGenerationDefinition } from "../features/characterBuilder/workflows/definition.ts";
 import { charactersAccess } from "../features/characters/server/public-access.ts";
 import { seedSampleCharacters } from "../features/characters/server/seed.ts";
@@ -22,7 +23,11 @@ export const { isIndexable, isPublicAsset, isPublicRequest, isPublicServerFn } =
 
 // The workflows the generation service runs (`workflows`, `src/shared/server/generation/`), found
 // again by the `(workflow_id, workflow_version)` each stored generation records.
-workflows.compose([motionTransferDefinition, characterGenerationDefinition]);
+workflows.compose([
+  motionTransferDefinition,
+  characterGenerationDefinition,
+  characterCaptionDefinition,
+]);
 
 /** Each feature's seeder: idempotent, so it runs on every start, each in its own transaction. */
 const seeders = [seedSampleCharacters, seedSampleMotions];
