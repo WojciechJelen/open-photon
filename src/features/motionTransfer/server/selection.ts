@@ -49,15 +49,35 @@ function listSampleMotions(): SampleMotion[] {
 }
 
 /**
+ * Every phrasing a reshoot-angle preset appended to the look (`prepareRecipe`, after a space)
+ * before the angle benchmark (`docs/angle-benchmark-2026-10-23/`) removed the presets: the three
+ * of `angles.json`, and an earlier profile phrasing that a development take carries
+ * (`fixtures/historical-recipes.json`). Frozen: no new recipe has an `angle`.
+ */
+const retiredAngleFragments = [
+  "Front view: the camera faces the character straight on.",
+  "Three-quarter view: the camera is turned 45 degrees to the character's side.",
+  "Profile view: the camera sees the character from the side.",
+  "Profile view: the camera sees the subject from the side.",
+];
+
+/**
  * The direction `recipe` was made with, as the wizard's Direct step holds it, so "Change the
  * shot", the remixes and a take's generation actions start from it: the look as it was sent (the
  * default description is a blank look) and the seed (the fixed default is a blank one). A take
- * made with one of the reshoot-angle presets the angle benchmark removed keeps that preset's
- * phrasing in its look, as it was sent.
+ * made with one of the retired reshoot-angle presets has its phrasing taken off the end again, so
+ * its look is the one typed (at most 500 characters), blank if it was blank.
  */
-export function directionOf({ params }: Recipe): Direction {
+export function directionOf({ angle, params }: Recipe): Direction {
+  const phrasing =
+    angle === undefined
+      ? undefined
+      : retiredAngleFragments.find((fragment) => params.prompt.endsWith(` ${fragment}`));
+
+  const look = phrasing ? params.prompt.slice(0, -(phrasing.length + 1)) : params.prompt;
+
   return {
-    prompt: params.prompt === generateDefaults.prompt ? "" : params.prompt,
+    prompt: look === generateDefaults.prompt ? "" : look,
     seed: params.seed === generateDefaults.seed ? "" : String(params.seed),
   };
 }

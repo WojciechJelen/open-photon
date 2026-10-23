@@ -20,8 +20,10 @@ function Entry({ code, label, value }: { code?: boolean; label: string; value: s
 /**
  * The stored recipe of a generation, folded into one line ("Recipe · workflow · seed") until
  * opened: the workflow file and its SHA-256, the models, every parameter, the SHA-256 of both
- * input files and the target. Everything that decides the render, and so its `recipe_hash`.
- * `children` are its actions (Re-run, the JSON), shown inside.
+ * input files and the target. Everything that decides the render, and so its `recipe_hash`; a
+ * take made with a retired reshoot-angle preset also hashes its `angle`, which only the JSON
+ * shows (its phrasing is in the prompt shown here). `children` are its actions (Re-run, the
+ * JSON), shown inside.
  */
 export function RecipePanel({ children, recipe }: { children?: React.ReactNode; recipe: Recipe }) {
   return (

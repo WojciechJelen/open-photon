@@ -5,10 +5,11 @@ import { z } from "zod";
 
 import { generateInputSchema } from "../contracts.ts";
 
-// The file is read once when the server starts (from the working directory, like the workflow
-// itself): it is part of the image and never changes while it runs.
-
-/** `src/features/motionTransfer/workflows/defaults.json`: the prompt and seed `generate` uses for a field left blank. */
+/**
+ * `src/features/motionTransfer/workflows/defaults.json`: the prompt and seed `generate` uses for a
+ * field left blank. Read once when the server starts (from the working directory, like the
+ * workflow itself): it is part of the image and never changes while it runs.
+ */
 export const generateDefaults = z
   .object({
     note: z.string(),
