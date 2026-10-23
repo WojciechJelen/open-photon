@@ -72,12 +72,45 @@ test("buildGraph leaves the template unchanged", () => {
 test("a map entry pointing at a missing node throws", () => {
   const broken = {
     ...inputsMap,
-    inputs: { ...inputsMap.inputs, seed: { ...inputsMap.inputs.seed, node: "999" } },
+    inputs: {
+      ...inputsMap.inputs,
+      seed: { class_type: "SamplerCustom", field: "noise_seed", node: "999" },
+    },
   };
 
   assert.throws(
     () => buildGraph(template, broken, spikeParams),
     /seed expects SamplerCustom at node 999/,
+  );
+});
+
+test("a param bound to several fields sets each, and any one naming the wrong class throws", () => {
+  const graph = workflowGraphSchema.parse({
+    "1": { class_type: "EmptyFlux2LatentImage", inputs: { batch_size: 1, height: 1, width: 1 } },
+    "2": { class_type: "Flux2Scheduler", inputs: { height: 1, steps: 4, width: 1 } },
+  });
+
+  const latent = { class_type: "EmptyFlux2LatentImage", field: "width", node: "1" };
+  const scheduler = { class_type: "Flux2Scheduler", field: "width", node: "2" };
+
+  assert.deepEqual(
+    buildGraph(graph, { inputs: { width: [latent, scheduler] }, workflow: "x" }, { width: 768 }),
+    {
+      "1": {
+        class_type: "EmptyFlux2LatentImage",
+        inputs: { batch_size: 1, height: 1, width: 768 },
+      },
+      "2": { class_type: "Flux2Scheduler", inputs: { height: 1, steps: 4, width: 768 } },
+    },
+  );
+  assert.throws(
+    () =>
+      buildGraph(
+        graph,
+        { inputs: { width: [latent, { ...scheduler, class_type: "KSampler" }] }, workflow: "x" },
+        { width: 768 },
+      ),
+    /width expects KSampler at node 2, found Flux2Scheduler/,
   );
 });
 
