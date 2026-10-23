@@ -2,7 +2,6 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
 import { TriangleAlertIcon } from "lucide-react";
 import { type ComponentType, useEffect, useState } from "react";
-import { z } from "zod";
 
 import {
   MotionTransferHeader,
@@ -26,15 +25,12 @@ import type { ResultGenerationActionsProps } from "#/features/motionTransfer/slo
 import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
 import { Hud, PageGlow, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
-import {
-  generationEventSchema,
-  generationReceiptSchema,
-  type GenerationSnapshot,
-} from "#/shared/contracts";
+import { generationReceiptSchema, type GenerationSnapshot } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 import { callApi } from "#/shared/requests";
 import { duration } from "#/shared/timecode";
 import { useAccessCode } from "#/shared/use-access-code";
+import { isFinished, useLiveGeneration } from "#/shared/use-live-generation";
 import { useRequestSignal } from "#/shared/use-request-signal";
 
 type Result = NonNullable<Awaited<ReturnType<typeof loadResult>>>;
@@ -42,42 +38,6 @@ type Result = NonNullable<Awaited<ReturnType<typeof loadResult>>>;
 type MotionTransferResult = Extract<Result, { view: "motionTransfer" }>;
 
 type OutputsResult = Extract<Result, { view: "outputs" }>;
-
-const finished = new Set(["done", "failed", "unknown", "cancelled"]);
-
-/**
- * The generation as its event stream reports it, until it is done, failed or unknown, and
- * whether the stream last said Comfy could not be asked (`provider_unavailable`; the browser
- * reconnects on its own after the server's `retry:` delay).
- */
-function useLiveGeneration(initial: GenerationSnapshot) {
-  const [generation, setGeneration] = useState(initial);
-  const [providerUnavailable, setProviderUnavailable] = useState(false);
-
-  useEffect(() => {
-    if (finished.has(initial.status)) {
-      return;
-    }
-
-    const events = new EventSource(`/api/generations/${initial.id}/events`);
-
-    events.addEventListener("message", (event) => {
-      const update = generationEventSchema.parse(JSON.parse(z.string().parse(event.data)));
-
-      setGeneration(update.generation);
-      setProviderUnavailable(update.kind === "provider_unavailable");
-
-      // The server ends the stream after a final snapshot; closing stops EventSource reconnecting.
-      if (finished.has(update.generation.status)) {
-        events.close();
-      }
-    });
-
-    return () => events.close();
-  }, [initial.id, initial.status]);
-
-  return { generation, providerUnavailable };
-}
 
 /**
  * The monitor of a take that is not a video yet: the character (or the clip) blurred behind the
@@ -97,7 +57,7 @@ function RenderMonitor({
   size: string;
   target: string;
 }) {
-  const running = !finished.has(generation.status);
+  const running = !isFinished(generation.status);
   const cancelled = generation.status === "cancelled";
   const failed = generation.status === "failed" || cancelled;
 
@@ -281,10 +241,10 @@ function OutputsView({ data }: { data: OutputsResult }) {
           data-status={status}
           role="status"
         >
-          <StatusDot tone={status === "done" ? "ok" : finished.has(status) ? "danger" : "tally"} />
+          <StatusDot tone={status === "done" ? "ok" : isFinished(status) ? "danger" : "tally"} />
           {status === "done"
             ? "Done"
-            : finished.has(status)
+            : isFinished(status)
               ? endingTitle(live.generation)
               : stageTitle({ position: live.generation.position, status })}
           {live.providerUnavailable && " · Comfy is not answering"}
@@ -410,7 +370,7 @@ function MotionTransferView({
   };
 
   const failedRender = ["failed", "unknown", "cancelled"].includes(generation.status);
-  const running = !finished.has(generation.status);
+  const running = !isFinished(generation.status);
   const portrait = recipe.params.height >= recipe.params.width;
   const takeName = `Take ${generation.id.slice(0, 8)}`;
 

@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { defaultParseSearch } from "@tanstack/react-router";
+import { defaultParseSearch, defaultStringifySearch } from "@tanstack/react-router";
+import { z } from "zod";
 
 // Through the public module, as another feature's test would.
 import {
+  carriedDraft,
+  carryDraft,
   defaultDirection,
   directionFixture,
   draftFixture,
@@ -198,4 +201,58 @@ test("the Direct step starts from the draft's direction fields over the take's, 
     ...take,
     angle: "none",
   });
+});
+
+test("a draft carried through another page keeps its motion and direction, and comes back with the character picked there", () => {
+  const from = "6f1e2d3c-4b5a-4968-8776-5a4b3c2d1e0f";
+  const picked = "0d9c8b7a-6f5e-4d3c-9b2a-1f0e9d8c7b6a";
+
+  // A link to the library or the builder carries the shot in the one member `draft`, without
+  // its step and character.
+  const search = carryDraft(snapshotDraft({ ...draftFixture, from }));
+
+  const { draft, ...rest } = z
+    .object({ draft: z.unknown() })
+    .loose()
+    .parse(defaultParseSearch(defaultStringifySearch(search)));
+
+  assert.deepEqual(rest, {});
+
+  const carried = carriedDraft(draft);
+
+  assert.ok(carried && Object.isFrozen(carried));
+  assert.deepEqual(carried, {
+    angle: directionFixture.angle,
+    from,
+    motion: sampleMotionId,
+    prompt: directionFixture.prompt,
+    seed: Number(directionFixture.seed),
+  });
+
+  // Back to the wizard with the character picked there: on Direct, motion and direction kept.
+  assert.deepEqual(openedDraft(draftHref(withCharacter(carried ?? {}, picked))), {
+    angle: directionFixture.angle,
+    character: picked,
+    from,
+    motion: sampleMotionId,
+    prompt: directionFixture.prompt,
+    seed: Number(directionFixture.seed),
+  });
+
+  // Explicit resets survive the trip too.
+  assert.deepEqual(carriedDraft(carryDraft(snapshotDraft({ prompt: "", seed: "default" })).draft), {
+    prompt: "",
+    seed: "default",
+  });
+
+  // A mangled or empty draft carries nothing: the link has no member, the page no draft, and
+  // "Animate" lands on motion selection with the character kept.
+  assert.equal(carriedDraft({ character: picked, motion: "x", step: "direct" }), undefined);
+  assert.equal(carriedDraft("not an object"), undefined);
+  assert.deepEqual(carryDraft(undefined), {});
+  assert.deepEqual(carryDraft(snapshotDraft({ character: picked })), {});
+  assert.deepEqual(openedDraft(draftHref(withCharacter(carriedDraft(undefined) ?? {}, picked))), {
+    character: picked,
+  });
+  assert.equal(shownStep(undefined, { character: picked, motion: null }), "motion");
 });

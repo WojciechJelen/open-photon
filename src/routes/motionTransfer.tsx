@@ -21,6 +21,7 @@ export const Route = createFileRoute("/motionTransfer")({
 function MotionTransfer() {
   return (
     <MotionTransferWizard
+      characterPicker={composerSlots.characterPicker}
       directionEditor={composerSlots.directionEditor}
       draft={Route.useSearch()}
       generationActions={composerSlots.directGenerationActions}

@@ -212,3 +212,35 @@ export function withSeed(snapshot: DraftSnapshot, nextSeed: number) {
 export function withCharacter(snapshot: DraftSnapshot, characterId: string) {
   return snapshotDraft({ ...snapshot, character: z.uuid().parse(characterId) });
 }
+
+const carriedDecoder = motionTransferDraftSchema
+  .omit({ character: true, step: true })
+  .catch({})
+  .transform((draft): DraftSnapshot | undefined => {
+    const carried = definedMembers(draft);
+
+    return Object.keys(carried).length > 0 ? Object.freeze(carried) : undefined;
+  });
+
+/**
+ * The draft another page carries while the visitor picks or makes a character there (the library
+ * at `/characters`, the builder at `/characters/new`), decoded from its search member `draft`
+ * (a JSON object, as TanStack Router's search serializes one; `carryDraft` makes it): its motion,
+ * `from` and direction, validated as `parseDraft` does, without the step and the character (the
+ * page picks that), frozen; `undefined` when nothing in it validates. Never throws. Such a page
+ * declares `draft: carriedDraft(search.draft)` in its `validateSearch`, and returns to the wizard
+ * with `draftHref(withCharacter(draft ?? {}, characterId))`: with a motion the wizard opens on
+ * Direct with the motion and direction kept; without one, on motion selection with the
+ * character kept.
+ */
+export const carriedDraft = carriedDecoder.parse.bind(carriedDecoder);
+
+/**
+ * The search a link to another page carries `draft` in (`carriedDraft`): `{ draft }`, or `{}`
+ * when it holds nothing to carry, so the link has no empty member.
+ */
+export function carryDraft(draft: DraftSnapshot | undefined): { draft?: DraftSnapshot } {
+  const carried = carriedDraft(draft);
+
+  return carried ? { draft: carried } : {};
+}
