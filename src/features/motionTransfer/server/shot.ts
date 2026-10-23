@@ -3,13 +3,14 @@ import { z } from "zod";
 import { type Asset, assetSchema } from "../../../shared/contracts.ts";
 import { findAsset, findBySha256 } from "../../../shared/server/assets.ts";
 import { database } from "../../../shared/server/db.server.ts";
+import { readOutputs } from "../../../shared/server/generation/generations.ts";
 import {
   type characterSchema,
   type PickableCharacter,
   pickableCharacterSchema,
 } from "../contracts.ts";
 import { findCharacter } from "./characters.server.ts";
-import { findGeneration, type Generation } from "./generations.ts";
+import { findGeneration, type MotionTransferGeneration } from "./generations.ts";
 import { isPublicAsset } from "./public-access.ts";
 
 /** An asset as the API shows it (no server path), or `null` when none is stored with this id. */
@@ -64,7 +65,7 @@ export function sampleMotionTitle(assetId: string) {
 }
 
 /** The motion clip a generation was made from: the stored file its recipe's hash names. */
-export function sourceClip(row: Generation): Asset {
+export function sourceClip(row: MotionTransferGeneration): Asset {
   const source = findBySha256(row.recipe.inputs.driving_video_sha256);
 
   if (!source) {
@@ -84,7 +85,9 @@ export function findSampleTakeId() {
     .prepare(
       `SELECT generations.id FROM generations
       JOIN assets ON assets.sha256 = generations.recipe ->> '$.inputs.driving_video_sha256'
-      WHERE is_prerendered = 1 AND status = 'done' AND final_asset_id IS NOT NULL
+      WHERE is_prerendered = 1 AND status = 'done' AND workflow_id = 'motion-transfer'
+        AND EXISTS (SELECT 1 FROM generation_outputs
+          WHERE generation_id = generations.id AND name = 'video')
       ORDER BY finished_at DESC LIMIT 1`,
     )
     .get();
@@ -100,7 +103,8 @@ export function findSampleTakeId() {
 export function findSampleTake() {
   const id = findSampleTakeId();
   const generation = id ? findGeneration(id) : null;
-  const result = generation?.final_asset_id ? storedAsset(generation.final_asset_id) : null;
+  const outputs = generation ? readOutputs(generation.id) : [];
+  const result = outputs.find(({ name }) => name === "video")?.asset;
   const source = generation ? findBySha256(generation.recipe.inputs.driving_video_sha256) : null;
 
   if (!generation || !result || !source) {
@@ -113,7 +117,7 @@ export function findSampleTake() {
     characterTitle: character?.title ?? null,
     id: generation.id,
     motionTitle: sampleMotionTitle(source.id),
-    poster: generation.poster_asset_id ? storedAsset(generation.poster_asset_id) : null,
+    poster: outputs.find(({ name }) => name === "poster")?.asset ?? null,
     result,
     source: assetSchema.parse(source),
   };

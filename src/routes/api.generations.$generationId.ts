@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { readGeneration, generationIdParam } from "#/features/motionTransfer/server/generate";
+import { generationIdParam } from "#/shared/server/generation/http";
+import { readGeneration } from "#/shared/server/generation/service";
 
 export const Route = createFileRoute("/api/generations/$generationId")({
   server: {

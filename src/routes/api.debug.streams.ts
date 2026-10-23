@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { streamDiagnostics } from "#/features/motionTransfer/server/generation-stream";
+import { streamDiagnostics } from "#/shared/server/generation/stream";
 
 export const Route = createFileRoute("/api/debug/streams")({
   server: {

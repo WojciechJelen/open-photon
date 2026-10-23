@@ -72,9 +72,10 @@ export function addQueuedGeneration() {
       database
         .prepare(
           `INSERT INTO generations (id, character_id, workflow_id, workflow_version, recipe,
-            recipe_hash, idempotency_key, provider_job_id, target, status, created_at)
+            recipe_hash, idempotency_key, provider_job_id, target, target_origin, status,
+            created_at)
           SELECT ?, character_id, workflow_id, workflow_version, recipe, recipe_hash, ?, ?,
-            target, 'queued', created_at
+            target, target_origin, 'queued', created_at
           FROM generations WHERE provider_job_id = ?`,
         )
         .run(id, randomUUID(), `e2e-in-flight-${id}`, QUEUED_JOB_ID),
@@ -84,7 +85,10 @@ export function addQueuedGeneration() {
   return {
     id,
     remove: () =>
-      query((database) => database.prepare("DELETE FROM generations WHERE id = ?").run(id), true),
+      query((database) => {
+        database.prepare("DELETE FROM generation_outputs WHERE generation_id = ?").run(id);
+        database.prepare("DELETE FROM generations WHERE id = ?").run(id);
+      }, true),
   };
 }
 
@@ -98,24 +102,30 @@ export function takeLastInFlightPlace() {
 }
 
 /**
- * Stores `id` as done with the seeded result and poster, as `finalize` would once Comfy finished
- * it; the page sees it on its next read.
+ * Stores `id` as done with the seeded result and poster (its outputs `video` and `poster`, and
+ * the columns that mirror them), as `finalize` would once Comfy finished it; the page sees it on
+ * its next read.
  */
 export function finishGeneration(id: string) {
-  query(
-    (database) =>
-      database
-        .prepare(
-          `UPDATE generations SET status = 'done', progress = 100,
-            finished_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
-            share_slug = lower(hex(randomblob(8))),
-            final_asset_id = (SELECT final_asset_id FROM generations WHERE provider_job_id = ?),
-            poster_asset_id = (SELECT poster_asset_id FROM generations WHERE provider_job_id = ?)
-          WHERE id = ?`,
-        )
-        .run(SEEDED_JOB_ID, SEEDED_JOB_ID, id),
-    true,
-  );
+  query((database) => {
+    database
+      .prepare(
+        `UPDATE generations SET status = 'done', progress = 100,
+          finished_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+          share_slug = lower(hex(randomblob(8))),
+          final_asset_id = (SELECT final_asset_id FROM generations WHERE provider_job_id = ?),
+          poster_asset_id = (SELECT poster_asset_id FROM generations WHERE provider_job_id = ?)
+        WHERE id = ?`,
+      )
+      .run(SEEDED_JOB_ID, SEEDED_JOB_ID, id);
+    database
+      .prepare(
+        `INSERT INTO generation_outputs (generation_id, name, asset_id)
+        SELECT ?, name, asset_id FROM generation_outputs
+        WHERE generation_id = (SELECT id FROM generations WHERE provider_job_id = ?)`,
+      )
+      .run(id, SEEDED_JOB_ID);
+  }, true);
 }
 
 /**

@@ -8,35 +8,34 @@ import { setTimeout as delay } from "node:timers/promises";
 import { ComfyError, IdempotencyKeyReuse, InvalidWorkflow } from "@comfyorg/sdk";
 import { z } from "zod";
 
-import {
-  GenerateError,
-  generate,
-  handleGenerate,
-  readGeneration,
-  rerun,
-  retry,
-  startChild,
-} from "../src/features/motionTransfer/server/generate.ts";
-import {
-  countInFlight,
-  createGeneration,
-  findGeneration,
-  findPending,
-  markQueued,
-  recordProviderInputs,
-  transition,
-} from "../src/features/motionTransfer/server/generations.ts";
+import { generate, handleGenerate } from "../src/features/motionTransfer/server/generate.ts";
+import { findGeneration } from "../src/features/motionTransfer/server/generations.ts";
 import { generateDefaults } from "../src/features/motionTransfer/server/presets.ts";
 import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
 import { readSelection } from "../src/features/motionTransfer/server/selection.ts";
 import { uploadVideo } from "../src/features/motionTransfer/server/videos.server.ts";
+import { motionTransferDefinition } from "../src/features/motionTransfer/workflows/definition.ts";
 import { motionTransferModels } from "../src/features/motionTransfer/workflows/registry.ts";
 import { findAccessCode } from "../src/shared/server/access-codes.ts";
 import { createAccessGuard } from "../src/shared/server/access.server.ts";
 import type { Provider, ProviderJob } from "../src/shared/server/comfy-provider.ts";
-import { comfyTarget } from "../src/shared/server/comfy-target.ts";
+import { comfyTarget, providerTarget } from "../src/shared/server/comfy-target.ts";
 import { database } from "../src/shared/server/db.server.ts";
+import { GenerateError } from "../src/shared/server/generation/errors.ts";
+import {
+  countInFlight,
+  createGeneration,
+  findPending,
+  markQueued,
+  recordProviderInputs,
+  transition,
+} from "../src/shared/server/generation/generations.ts";
+import { startChild } from "../src/shared/server/generation/http.ts";
+import { readGeneration, rerun, retry } from "../src/shared/server/generation/service.ts";
 import { mintCode } from "./temp-database.ts";
+
+// Rows made here directly are on Comfy Cloud unless a test says otherwise.
+const cloud = { kind: "cloud", origin: null } as const;
 
 // The jobs these tests submit stay queued (nothing finishes them), so the in-flight cap is lifted
 // except where a test sets it.
@@ -147,14 +146,21 @@ test("a row a stopped server left preparing is settled on its next read, never r
   });
 
   // Stopped while uploading: nothing was sent.
-  const beforeSubmit = createGeneration({ recipe: recipe(1) });
+  const beforeSubmit = createGeneration(motionTransferDefinition, {
+    recipe: recipe(1),
+    target: cloud,
+  });
 
   const interrupted = await readGeneration(beforeSubmit.id);
 
   assert.deepEqual([interrupted?.status, interrupted?.error_code], ["failed", "interrupted"]);
 
   // Stopped after the uploads: the submit may have reached Comfy.
-  const afterUploads = createGeneration({ recipe: recipe(2) });
+  const afterUploads = createGeneration(motionTransferDefinition, {
+    recipe: recipe(2),
+    target: cloud,
+  });
+
   recordProviderInputs(afterUploads.id, {
     driving_video: { __type: "core/ASSET", info: { id: "video" } },
     reference_image: { __type: "core/ASSET", info: { id: "image" } },
@@ -179,7 +185,11 @@ test("after a restart, generating the same recipe again settles the row the stop
 
     assert.ok(failed);
 
-    const { id } = createGeneration({ characterId: character.id, recipe: failed.recipe });
+    const { id } = createGeneration(motionTransferDefinition, {
+      characterId: character.id,
+      recipe: failed.recipe,
+      target: providerTarget(),
+    });
 
     if (uploaded) {
       recordProviderInputs(id, {
@@ -302,13 +312,14 @@ test("retry renders on the target this server renders on, like a re-run", async 
   assert.ok(here);
 
   // A generation that failed on the other target.
-  const parent = createGeneration({
+  const parent = createGeneration(motionTransferDefinition, {
     characterId: here.character_id ?? undefined,
     recipe: {
       ...here.recipe,
       params: { ...here.recipe.params, seed: here.recipe.params.seed + 1_000_000 },
       target: comfyTarget().kind === "cloud" ? "selfhost" : "cloud",
     },
+    target: { kind: comfyTarget().kind === "cloud" ? "selfhost" : "cloud", origin: null },
   });
 
   transition(parent.id, "preparing", "failed", { error_code: "provider_rejected" });
@@ -492,13 +503,14 @@ test("rerun of a done generation made on another target renders a child with the
   assert.ok(here);
 
   // A done generation of a recipe this target has not rendered: another seed, the other target.
-  const parent = createGeneration({
+  const parent = createGeneration(motionTransferDefinition, {
     characterId: here.character_id ?? undefined,
     recipe: {
       ...here.recipe,
       params: { ...here.recipe.params, seed: here.recipe.params.seed + 1_000_000 },
       target: comfyTarget().kind === "cloud" ? "selfhost" : "cloud",
     },
+    target: { kind: comfyTarget().kind === "cloud" ? "selfhost" : "cloud", origin: null },
   });
 
   markQueued(parent.id, `job-${parent.id}`);
@@ -766,12 +778,13 @@ test("a full cap is refreshed first: generations that ended while nobody watched
 
   // Left `preparing` by a stopped server, and queued on Comfy where the job then failed; both the
   // oldest in flight, so the refresh reaches them.
-  const stopped = createGeneration({
+  const stopped = createGeneration(motionTransferDefinition, {
     characterId: character.id,
     recipe: {
       ...abandoned.recipe,
       params: { ...abandoned.recipe.params, seed: abandoned.recipe.params.seed + 1_000_000 },
     },
+    target: providerTarget(),
   });
 
   database

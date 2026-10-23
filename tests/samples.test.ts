@@ -4,19 +4,23 @@ import { copyFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
 
+import { classifyVideo } from "../src/features/motionTransfer/server/media/clip.ts";
+import { seedSamples } from "../src/features/motionTransfer/server/samples.ts";
+import { readSelection, readStudio } from "../src/features/motionTransfer/server/selection.ts";
+import { motionTransferDefinition } from "../src/features/motionTransfer/workflows/definition.ts";
+import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
+import { findAsset, hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
+import { database } from "../src/shared/server/db.server.ts";
 import {
   createGeneration,
   markQueued,
   transition,
-} from "../src/features/motionTransfer/server/generations.ts";
-import { classifyVideo } from "../src/features/motionTransfer/server/media/clip.ts";
-import { seedSamples } from "../src/features/motionTransfer/server/samples.ts";
-import { readSelection, readStudio } from "../src/features/motionTransfer/server/selection.ts";
-import { motionTransferWorkflow } from "../src/features/motionTransfer/workflows/registry.ts";
-import { findAsset, hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
-import { database } from "../src/shared/server/db.server.ts";
+} from "../src/shared/server/generation/generations.ts";
 import { probe } from "../src/shared/server/media/probe.ts";
 import { assetsDirectory } from "../src/shared/server/paths.ts";
+
+// The rows here are Motion Transfer's, on Comfy Cloud.
+const cloud = { kind: "cloud", origin: null } as const;
 
 function count(sql: string) {
   return Number(database.prepare(`SELECT count(*) AS count FROM ${sql}`).get()?.count);
@@ -113,7 +117,7 @@ function take({
 
   assert.ok(motion && character);
 
-  const { id } = createGeneration({
+  const { id } = createGeneration(motionTransferDefinition, {
     characterId: character.id,
     recipe: {
       inputs: {
@@ -125,11 +129,12 @@ function take({
       target: "cloud",
       workflow: { id: "motion-transfer", sha256: motionTransferWorkflow.sha256, version: 1 },
     },
+    target: cloud,
   });
 
   markQueued(id, `job-${id}`);
   transition(id, "queued", "finalizing");
-  transition(id, "finalizing", "done", { final_asset_id: result });
+  transition(id, "finalizing", "done", { outputs: { video: result } });
   database
     .prepare("UPDATE generations SET is_prerendered = ? WHERE id = ?")
     .run(Number(prerendered), id);

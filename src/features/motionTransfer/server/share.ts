@@ -1,8 +1,7 @@
 import { getRequest } from "@tanstack/react-start/server";
 
-import { assetSchema } from "../../../shared/contracts.ts";
 import { mediaUrl } from "../../../shared/media.ts";
-import { findAsset } from "../../../shared/server/assets.ts";
+import { readOutputs } from "../../../shared/server/generation/generations.ts";
 import { workflowModelFiles } from "../../../shared/server/models-lock.ts";
 import { motionTransferWorkflow } from "../workflows/registry.ts";
 import { findCharacter } from "./characters.server.ts";
@@ -18,23 +17,24 @@ export function publicOrigin() {
 }
 
 /**
- * What `/r/:slug` shows, or `null` for a slug no done generation has: the result and its poster
- * and the source clip (with absolute URLs from `origin` for the Open Graph tags) with its sample
- * title if it is one, the character as a visitor without a session may see it
- * (`visibleCharacter`: a sample's, never an uploaded photo), the recipe, and the model files the
- * recipe's workflow
- * loads, with their licenses once `models.lock` pins them (`null` when the stored workflow file
- * is no longer the recipe's).
+ * What `/r/:slug` shows of a Motion Transfer generation, or `null` for a slug no done one has: its
+ * named outputs (`outputs`; the result and its poster as `final` and `poster`, with absolute URLs
+ * from `origin` for the Open Graph tags) and the source clip with its sample title if it is one,
+ * the character as a visitor without a session may see it (`visibleCharacter`: a sample's, never
+ * an uploaded photo), the recipe, and the model files the recipe's workflow loads, with their
+ * licenses once `models.lock` pins them (`null` when the stored workflow file is no longer the
+ * recipe's).
  */
 export function readShare(slug: string, origin: string) {
   const row = /^[0-9a-f]{16}$/.test(slug) ? findShared(slug) : null;
-  const final = row?.final_asset_id ? findAsset(row.final_asset_id) : null;
+  const outputs = row ? readOutputs(row.id) : [];
+  const final = outputs.find(({ name }) => name === "video")?.asset;
 
   if (!row || !final) {
     return null;
   }
 
-  const poster = row.poster_asset_id ? findAsset(row.poster_asset_id) : null;
+  const poster = outputs.find(({ name }) => name === "poster")?.asset ?? null;
   const source = sourceClip(row);
   const character = row.character_id ? findCharacter(row.character_id) : null;
 
@@ -47,12 +47,13 @@ export function readShare(slug: string, origin: string) {
 
   return {
     character: visibleCharacter(character, false),
-    final: assetSchema.parse(final),
+    final,
     finishedAt: row.finished_at,
     models,
     motionTitle: sampleMotionTitle(source.id),
+    outputs,
     pageUrl: `${origin}/r/${slug}`,
-    poster: poster ? assetSchema.parse(poster) : null,
+    poster,
     posterUrl: poster ? `${origin}${mediaUrl(poster)}` : null,
     recipe: row.recipe,
     source,

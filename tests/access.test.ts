@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { copyFile, stat } from "node:fs/promises";
 import { test } from "node:test";
 
-import { createGeneration, markQueued } from "../src/features/motionTransfer/server/generations.ts";
+import { motionTransferDefinition } from "../src/features/motionTransfer/workflows/definition.ts";
 import {
   createAccessGuard,
   readSession,
@@ -14,7 +14,11 @@ import {
 } from "../src/shared/server/access.server.ts";
 import { hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
 import { database } from "../src/shared/server/db.server.ts";
+import { createGeneration, markQueued } from "../src/shared/server/generation/generations.ts";
 import { mintCode } from "./temp-database.ts";
+
+// The rows here are Motion Transfer's, on Comfy Cloud.
+const cloud = { kind: "cloud", origin: null } as const;
 
 const origin = "https://preview.example";
 
@@ -313,7 +317,7 @@ test("without a session: the picker, samples, share pages and pre-rendered sampl
 
   /** A queued generation; `prerendered` marks it as a pre-rendered sample (Step 9.2). */
   const generation = (seed: number, prerendered: boolean) => {
-    const { id } = createGeneration({
+    const { id } = createGeneration(motionTransferDefinition, {
       recipe: {
         inputs: { driving_video_sha256: upload.sha256, reference_image_sha256: upload.sha256 },
         models: [],
@@ -321,6 +325,7 @@ test("without a session: the picker, samples, share pages and pre-rendered sampl
         target: "cloud",
         workflow: { id: "motion-transfer", sha256: upload.sha256, version: 1 },
       },
+      target: cloud,
     });
 
     markQueued(id, `job-${id}`);

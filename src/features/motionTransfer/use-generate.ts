@@ -1,8 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { z } from "zod";
 
 import { type GenerateInput, generateInputSchema } from "#/features/motionTransfer/contracts";
+import { generationReceiptSchema } from "#/shared/contracts";
 import { callApi, type Refusal } from "#/shared/requests";
 import type { HoldForCode } from "#/shared/use-access-code";
 import { useRequestSignal } from "#/shared/use-request-signal";
@@ -52,7 +52,7 @@ export function useGenerate(hold: HoldForCode) {
     // page only drops the navigation to its result.
     const signal = nextSignal();
 
-    const answer = await callApi(z.object({ id: z.uuid() }), "/api/generate", {
+    const answer = await callApi(generationReceiptSchema, "/api/generate", {
       body: JSON.stringify(input),
       headers: { "Content-Type": "application/json" },
       method: "POST",

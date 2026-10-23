@@ -9,8 +9,9 @@ import { mintCode } from "../../../../tests/temp-database.ts";
 import { findAccessCode } from "../../../shared/server/access-codes.ts";
 import { findAsset } from "../../../shared/server/assets.ts";
 import { fakeProvider } from "../../../shared/server/comfy-provider.fake.ts";
+import { readGeneration } from "../../../shared/server/generation/service.ts";
 import { assetsDirectory } from "../../../shared/server/paths.ts";
-import { generate, readGeneration } from "./generate.ts";
+import { generate } from "./generate.ts";
 import { findGeneration } from "./generations.ts";
 import { readSelection } from "./selection.ts";
 
