@@ -101,8 +101,8 @@ A definition may also derive outputs from the stored ones (`deriveOutputs`), whi
 adds before the row is `done`, in the same write; the row holds its place in flight while it
 runs, so a derivation bounds its own work. Motion Transfer derives `compare`
 (`src/features/motionTransfer/server/media/compare.ts`): FFmpeg puts the driving clip and the
-result frame by frame side by side (clip left, at the result's height) for a portrait result,
-or one above the other (clip on top, at the result's width) for a landscape one, scales the
+result frame by frame side by side (clip left, at the result's height) for a portrait or square
+result, or one above the other (clip on top, at the result's width) for a landscape one, scales the
 pair to fit a black 1080×1920 frame and copies the result's AAC audio (H.264 High, `yuv420p`,
 `+faststart`), stored as a `final` asset cut from the result; FFmpeg gets 60 s. A derivation
 that throws is logged (`finalize.derive-failed`) and the row is done without it: it never

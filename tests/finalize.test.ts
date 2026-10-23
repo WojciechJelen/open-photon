@@ -130,9 +130,24 @@ function rendered(size: string): ProviderOutput {
     sizeBytes: 0,
     toFile: async (path) => {
       await runTool("ffmpeg", [
-        ...["-f", "lavfi", "-i", `testsrc=size=${size}:rate=603/25`],
-        ...["-f", "lavfi", "-i", tone],
-        ...["-t", "2", "-shortest", "-pix_fmt", "yuv420p", "-c:a", "aac", "-f", "mp4", path],
+        "-f",
+        "lavfi",
+        "-i",
+        `testsrc=size=${size}:rate=603/25`,
+        "-f",
+        "lavfi",
+        "-i",
+        tone,
+        "-t",
+        "2",
+        "-shortest",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-f",
+        "mp4",
+        path,
       ]);
 
       return path;
@@ -144,6 +159,7 @@ function rendered(size: string): ProviderOutput {
 async function stitchedTake(size: string) {
   const row = running(await storeClip("tests/fixtures/short-2s.mp4"));
   const done = await finalize(row.id, provider("succeeded", [rendered(size)]));
+
   const outputs = new Map(
     readOutputs(row.id).map(({ asset, name }) => [name, findAsset(asset.id)]),
   );
@@ -154,8 +170,14 @@ async function stitchedTake(size: string) {
 /** The mean luma (16 black … 235 white) of 16 rows of `path`'s first frame, from row `y` down. */
 async function lumaAt(path: string, y: number) {
   const { stdout } = await runTool("ffmpeg", [
-    ...["-i", path, "-frames:v", "1", "-f", "null"],
-    ...["-vf", `crop=iw:16:0:${y},signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-`],
+    "-i",
+    path,
+    "-frames:v",
+    "1",
+    "-f",
+    "null",
+    "-vf",
+    `crop=iw:16:0:${y},signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-`,
     "-",
   ]);
 
@@ -373,6 +395,7 @@ test("a take's compare is public only while the take has a share page, and downl
     new Request(`http://localhost/media/${filename}?download=1`),
     filename,
   );
+
   await download.body?.cancel();
 
   assert.equal(

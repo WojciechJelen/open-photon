@@ -67,9 +67,11 @@ export async function stitchCompare(recipe: Recipe, outputs: Readonly<Record<str
   const stacked = result.width > result.height;
   // The clip at the result's width when stacked, else at its height, in its own aspect ratio.
   const sourceWidth = stacked ? result.width : even((source.width * result.height) / source.height);
+
   const sourceHeight = stacked
     ? even((source.height * result.width) / source.width)
     : result.height;
+
   const pairWidth = stacked ? result.width : sourceWidth + result.width;
   const pairHeight = stacked ? sourceHeight + result.height : result.height;
   const scale = Math.min(FRAME_WIDTH / pairWidth, FRAME_HEIGHT / pairHeight);
