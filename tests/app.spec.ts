@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { accessCode, open, seededResult } from "./e2e/session.ts";
 
-test("the studio home features Motion Transfer, marks the tools to come Soon, and links nowhere for them", async ({
+test("the studio home features Motion Transfer and links its live character tools, with nothing marked Soon", async ({
   page,
 }) => {
   await open(page, "/");
@@ -11,22 +11,26 @@ test("the studio home features Motion Transfer, marks the tools to come Soon, an
   const tools = page.locator("#tools");
 
   // The featured card is one link into the wizard.
-  await tools.getByRole("link", { name: /Motion Transfer/ }).click();
+  await tools.getByRole("link", { name: /Open Motion Transfer/ }).click();
   await expect(page).toHaveURL(/\/motionTransfer/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pick a motion");
 
   await open(page, "/");
+  await expect(page.getByRole("list", { name: "Coming soon" })).toHaveCount(0);
+  await expect(tools.getByText("Soon", { exact: true })).toHaveCount(0);
 
-  const soon = page.getByRole("list", { name: "Coming soon" }).getByRole("listitem");
+  const cards = page.getByRole("list", { name: "Character tools" }).getByRole("listitem");
 
-  await expect(soon).toHaveCount(3);
+  await expect(cards).toHaveCount(2);
 
-  for (const name of ["Character from words", "Motion from text", "Cinematic shot"]) {
-    const card = soon.filter({ has: page.getByRole("heading", { name }) });
+  for (const [name, path] of [
+    ["Describe a character", "/characters/new"],
+    ["Character library", "/characters"],
+  ] as const) {
+    const card = cards.filter({ has: page.getByRole("heading", { name }) });
 
-    await expect(card).toContainText("Soon");
-    await expect(card.getByRole("link")).toHaveCount(0);
-    await expect(card.getByRole("button")).toHaveCount(0);
+    await expect(card).toContainText("Live");
+    await expect(card.getByRole("link")).toHaveAttribute("href", path);
   }
 
   await expect(page.getByText("Built open")).toBeVisible();

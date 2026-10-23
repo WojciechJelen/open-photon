@@ -1,11 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRightIcon,
-  ClapperboardIcon,
   CpuIcon,
   FileCodeIcon,
+  LibraryIcon,
   LockOpenIcon,
-  PersonStandingIcon,
   UserIcon,
 } from "lucide-react";
 
@@ -95,30 +94,27 @@ function Filmstrip({
   );
 }
 
-const upcoming = [
+// The character tools beside Motion Transfer, live: the builder and the library.
+const characterTools = [
   {
     icon: <UserIcon />,
-    model: "FLUX 3 Klein",
-    text: "Describe a character and get a photo of them, ready to drop into Motion Transfer.",
-    title: "Character from words",
+    model: "FLUX 3 Image Klein",
+    text: "Describe a character, refine the caption, and render a full-body photo ready for Motion Transfer.",
+    title: "Describe a character",
+    to: "/characters/new",
   },
   {
-    icon: <PersonStandingIcon />,
-    model: "LTX 2.5 → Wan Animate 2",
-    text: "Describe a move. The driving clip is generated for you, then performed by your character.",
-    title: "Motion from text",
+    icon: <LibraryIcon />,
+    model: "Workspace library",
+    text: "Find, favorite and rename the workspace's characters, uploaded or generated, and animate any of them.",
+    title: "Character library",
+    to: "/characters",
   },
-  {
-    icon: <ClapperboardIcon />,
-    model: "LTX 2.5",
-    text: "Stage a shot like on set: camera move, lens and light, from one prompt.",
-    title: "Cinematic shot",
-  },
-];
+] as const;
 
 /**
- * The tool grid: Motion Transfer, live and featured (the whole card opens it), and the tools still to
- * come, marked Soon and not interactive.
+ * The tool grid: Motion Transfer, live and featured (the whole card opens it), then the character
+ * tools, each card a link to its page.
  */
 export function StudioTools({
   characters,
@@ -200,29 +196,34 @@ export function StudioTools({
         </div>
       </Link>
 
-      <ul aria-label="Coming soon" className="grid gap-4 md:grid-cols-3">
-        {upcoming.map((tool) => (
-          <li
-            className="flex flex-col overflow-hidden rounded-3xl border bg-linear-to-b from-foreground/4 to-foreground/1"
-            key={tool.title}
-          >
-            <div className="relative grid h-42 place-items-center border-b">
-              <span
-                aria-hidden="true"
-                className="grid size-16 place-items-center rounded-full border border-brand/35 bg-brand/12 text-brand-foreground *:size-7"
-              >
-                {tool.icon}
-              </span>
-              <Viewfinder tone="dim" />
-            </div>
-            <div className="flex flex-col gap-2.5 p-6">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-display text-xl font-semibold">{tool.title}</h3>
-                <Badge>Soon</Badge>
+      <ul aria-label="Character tools" className="grid gap-4 md:grid-cols-2">
+        {characterTools.map((tool) => (
+          <li key={tool.title}>
+            <Link
+              className="flex h-full flex-col overflow-hidden rounded-3xl border bg-linear-to-b from-foreground/4 to-foreground/1 transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring"
+              to={tool.to}
+            >
+              <div className="relative grid h-42 place-items-center border-b">
+                <span
+                  aria-hidden="true"
+                  className="grid size-16 place-items-center rounded-full border border-brand/35 bg-brand/12 text-brand-foreground *:size-7"
+                >
+                  {tool.icon}
+                </span>
+                <Viewfinder tone="dim" />
               </div>
-              <p className="text-sm text-soft-foreground">{tool.text}</p>
-              <Hud className="pt-1.5">{tool.model}</Hud>
-            </div>
+              <div className="flex flex-col gap-2.5 p-6">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-display text-xl font-semibold">{tool.title}</h3>
+                  <Badge>
+                    <StatusDot tone="ok" />
+                    Live
+                  </Badge>
+                </div>
+                <p className="text-sm text-soft-foreground">{tool.text}</p>
+                <Hud className="pt-1.5">{tool.model}</Hud>
+              </div>
+            </Link>
           </li>
         ))}
       </ul>

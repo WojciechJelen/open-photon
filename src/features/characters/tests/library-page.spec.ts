@@ -64,8 +64,11 @@ test("a photo uploaded with consent joins the library, newest first, and stays a
 
   await open(page, "/characters");
   await expect(page.getByText("Shared workspace")).toBeVisible();
-  // No builder is composed in: no link to it.
-  await expect(page.getByRole("link", { name: "Describe a character" })).toHaveCount(0);
+  // The composition links the builder: no draft to carry from here.
+  await expect(page.getByRole("link", { name: "Describe a character" })).toHaveAttribute(
+    "href",
+    "/characters/new",
+  );
   await expect(grid(page)).toBeVisible();
 
   const upload = page.getByRole("region", { name: "Add a photo" });
@@ -416,7 +419,15 @@ test("the composer's character step lists the workspace library and goes to it a
   // Saved in the library before: offered here with the samples, most recent first.
   await expect(picker.getByRole("button", { name })).toBeVisible();
   await expect(picker.getByRole("button", { name: "Placeholder blue" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Describe a character" })).toHaveCount(0);
+
+  // The builder's link carries the draft too, its motion included.
+  const builder = new URL(
+    (await page.getByRole("link", { name: "Describe a character" }).getAttribute("href")) ?? "",
+    "http://localhost",
+  );
+
+  expect(builder.pathname).toBe("/characters/new");
+  expect(JSON.parse(builder.searchParams.get("draft") ?? "{}")).toMatchObject({ motion });
 
   await page.getByRole("link", { name: "Open the library" }).click();
   await page.waitForURL((url) => url.pathname === "/characters");

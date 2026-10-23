@@ -234,7 +234,11 @@ Slots (`src/features/motionTransfer/slots.ts`): `characterPicker` (`CharacterPic
 both receiving an immutable `DraftSnapshot`. Defaults: `DefaultCharacterPicker` (the upload tile,
 the visitor's own photo and the samples; the Character step keeps its intro and tips around the
 slot), `DefaultDirectionEditor`, `GenerateButton`, `RerunButton`. They are filled in one place,
-`src/app/composer-slots.ts`.
+`src/app/composer-slots.ts`, which mounts the library's `LibraryCharacterPicker` in
+`characterPicker` and gives it and the library page (`/characters`) `createCharacterHref`: the
+builder, `/characters/new`, carrying the draft. The studio (`/`) links Motion Transfer and both
+character tools ("Describe a character", "Character library"); the main navigation's Image ›
+Create character and Library › Characters open them.
 
 ### Import boundaries
 

@@ -11,11 +11,13 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { NavigationIcon, type NavigationIconName } from "#/shared/components/navigation-icons";
 
+type ToolPath = "/characters" | "/characters/new" | "/motionTransfer";
+
 type Tool = {
   description: string;
   icon: NavigationIconName;
   label: string;
-} & ({ to: "/characters" | "/motionTransfer" } | { disabled: true });
+} & ({ to: ToolPath } | { disabled: true });
 
 type NavigationEntry = { label: string } & ({ disabled: true } | { tools: Tool[] });
 
@@ -25,12 +27,11 @@ const navigation: NavigationEntry[] = [
   {
     label: "Image",
     tools: [
-      //TODO: https://linear.app/devs3/issue/DEV-294
       {
         description: "Turn a description into a character image.",
-        disabled: true,
         icon: "createCharacter",
         label: "Create character",
+        to: "/characters/new",
       },
     ],
   },
@@ -99,11 +100,12 @@ function ToolDescription({ tool }: { tool: Tool }) {
 export function SiteNavigation() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
-  // Each tool's pages: Motion Transfer's wizard and its takes' pages, the library's pages.
-  const inTool = (to: "/characters" | "/motionTransfer") =>
+  // Each tool's pages: Motion Transfer's wizard and its takes' pages; the library and the builder
+  // each their own page.
+  const inTool = (to: ToolPath) =>
     to === "/motionTransfer"
       ? pathname === "/motionTransfer" || pathname.startsWith("/g/") || pathname.startsWith("/r/")
-      : pathname === to || pathname.startsWith(`${to}/`);
+      : pathname === to;
 
   return (
     <nav aria-label="Main" className="flex flex-wrap items-center gap-0.5 sm:gap-1">
