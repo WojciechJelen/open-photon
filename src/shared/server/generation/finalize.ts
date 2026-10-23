@@ -5,7 +5,12 @@ import { hashFile, incomingPath, type NewAsset, storeAsset } from "../assets.ts"
 import { comfyProvider, type Provider, type ProviderOutput } from "../comfy-provider.ts";
 import { cutPoster } from "../media/poster.ts";
 import { classifyImage, probe } from "../media/probe.ts";
-import { type OutputDeclaration, POSTER_OUTPUT, workflows } from "./definition.ts";
+import {
+  type AnyWorkflowDefinition,
+  type OutputDeclaration,
+  POSTER_OUTPUT,
+  workflows,
+} from "./definition.ts";
 import {
   countFinalizeAttempt,
   findGeneration,
@@ -206,6 +211,29 @@ async function rehost(
   }
 }
 
+/**
+ * The outputs `definition.deriveOutputs` makes from a row's stored `outputs`; none when it has no
+ * such hook, or when it throws, which is logged and never counts as a failed finalize.
+ */
+async function derive(
+  definition: AnyWorkflowDefinition,
+  row: Generation,
+  outputs: Readonly<Record<string, string>>,
+) {
+  if (!definition.deriveOutputs) {
+    return {};
+  }
+
+  try {
+    return await definition.deriveOutputs(definition.recipeSchema.parse(row.recipe), outputs);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    console.error(JSON.stringify({ event: "finalize.derive-failed", id: row.id, message }));
+
+    return {};
+  }
+}
+
 // A finalize that failed is tried again on a later read, no sooner than this many milliseconds
 // times the failures so far after the last one; the third failure fails the row.
 const FINALIZE_BACKOFF_MS = 30_000;
@@ -335,7 +363,10 @@ async function settle(id: string, provider: Provider) {
       }
     }
 
-    return transition(id, "finalizing", "done", { outputs: Object.fromEntries(stored) });
+    const outputs = Object.fromEntries(stored);
+    const derived = await derive(definition, started, outputs);
+
+    return transition(id, "finalizing", "done", { outputs: { ...derived, ...outputs } });
   } catch (error) {
     if (error instanceof UnusableOutput) {
       return transition(id, "finalizing", "failed", {
@@ -364,8 +395,9 @@ const finalizing = new Map<string, Promise<Generation | null>>();
 /**
  * Finishes a generation whose Comfy job is complete: downloads each output its workflow declares
  * (`OutputDeclaration`; a Motion Transfer MP4 already carries the driving clip's audio), cuts a
- * poster for a video output that asks for one, stores them as hashed assets under their names and
- * moves the row to `done`. `jobs.get` decides: while the job is not complete the row is left
+ * poster for a video output that asks for one, stores them as hashed assets under their names,
+ * adds the outputs its workflow derives from them (`deriveOutputs`; one that fails is left out)
+ * and moves the row to `done`. `jobs.get` decides: while the job is not complete the row is left
  * untouched; a failed, cancelled or expired job fails it. One run per id at a time; concurrent
  * callers share it. A failed download or FFmpeg run throws and leaves the row `finalizing`; a
  * call within the backoff after it returns the row without asking Comfy, a later one tries again,

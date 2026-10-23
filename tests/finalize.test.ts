@@ -1,13 +1,15 @@
 import "./temp-database.ts";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { copyFile, writeFile } from "node:fs/promises";
+import { copyFile, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
 
+import { characterGenerationInputSchema } from "../src/features/characterBuilder/contracts.ts";
+import { characterGenerationDefinition } from "../src/features/characterBuilder/workflows/definition.ts";
 import type { Recipe } from "../src/features/motionTransfer/server/recipe.ts";
 import { motionTransferDefinition } from "../src/features/motionTransfer/workflows/definition.ts";
-import { findAsset, hashFile } from "../src/shared/server/assets.ts";
+import { findAsset, hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
 import type { Provider, ProviderJob, ProviderOutput } from "../src/shared/server/comfy-provider.ts";
 import { database } from "../src/shared/server/db.server.ts";
 import { finalize } from "../src/shared/server/generation/finalize.ts";
@@ -16,9 +18,10 @@ import {
   createGeneration,
   findGeneration,
   markQueued,
+  readOutputs,
   transition,
 } from "../src/shared/server/generation/generations.ts";
-import { runTool } from "../src/shared/server/media/probe.ts";
+import { probe, runTool } from "../src/shared/server/media/probe.ts";
 import { assetsDirectory } from "../src/shared/server/paths.ts";
 
 // The rows here are Motion Transfer's, on Comfy Cloud.
@@ -26,11 +29,12 @@ const cloud = { kind: "cloud", origin: null } as const;
 
 let seed = 0;
 
-function running() {
+/** A Motion Transfer row Comfy is rendering, driven by the clip `driving` names (none stored by default). */
+function running(driving = "a".repeat(64)) {
   seed += 1;
 
   const recipe: Recipe = {
-    inputs: { driving_video_sha256: "a".repeat(64), reference_image_sha256: "b".repeat(64) },
+    inputs: { driving_video_sha256: driving, reference_image_sha256: "b".repeat(64) },
     models: [],
     params: { fragment_length: 81, height: 848, prompt: "A dancer", seed, width: 480 },
     target: "cloud",
@@ -45,14 +49,14 @@ function running() {
   return transition(id, "queued", "running");
 }
 
-/** A provider whose job has `status` and, on node 246, `outputs`. */
-function provider(status: string, outputs: ProviderOutput[] = []) {
+/** A provider whose job has `status` and, on node `nodeId` (Motion Transfer's 246), `outputs`. */
+function provider(status: string, outputs: ProviderOutput[] = [], nodeId = "246") {
   const job: ProviderJob = {
     error: null,
     events: () => {
       throw new Error("finalize never subscribes to events");
     },
-    getOutputs: (nodeId) => (nodeId === "246" ? outputs : []),
+    getOutputs: (node) => (node === nodeId ? outputs : []),
     id: "provider-job",
     status,
   };
@@ -65,6 +69,47 @@ function provider(status: string, outputs: ProviderOutput[] = []) {
 
   return double;
 }
+
+/** An output Comfy lists, downloaded as a copy of `fixture`. */
+function copyOf(fixture: string, contentType: string): ProviderOutput {
+  return {
+    contentType,
+    name: fixture.split("/").at(-1) ?? fixture,
+    sizeBytes: 0,
+    toFile: async (path) => {
+      await copyFile(fixture, path);
+
+      return path;
+    },
+  };
+}
+
+/** Stores `fixture` as an uploaded clip, as the wizard does before a take; returns its SHA-256. */
+async function storeClip(fixture: string) {
+  const temporary = await incomingPath();
+  await copyFile(fixture, temporary);
+  const info = await probe(temporary);
+  const sha256 = await hashFile(temporary);
+
+  await storeAsset(temporary, {
+    bytes: (await stat(temporary)).size,
+    duration_ms: info?.durationMs ?? null,
+    ext: "mp4",
+    fps: info?.video?.fps ?? null,
+    has_audio: info?.hasAudio ?? null,
+    height: info?.video?.height ?? null,
+    kind: "video",
+    mime: "video/mp4",
+    role: "upload",
+    sha256,
+    source_asset_id: null,
+    width: info?.video?.width ?? null,
+  });
+
+  return sha256;
+}
+
+const outputNames = (id: string) => readOutputs(id).map(({ name }) => name);
 
 test("a job Comfy still reports running leaves the row untouched, however old it is", async () => {
   const row = running();
@@ -203,4 +248,71 @@ test("an output that cannot be finalized is retried after a backoff, then fails 
   );
   assert.ok(failed?.error_message?.includes(row.provider_job_id ?? "no job id"));
   assert.equal(countInFlight(), inFlight - 1);
+});
+
+test("a done Motion Transfer take has a compare output: an H.264 and AAC portrait MP4 as long as its result", async () => {
+  const row = running(await storeClip("tests/fixtures/short-2s.mp4"));
+  const result = copyOf("tests/fixtures/result-5s.mp4", "video/mp4");
+  const done = await finalize(row.id, provider("succeeded", [result]));
+
+  assert.equal(done?.status, "done");
+  assert.deepEqual(outputNames(row.id), ["compare", "poster", "video"]);
+
+  const outputs = readOutputs(row.id);
+  const compare = findAsset(outputs.find(({ name }) => name === "compare")?.asset.id ?? "");
+  const video = findAsset(outputs.find(({ name }) => name === "video")?.asset.id ?? "");
+
+  const { stdout } = await runTool("ffprobe", [
+    "-print_format",
+    "json",
+    "-show_streams",
+    resolve(assetsDirectory(), compare?.path ?? ""),
+  ]);
+
+  const streams: Array<{ codec_name: string; codec_type: string; pix_fmt?: string }> =
+    JSON.parse(stdout).streams;
+
+  assert.deepEqual(
+    streams.map(({ codec_name, codec_type, pix_fmt }) => [codec_type, codec_name, pix_fmt]),
+    [
+      ["video", "h264", "yuv420p"],
+      ["audio", "aac", undefined],
+    ],
+  );
+  assert.deepEqual([compare?.width, compare?.height], [1080, 1920]);
+  assert.deepEqual([compare?.role, compare?.source_asset_id], ["final", video?.id]);
+  assert.ok(
+    Math.abs((compare?.duration_ms ?? 0) - (video?.duration_ms ?? 0)) <= 1000 / (video?.fps ?? 1),
+    `${compare?.duration_ms} ms against a ${video?.duration_ms} ms result`,
+  );
+});
+
+test("a take whose side-by-side cannot be stitched is done without it, and no finalize failure is counted", async () => {
+  // Its driving clip is not stored, so FFmpeg has nothing to put on the left.
+  const row = running();
+  const result = copyOf("tests/fixtures/result-5s.mp4", "video/mp4");
+  const done = await finalize(row.id, provider("succeeded", [result]));
+
+  assert.deepEqual([done?.status, done?.finalize_attempts], ["done", 0]);
+  assert.deepEqual(outputNames(row.id), ["poster", "video"]);
+});
+
+test("a character image is done with its image output only, never a compare", async () => {
+  const { recipe } = characterGenerationDefinition.prepareRecipe(
+    characterGenerationInputSchema.parse({ caption: "A knight in plain armour.", seed: 7 }),
+    { target: cloud },
+  );
+
+  const { id } = markQueued(
+    createGeneration(characterGenerationDefinition, { recipe, target: cloud }).id,
+    randomUUID(),
+  );
+
+  transition(id, "queued", "running");
+
+  const image = copyOf("tests/fixtures/fake-output.png", "image/png");
+  const done = await finalize(id, provider("succeeded", [image], "9"));
+
+  assert.equal(done?.status, "done");
+  assert.deepEqual(outputNames(id), ["image"]);
 });
