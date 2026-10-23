@@ -20,6 +20,9 @@ COPY --from=build --chown=node:node --parents /app/./src/features/*/workflows /a
 COPY --from=build --chown=node:node /app/src/shared/server/migrations ./src/shared/server/migrations
 # Run in the container to mint an access code on its volume: node scripts/mint-code.mjs <label> <max>
 COPY --from=build --chown=node:node /app/scripts/mint-code.mjs ./scripts/mint-code.mjs
+# Run in the container, with the app up, to render and pre-render the sample matrix (💸):
+# BASE_URL=http://127.0.0.1:3000 ACCESS_CODE=<code> node scripts/prerender-samples.mjs
+COPY --from=build --chown=node:node /app/scripts/prerender-samples.mjs ./scripts/prerender-samples.mjs
 COPY --chmod=755 scripts/container-entrypoint.sh /usr/local/bin/open-photon-entrypoint
 RUN mkdir /app/data && chown node:node /app/data
 LABEL org.opencontainers.image.source="https://github.com/WojciechJelen/open-photon"

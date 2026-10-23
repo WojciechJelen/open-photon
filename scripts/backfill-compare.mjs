@@ -5,8 +5,9 @@
 // It runs FFmpeg on this machine and never calls Comfy. A take whose stitch fails (its driving clip
 // is no longer stored) is logged and left as it is; running it again only retries those.
 // It runs where the repository is, with its node_modules: it imports the server's TypeScript
-// sources, which the app image does not ship (it copies only scripts/mint-code.mjs). For a deployed
-// database, run it against that volume's database and its assets/ beside it, with the app stopped.
+// sources, which the app image does not ship (of scripts/ it copies only the self-contained
+// mint-code.mjs and prerender-samples.mjs). For a deployed database, run it against that
+// volume's database and its assets/ beside it, with the app stopped.
 import "../src/app/server.ts";
 import { COMPARE_OUTPUT } from "../src/features/motionTransfer/server/media/compare.ts";
 import { database } from "../src/shared/server/db.server.ts";
