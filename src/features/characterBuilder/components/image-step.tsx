@@ -40,23 +40,25 @@ import { isFinished } from "#/shared/use-live-generation";
 
 /** What the image screen does, as the page (`CharacterBuilder`) carries it out. */
 export type ImageActions = {
-  /** A new image from the same caption: a new request, so a new seed. */
-  onAnother: () => void;
   onBack: () => void;
-  /** Back to the caption, to change it. */
+  /** Back to the caption editor of this image, to change it. */
   onEditCaption: () => void;
-  /** The shared retry of a failed image (a new seed). */
-  onRetry: (generationId: string) => void;
   /** Save the image as a workspace character, with an optional title. */
   onSave: (generationId: string, title: string | undefined) => void;
+  /**
+   * A new image of the caption and source `imageId` was made from, with a new seed: "Another
+   * image", or a failed one tried again.
+   */
+  onTryAgain: (imageId: string) => void;
   onUnlock: (resume: () => void) => void;
 };
 
 type Props = ImageActions & {
   draft: DraftSnapshot | undefined;
   imageId: string;
+  /** The refusal of the last action, with its recovery; shown whatever state the image is in. */
   notice: React.ReactNode;
-  pending: "another" | "retry" | "save" | null;
+  pending: string | null;
   /** The character the image was saved as: its summary once saved here, else its id from the URL. */
   saved: { character: CharacterSummary | null; id: string } | null;
 };
@@ -99,7 +101,7 @@ function StoredImage(props: Props) {
     );
   }
 
-  return <LiveImage {...props} initial={loaded.generation} />;
+  return <LiveImage {...props} initial={loaded.data} />;
 }
 
 /** The image generation's recipe, once it is done. */
@@ -162,25 +164,24 @@ function LiveImage(props: Props & { initial: GenerationSnapshot }) {
   }
 
   if (!image) {
-    const retryable = generation.status === "failed" || generation.status === "cancelled";
-
     return (
       <GenerationFailure generation={generation} making="image">
-        {retryable ? (
-          <Button
-            disabled={props.pending !== null}
-            onClick={() => props.onRetry(generation.id)}
-            size="lg"
-          >
-            <RotateCcwIcon aria-hidden="true" />
-            {props.pending === "retry" ? "Trying again…" : "Try again with a new seed"}
-          </Button>
-        ) : (
-          <Button disabled={props.pending !== null} onClick={props.onAnother} size="lg">
+        <Button
+          disabled={props.pending !== null}
+          onClick={() => props.onTryAgain(generation.id)}
+          size="lg"
+        >
+          {generation.status === "unknown" ? (
             <ShuffleIcon aria-hidden="true" />
-            Start a new image
-          </Button>
-        )}
+          ) : (
+            <RotateCcwIcon aria-hidden="true" />
+          )}
+          {props.pending === "again"
+            ? "Starting…"
+            : generation.status === "unknown"
+              ? "Start a new image"
+              : "Try again with a new seed"}
+        </Button>
         <Button onClick={props.onEditCaption} size="lg" variant="outline">
           Edit the caption
         </Button>
@@ -192,17 +193,31 @@ function LiveImage(props: Props & { initial: GenerationSnapshot }) {
   return (
     <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
       <figure className="mx-auto flex w-full max-w-sm shrink-0 flex-col gap-3 lg:mx-0 lg:max-w-md">
-        <img
-          alt={
-            recipe ? `Generated character: ${recipe.caption.slice(0, 160)}` : "Generated character"
-          }
-          className="w-full rounded-3xl border bg-screen"
-          height={image.height ?? undefined}
-          src={mediaUrl(image)}
-          width={image.width ?? undefined}
-        />
+        {/* FLUX Kommunity licence: an output is disclosed as AI-generated wherever it is shown. */}
+        <div className="relative">
+          <img
+            alt={
+              recipe
+                ? `AI-generated character: ${recipe.caption.slice(0, 160)}`
+                : "AI-generated character"
+            }
+            className="w-full rounded-3xl border bg-screen"
+            height={image.height ?? undefined}
+            src={mediaUrl(image)}
+            width={image.width ?? undefined}
+          />
+          <span className="absolute top-3.5 left-3.5">
+            <Badge variant="solid">AI-generated image</Badge>
+          </span>
+        </div>
+        <figcaption className="text-sm text-soft-foreground">
+          AI-generated with FLUX 3 Image Klein (open weights, FLUX Kommunity licence).
+        </figcaption>
         <Button asChild variant="outline">
-          <a download={`character-${generation.id.slice(0, 8)}.png`} href={mediaUrl(image)}>
+          <a
+            download={`ai-generated-character-${generation.id.slice(0, 8)}.png`}
+            href={mediaUrl(image)}
+          >
             <DownloadIcon aria-hidden="true" />
             Download image
           </a>
@@ -210,6 +225,7 @@ function LiveImage(props: Props & { initial: GenerationSnapshot }) {
       </figure>
       <div className="flex min-w-0 flex-1 flex-col gap-6">
         <SaveCharacter {...props} generationId={generation.id} />
+        {props.notice}
         <dl
           aria-label="Made with"
           className="flex flex-col gap-4 rounded-2xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-5 text-sm"
@@ -253,9 +269,13 @@ function LiveImage(props: Props & { initial: GenerationSnapshot }) {
           </div>
         </dl>
         <div className="flex flex-wrap gap-2.5">
-          <Button disabled={props.pending !== null} onClick={props.onAnother} variant="ghost">
+          <Button
+            disabled={props.pending !== null}
+            onClick={() => props.onTryAgain(generation.id)}
+            variant="ghost"
+          >
             <ShuffleIcon aria-hidden="true" />
-            {props.pending === "another" ? "Starting…" : "Another image, same caption"}
+            {props.pending === "again" ? "Starting…" : "Another image, same caption"}
           </Button>
           <Button onClick={props.onEditCaption} variant="ghost">
             <ArrowLeftIcon aria-hidden="true" />
@@ -275,7 +295,6 @@ function LiveImage(props: Props & { initial: GenerationSnapshot }) {
 function SaveCharacter({
   draft,
   generationId,
-  notice,
   onSave,
   pending,
   saved,
@@ -342,7 +361,6 @@ function SaveCharacter({
           until you choose to.
         </p>
       </div>
-      {notice}
       <div>
         <Button disabled={pending !== null} size="lg" type="submit">
           <BookmarkPlusIcon aria-hidden="true" />

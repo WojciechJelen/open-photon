@@ -5,10 +5,11 @@
 // carrying `[fake:provider_failed]` fails.
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { expect, type Page, test } from "@playwright/test";
 
-import { open } from "../../../../tests/e2e/session.ts";
+import { accessCode, open } from "../../../../tests/e2e/session.ts";
 
 const fakeCaption = readFileSync("tests/fixtures/fake-output.txt", "utf8");
 
@@ -64,7 +65,7 @@ test("describe, enhance, edit, generate, save and animate with the motion the vi
 
   await page.getByRole("button", { name: "Generate character" }).click();
 
-  const image = page.getByRole("img", { name: /Generated character/ });
+  const image = page.getByRole("img", { name: /AI-generated character/ });
 
   await expect(image).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId("image-caption")).toHaveText(edited, { useInnerText: false });
@@ -84,6 +85,12 @@ test("describe, enhance, edit, generate, save and animate with the motion the vi
   await expect(page.getByRole("link", { name: "Download image" })).toHaveAttribute(
     "href",
     /^\/media\/[0-9a-f-]{36}\.png$/,
+  );
+  // FLUX Kommunity licence: the output says it is AI-generated, and so does its file name.
+  await expect(page.getByText("AI-generated image", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Download image" })).toHaveAttribute(
+    "download",
+    /^ai-generated-character-/,
   );
 
   // Nothing is saved until the visitor chooses to.
@@ -139,6 +146,42 @@ test("describe, enhance, edit, generate, save and animate with the motion the vi
     "href",
     `/characters?selected=${characterId}`,
   );
+
+  // An action's error shows on a saved image too.
+  await page.route("**/recipe.json", (route) =>
+    route.fulfill({ json: { error: "The recipe store is down." }, status: 500 }),
+  );
+  await page.getByRole("button", { name: "Another image, same caption" }).click();
+  await expect(page.getByRole("alert")).toContainText("The recipe store is down.");
+  await page.unrouteAll();
+
+  // "Another image" double-clicked while its recipe is slow to read: one new image.
+  const beforeAnother = countOf(images);
+
+  await page.route("**/recipe.json", async (route) => {
+    await delay(1000);
+    await route.fallback();
+  });
+  await page.getByRole("button", { name: "Another image, same caption" }).dblclick();
+  await expect(page).not.toHaveURL(new RegExp(`image=${imageId}`));
+  await expect(image).toBeVisible({ timeout: 30_000 });
+  expect(countOf(images)).toBe(beforeAnother + 1);
+  await page.unrouteAll();
+
+  // The session expired: "Another image" asks for the code, then carries on.
+  const shownImage = searchId(page, "image");
+
+  await page.context().clearCookies();
+  await page.getByRole("button", { name: "Another image, same caption" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Enter your access code" });
+
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Access code").fill(accessCode(process.env.E2E_FAKE_DATABASE_PATH));
+  await dialog.getByRole("button", { name: "Unlock and generate" }).click();
+  await expect(page).not.toHaveURL(new RegExp(`image=${shownImage}`));
+  await expect(image).toBeVisible({ timeout: 30_000 });
+  expect(countOf(images)).toBe(beforeAnother + 2);
 });
 
 test("a failed image says why; Try again is a new seed, and an edited caption renders", async ({
@@ -171,7 +214,7 @@ test("a failed image says why; Try again is a new seed, and an edited caption re
   );
   await page.getByLabel("Your caption").fill("A stunt double, full body.");
   await page.getByRole("button", { name: "Generate character" }).click();
-  await expect(page.getByRole("img", { name: /Generated character/ })).toBeVisible({
+  await expect(page.getByRole("img", { name: /AI-generated character/ })).toBeVisible({
     timeout: 30_000,
   });
   expect(countOf(images)).toBe(before + 3);
@@ -181,7 +224,7 @@ test("a failed image says why; Try again is a new seed, and an edited caption re
 
   await page.getByRole("button", { name: "Another image, same caption" }).click();
   await expect(page).not.toHaveURL(new RegExp(`image=${first}`));
-  await expect(page.getByRole("img", { name: /Generated character/ })).toBeVisible({
+  await expect(page.getByRole("img", { name: /AI-generated character/ })).toBeVisible({
     timeout: 30_000,
   });
   expect(countOf(images)).toBe(before + 4);
