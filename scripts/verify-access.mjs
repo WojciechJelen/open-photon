@@ -72,7 +72,9 @@ const linked = await fetch(link, { headers: { Accept: "text/html" }, redirect: "
 const linkCookie = linked.headers.get("Set-Cookie")?.split(";")[0];
 
 assert.equal(linked.status, 303, "A link with the code must sign in");
+
 assert.equal(linked.headers.get("Location"), "/characters/new");
+
 assert.ok(linkCookie, "A link with the code must issue a session cookie");
 
 const reopened = await fetch(link, {
@@ -81,6 +83,7 @@ const reopened = await fetch(link, {
 });
 
 assert.equal(reopened.status, 303);
+
 assert.equal(reopened.headers.get("Set-Cookie"), null, "Reopened signed in, the link only goes on");
 
 const builder = await fetch(`${base}/characters/new`, {
@@ -95,7 +98,9 @@ const wrongLink = await fetch(`${base}/access?code=not-a-code&next=%2Fcharacters
 });
 
 assert.equal(wrongLink.status, 200);
+
 assert.equal(wrongLink.headers.get("Set-Cookie"), null, "A wrong link must not sign in");
+
 assert.ok((await wrongLink.text()).includes("Incorrect access code."));
 
 const invalid = await fetch(`${base}/api/generations/not-a-uuid`, { headers: { Cookie } });

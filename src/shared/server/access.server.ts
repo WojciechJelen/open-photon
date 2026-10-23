@@ -28,8 +28,9 @@ function respond(body: string | null, status: number, headers?: HeadersInit) {
   return response;
 }
 
-function page(next: string, message?: string, status = 200) {
-  return respond(accessPage(next, message), status, { "Content-Type": "text/html; charset=utf-8" });
+/** The code form; with `error`, the refusal of a wrong code in place of the usual intro. */
+function page(next: string, error?: string, status = 200) {
+  return respond(accessPage(next, error), status, { "Content-Type": "text/html; charset=utf-8" });
 }
 
 /** A JSON refusal `{ error, reason, retry_after? }`; with `retryAfter` (seconds) also its header. */
@@ -254,6 +255,7 @@ export function createAccessGuard(
       config.production || new URL(config.publicUrl ?? request.url).protocol === "https:";
 
     return {
+      codeId: code.id,
       cookie: `${cookieName}=${code.id}.${expires}.${signature(code.code_hash, code.id, expires)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${sessionSeconds}${secure ? "; Secure" : ""}`,
       status: 200 as const,
     };
@@ -279,13 +281,16 @@ export function createAccessGuard(
         return respond("Method not allowed", 405, { Allow: "GET, POST" });
       }
 
-      // A link that carries the code (`?code=`) signs in like the form, unless the visitor
-      // already is; a wrong one shows the form (200), whose action drops `code`, so no loop.
-      if (link && readSession(request, now)) {
+      // A link that carries the code (`?code=`) signs in like the form. A visitor already signed
+      // in with that code only goes on; one signed in with another code changes to the link's; a
+      // wrong or rate-limited link never signs anyone out. A wrong one without a session shows the
+      // form (200), whose action drops `code`, so no loop.
+      const session = link ? readSession(request, now) : null;
+      const result = await login(request, link ? "link" : "form");
+
+      if (session && result.status !== 200) {
         return respond("", 303, { Location: next });
       }
-
-      const result = await login(request, link ? "link" : "form");
 
       if (result.status === 429) {
         return respond(`Too many attempts. Try again in ${result.retryAfter} s.`, 429, {
@@ -293,9 +298,17 @@ export function createAccessGuard(
         });
       }
 
-      return result.status === 401
-        ? page(next, "Incorrect access code. Please try again.", link ? 200 : 401)
-        : respond("", 303, { Location: next, "Set-Cookie": result.cookie });
+      if (result.status === 401) {
+        return page(next, "Incorrect access code. Please try again.", link ? 200 : 401);
+      }
+
+      return respond(
+        "",
+        303,
+        session?.codeId === result.codeId
+          ? { Location: next }
+          : { Location: next, "Set-Cookie": result.cookie },
+      );
     }
 
     if (url.pathname === "/api/session") {

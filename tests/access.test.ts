@@ -162,6 +162,7 @@ test("the /access form signs in and returns to the page asked for, on this site 
 test("a link with ?code= signs in like the form and goes on to next; reopened, it only goes on", async () => {
   const code = mintCode(5);
   const guard = createAccessGuard({ production: true });
+
   const link = (value: string, next = "/characters/new", cookie?: string) =>
     new Request(
       `${origin}/access?code=${encodeURIComponent(value)}&next=${encodeURIComponent(next)}`,
@@ -172,7 +173,7 @@ test("a link with ?code= signs in like the form and goes on to next; reopened, i
 
   const opened = await guard(link(code));
   const header = opened?.headers.get("Set-Cookie") ?? "";
-  const cookie = header.split(";")[0];
+  const cookie = header.split(";")[0] ?? "";
 
   assert.equal(opened?.status, 303);
   assert.equal(opened?.headers.get("Location"), "/characters/new");
@@ -211,10 +212,44 @@ test("a link with ?code= signs in like the form and goes on to next; reopened, i
     assert.ok(html.includes("Incorrect access code."));
     assert.ok(html.includes('action="/access?next=%2Fcharacters%2Fnew"'));
     assert.ok(!html.includes(code));
+    assert.ok(
+      !html.includes("Opened a link"),
+      "the wrong-code page does not say the link signed in",
+    );
   }
 
   // The revoked code's old session no longer counts as signed in, so it does not just go on.
   assert.equal((await guard(link(code, "/characters/new", cookie)))?.status, 200);
+});
+
+test("a link with another code than the session's signs in to the link's; a wrong one signs no one out", async () => {
+  const first = mintCode(5);
+  const second = mintCode(5);
+  const guard = createAccessGuard({ production: true });
+
+  const link = (value: string, cookie: string) =>
+    new Request(`${origin}/access?code=${encodeURIComponent(value)}&next=%2Fcharacters%2Fnew`, {
+      headers: { Accept: "text/html", Cookie: cookie },
+    });
+
+  const sessionOf = (cookie: string) =>
+    readSession(new Request(`${origin}/`, { headers: { Cookie: cookie } }));
+
+  const cookieA = await sessionCookie(first);
+  const switched = await guard(link(second, cookieA));
+  const cookieB = switched?.headers.get("Set-Cookie")?.split(";")[0] ?? "";
+
+  assert.equal(switched?.status, 303);
+  assert.equal(switched?.headers.get("Location"), "/characters/new");
+  assert.ok(sessionOf(cookieB));
+  assert.notEqual(sessionOf(cookieB)?.codeId, sessionOf(cookieA)?.codeId);
+
+  // A wrong code with a session goes on, keeping that session.
+  const wrong = await guard(link(`${second}x`, cookieB));
+
+  assert.equal(wrong?.status, 303);
+  assert.equal(wrong?.headers.get("Location"), "/characters/new");
+  assert.equal(wrong?.headers.get("Set-Cookie"), null);
 });
 
 test("links pay into the same login limit as the form and POST /api/session", async () => {

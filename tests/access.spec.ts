@@ -198,6 +198,7 @@ test.describe("without a session", () => {
     await page.setViewportSize({ height: 844, width: 390 });
 
     const link = `/access?code=${encodeURIComponent(accessCode())}&next=%2Fcharacters%2Fnew`;
+
     const landed = async () => {
       await expect(page).toHaveURL(
         (url) => url.pathname === "/characters/new" && url.search === "",
