@@ -12,51 +12,26 @@ one and render it with the open-weights FLUX 3 Image Klein (`/characters/new`), 
 upload a photo with the person's consent, then find and animate it from
 `/characters`.
 
+**Try it:** [open-photon-staging.up.railway.app](https://open-photon-staging.up.railway.app/). The
+home page, the samples and every share page open without a code. Judges: use the link in the
+submission form; it signs you in and opens the character builder (`/characters/new`).
+
 <p align="center">
-  <img src="docs/readme/maya-street-dance.gif" height="300" alt="A take side by side: the Street dance driving clip on the left, the Maya character doing the same dance on the right">
-  <img src="docs/readme/maya-character-and-take.jpg" height="300" alt="Left: the Maya character as FLUX 3 Image Klein rendered her from a description; right: a frame of her Wan Animate 2 take">
+  <img src="docs/readme/maya-street-dance.gif" height="220" alt="A take side by side: the Street dance driving clip on the left, the Maya character doing the same dance on the right">
+  <img src="docs/readme/maya-character-and-take.jpg" height="220" alt="Left: the Maya character as FLUX 3 Image Klein rendered her from a description; right: a frame of her Wan Animate 2 take">
 </p>
 <p align="center"><sub>Left: a take's side-by-side download, driving clip | result (cropped, as a GIF).
 Right: a character FLUX 3 Image Klein rendered from a one-line description, beside a frame of
-Wan Animate 2 animating her. Both from the pre-rendered sample take on the home page;
+Wan Animate 2 animating her. Both from a pre-rendered sample take;
 <a href="docs/readme/README.md">how they were cut</a>.</sub></p>
-
-Built with TanStack Start, React, Tailwind, shadcn, SQLite and the Comfy SDK.
-Browsing samples is public; uploads and new generations require an access code.
-Opened a link that already contains a code? You're in.
-New renders use your Comfy Cloud credits or your self-hosted GPU.
-
-**Try it:** [open-photon-staging.up.railway.app](https://open-photon-staging.up.railway.app/).
-The home page's result wall, the samples and every share page open without a code. Judges: use
-the link in the submission form; it signs you in and opens the character builder
-(`/characters/new`).
-
-An unfinished experiment in pinning performance beats, not part of the app, lives in
-`src/features/motion-score/`.
-
-## Numbers
-
-One 5-second 480×848 Motion Transfer take, one caption, one 768×1344 character image. The RTX 5090
-(Oct 21) and A40 `0.2.0` jobs were each the first of their models on the pod, so model loading is
-included.
-
-| Workflow | Backend | Submit → done | Peak VRAM | Cost | Source |
-| --- | --- | --- | --- | --- | --- |
-| Motion Transfer (Wan Animate 2) | Comfy Cloud | 64.9 s execution (direct submit); 70.6–115.7 s through the app, side-by-side stitch included (6 takes) | not observable | ≈ 8.3 ¢ ($0.083, 17.5 credits) | [CHECKLIST](CHECKLIST.md) 1.6, DEV-280 |
-| Motion Transfer (Wan Animate 2) | Runpod RTX 5090 32 GB | 158.7 s (Oct 21); 167.8 s (image `0.1.0`, Oct 23) | 31,066 MiB; 31,426 MiB | pod time | [CHECKLIST](CHECKLIST.md) 8.3, Oct 23 follow-up |
-| Motion Transfer (Wan Animate 2) | Runpod A40 48 GB | 255.9 s (image `0.2.0`); 149.1 s (image `0.1.0`) | 38,935 MiB (`0.2.0`) | ≈ $0.04 of pod time at $0.59/h | [self-host proof](docs/selfhost-proof-2026-10-23/README.md) |
-| Caption (FLUX 3 prompt upsampler) | Comfy Cloud | 5.0 s | not observable | ≈ 0.08 ¢ | [character workflows](src/features/characterBuilder/workflows/README.md#measurements-comfy-cloud-2026-10-23) |
-| Caption (FLUX 3 prompt upsampler) | Runpod A40 48 GB | 26.6 s | 6,601 MiB | pod time | [self-host proof](docs/selfhost-proof-2026-10-23/README.md) |
-| Character image (FLUX 3 Image Klein) | Comfy Cloud | 14.3 s | not observable | ≈ 0.8 ¢ | [character workflows](src/features/characterBuilder/workflows/README.md#measurements-comfy-cloud-2026-10-23) |
-| Character image (FLUX 3 Image Klein) | Runpod A40 48 GB | 31.9 s | 10,653 MiB | pod time | [self-host proof](docs/selfhost-proof-2026-10-23/README.md) |
-
-Cloud cost is the account balance before and after a take; VRAM is the whole-device `nvidia-smi`
-peak while the job ran. The whole A40 run (boot, model download, three jobs, restart) cost about
-$0.21 of pod time.
 
 ## Getting started
 
-Quick run with the published image (`.env` holds one backend from the next section):
+<a id="run"></a>
+
+### Run the containerized app
+
+Put one backend in `.env` ([Comfy Cloud or Runpod](#choose-a-rendering-backend)), then:
 
 ```sh
 docker run -d --name open-photon --init --env-file .env -p 127.0.0.1:3030:3000 \
@@ -65,7 +40,37 @@ docker run -d --name open-photon --init --env-file .env -p 127.0.0.1:3030:3000 \
 docker exec open-photon node scripts/mint-code.mjs me 100
 ```
 
-Details, and a run from source, below.
+Volumes, Compose, filling the result wall and a run from source: [Setup](#setup).
+
+## Numbers
+
+One 5-second 480×848 Motion Transfer take, one caption, one 768×1344 character image:
+
+| Workflow | Backend | Submit → done | Peak VRAM | Cost |
+| --- | --- | --- | --- | --- |
+| Motion Transfer | Comfy Cloud | 70.6–115.7 s (6 takes) | — | ≈ 8.3 ¢ (17.5 credits) |
+| Motion Transfer | RTX 5090 32 GB | 158.7 s (Oct 21); 167.8 s (`0.1.0`) | 31,066; 31,426 MiB | pod time |
+| Motion Transfer | A40 48 GB | 255.9 s (`0.2.0`); 149.1 s (`0.1.0`) | 38,935 MiB (`0.2.0`) | 255.9 s × $0.59/h ≈ $0.04 |
+| FLUX 3 caption | Comfy Cloud | 5.0 s | — | ≈ 0.08 ¢ |
+| FLUX 3 caption | A40 48 GB | 26.6 s | 6,601 MiB | pod time |
+| FLUX 3 image | Comfy Cloud | 14.3 s | — | ≈ 0.8 ¢ |
+| FLUX 3 image | A40 48 GB | 31.9 s | 10,653 MiB | pod time |
+
+Sources: Cloud Motion Transfer cost and execution [CHECKLIST 1.6](CHECKLIST.md#phase-1--the-workflow-as-data), its times [DEV-280](CHECKLIST.md#sample-matrix-and-result-wall-dev-280); RTX 5090 [CHECKLIST 8.3](CHECKLIST.md#phase-8-open-weights-proof) (Oct 21) and the [Oct 23 follow-up](CHECKLIST.md#deployment-evidence-after-the-docker-simplification); A40 `0.2.0` and its pod rate the [self-host proof](docs/selfhost-proof-2026-10-23/README.md); A40 `0.1.0` [CHECKLIST](CHECKLIST.md#deployment-evidence-after-the-docker-simplification); FLUX 3 on Cloud the [character workflows README](src/features/characterBuilder/workflows/README.md#measurements-comfy-cloud-2026-10-23).
+
+Cloud Motion Transfer times are the six sample takes through the app, side-by-side stitch
+included; a direct submit's ComfyUI execution took 64.9 s. Cloud cost is the account balance before and
+after a job; Cloud VRAM is not observable. A40 VRAM is the whole-device `nvidia-smi` peak while
+the job ran. The RTX 5090 (Oct 21) and A40 `0.2.0` jobs were each the first of their models on
+the pod, so model loading is included. The whole A40 run (boot, model download, three jobs,
+restart) cost about $0.21 of pod time.
+
+## Setup
+
+Built with TanStack Start, React, Tailwind, shadcn, SQLite and the Comfy SDK.
+Browsing samples is public; uploads and new generations require an access code.
+Opened a link that already contains a code? You're in.
+New renders use your Comfy Cloud credits or your self-hosted GPU.
 
 ### Choose a rendering backend
 
@@ -79,11 +84,8 @@ COMFY_API_KEY=your-cloud-key
 ```
 
 **Runpod:** deploy the [Open Photon template](https://console.runpod.io/deploy?template=iqcvzqgt1q)
-on an NVIDIA GPU with a **CUDA 13-compatible driver**. **48 GB VRAM is recommended**:
-image `0.2.0` on an A40 peaked at 38,935 MiB for a 5-second Motion Transfer take and
-10,653 MiB for a character image (whole-device `nvidia-smi` readings while each ran). Image
-`0.1.0` also passed a 5-second render on an RTX 5090 32 GB, peaking at 31,426 MiB with little
-headroom.
+on an NVIDIA GPU with a **CUDA 13-compatible driver**. **48 GB VRAM is recommended** (peaks per
+workflow in [Numbers](#numbers)); 32 GB passed with little headroom.
 Set `PROXY_TOKEN` to a long random secret, and `HF_TOKEN` to a Hugging Face token of an account
 that accepted the FLUX Kommunity License on
 [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy)
@@ -95,8 +97,7 @@ distilled int8, its Qwen3-VL text encoder, its prompt upsampler and the FLUX 2 V
 about 36 GB for ComfyUI's inputs and outputs (on the A40 test, the download took 5 minutes and
 the API served 9 minutes after the pod was created; a restart downloads nothing but re-checks
 every file, about 4 minutes). A volume of your own needs at least 50 GB. The GPU
-runs one job at a time, so it must fit the largest workflow, Motion Transfer; the figures above
-are its own. Then save:
+runs one job at a time, so it must fit the largest workflow, Motion Transfer. Then save:
 
 ```dotenv
 COMFY_BASE_URL=https://POD_ID-8189.proxy.runpod.net
@@ -129,29 +130,11 @@ node --env-file=.env scripts/mint-code.mjs me 100
 Enter the printed access code in the app. `100` is its generation allowance. A link
 `/access?code=<code>&next=/characters/new` signs in on opening and lands on that page.
 
-<a id="run"></a>
+### Container notes
 
-### Run the containerized app
-
-Install Docker and create `.env` with the backend settings above. No repository
-clone, Node installation or local build is needed. The same published app image
-supports both backends on Linux AMD64 and ARM64:
-
-```sh
-docker run -d --name open-photon --init \
-  --env-file .env \
-  -p 127.0.0.1:3030:3000 \
-  -v open-photon-data:/app/data \
-  ghcr.io/wojciechjelen/open-photon:0.2.0
-```
-
-Open [localhost:3030](http://localhost:3030), then create an access code:
-
-```sh
-docker exec open-photon node scripts/mint-code.mjs me 100
-```
-
-The volume keeps results and access codes across container replacement. From a
+The published app image runs either backend on Linux AMD64 and ARM64; it needs no repository
+clone, Node installation or local build. The volume keeps results and access codes across
+container replacement. From a
 source checkout, you can instead use `docker compose up -d` and
 `docker compose exec app node scripts/mint-code.mjs me 100` with the same `.env`.
 Compose uses its own persistent volume.
@@ -247,3 +230,6 @@ hashes and the workflow's origin: `src/features/characterBuilder/workflows/READM
 [`AGENTS.md`](AGENTS.md) is the rulebook the coding agents worked to (layout, import boundaries,
 the generation queue, toolchain). [`CHECKLIST.md`](CHECKLIST.md) is the build log: every step with
 its evidence, including each paid render and what it cost.
+
+An unfinished experiment in pinning performance beats, not part of the app, lives in
+`src/features/motion-score/`.
