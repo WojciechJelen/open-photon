@@ -236,3 +236,55 @@ test("a failed image says why; Try again is a new seed, and an edited caption re
   expect(recipe.caption).toBe("A stunt double, full body.");
   expect(recipe.source).toMatchObject({ description: "A stunt double", enhancement: null });
 });
+
+test("a caption or image whose status is unknown is never sent again from the page", async ({
+  page,
+}) => {
+  const captions = "generations WHERE workflow_id = 'character-caption'";
+  // The fake provider accepts the job, then the submit times out: the row is `unknown`.
+  const description = "A mime who never answers [fake:ambiguous]";
+  const beforeCaptions = countOf(captions);
+
+  await open(page, "/characters/new");
+  await page.getByLabel("Description", { exact: true }).fill(description);
+  await page.getByRole("button", { name: "Enhance caption" }).click();
+  await expect(page.getByRole("alert")).toContainText("The caption's status is unknown", {
+    timeout: 30_000,
+  });
+  await expect(page.getByRole("button", { name: /Try again|Enhance/ })).toHaveCount(0);
+  expect(countOf(captions)).toBe(beforeCaptions + 1);
+
+  // The same description again is the same request: the same unknown caption, nothing new.
+  const unknownCaption = searchId(page, "caption");
+
+  await page.getByRole("button", { name: "Edit the description" }).click();
+  await page.getByRole("button", { name: "Enhance caption" }).click();
+  await expect(page.getByRole("alert")).toContainText("The caption's status is unknown");
+  expect(searchId(page, "caption")).toBe(unknownCaption);
+  expect(countOf(captions)).toBe(beforeCaptions + 1);
+
+  const beforeImages = countOf(images);
+
+  await page.getByRole("button", { name: "Edit the description" }).click();
+  await page.getByLabel("Description", { exact: true }).fill("A juggler");
+  await page.getByRole("button", { name: "Write the caption myself" }).click();
+  await page.getByLabel("Your caption").fill("A juggler, full body. [fake:ambiguous]");
+  await page.getByRole("button", { name: "Generate character" }).click();
+  await expect(page.getByRole("alert")).toContainText("The image's status is unknown", {
+    timeout: 30_000,
+  });
+  await expect(page.getByRole("button", { name: /Try again|new image|Another/ })).toHaveCount(0);
+  expect(countOf(images)).toBe(beforeImages + 1);
+
+  // Its own caption and seed, unchanged, are the request that made it: the image again, no job.
+  const unknownImage = searchId(page, "image");
+
+  await page.getByRole("button", { name: "Edit the caption" }).click();
+  await expect(page.getByLabel("Your caption")).toHaveValue(
+    "A juggler, full body. [fake:ambiguous]",
+  );
+  await page.getByRole("button", { name: "Generate character" }).click();
+  await expect(page.getByRole("alert")).toContainText("The image's status is unknown");
+  expect(searchId(page, "image")).toBe(unknownImage);
+  expect(countOf(images)).toBe(beforeImages + 1);
+});

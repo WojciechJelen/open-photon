@@ -6,7 +6,6 @@ import {
   ClapperboardIcon,
   DownloadIcon,
   LibraryIcon,
-  RotateCcwIcon,
   ShuffleIcon,
 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
@@ -165,23 +164,12 @@ function LiveImage(props: Props & { initial: GenerationSnapshot }) {
 
   if (!image) {
     return (
-      <GenerationFailure generation={generation} making="image">
-        <Button
-          disabled={props.pending !== null}
-          onClick={() => props.onTryAgain(generation.id)}
-          size="lg"
-        >
-          {generation.status === "unknown" ? (
-            <ShuffleIcon aria-hidden="true" />
-          ) : (
-            <RotateCcwIcon aria-hidden="true" />
-          )}
-          {props.pending === "again"
-            ? "Starting…"
-            : generation.status === "unknown"
-              ? "Start a new image"
-              : "Try again with a new seed"}
-        </Button>
+      <GenerationFailure
+        generation={generation}
+        making="image"
+        onTryAgain={() => props.onTryAgain(generation.id)}
+        pending={props.pending}
+      >
         <Button onClick={props.onEditCaption} size="lg" variant="outline">
           Edit the caption
         </Button>

@@ -11,6 +11,7 @@ import {
   type CaptionSource,
   controlsOf,
   manualBasis,
+  seedOf,
   withDescribed,
   writtenSource,
 } from "#/features/characterBuilder/builder-form";
@@ -48,8 +49,10 @@ export type CaptionActions = {
   onEnhance: () => void;
   /** Generate the image from exactly `caption`, from `source`. */
   onGenerate: (caption: string, source: CaptionSource) => void;
-  /** A new enhancement of the one `captionId` made (failed, cancelled or unknown). */
+  /** A new enhancement of the one `captionId` made (failed or cancelled). */
   onTryAgain: (captionId: string) => void;
+  /** Back to the image the caption editor was opened from. */
+  onOpenImage: () => void;
   /** Ask for the access code, then carry on with `resume` (read again what could not be read). */
   onUnlock: (resume: () => void) => void;
 };
@@ -150,6 +153,13 @@ function ImageCaption(props: Props & { imageId: string }) {
       {...props}
       basis={basis}
       enhanced={enhancement ? enhancement.caption : null}
+      // The image's own caption and seed unchanged are the request that made it: never sent
+      // again (Comfy may still have it, if its status is unknown); the image is shown instead.
+      onGenerate={(caption, source) =>
+        caption === recipe.caption && seedOf(form) === recipe.seed
+          ? props.onOpenImage()
+          : props.onGenerate(caption, source)
+      }
       source={imageSource(recipe)}
       start={recipe.caption}
     />
@@ -203,15 +213,12 @@ function LiveCaption(props: Props & { initial: GenerationSnapshot }) {
 
   if (generation.status !== "done" || output?.media !== "text") {
     return (
-      <GenerationFailure generation={generation} making="caption">
-        <Button
-          disabled={props.pending !== null}
-          onClick={() => props.onTryAgain(generation.id)}
-          size="lg"
-        >
-          <RotateCcwIcon aria-hidden="true" />
-          {props.pending === "again" ? "Starting…" : "Try again"}
-        </Button>
+      <GenerationFailure
+        generation={generation}
+        making="caption"
+        onTryAgain={() => props.onTryAgain(generation.id)}
+        pending={props.pending}
+      >
         <Button onClick={props.onBack} size="lg" variant="outline">
           Edit the description
         </Button>

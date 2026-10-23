@@ -1,6 +1,7 @@
 import { cn } from "cn";
-import { CheckIcon, CircleAlertIcon, TriangleAlertIcon } from "lucide-react";
+import { CheckIcon, CircleAlertIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react";
 
+import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
 import { Hud } from "#/shared/components/brand";
 import type { GenerationSnapshot } from "#/shared/contracts";
@@ -155,17 +156,22 @@ const failureText: Record<ErrorCode, string> = {
 
 /**
  * A caption or image that ended without a result: why, in plain words, the stored message and
- * code, and the actions the page offers (`children`). An `unknown` one may still be running on
- * Comfy, so it is never sent again; the page offers a new attempt instead.
+ * code, Try again (`onTryAgain`, while an action runs `pending`) for a failed or cancelled one,
+ * and the page's other actions (`children`). An `unknown` one may still be running on Comfy, so
+ * it is never sent again: it gets no Try again, only a change of request.
  */
 export function GenerationFailure({
   children,
   generation,
   making,
+  onTryAgain,
+  pending,
 }: {
   children: React.ReactNode;
   generation: GenerationSnapshot;
   making: Making;
+  onTryAgain: () => void;
+  pending: string | null;
 }) {
   const unknown = generation.status === "unknown";
   const noun = making === "caption" ? "caption" : "image";
@@ -174,7 +180,7 @@ export function GenerationFailure({
     generation.status === "cancelled"
       ? "It was cancelled while it waited for a rendering slot, so nothing ran or was charged."
       : unknown
-        ? "Comfy may still be working on it, so it isn't sent again. Start a new one instead."
+        ? "Comfy may still be working on it, so it is never sent again from here: that could pay for it twice. Check the rendering backend for the job, or change the request and send that instead."
         : failureText[generation.error_code ?? "unknown"];
 
   return (
@@ -209,7 +215,19 @@ export function GenerationFailure({
           )}
         </div>
       </div>
-      <div className="flex flex-wrap gap-2.5">{children}</div>
+      <div className="flex flex-wrap gap-2.5">
+        {(generation.status === "failed" || generation.status === "cancelled") && (
+          <Button disabled={pending !== null} onClick={onTryAgain} size="lg">
+            <RotateCcwIcon aria-hidden="true" />
+            {pending === "again"
+              ? "Starting…"
+              : making === "caption"
+                ? "Try again"
+                : "Try again with a new seed"}
+          </Button>
+        )}
+        {children}
+      </div>
     </div>
   );
 }
