@@ -118,6 +118,13 @@ Motion Transfer's declaration adds the source clip its share page shows; uploade
 images stay private. Every `/r/<slug>` and `/media/<id>.<ext>` URL that existed before the
 backfill still answers.
 
+Everything a workflow produces is AI-generated, and is disclosed as such wherever it is shown
+(the FLUX Kommunity licence asks for it): `GeneratedImage` (`src/shared/components/`) shows an
+image output on `/g/:id` and `/r/:slug` with an "AI-generated image" label, alt text that says so
+(also the share card's `og:image:alt`) and Download, and `?download=1` names a workflow's output
+or poster `ai-generated-<id>.<ext>` (anything else stays `open-photon-<id>.<ext>`). Neither shows
+a recipe's enhanced caption.
+
 ### Provider target identity
 
 `generations.target` (`cloud | selfhost`) plus `target_origin` (the self-host proxy's origin,

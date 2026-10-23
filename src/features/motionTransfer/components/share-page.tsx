@@ -7,6 +7,7 @@ import { angleName, RecipePanel } from "#/features/motionTransfer/components/rec
 import type { loadShare } from "#/features/motionTransfer/generate.functions";
 import { Hud, PageGlow, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
+import { GeneratedImage } from "#/shared/components/generated-image";
 import { LoopingVideo } from "#/shared/components/looping-video";
 import { OpenWeightsBadge, SiteFooter, SiteHeader } from "#/shared/components/site";
 import { mediaUrl } from "#/shared/media";
@@ -23,7 +24,7 @@ export const shareDescription =
 export const outputsShareTitle = "Made with Open Photon";
 
 export const outputsShareDescription =
-  "Made with Open Photon, on open-weights ComfyUI workflows. Run it yourself.";
+  "An AI-generated image made with Open Photon, on open-weights ComfyUI workflows. Run it yourself.";
 
 /** A SHA-256 shortened for reading: its first and last eight characters. */
 function shortHash(sha256: string) {
@@ -57,8 +58,8 @@ function InputRow({
 
 /**
  * The public share page of a done generation of a workflow other than Motion Transfer, by the
- * media of its outputs: each image output, with Download (an image generation has no poster and
- * no video).
+ * media of its outputs: each image output, labelled AI-generated, with Download (an image
+ * generation has no poster and no video).
  */
 function OutputsSharePage({ share }: { share: Extract<Share, { view: "outputs" }> }) {
   const images = share.outputs.filter(({ media }) => media === "image");
@@ -74,21 +75,7 @@ function OutputsSharePage({ share }: { share: Extract<Share, { view: "outputs" }
       <main className="mx-auto flex w-full max-w-150 flex-col gap-6 px-4 pt-10 pb-24 sm:px-8">
         <Hud>{outputsShareTitle}</Hud>
         {images.map(({ asset, name }) => (
-          <figure className="flex flex-col gap-3" key={name}>
-            <img
-              alt={`Result: ${name}`}
-              className="w-full rounded-3xl border bg-screen"
-              height={asset.height ?? undefined}
-              src={mediaUrl(asset)}
-              width={asset.width ?? undefined}
-            />
-            <Button asChild size="lg" variant="outline">
-              <a download href={`${mediaUrl(asset)}?download=1`}>
-                <DownloadIcon />
-                Download
-              </a>
-            </Button>
-          </figure>
+          <GeneratedImage asset={asset} download key={name} />
         ))}
       </main>
       <SiteFooter tagline="Open Photon · MIT licensed · Built on ComfyUI" />

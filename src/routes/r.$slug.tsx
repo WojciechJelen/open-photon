@@ -8,6 +8,7 @@ import {
   shareTitle,
 } from "#/features/motionTransfer/components/share-page";
 import { loadShare } from "#/features/motionTransfer/generate.functions";
+import { GENERATED_IMAGE_ALT } from "#/shared/components/generated-image";
 import { Problem } from "#/shared/components/problem";
 
 /** Open Graph properties of a share page; one whose value is unknown is left out. */
@@ -63,6 +64,7 @@ export const Route = createFileRoute("/r/$slug")({
         ["og:image", image?.url],
         ["og:image:width", image?.asset.width],
         ["og:image:height", image?.asset.height],
+        ["og:image:alt", image ? GENERATED_IMAGE_ALT : null],
       ];
     }
 

@@ -162,3 +162,45 @@ test("?download=1 serves the file as an attachment with a file name, and only th
   assert.equal(inline.headers.get("content-disposition"), null);
   await inline.body?.cancel();
 });
+
+test("a generated file downloads as ai-generated-<id>, an upload as open-photon-<id>", async () => {
+  const temporary = await incomingPath();
+  await copyFile("tests/fixtures/fake-output.png", temporary);
+
+  const { asset: image } = await storeAsset(temporary, {
+    bytes: (await stat(temporary)).size,
+    duration_ms: null,
+    ext: "png",
+    fps: null,
+    has_audio: null,
+    height: null,
+    kind: "image",
+    mime: "image/png",
+    role: "provider_output",
+    sha256: await hashFile(temporary),
+    source_asset_id: null,
+    width: null,
+  });
+
+  const upload = await storeVideo();
+
+  const disposition = async (filename: string) => {
+    const answer = await serveMedia(
+      new Request(`http://localhost/media/${filename}?download=1`),
+      filename,
+    );
+
+    await answer.body?.cancel();
+
+    return answer.headers.get("content-disposition");
+  };
+
+  assert.equal(
+    await disposition(`${image.id}.png`),
+    `attachment; filename="ai-generated-${image.id.slice(0, 8)}.png"`,
+  );
+  assert.equal(
+    await disposition(`${upload.id}.mp4`),
+    `attachment; filename="open-photon-${upload.id.slice(0, 8)}.mp4"`,
+  );
+});
