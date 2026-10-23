@@ -55,7 +55,9 @@ Every class is ComfyUI core. Comfy Cloud's `object_info` (fetched 2026-10-23) li
 
 ## Recipe and defaults
 
-`definition.ts` resolves a request (`contracts.ts`: `prompt` 1–1000 characters after trimming, optional `seed`, optional `width`/`height`, multiples of 16 from 512 to 2048) into a strict recipe: `params { prompt, seed, width, height }`, `target`, `workflow { id: "character-generation", version: 1, sha256 }`, and `models` from [`models.lock`](models.lock). A request without a seed gets a random one (below 2^48), drawn once and stored, so a retry or re-run renders from the recipe, never from a new draw. [`defaults.json`](defaults.json) holds the size a request without one renders at: **768×1344**, chosen by the spike below.
+`definition.ts` resolves a request (`contracts.ts`: `prompt` 1–1000 characters after trimming, optional `seed`, optional `width`/`height`, multiples of 16 from 512 to 2048) into a strict recipe: `params { prompt, seed, width, height }`, `target`, `workflow { id: "character-generation", version: 1, sha256 }`, and `models` from [`models.lock`](models.lock). A request without a seed gets a random one (below 2^48), drawn once and stored in the recipe: a re-run (`POST /api/generations/:id/rerun`) renders the stored recipe with that seed, and a retry (`…/retry`) renders it with a newly drawn seed. [`defaults.json`](defaults.json) holds the size a request without one renders at: **768×1344**, chosen by the spike below.
+
+**Open: request-level idempotency.** The seed of a blank-seed request is drawn before the reuse lookup and no request key is accepted or stored, so a blank-seed submission repeated after a lost response is a new recipe and creates a second paid generation, until `requestKey` support lands in the shared service.
 
 ## Models
 

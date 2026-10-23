@@ -71,13 +71,14 @@ export function buildGraph<Key extends string>(
   }
 
   for (const [key, value] of given) {
-    const binding = bindings.get(key);
+    const targets = [bindings.get(key) ?? []].flat();
 
-    if (!binding) {
+    // A list with no binding would drop the value as surely as no entry at all.
+    if (targets.length === 0) {
       throw new Error(`Inputs map: ${key} is not mapped`);
     }
 
-    for (const { class_type, field, node } of [binding].flat()) {
+    for (const { class_type, field, node } of targets) {
       const target = graph[node];
 
       if (target?.class_type !== class_type) {
