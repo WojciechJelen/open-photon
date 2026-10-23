@@ -88,6 +88,9 @@ export async function stitchCompare(recipe: Recipe, outputs: Readonly<Record<str
       "1:a:0?",
       "-t",
       String(result.durationMs / 1000),
+      // At the result's rate, so the last frame lasts a frame too and the clip as long as the result.
+      "-r",
+      String(result.fps),
       "-c:v",
       "libx264",
       "-profile:v",

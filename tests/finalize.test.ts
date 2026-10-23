@@ -252,7 +252,24 @@ test("an output that cannot be finalized is retried after a backoff, then fails 
 
 test("a done Motion Transfer take has a compare output: an H.264 and AAC portrait MP4 as long as its result", async () => {
   const row = running(await storeClip("tests/fixtures/short-2s.mp4"));
-  const result = copyOf("tests/fixtures/result-5s.mp4", "video/mp4");
+
+  // Wan renders at the driving clip's average rate, rarely a whole number: the sample clip's is
+  // 603/25 (24.12) fps.
+  const result: ProviderOutput = {
+    contentType: "video/mp4",
+    name: "result.mp4",
+    sizeBytes: 0,
+    toFile: async (path) => {
+      await runTool("ffmpeg", [
+        ...["-f", "lavfi", "-i", "testsrc=size=240x424:rate=603/25"],
+        ...["-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100"],
+        ...["-t", "2", "-shortest", "-pix_fmt", "yuv420p", "-c:a", "aac", "-f", "mp4", path],
+      ]);
+
+      return path;
+    },
+  };
+
   const done = await finalize(row.id, provider("succeeded", [result]));
 
   assert.equal(done?.status, "done");
@@ -281,8 +298,9 @@ test("a done Motion Transfer take has a compare output: an H.264 and AAC portrai
   );
   assert.deepEqual([compare?.width, compare?.height], [1080, 1920]);
   assert.deepEqual([compare?.role, compare?.source_asset_id], ["final", video?.id]);
+  // Within half a frame: a clip whose last frame lost its duration ends a whole frame short.
   assert.ok(
-    Math.abs((compare?.duration_ms ?? 0) - (video?.duration_ms ?? 0)) <= 1000 / (video?.fps ?? 1),
+    Math.abs((compare?.duration_ms ?? 0) - (video?.duration_ms ?? 0)) < 500 / (video?.fps ?? 1),
     `${compare?.duration_ms} ms against a ${video?.duration_ms} ms result`,
   );
 });
