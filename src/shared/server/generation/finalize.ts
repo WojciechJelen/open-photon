@@ -129,6 +129,35 @@ async function rehost(
 const FINALIZE_BACKOFF_MS = 30_000;
 const FINALIZE_ATTEMPTS = 3;
 
+/**
+ * Whether `provider` may be asked about the row's job: it reaches the endpoint the job was
+ * submitted to (`target`, `target_origin`). A row stored before origins were recorded has none
+ * and is matched by its kind. Otherwise this logs the mismatch and the row is left as it is: a
+ * server whose `COMFY_BASE_URL` changed must not ask another endpoint about a job it never got.
+ */
+export function askable(row: Generation, provider: Provider) {
+  const current = provider.target?.();
+
+  if (
+    !current ||
+    (row.target === current.kind &&
+      (row.target_origin === null || row.target_origin === current.origin))
+  ) {
+    return true;
+  }
+
+  console.error(
+    JSON.stringify({
+      current: current.origin ?? current.kind,
+      event: "generation.target-mismatch",
+      id: row.id,
+      recorded: row.target_origin ?? row.target,
+    }),
+  );
+
+  return false;
+}
+
 async function settle(id: string, provider: Provider) {
   const row = findGeneration(id);
 
@@ -144,6 +173,10 @@ async function settle(id: string, provider: Provider) {
     row.finalize_attempted_at !== null &&
     Date.now() < Date.parse(row.finalize_attempted_at) + row.finalize_attempts * FINALIZE_BACKOFF_MS
   ) {
+    return row;
+  }
+
+  if (!askable(row, provider)) {
     return row;
   }
 

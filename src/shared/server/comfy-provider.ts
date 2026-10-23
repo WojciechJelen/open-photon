@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { type AssetReference, assetReferenceSchema } from "./comfy-assets.ts";
 import { fakeProvider } from "./comfy-provider.fake.ts";
-import { comfyTarget } from "./comfy-target.ts";
+import { comfyTarget, type ProviderTarget, providerTarget } from "./comfy-target.ts";
 import type { WorkflowGraph } from "./workflow-graph.ts";
 
 export type ProviderOutput = Pick<Output, "contentType" | "name" | "sizeBytes" | "toFile">;
@@ -20,6 +20,11 @@ export type Provider = {
   submit(graph: WorkflowGraph, idempotencyKey: string): Promise<string>;
   /** Uploads a file (content-addressed, so a known file is not sent again). */
   upload(path: string): Promise<AssetReference>;
+  /**
+   * The endpoint this provider reaches (`ProviderTarget`), which a stored job must have been
+   * submitted to before it is asked about. A test double without one is never checked.
+   */
+  target?: () => ProviderTarget;
 };
 
 let client: Comfy | undefined;
@@ -82,6 +87,7 @@ function selectedProvider() {
 export const comfyProvider: Provider = {
   job: (id) => selectedProvider().job(id),
   submit: (graph, idempotencyKey) => selectedProvider().submit(graph, idempotencyKey),
+  target: providerTarget,
   upload: (path) => selectedProvider().upload(path),
 };
 

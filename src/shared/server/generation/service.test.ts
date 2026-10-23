@@ -12,6 +12,7 @@ import { findAccessCode } from "../access-codes.ts";
 import { findAsset } from "../assets.ts";
 import { fakeProvider } from "../comfy-provider.fake.ts";
 import { providerTarget } from "../comfy-target.ts";
+import { database } from "../db.server.ts";
 import { buildGraph, inputsMapSchema, workflowGraphSchema } from "../workflow-graph.ts";
 import type { WorkflowDefinition } from "./definition.ts";
 import { createGeneration, findGeneration, markSubmitting, readOutputs } from "./generations.ts";
@@ -204,4 +205,25 @@ test("a scalar-only row a stopped server left mid-submit is unknown, though it u
   markSubmitting(midSubmit.id);
 
   assert.equal((await readGeneration(midSubmit.id))?.status, "unknown");
+});
+
+test("a job submitted to another endpoint is never asked about: the row stays as it is", async () => {
+  const { id } = await submit(imageDefinition, { prompt: "Elsewhere", seed: 200 }, { scope });
+
+  // As if the server's COMFY_BASE_URL had pointed at another proxy when the job was submitted.
+  database
+    .prepare("UPDATE generations SET target_origin = 'http://10.0.0.2:8188' WHERE id = ?")
+    .run(id);
+
+  const before = fakeProvider.calls.job;
+  const read = await readGeneration(id);
+
+  assert.deepEqual([read?.status, fakeProvider.calls.job - before], ["queued", 0]);
+
+  // Back on the endpoint it was submitted to, it finishes as usual.
+  database
+    .prepare("UPDATE generations SET target_origin = ? WHERE id = ?")
+    .run(providerTarget().origin, id);
+
+  assert.equal((await readGeneration(id))?.status, "done");
 });
