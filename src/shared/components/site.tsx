@@ -3,7 +3,7 @@ import { GithubIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { BrandMark, REPOSITORY_URL, StatusDot } from "#/shared/components/brand";
-import { SiteNavigation } from "#/shared/components/site-navigation";
+import { type NavigationCategory, SiteNavigation } from "#/shared/components/site-navigation";
 
 const footerLink =
   "inline-flex min-h-11 items-center text-sm text-soft-foreground underline decoration-edge-strong underline-offset-3 hover:text-foreground hover:decoration-brand";
@@ -19,15 +19,24 @@ export function OpenWeightsBadge() {
 }
 
 /**
- * The header of the studio's public pages: the mark, category navigation and page actions.
+ * The header of the studio's public pages: the mark, category navigation (with the page's
+ * `category` marked current) and page actions.
  */
-export function SiteHeader({ children, nav = true }: { children: React.ReactNode; nav?: boolean }) {
+export function SiteHeader({
+  category,
+  children,
+  nav = true,
+}: {
+  category?: NavigationCategory;
+  children: React.ReactNode;
+  nav?: boolean;
+}) {
   return (
     <header className="flex min-h-16 flex-wrap items-center gap-x-5 gap-y-1 border-b px-4 py-2.5 sm:px-8">
       <BrandMark />
       {nav && (
         <div className="order-last w-full lg:order-none lg:w-auto">
-          <SiteNavigation />
+          <SiteNavigation category={category} />
         </div>
       )}
       <div className="ml-auto flex flex-wrap items-center gap-3">{children}</div>

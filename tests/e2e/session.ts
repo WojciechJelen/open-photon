@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 /**
  * The browser state `sign-in.setup.ts` saves once per run and server: the access session of the
@@ -27,6 +27,22 @@ export function accessCode(databasePath = process.env.E2E_DATABASE_PATH ?? "") {
 export async function open(page: Page, path: string) {
   await page.goto(path);
   await page.locator("html[data-hydrated]").waitFor();
+}
+
+/**
+ * Asserts the main navigation marks `category` current (`data-current` on its trigger) and not
+ * the other of Image and Video.
+ */
+export async function expectCurrentCategory(page: Page, category: "Image" | "Video") {
+  const navigation = page.getByRole("navigation", { name: "Main" });
+
+  for (const label of ["Image", "Video"]) {
+    const trigger = navigation.getByRole("button", { exact: true, name: label });
+
+    await (label === category
+      ? expect(trigger).toHaveAttribute("data-current")
+      : expect(trigger).not.toHaveAttribute("data-current"));
+  }
 }
 
 /** The provider job id `seed.ts` stores on its `done` generation; no provider ever saw it. */

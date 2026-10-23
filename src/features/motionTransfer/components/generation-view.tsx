@@ -226,7 +226,7 @@ function OutputsView({ data }: { data: OutputsResult }) {
   return (
     <div className="relative isolate min-h-svh">
       <PageGlow />
-      <SiteHeader>
+      <SiteHeader category={images.length > 0 ? "Image" : undefined}>
         <span className="hidden sm:inline-flex">
           <OpenWeightsBadge />
         </span>
