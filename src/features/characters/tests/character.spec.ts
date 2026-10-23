@@ -14,7 +14,7 @@ test("a picked motion and sample character stay in the URL and survive a reload"
   await page.getByRole("button", { name: "Street dance" }).click();
   await expect(page).toHaveURL(new RegExp(`step=motion&motion=${uuid}$`));
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Placeholder blue" }).click();
+  await page.getByRole("button", { name: "Arthur" }).click();
   await expect(page).toHaveURL(new RegExp(`step=character&motion=${uuid}&character=${uuid}$`));
 
   const url = page.url();
@@ -22,7 +22,7 @@ test("a picked motion and sample character stay in the URL and survive a reload"
   await page.reload();
   await page.locator("html[data-hydrated]").waitFor();
   expect(page.url()).toBe(url);
-  await expect(page.getByRole("button", { name: "Placeholder blue" })).toHaveAttribute(
+  await expect(page.getByRole("button", { name: "Arthur" })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
@@ -30,7 +30,7 @@ test("a picked motion and sample character stay in the URL and survive a reload"
   const slate = page.getByRole("complementary", { name: "Your shot" });
 
   await expect(slate).toContainText("Street dance");
-  await expect(slate).toContainText("Placeholder blue");
+  await expect(slate).toContainText("Arthur");
 });
 
 test("an uploaded photo asks for consent once, under its preview; with it the character is created and picked", async ({
@@ -86,7 +86,7 @@ test("a file that is not an image is refused in its tile and creates nothing; pi
   expect(count("characters")).toBe(characters);
   await expect(page).not.toHaveURL(/character=/);
 
-  await page.getByRole("button", { name: "Placeholder blue" }).click();
+  await page.getByRole("button", { name: "Arthur" }).click();
   await expect(page).toHaveURL(/character=/);
   await expect(page.getByRole("alert")).toHaveCount(0);
 });

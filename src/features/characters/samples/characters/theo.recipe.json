@@ -1,0 +1,56 @@
+{
+  "caption": "Stylized 3D character render with soft, rounded materials and a smooth digital finish, showing one cheerful young white man in his twenties from head to toe against a plain warm off-white background. He stands upright in the center, facing directly toward the viewer in a relaxed neutral pose, with both hands fully visible beside his hips and both feet planted on the ground. His curly ginger hair forms a full tousled silhouette around his forehead and ears. Freckles cover his cheeks and nose, and he has fair skin, bright green eyes, raised eyebrows, and an open smile with upturned mouth corners. He wears a teal tracksuit consisting of a zip-front jacket and matching tapered pants, each accented by crisp white stripes running along the sleeves and outer legs. The jacket has a simple high collar, long sleeves, and clean curved seams without logos or lettering. Orange running shoes with thick soles, pale laces, and small tread details complete the outfit. His arms rest loosely at his sides with open hands and separated fingers. Soft, even studio lighting creates broad highlights across the fabric and minimal shadows beneath his shoes. A diffuse oval contact shadow anchors him to the otherwise uncluttered floor.",
+  "height": 1344,
+  "models": [
+    {
+      "file": "flux3-image-klein-int8-convrot.safetensors",
+      "license": "FLUX-Kommunity-1.0",
+      "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+    },
+    {
+      "file": "qwen3vl_4b_int8_convrot.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+    },
+    {
+      "file": "flux2-vae.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+    }
+  ],
+  "seed": 124256295565959,
+  "source": {
+    "controls": {
+      "outfit": "A teal tracksuit with white stripes and orange running shoes",
+      "style": "stylized-3d"
+    },
+    "description": "A cheerful young man with curly ginger hair and freckles",
+    "enhancement": {
+      "caption": "Stylized 3D character render with soft, rounded materials and a smooth digital finish, showing one cheerful young white man in his twenties from head to toe against a plain warm off-white background. He stands upright in the center, facing directly toward the viewer in a relaxed neutral pose, with both hands fully visible beside his hips and both feet planted on the ground. His curly ginger hair forms a full tousled silhouette around his forehead and ears. Freckles cover his cheeks and nose, and he has fair skin, bright green eyes, raised eyebrows, and an open smile with upturned mouth corners. He wears a teal tracksuit consisting of a zip-front jacket and matching tapered pants, each accented by crisp white stripes running along the sleeves and outer legs. The jacket has a simple high collar, long sleeves, and clean curved seams without logos or lettering. Orange running shoes with thick soles, pale laces, and small tread details complete the outfit. His arms rest loosely at his sides with open hands and separated fingers. Soft, even studio lighting creates broad highlights across the fabric and minimal shadows beneath his shoes. A diffuse oval contact shadow anchors him to the otherwise uncluttered floor.",
+      "edited": false,
+      "generation_id": "419b6adb-8b11-4ab6-b4d5-9ae0c6d454b4",
+      "model": "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+      "settings": {
+        "max_length": 3584,
+        "min_p": 0,
+        "mtp": "off",
+        "presence_penalty": 1.5,
+        "repetition_penalty": 1.05,
+        "sampling_mode": "on",
+        "temperature": 1,
+        "thinking": false,
+        "top_k": 1,
+        "top_p": 0.95,
+        "use_default_template": true
+      },
+      "system_prompt_sha256": "58736bfa60cabfd69196956b0b2da500233116fa5342ed219034a5f23bf1cee3"
+    }
+  },
+  "target": "cloud",
+  "width": 768,
+  "workflow": {
+    "id": "character-generation",
+    "sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+    "version": 1
+  }
+}

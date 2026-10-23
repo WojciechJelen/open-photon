@@ -1,10 +1,13 @@
 import "./temp-database.ts";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { copyFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
 
 import { seedDatabase } from "../src/app/server.ts";
+import { listSampleCharacters } from "../src/features/characters/api.ts";
 import { classifyVideo } from "../src/features/motionTransfer/server/media/clip.ts";
 import { readSelection, readStudio } from "../src/features/motionTransfer/server/selection.ts";
 import { motionTransferDefinition } from "../src/features/motionTransfer/workflows/definition.ts";
@@ -13,9 +16,11 @@ import { findAsset, hashFile, incomingPath, storeAsset } from "../src/shared/ser
 import { database } from "../src/shared/server/db.server.ts";
 import {
   createGeneration,
+  isSharedOutput,
   markQueued,
   transition,
 } from "../src/shared/server/generation/generations.ts";
+import { recipeHash } from "../src/shared/server/generation/recipe-hash.ts";
 import { probe } from "../src/shared/server/media/probe.ts";
 import { assetsDirectory } from "../src/shared/server/paths.ts";
 
@@ -26,13 +31,64 @@ function count(sql: string) {
   return Number(database.prepare(`SELECT count(*) AS count FROM ${sql}`).get()?.count);
 }
 
+const CHARACTERS_DIRECTORY = "src/features/characters/samples/characters";
+
 test("seeding the samples again leaves the same characters and motions", () => {
-  assert.equal(count("characters WHERE is_sample = 1 AND origin = 'generated'"), 3);
+  assert.equal(count("characters WHERE is_sample = 1 AND origin = 'generated'"), 6);
   assert.equal(count("motions"), 1);
   seedDatabase();
-  assert.equal(count("characters WHERE is_sample = 1 AND origin = 'generated'"), 3);
+  assert.equal(count("characters WHERE is_sample = 1 AND origin = 'generated'"), 6);
   assert.equal(count("motions"), 1);
-  assert.equal(count("assets WHERE role = 'sample'"), 4);
+  assert.equal(count("assets WHERE role = 'sample'"), 7);
+});
+
+test("each sample character is its builder render: the manifest, its recipe file and the seeded row agree", () => {
+  const { characters } = JSON.parse(readFileSync(`${CHARACTERS_DIRECTORY}/manifest.json`, "utf8"));
+  const seeded = new Map(listSampleCharacters().map((character) => [character.slug, character]));
+
+  assert.equal(seeded.size, characters.length);
+
+  for (const sample of characters) {
+    const recipe = JSON.parse(readFileSync(`${CHARACTERS_DIRECTORY}/${sample.recipe}`, "utf8"));
+    const image = readFileSync(`${CHARACTERS_DIRECTORY}/${sample.image}`);
+    const character = seeded.get(sample.slug);
+
+    assert.equal(recipeHash(recipe), sample.recipe_sha256, sample.slug);
+    assert.equal(createHash("sha256").update(image).digest("hex"), sample.image_sha256);
+    assert.deepEqual(
+      [recipe.caption, recipe.seed, recipe.models, recipe.workflow],
+      [sample.caption, sample.seed, sample.provenance.models, sample.provenance.workflow],
+    );
+    assert.equal(recipe.workflow.id, "character-generation");
+    assert.ok(recipe.models.some(({ license }: { license: string }) => license === sample.license));
+    assert.doesNotMatch(sample.title, /placeholder/i);
+    assert.deepEqual(
+      [character?.title, character?.prompt, character?.provenance, character?.image.sha256],
+      [sample.title, sample.caption, sample.provenance, sample.image_sha256],
+    );
+  }
+});
+
+test("seeding deletes a sample character the manifest no longer lists, and keeps a library one", () => {
+  const [sample] = listSampleCharacters();
+
+  assert.ok(sample);
+
+  const insert = database.prepare(
+    `INSERT INTO characters (id, slug, title, image_asset_id, origin, is_sample, created_at)
+    VALUES (?, ?, ?, ?, 'generated', ?, ?)`,
+  );
+  const retired = crypto.randomUUID();
+  const kept = crypto.randomUUID();
+
+  insert.run(retired, "placeholder-blue", "Placeholder blue", sample.image.id, 1, sample.created_at);
+  insert.run(kept, null, "Mine", sample.image.id, 0, sample.created_at);
+  seedDatabase();
+
+  assert.equal(count(`characters WHERE id = '${retired}'`), 0);
+  assert.equal(count(`characters WHERE id = '${kept}'`), 1);
+  assert.equal(count("characters WHERE is_sample = 1"), 6);
+  database.prepare("DELETE FROM characters WHERE id = ?").run(kept);
 });
 
 test("a sample motion's clip is stored as ffprobe reads it", async () => {
@@ -176,4 +232,37 @@ test("a pre-rendered take whose clip is not stored is never offered, and the pag
   assert.equal(readSelection({}, false).sampleTakeId, offered);
   assert.doesNotThrow(() => readStudio());
   assert.equal(readStudio().sampleTake?.id ?? null, offered);
+  assert.deepEqual(
+    readStudio().wall.map(({ id }) => id),
+    [offered],
+  );
+});
+
+test("the result wall lists every done pre-rendered take with a stored clip, newest first, each with its public share page", async () => {
+  const { characters, motions } = readSelection({}, true);
+  const before = readStudio().wall.map(({ id }) => id);
+  const result = await storeResult();
+  const sample = take({ prerendered: true, result: result.id, seed: 4 });
+
+  take({ prerendered: false, result: result.id, seed: 5 });
+
+  const { wall } = readStudio();
+  const slug = database.prepare("SELECT share_slug FROM generations WHERE id = ?").get(sample);
+
+  assert.deepEqual(
+    wall.map(({ id }) => id),
+    [sample, ...before],
+  );
+  assert.deepEqual(wall[0], {
+    characterTitle: characters[0]?.title,
+    id: sample,
+    motionTitle: motions[0]?.title,
+    poster: null,
+    result: wall[0]?.result,
+    shareSlug: slug?.share_slug,
+    source: motions[0]?.clip,
+  });
+  assert.equal(wall[0]?.result.id, result.id);
+  // Anyone may load it: the result of a done generation with a share page.
+  assert.ok(isSharedOutput(findAsset(result.id) ?? assert.fail("result not stored")));
 });

@@ -40,7 +40,7 @@ test("each remix opens the wizard with exactly one of motion and character kept,
   await expect(page).toHaveURL(/\/motionTransfer\?/);
   expect(searchOf(page)).toEqual({ character: characterId, from: id, step: "motion" });
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pick a motion");
-  await expect(slate).toContainText("Placeholder blue");
+  await expect(slate).toContainText("Arthur");
   await expect(page.getByRole("button", { name: "Street dance" })).toHaveAttribute(
     "aria-pressed",
     "false",

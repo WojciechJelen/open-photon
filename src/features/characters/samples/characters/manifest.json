@@ -1,11 +1,215 @@
 {
+  "note": "Each sample is a character builder render (FLUX 3 Image Klein distilled, character-generation v1 on Comfy Cloud, 2026-10-23), shipped byte for byte: `image_sha256` is the PNG's SHA-256, `recipe` the generation's stored recipe (GET /api/generations/:id/recipe.json) and `recipe_sha256` its recipe_hash. `caption`, `seed` and `provenance` (workflow and model pins) repeat what the recipe holds; seedSampleCharacters stores the caption as the character's prompt and the provenance as its provenance. The images are outputs of a FLUX Kommunity License v1.0 model; each was reviewed by eye before distribution (§2.e), see CHECKLIST.md.",
   "characters": [
-    { "slug": "placeholder-blue", "title": "Placeholder blue", "image": "placeholder-blue.png" },
     {
-      "slug": "placeholder-orange",
-      "title": "Placeholder orange",
-      "image": "placeholder-orange.png"
+      "slug": "maya",
+      "title": "Maya",
+      "image": "maya.png",
+      "image_sha256": "4d0b77415e5aa4afcbfd7b0fb9234f0eb93a26c37bfadd39cd95dafe8ac74587",
+      "recipe": "maya.recipe.json",
+      "recipe_sha256": "0766d3ba3d347529dcaf6d21119dc34553c39e3102760f844aaaab6f0a154483",
+      "seed": 179181240787290,
+      "caption": "Full-color outdoor photograph, full-body portrait shot at eye level with soft, even daylight and a plain warm-gray studio-like background free of props or street clutter. Centered in the frame is a Black woman in her late twenties with warm brown skin and an athletic build, shown from head to toe as a street dancer standing upright and facing the camera. She has shoulder-length black box braids falling evenly around her face, dark eyes directed toward the lens, raised cheeks, and a confident closed-mouth smile. Her arms rest loosely away from her torso with both hands fully visible, one hand open beside each hip, while her feet remain planted apart in a relaxed neutral stance. She wears an oversized mustard-yellow pullover hoodie with dropped shoulders, roomy sleeves gathered near the wrists, a loose hood resting behind her neck, and natural folds across the chest and waist. Black cargo pants fall in broad creases down to the ankles, with large flap pockets on both thighs and smaller side pockets. White high-top sneakers cover both feet completely, their white laces, padded collars, rubber soles, and minor scuff marks clearly defined. The entire figure remains unobstructed against the simple background, with ample empty space surrounding her braids, hands, and shoes. Soft shadows sit directly beneath her sneakers without obscuring either foot.",
+      "license": "FLUX-Kommunity-1.0",
+      "provenance": {
+        "models": [
+          {
+            "file": "flux3-image-klein-int8-convrot.safetensors",
+            "license": "FLUX-Kommunity-1.0",
+            "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+          },
+          {
+            "file": "qwen3vl_4b_int8_convrot.safetensors",
+            "license": "Apache-2.0",
+            "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+          },
+          {
+            "file": "flux2-vae.safetensors",
+            "license": "Apache-2.0",
+            "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+          }
+        ],
+        "workflow": {
+          "id": "character-generation",
+          "sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+          "version": 1
+        }
+      }
     },
-    { "slug": "placeholder-green", "title": "Placeholder green", "image": "placeholder-green.png" }
+    {
+      "slug": "theo",
+      "title": "Theo",
+      "image": "theo.png",
+      "image_sha256": "128eb1aec0258a64b31887e16758f3f43b72f310afd002e8a04aca571dc688f4",
+      "recipe": "theo.recipe.json",
+      "recipe_sha256": "d82f03e4688ee32334100685d8d4b99d046430af178b7c81def52dc14d8b740f",
+      "seed": 124256295565959,
+      "caption": "Stylized 3D character render with soft, rounded materials and a smooth digital finish, showing one cheerful young white man in his twenties from head to toe against a plain warm off-white background. He stands upright in the center, facing directly toward the viewer in a relaxed neutral pose, with both hands fully visible beside his hips and both feet planted on the ground. His curly ginger hair forms a full tousled silhouette around his forehead and ears. Freckles cover his cheeks and nose, and he has fair skin, bright green eyes, raised eyebrows, and an open smile with upturned mouth corners. He wears a teal tracksuit consisting of a zip-front jacket and matching tapered pants, each accented by crisp white stripes running along the sleeves and outer legs. The jacket has a simple high collar, long sleeves, and clean curved seams without logos or lettering. Orange running shoes with thick soles, pale laces, and small tread details complete the outfit. His arms rest loosely at his sides with open hands and separated fingers. Soft, even studio lighting creates broad highlights across the fabric and minimal shadows beneath his shoes. A diffuse oval contact shadow anchors him to the otherwise uncluttered floor.",
+      "license": "FLUX-Kommunity-1.0",
+      "provenance": {
+        "models": [
+          {
+            "file": "flux3-image-klein-int8-convrot.safetensors",
+            "license": "FLUX-Kommunity-1.0",
+            "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+          },
+          {
+            "file": "qwen3vl_4b_int8_convrot.safetensors",
+            "license": "Apache-2.0",
+            "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+          },
+          {
+            "file": "flux2-vae.safetensors",
+            "license": "Apache-2.0",
+            "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+          }
+        ],
+        "workflow": {
+          "id": "character-generation",
+          "sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+          "version": 1
+        }
+      }
+    },
+    {
+      "slug": "arthur",
+      "title": "Arthur",
+      "image": "arthur.png",
+      "image_sha256": "e4b3f476cb54a580deee8e8370654d653c6dba93e99e10d555b270b91be50500",
+      "recipe": "arthur.recipe.json",
+      "recipe_sha256": "2600ab15e3e21833f1e717548e7ced4b37fd8b0afd3a785499011c06bf439d44",
+      "seed": 84975509816999,
+      "caption": "Digital illustration with clean shapes and soft painterly shading, showing a single dapper white gentleman in his sixties from head to toe against a plain warm ivory background. He stands upright in the center, facing directly toward the viewer in a relaxed neutral pose, with both hands resting at his sides and fully visible. His fair skin is framed by neatly combed silver-grey hair and a tidy grey beard trimmed into a short rounded shape around his jaw and upper lip. Round glasses with thin dark frames sit over attentive blue-grey eyes. He wears a tailored navy three-piece suit consisting of a fitted jacket, matching waistcoat, and straight trousers, layered over a crisp white dress shirt with a burgundy bow tie. The jacket has narrow lapels, two front buttons, and restrained tonal highlights along the shoulders and sleeves. Both hands are covered by white shirt cuffs extending beneath the jacket sleeves. Polished brown leather brogues complete the outfit, their rounded toes, perforated detailing, and low heels clearly shown on both feet. Soft, even lighting creates broad shadows beneath the chin, arms, and shoes without harsh contrast. A small diffuse grounding shadow rests below him while leaving the uncluttered background empty.",
+      "license": "FLUX-Kommunity-1.0",
+      "provenance": {
+        "models": [
+          {
+            "file": "flux3-image-klein-int8-convrot.safetensors",
+            "license": "FLUX-Kommunity-1.0",
+            "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+          },
+          {
+            "file": "qwen3vl_4b_int8_convrot.safetensors",
+            "license": "Apache-2.0",
+            "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+          },
+          {
+            "file": "flux2-vae.safetensors",
+            "license": "Apache-2.0",
+            "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+          }
+        ],
+        "workflow": {
+          "id": "character-generation",
+          "sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+          "version": 1
+        }
+      }
+    },
+    {
+      "slug": "yuki",
+      "title": "Yuki",
+      "image": "yuki.png",
+      "image_sha256": "b31a1d2c499dbcfc55aa02bb1827e1c7d96e6e5a5a8dc07f5976cb831fd872cb",
+      "recipe": "yuki.recipe.json",
+      "recipe_sha256": "beda2559c59516d70dfaf616ec66899b0f338a75157e3c5ccbfb488402cd7c68",
+      "seed": 45069296935949,
+      "caption": "Anime-style illustration with clean black line art and crisp cel shading, showing a single teenage girl full body from head to toe against a plain pale lavender background under soft, even lighting. She stands upright in the center, facing directly toward the viewer in a relaxed neutral pose, with both arms resting at her sides, both hands fully visible, and both feet planted apart on the ground. The girl has fair skin, short silver hair cut into a tousled chin-length bob with pointed bangs, bright violet eyes, and a calm closed-mouth expression. She wears a cropped red bomber jacket over a plain white T-shirt; the jacket has a ribbed collar, fitted cuffs, a front zipper, and two small flap pockets, while its hem ends above the waist. A pleated black skirt falls below the jacket, paired with opaque black leggings and chunky white sneakers with thick soles and simple panel seams. Her complete outfit reads clearly as a cropped red bomber jacket, white T-shirt, pleated black skirt, black leggings, and chunky white sneakers. The entire figure is evenly proportioned within the composition, including every strand of hair, both hands, all five fingers on each hand, the skirt’s lower edge, both legs, and both shoes. Minimal grounding shadows sit beneath the sneakers, with no additional objects or scenery around her.",
+      "license": "FLUX-Kommunity-1.0",
+      "provenance": {
+        "models": [
+          {
+            "file": "flux3-image-klein-int8-convrot.safetensors",
+            "license": "FLUX-Kommunity-1.0",
+            "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+          },
+          {
+            "file": "qwen3vl_4b_int8_convrot.safetensors",
+            "license": "Apache-2.0",
+            "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+          },
+          {
+            "file": "flux2-vae.safetensors",
+            "license": "Apache-2.0",
+            "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+          }
+        ],
+        "workflow": {
+          "id": "character-generation",
+          "sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+          "version": 1
+        }
+      }
+    },
+    {
+      "slug": "rosa",
+      "title": "Rosa",
+      "image": "rosa.png",
+      "image_sha256": "935ae4a7dbc577cc06d253b148a5d3b242e7b729c57fee96589de39e2fbac891",
+      "recipe": "rosa.recipe.json",
+      "recipe_sha256": "208ad8e44e6a2079c1004ce9732ba82887b7315eceadcdc024b9facd2abbc777",
+      "seed": 115930881778589,
+      "caption": "Studio photograph, full-body portrait shot straight-on at eye level with soft, even lighting against a plain warm-gray seamless background. A woman in her forties with olive skin and dark brown hair tied in a long ponytail stands centered from head to toe, facing the camera in an upright, relaxed neutral pose. Her expression is composed, with closed lips and direct forward gaze. The ponytail falls behind one shoulder and extends down past her waist without covering either hand or foot. She wears a sleeveless emerald-green jumpsuit made from matte woven fabric, fitted through the torso and legs, with natural folds around the hips and knees. A wide matching belt circles her waist, secured by a large rectangular gold buckle. Both hands rest loosely at her sides with open fingers fully visible. Flat gold sandals cover both feet, their broad metallic straps crossing over simple soles. Her entire figure remains unobstructed: she has medium-length arms, two clearly separated hands, and two complete feet planted parallel on the floor. Small facial details include fine lines around her eyes and realistic pores across her cheeks and forehead; individual strands of dark hair gather into the high ponytail. The jumpsuit shows stitched seams along the armholes, side panels, and lower hem, while minor creases run beneath the belt and above the ankles. The pale gray studio floor merges cleanly into the background, with only a diffuse contact shadow directly beneath her sandals.",
+      "license": "FLUX-Kommunity-1.0",
+      "provenance": {
+        "models": [
+          {
+            "file": "flux3-image-klein-int8-convrot.safetensors",
+            "license": "FLUX-Kommunity-1.0",
+            "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+          },
+          {
+            "file": "qwen3vl_4b_int8_convrot.safetensors",
+            "license": "Apache-2.0",
+            "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+          },
+          {
+            "file": "flux2-vae.safetensors",
+            "license": "Apache-2.0",
+            "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+          }
+        ],
+        "workflow": {
+          "id": "character-generation",
+          "sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+          "version": 1
+        }
+      }
+    },
+    {
+      "slug": "kenji",
+      "title": "Kenji",
+      "image": "kenji.png",
+      "image_sha256": "6ed9b586da623b1b7aae7193a4bad124cc919faec588f9cc891c308f2adfe4e4",
+      "recipe": "kenji.recipe.json",
+      "recipe_sha256": "7080c3b108f6daaaa99b62cbb7a3c384fe1e124afdda840fd4a67f922b5967eb",
+      "seed": 189610027830730,
+      "caption": "Stylized 3D character render with soft, rounded materials and a muted neutral palette, showing one tall, lanky young East Asian man in his twenties standing full-body from head to toe against a plain warm off-white background. He faces the camera directly in a relaxed upright pose, centered with generous empty space around him; both hands are fully visible at his sides, and both feet rest completely within the image. His long limbs, narrow shoulders, prominent knees, and elongated torso give him a lean build. Tousled black hair rises unevenly across his forehead, with loose strands framing his face. He has fair skin, dark eyes, raised cheeks, and a friendly open grin showing his upper teeth. He wears a medium-blue denim jacket with broad lapels, copper-colored buttons, and rolled cuffs over a cream T-shirt patterned with evenly spaced navy horizontal stripes. The jacket hangs loosely from his shoulders. Beige chinos are cuffed into neat rolls above the ankles, revealing the fabric folds around each knee. White canvas sneakers with tan rubber soles and simple tied laces cover his feet. His arms hang comfortably away from his body, elbows bent by only a few degrees, with relaxed open hands and separated fingers. Soft, even studio lighting creates restrained shadows beneath his chin, sleeves, trouser folds, and shoes while keeping the uncluttered background uniform.",
+      "license": "FLUX-Kommunity-1.0",
+      "provenance": {
+        "models": [
+          {
+            "file": "flux3-image-klein-int8-convrot.safetensors",
+            "license": "FLUX-Kommunity-1.0",
+            "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+          },
+          {
+            "file": "qwen3vl_4b_int8_convrot.safetensors",
+            "license": "Apache-2.0",
+            "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+          },
+          {
+            "file": "flux2-vae.safetensors",
+            "license": "Apache-2.0",
+            "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+          }
+        ],
+        "workflow": {
+          "id": "character-generation",
+          "sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+          "version": 1
+        }
+      }
+    }
   ]
 }

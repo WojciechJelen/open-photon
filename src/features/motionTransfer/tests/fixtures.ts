@@ -10,7 +10,7 @@ import {
 } from "../draft.ts";
 
 /**
- * Stands for the seeded sample character `placeholder-blue`
+ * Stands for the seeded sample character `arthur`
  * (`src/features/characters/samples/characters/manifest.json`).
  * Seeding gives every database its own random ids: a browser test takes the real one from the
  * database (`seededResult()` in `tests/e2e/session.ts`) or from the picker.

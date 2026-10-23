@@ -1,0 +1,56 @@
+{
+  "caption": "Anime-style illustration with clean black line art and crisp cel shading, showing a single teenage girl full body from head to toe against a plain pale lavender background under soft, even lighting. She stands upright in the center, facing directly toward the viewer in a relaxed neutral pose, with both arms resting at her sides, both hands fully visible, and both feet planted apart on the ground. The girl has fair skin, short silver hair cut into a tousled chin-length bob with pointed bangs, bright violet eyes, and a calm closed-mouth expression. She wears a cropped red bomber jacket over a plain white T-shirt; the jacket has a ribbed collar, fitted cuffs, a front zipper, and two small flap pockets, while its hem ends above the waist. A pleated black skirt falls below the jacket, paired with opaque black leggings and chunky white sneakers with thick soles and simple panel seams. Her complete outfit reads clearly as a cropped red bomber jacket, white T-shirt, pleated black skirt, black leggings, and chunky white sneakers. The entire figure is evenly proportioned within the composition, including every strand of hair, both hands, all five fingers on each hand, the skirt’s lower edge, both legs, and both shoes. Minimal grounding shadows sit beneath the sneakers, with no additional objects or scenery around her.",
+  "height": 1344,
+  "models": [
+    {
+      "file": "flux3-image-klein-int8-convrot.safetensors",
+      "license": "FLUX-Kommunity-1.0",
+      "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+    },
+    {
+      "file": "qwen3vl_4b_int8_convrot.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+    },
+    {
+      "file": "flux2-vae.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+    }
+  ],
+  "seed": 45069296935949,
+  "source": {
+    "controls": {
+      "outfit": "A cropped red bomber jacket over a white T-shirt, a pleated black skirt, black leggings and chunky white sneakers",
+      "style": "anime"
+    },
+    "description": "A teenage girl with short silver hair and bright violet eyes",
+    "enhancement": {
+      "caption": "Anime-style illustration with clean black line art and crisp cel shading, showing a single teenage girl full body from head to toe against a plain pale lavender background under soft, even lighting. She stands upright in the center, facing directly toward the viewer in a relaxed neutral pose, with both arms resting at her sides, both hands fully visible, and both feet planted apart on the ground. The girl has fair skin, short silver hair cut into a tousled chin-length bob with pointed bangs, bright violet eyes, and a calm closed-mouth expression. She wears a cropped red bomber jacket over a plain white T-shirt; the jacket has a ribbed collar, fitted cuffs, a front zipper, and two small flap pockets, while its hem ends above the waist. A pleated black skirt falls below the jacket, paired with opaque black leggings and chunky white sneakers with thick soles and simple panel seams. Her complete outfit reads clearly as a cropped red bomber jacket, white T-shirt, pleated black skirt, black leggings, and chunky white sneakers. The entire figure is evenly proportioned within the composition, including every strand of hair, both hands, all five fingers on each hand, the skirt’s lower edge, both legs, and both shoes. Minimal grounding shadows sit beneath the sneakers, with no additional objects or scenery around her.",
+      "edited": false,
+      "generation_id": "6f224f86-161c-4f4f-9761-41c4ec03eb9b",
+      "model": "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+      "settings": {
+        "max_length": 3584,
+        "min_p": 0,
+        "mtp": "off",
+        "presence_penalty": 1.5,
+        "repetition_penalty": 1.05,
+        "sampling_mode": "on",
+        "temperature": 1,
+        "thinking": false,
+        "top_k": 1,
+        "top_p": 0.95,
+        "use_default_template": true
+      },
+      "system_prompt_sha256": "58736bfa60cabfd69196956b0b2da500233116fa5342ed219034a5f23bf1cee3"
+    }
+  },
+  "target": "cloud",
+  "width": 768,
+  "workflow": {
+    "id": "character-generation",
+    "sha256": "bc206c74cab6e6a9f4638b4affd265630adb19872232d5a30e2917e95f18fec0",
+    "version": 1
+  }
+}

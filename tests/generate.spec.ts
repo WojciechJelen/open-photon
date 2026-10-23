@@ -108,7 +108,7 @@ test("with Comfy at a dead port, Generate opens a failed generation with the rea
   await open(page, "/motionTransfer");
   await page.getByRole("button", { name: "Street dance" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Placeholder blue" }).click();
+  await page.getByRole("button", { name: "Arthur" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
 
   const { character, motion } = Object.fromEntries(new URL(page.url()).searchParams);
@@ -155,7 +155,7 @@ test("Change the shot on a failed take opens Direct with its look and seed, to t
   await open(page, "/motionTransfer");
   await page.getByRole("button", { name: "Street dance" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Placeholder green" }).click();
+  await page.getByRole("button", { name: "Kenji" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByLabel("Look").fill(look);
   await page.getByRole("button", { name: /Advanced/ }).click();
@@ -184,7 +184,7 @@ test("Change the shot on a failed take opens Direct with its look and seed, to t
 
   const slate = page.getByRole("complementary", { name: "Your shot" });
 
-  await expect(slate).toContainText("Placeholder green");
+  await expect(slate).toContainText("Kenji");
 });
 
 test("with every place in flight taken, Generate puts the take in line and its page shows its place", async ({

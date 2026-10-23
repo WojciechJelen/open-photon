@@ -101,8 +101,8 @@ export async function generatedCharacter(
   return createFromGeneration({ generationId, outputName: "image", title }).character;
 }
 
-/** A seeded sample character (`placeholder-blue` unless `slug` names another). */
-export function sampleCharacter(slug = "placeholder-blue") {
+/** A seeded sample character (`arthur` unless `slug` names another). */
+export function sampleCharacter(slug = "arthur") {
   const sample = listSampleCharacters().find((character) => character.slug === slug);
 
   if (!sample) {
