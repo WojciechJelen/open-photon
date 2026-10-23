@@ -1,6 +1,32 @@
 # Build checklist
 
-One line per verified step of the [implementation plan](https://open-photon-docs.vercel.app/features/genjutsu/implementation-steps/), with the evidence that verified it.
+Historical implementation log. Each checked item records evidence from that step,
+not a guarantee about the current checkout or published image. Old paths, commands,
+test counts and deployment settings below describe their original revisions.
+Current setup is in [README.md](README.md#getting-started).
+
+## Deployment evidence after the Docker simplification
+
+- **October 23 follow-up:** exact published images retested from source `27bc330`.
+  Fresh RTX 5090 32 GB boot, restart without downloads, controlled SSE recovery and
+  Cloud/Runpod results on one database passed. The 5-second GPU render took 167.820 s,
+  peaking at 31,426 MiB. A 110 MiB input failed during upload to Runpod after the
+  client's 30-second timeout; end-to-end large-upload support is not established.
+  A separate test of main `37a7a0b` found a laptop-layout regression (47 browser tests
+  passed, 1 failed); the released source passed all 48. Earlier records below keep
+  their original scope.
+
+- Release source `27bc330`, app and GPU image `0.1.0`: Cloud generation
+  `a9919225-3d37-46b5-9512-5422ad1b6cdc` completed in 71.464 s; Runpod A40 generation
+  `d6b16531-1e2b-4916-a0f0-0080366ce63e` in 149.050 s. The app ran on ARM64 with
+  separate fresh volumes; native AMD64 startup/access/upload checks passed in
+  [release CI](https://github.com/WojciechJelen/open-photon/actions/runs/39855524385).
+- These are separate from the earlier deployment QA: 47 PASS, 1 infrastructure
+  FAIL, 8 BLOCKED. Its GPU image never started, so it provides no GPU render proof.
+- The final GPU image reused models from an earlier candidate and verified their
+  hashes. The release test did not repeat every historical QA case, measure VRAM,
+  or test both completed backends on one database. The RTX 5090 numbers below
+  belong to the manual October 21 proof, not this image release.
 
 ## Phase 1 — The workflow as data
 
@@ -147,13 +173,13 @@ From the final whole-build review (`c08272f..4f010ed`). Access/web findings (#1,
 
 ## README fresh-clone verification
 
-- [x] **9.3 Local fresh-clone quick start, 2026-10-21** — two independent clones of GitHub revision `cd46be1`, without host `node_modules`, `data/` or `.env`, and separate empty Compose volumes. Ran the README commands with the documented Colima context and only the Comfy key configured. Chrome walkthrough twice: sample motion and character, clip upload through the access-code dialog, 12 s clip trimmed to 5 s, photo upload requiring consent, Generate, live progress, compare playback and MP4 download. One real Comfy job per database reached `done`; both downloads are 480×848 H.264 with AAC and decode without errors. No application or quick-start fixes needed. Total measured account balance decrease: approximately 35.27 credits, $0.1671. The original container is healthy again on :3030 with its original volume and unchanged generation/access-code/asset counts. [Terminal log and observations](docs/priv/fresh-clone-2026-10-21.log), linked from the README. This verifies clean clones on the existing host; Docker build layers were reused, and no pristine machine/VM/user account or free pre-rendered sample matrix was tested.
+- [x] **9.3 Local fresh-clone quick start, 2026-10-21** — two independent clones of GitHub revision `cd46be1`, without host `node_modules`, `data/` or `.env`, and separate empty Compose volumes. Ran the README commands with the documented Colima context and only the Comfy key configured. Chrome walkthrough twice: sample motion and character, clip upload through the access-code dialog, 12 s clip trimmed to 5 s, photo upload requiring consent, Generate, live progress, compare playback and MP4 download. One real Comfy job per database reached `done`; both downloads are 480×848 H.264 with AAC and decode without errors. No application or quick-start fixes needed. Total measured account balance decrease: approximately 35.27 credits, $0.1671. The original container is healthy again on :3030 with its original volume and unchanged generation/access-code/asset counts. [Summary and credit figures](docs/priv/fresh-clone-2026-10-21.md); the raw transcript can be rebuilt with `work/fresh-clone-20261021/assemble-log.py`. This predates the published-image setup; it does not verify the current README commands. This verifies clean clones on the existing host; Docker build layers were reused, and no pristine machine/VM/user account or free pre-rendered sample matrix was tested.
 
 
 ## Phase 8: open-weights proof
 
 - [x] **8.1 Model pins and coverage check**: root `models.lock` contains all five model files from the unchanged motion-transfer v1 graph, immutable Comfy-Org repack URLs, LFS SHA-256 values and its declared Apache-2.0 license. New recipes record those pins; older recipes remain unchanged. The image copies the lock. `check-models-lock.mjs` rejects missing or duplicate entries, bad hashes, mutable URLs and mismatched install paths. `install-models.mjs` streams downloads and verifies their bytes before installation.
 - [x] **8.2 Local gate and negative controls**: `check-open-weights.mjs` scans every feature's workflows recursively, including UI subgraphs; rejects the patterns in `forbidden-nodes.json`, inline `api_node: true` and optional `object_info` API-node metadata. The planted `HiggsfieldGenjutsuMotionTransfer` fixture exits 1 and names the node. CI runs both checks, README has the workflow badge, and the share page links the check and lock. Remote CI [39620631396](https://github.com/WojciechJelen/open-photon/actions/runs/39620631396) passed.
-- [x] **8.3 Runpod RTX 5090 render**: generation `301917e1-7798-4a03-af37-049bc82faee2` reached `done` through the production app and `comfy-api-proxy` 0.1.6 with `target: selfhost`, unchanged workflow/SDK adapter and all five installed weights hash-verified. ComfyUI 0.42.0 at `7a283320` supplies the required core nodes missing from the official template's 0.30.0. 480×848, 5.016584 s output, 158.717 s submission-to-done including cold model loading, peak 31,066 MiB across 160 GPU samples. H.264 and AAC decode without errors; Chrome unmuted playback reaches the end with no media error, and inspected frames show the character moving. Source/output decoded audio correlation is 0.995162 (AAC re-encoded); no human listening test is claimed. [Report, recipe, GPU CSV, runtime, screenshot and output](docs/priv/selfhost-proof-2026-10-21/README.md). README measurements filled; setup docs corrected from the actual run. Optional non-LoRA base benchmark remains unmeasured. Pod stopped after evidence collection, read-back `EXITED`; retained disk costs approximately $0.028/hour.
+- [x] **8.3 Runpod RTX 5090 render**: generation `301917e1-7798-4a03-af37-049bc82faee2` reached `done` through the production app and `comfy-api-proxy` 0.1.6 with `target: selfhost`, unchanged workflow/SDK adapter and all five installed weights hash-verified. ComfyUI 0.42.0 at `7a283320` supplies the required core nodes missing from the official template's 0.30.0. 480×848, 5.016584 s output, 158.717 s submission-to-done including cold model loading, peak 31,066 MiB across 160 GPU samples. H.264 and AAC decode without errors; Chrome unmuted playback reaches the end with no media error, and inspected frames show the character moving. Source/output decoded audio correlation is 0.995162 (AAC re-encoded); no human listening test is claimed. [Report, recipe, GPU CSV, runtime, screenshot and output](docs/priv/selfhost-proof-2026-10-21/README.md). README measurements filled; setup docs corrected from the actual run. Optional non-LoRA base benchmark remains unmeasured. At the end of that run, the pod was stopped with read-back `EXITED`; retained disk was quoted at approximately $0.028/hour. This is not a current resource or billing status.
 
 - Verification on 2026-10-21: `npm run check`, `test:server` (86 passed), `test:e2e` (48 passed; updated recipe checks also 3 passed), `build`, `check:client` and `check:privacy` pass. React Doctor changed-scope scan reports no new issues, score 90. Native Colima image `open-photon:phase8-check` builds, starts healthy and serves Motion Transfer SSR with all five lock entries present. A synthetic local HTTP exercise verified the proof script's actual MP4 download/decode, report output and stale-recording rejection; it is not GPU evidence. Test container and its anonymous volume were removed.

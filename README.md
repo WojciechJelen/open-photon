@@ -25,7 +25,9 @@ COMFY_API_KEY=your-cloud-key
 ```
 
 **Runpod:** deploy the [Open Photon template](https://console.runpod.io/deploy?template=iqcvzqgt1q)
-on an NVIDIA GPU with **32 GB VRAM or more** and a **CUDA 13-compatible driver**.
+on an NVIDIA GPU with a **CUDA 13-compatible driver**. **48 GB VRAM is recommended**
+(tested on A40). The published image also passed a 5-second render on an RTX 5090
+32 GB, peaking at 31,426 MiB with little headroom.
 Set `PROXY_TOKEN` to a long random secret. The template supplies the GPU image,
 port `8189` and persistent storage at `/workspace`. Wait for `Serving the Comfy API v2`
 in the logs; the first boot downloads approximately 26 GB of Motion Transfer models, plus
@@ -62,6 +64,8 @@ node --env-file=.env scripts/mint-code.mjs me 100
 ```
 
 Enter the printed access code in the app. `100` is its generation allowance.
+
+<a id="run"></a>
 
 ### Run the containerized app
 

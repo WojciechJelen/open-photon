@@ -20,6 +20,7 @@ Paste into the todo list; each item refers to the step of the same number in `SK
 - [ ] 5 docker build --check (both Dockerfiles); ls the feature in /app/src/features and /opt/open-photon/src/features
 - [ ] 6 npm run check, test:server, check:models, check:open-weights; build + check:client
 - [ ] 6 check:comfy on Cloud and on the pod; pod log lists <feature>/<id>.v1 with 0 missing
-- [ ] 6 One real render on Cloud, one on the pod; DEPLOYMENT-QA-TEST.md cases
-- [ ] 6 SETUP.md sizing (disk, volume, VRAM) and README proof table updated
+- [ ] 6 One real render on Cloud and one on the pod; record source commit, image digests, inputs, evidence and untested cases in docs/priv/deployment-verification.md
+- [ ] 6 Do not carry historical QA PASS/BLOCKED statuses forward as proof of the new release
+- [ ] 6 README setup and docs/priv/deployment.md sizing updated; distinguish measured VRAM from recommendations
 ```
