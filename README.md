@@ -28,7 +28,10 @@ COMFY_API_KEY=your-cloud-key
 on an NVIDIA GPU with **32 GB VRAM or more** and a **CUDA 13-compatible driver**.
 Set `PROXY_TOKEN` to a long random secret. The template supplies the GPU image,
 port `8189` and persistent storage at `/workspace`. Wait for `Serving the Comfy API v2`
-in the logs; the first boot downloads approximately 26 GB of models. Then save:
+in the logs; the first boot downloads approximately 26 GB of Motion Transfer models, plus
+approximately 16 GB for character generation (FLUX.2 Klein 4B, Apache-2.0) in images built from
+the current source. The GPU runs one job at a time, so it must fit the largest workflow, Motion
+Transfer; the figures above are its own. Then save:
 
 ```dotenv
 COMFY_BASE_URL=https://POD_ID-8189.proxy.runpod.net
