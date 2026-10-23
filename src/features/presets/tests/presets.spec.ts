@@ -153,7 +153,8 @@ test("the gallery and a preset's controls work from the keyboard", async ({ page
 
   const reached: string[] = [];
 
-  for (let index = 0; index < 60 && !reached.includes("Generate"); index += 1) {
+  // The library lists every character the run's other specs saved too, so allow plenty of stops.
+  for (let index = 0; index < 300 && !reached.includes("Generate"); index += 1) {
     await page.keyboard.press("Tab");
     reached.push(
       await page.evaluate(() => {
@@ -169,4 +170,72 @@ test("the gallery and a preset's controls work from the keyboard", async ({ page
   }
 
   expect(reached.some((name) => name.includes("Arthur"))).toBe(true);
+});
+
+test("Back and Forward between two entries of one preset's page put each entry's look and seed in the form", async ({
+  page,
+}) => {
+  const look = page.getByRole("textbox", { name: /Look/ });
+  const seed = page.getByRole("textbox", { name: "Seed" });
+
+  await open(page, "/presets/neon-night?version=1&seed=5");
+  await expect(seed).toHaveValue("5");
+
+  // A second history entry of the same page (as a restored tab or another link would make), then
+  // Back and Forward to it: the router changes the search without mounting the page again.
+  await page.evaluate(() => {
+    window.history.pushState(
+      window.history.state,
+      "",
+      "/presets/neon-night?version=1&seed=6&prompt=%22%22",
+    );
+    window.history.back();
+  });
+  await expect(page).toHaveURL(/seed=5/);
+  await page.evaluate(() => window.history.forward());
+  await expect(page).toHaveURL(/seed=6/);
+  await expect(seed).toHaveValue("6");
+  await expect(look).toHaveValue("");
+
+  await page.goBack();
+  await expect(page).toHaveURL(/seed=5/);
+  await expect(seed).toHaveValue("5");
+  await expect(look).toHaveValue(
+    "The character from the reference image, as it appears there. Background: a neon-lit city street at night.",
+  );
+});
+
+test("after a stale refusal, Reload the preset reloads it and sends no generation request", async ({
+  page,
+}) => {
+  const posts: string[] = [];
+
+  // The server's catalog moved on while the page was open: its first answer is a stale refusal.
+  await page.route("**/api/presets/*/generations", async (route) => {
+    posts.push(route.request().url());
+    await route.fulfill({
+      json: {
+        error: "This preset changed since it was opened (version 1, now 2).",
+        reason: "preset_stale",
+      },
+      status: 409,
+    });
+  });
+
+  await open(page, "/presets/neon-night?version=1");
+  await page.getByRole("button", { name: "Arthur" }).click();
+  await expect(page).toHaveURL(/character=/);
+  await page.getByRole("button", { exact: true, name: "Generate" }).click();
+
+  const refusal = page.locator('[data-reason="preset_stale"]');
+
+  await expect(refusal).toContainText("This preset changed since it was opened");
+  expect(posts).toHaveLength(1);
+
+  await refusal.getByRole("button", { name: "Reload the preset" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Neon night");
+  // Long enough for a submit the click would have caused to have left.
+  await page.waitForLoadState("networkidle");
+  expect(posts).toHaveLength(1);
+  await expect(page).toHaveURL(/\/presets\/neon-night/);
 });

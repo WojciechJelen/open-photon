@@ -89,9 +89,13 @@ type GenerationScope = { free: (existing: Generation) => boolean; session: Sessi
 /**
  * How a generation is asked for: the scope, the rate limit (`admit`), the provider, and the
  * client's `requestKey` (a UUID), which makes asking again with it return the same generation.
+ * `onCreated` runs in the transaction that stores a new row (never for a reused one), before
+ * anything is sent to the provider: a feature records what it keeps beside the generation there
+ * (the preset a take came from), so the record exists exactly when the row does.
  */
 type SubmitOptions = {
   admit?: Admit;
+  onCreated?: (generationId: string) => void;
   provider?: Provider;
   requestKey?: string;
   scope: GenerationScope;
@@ -373,7 +377,7 @@ const KEY_VIOLATION = 1555;
 async function submitRecipe<Input, Recipe extends WorkflowRecipe>(
   definition: WorkflowDefinition<Input, Recipe>,
   prepared: PreparedRecipe<Recipe> & { parentId?: string },
-  { admit = admitAll, provider = comfyProvider, requestKey, scope }: SubmitOptions,
+  { admit = admitAll, onCreated, provider = comfyProvider, requestKey, scope }: SubmitOptions,
 ): Promise<GenerationReceipt> {
   const { hash, recipe } = hashRecipe(definition, prepared.recipe);
   const files = inputFiles(definition, recipe);
@@ -434,6 +438,8 @@ async function submitRecipe<Input, Recipe extends WorkflowRecipe>(
           reused: false,
         });
       }
+
+      onCreated?.(created.id);
 
       return created;
     });
@@ -523,7 +529,7 @@ export function submitMany<Input, Recipe extends WorkflowRecipe>(
     provider = comfyProvider,
     requestKey,
     scope,
-  }: Omit<SubmitOptions, "requestKey"> & { requestKey: string },
+  }: Omit<SubmitOptions, "onCreated" | "requestKey"> & { requestKey: string },
 ): GenerationReceipt[] {
   if (inputs.length === 0) {
     throw new GenerateError(422, "A request needs at least one item.", "invalid_input");

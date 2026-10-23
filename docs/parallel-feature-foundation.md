@@ -58,7 +58,10 @@ definition again by `(workflow_id, workflow_version)`.
 
 `src/shared/server/generation/service.ts`:
 
-- `submit(definition, input, { scope, admit?, provider?, requestKey? })` → `GenerationReceipt`.
+- `submit(definition, input, { scope, admit?, provider?, requestKey?, onCreated? })` →
+  `GenerationReceipt`. `onCreated(id)` runs in the transaction that stores a new row (never for a
+  reused one), before anything reaches the provider: what a feature keeps beside a generation (the
+  presets' `preset_generations`) is stored exactly when the row is.
 - `submitMany(definition, inputs, { scope, admit?, provider?, requestKey })` →
   `GenerationReceipt[]`: all items or none (see "Quota, refunds and rate limits").
 - `retry(id, session)`, `rerun(id, session)`: `POST /api/generations/:id/retry` (a failed or
