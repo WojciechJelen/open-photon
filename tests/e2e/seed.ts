@@ -119,8 +119,9 @@ transition(done, "queued", "finalizing");
 transition(done, "finalizing", "done", { outputs: { poster: poster.id, video: video.id } });
 
 // One generation still `queued`, for a page that follows its event stream. Comfy at the dead
-// port never moves it on.
-const queued = seedGeneration(2, QUEUED_JOB_ID);
+// port never moves it on. The fake provider's server (project `fake`) gets none: the fake knows
+// no such job, and every place in flight stays free for the generations its tests start.
+const queued = process.env.COMFY_PROVIDER === "fake" ? null : seedGeneration(2, QUEUED_JOB_ID);
 
 const code = execFileSync(process.execPath, ["scripts/mint-code.mjs", "e2e", "1000"], {
   encoding: "utf8",

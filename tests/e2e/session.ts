@@ -5,9 +5,12 @@ import { DatabaseSync } from "node:sqlite";
 
 import type { Page } from "@playwright/test";
 
-/** The browser state `sign-in.setup.ts` saves once per run: the access session. */
-export function storageStatePath() {
-  return join(dirname(process.env.E2E_DATABASE_PATH ?? ""), "storage-state.json");
+/**
+ * The browser state `sign-in.setup.ts` saves once per run and server: the access session of the
+ * server whose database is `databasePath` (the dead-port one by default).
+ */
+export function storageStatePath(databasePath = process.env.E2E_DATABASE_PATH ?? "") {
+  return join(dirname(databasePath), "storage-state.json");
 }
 
 /** Where `seed.ts` keeps the access code it mints for the run: next to the database. */
@@ -15,9 +18,9 @@ export function accessCodePath(databasePath = process.env.E2E_DATABASE_PATH ?? "
   return join(dirname(databasePath), "access-code");
 }
 
-/** The run's access code (`seed.ts`). */
-export function accessCode() {
-  return readFileSync(accessCodePath(), "utf8");
+/** The run's access code (`seed.ts`) on the server whose database is `databasePath`. */
+export function accessCode(databasePath = process.env.E2E_DATABASE_PATH ?? "") {
+  return readFileSync(accessCodePath(databasePath), "utf8");
 }
 
 /** Opens `path` and waits until React has hydrated it (`__root.tsx`), so clicks take effect. */

@@ -24,4 +24,6 @@
   "ignoreDependencies": ["@oxlint/plugins"],
   // shadcn components are added whole by `npx shadcn add`; an unused component file still fails.
   "ignoreExports": [{ "file": "src/components/ui/**", "exports": ["*"] }],
+  // The route tree is generated (`npm run dev`, `vite build`); its per-route lists repeat by design.
+  "duplicates": { "ignore": ["src/routeTree.gen.ts"] },
 }
