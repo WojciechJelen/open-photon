@@ -40,8 +40,11 @@ test("the studio home features Motion Transfer and links its live character tool
     ["Image", [["Create character", "/characters/new"]], []],
     [
       "Video",
-      [["Motion Transfer", "/motionTransfer"]],
-      ["Motion presets", "Look & lighting", "Batch variations"],
+      [
+        ["Motion Transfer", "/motionTransfer"],
+        ["Motion presets", "/presets"],
+      ],
+      ["Look & lighting", "Batch variations"],
     ],
     ["Library", [["Characters", "/characters"]], []],
   ] as const) {

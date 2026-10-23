@@ -5,6 +5,7 @@ import {
   FileCodeIcon,
   LibraryIcon,
   LockOpenIcon,
+  SparklesIcon,
   UserIcon,
 } from "lucide-react";
 
@@ -113,8 +114,8 @@ const characterTools = [
 ] as const;
 
 /**
- * The tool grid: Motion Transfer, live and featured (the whole card opens it), then the character
- * tools, each card a link to its page.
+ * The tool grid: Motion Transfer, live and featured (the whole card opens it), the motion presets
+ * that start it from a ready-made shot, then the character tools, each card a link to its page.
  */
 export function StudioTools({
   characters,
@@ -194,6 +195,32 @@ export function StudioTools({
             <Hud>Wan Animate 2 · 3–8 s clips</Hud>
           </div>
         </div>
+      </Link>
+
+      <Link
+        className="group flex flex-col gap-4 rounded-3xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-6 transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring sm:flex-row sm:items-center sm:p-7"
+        to="/presets"
+      >
+        <span
+          aria-hidden="true"
+          className="grid size-14 shrink-0 place-items-center rounded-full border border-brand/35 bg-brand/12 text-brand-foreground *:size-6"
+        >
+          <SparklesIcon />
+        </span>
+        <span className="flex flex-1 flex-col gap-1.5">
+          <span className="flex items-center gap-3">
+            <span className="font-display text-xl font-semibold">Motion presets</span>
+            <Badge>
+              <StatusDot tone="ok" />
+              Live
+            </Badge>
+          </span>
+          <span className="text-sm text-soft-foreground">
+            Start from a ready-made motion, look and seed, each with a real example take. Add your
+            character and generate.
+          </span>
+        </span>
+        <ArrowRightIcon aria-hidden="true" className="hidden size-5 shrink-0 sm:block" />
       </Link>
 
       <ul aria-label="Character tools" className="grid gap-4 md:grid-cols-2">

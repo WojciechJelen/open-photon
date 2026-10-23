@@ -185,7 +185,8 @@ file stops startup. Foreign keys are not enforced while migrating, so a migratio
 table others point at (`shared/002-waiting-queue.sql`). Applied today: `shared/001`
 (outputs, `target_origin`, `submit_started_at`), `shared/002` (waiting queue), `shared/003`
 (`generation_requests`), `shared/004` (`assets.kind` `text`), `characters/001` (library columns,
-one character per generation), `motionTransfer/001` (the pre-rendered takes' partial index).
+one character per generation), `motionTransfer/001` (the pre-rendered takes' partial index),
+`presets/001` (`preset_generations`, DEV-289).
 
 ### Access policy and seeders
 
@@ -193,7 +194,7 @@ one character per generation), `motionTransfer/001` (the pre-rendered takes' par
 `PublicAccessDeclaration` (`publicServerFns` keyed `<source path>#<export>`, `publicRoutes`,
 `isPublicAsset`, `indexableRoutes`, `isIndexableAsset`). Anything undeclared needs the access
 code. Declarations: `src/shared/server/generation/public-access.ts`,
-`src/features/{motionTransfer,characters,studio}/server/public-access.ts`.
+`src/features/{motionTransfer,characters,studio,presets}/server/public-access.ts`.
 
 Seeders are idempotent functions a feature exports (`seedSampleCharacters`,
 `seedSampleMotions`); `seedDatabase()` in `src/app/server.ts` runs each in its own transaction at
@@ -284,9 +285,39 @@ the visitor's own photo and the samples; the Character step keeps its intro and 
 slot), `DefaultDirectionEditor`, `GenerateButton`, `RerunButton`. They are filled in one place,
 `src/app/composer-slots.ts`, which mounts the library's `LibraryCharacterPicker` in
 `characterPicker` and gives it and the library page (`/characters`) `createCharacterHref`: the
-builder, `/characters/new`, carrying the draft. The studio (`/`) links Motion Transfer and both
-character tools ("Describe a character", "Character library"); the main navigation's Image ›
-Create character and Library › Characters open them.
+builder, `/characters/new`, carrying the draft. The studio (`/`) links Motion Transfer, the motion
+presets and both character tools ("Describe a character", "Character library"); the main
+navigation's Image › Create character, Video › Motion presets and Library › Characters open them.
+
+### Motion presets (DEV-289)
+
+`src/features/presets/`: a versioned catalog (`catalog.ts`, client-safe, validated by
+`presetCatalogSchema` when it loads) of ready-made Motion Transfer shots. A preset has a stable
+`id`, a `version`, `title`, `summary`, the Motion Transfer `workflow` version it was made for, its
+`motion` (a sample motion by slug and clip SHA-256, with licence and attribution), concrete
+`defaults` (the whole look and the seed, both validated by `parseDraft`), `requires`
+(`["character"]`) and an `example`: a real render of exactly those settings with a sample
+character, shipped in `samples/` (provenance and cost in `samples/README.md`). Bump `version` when
+anything that decides a render changes.
+
+- Pages: `/presets` (gallery) and `/presets/:presetId` (preview with playback controls, the
+  character through the composed `characterPicker`, the look through `directionEditor`, the
+  seed, Generate). The page's search is the preset `version` plus the draft members the visitor
+  set (`presetSearchSchema`: `character`, and `prompt`/`seed` only where they differ, with the
+  draft's resets), so a reload keeps them; opening a page never generates. "Open in Motion
+  Transfer" is `draftHref(presetDraft(…))`: the preset as the wizard's validated draft.
+- `presetAvailability` (`server/catalog.ts`): `unsupported_workflow` when `workflows` has no
+  definition for the preset's workflow version, `motion_unavailable` when its clip is not stored;
+  the page says so and Generate waits. A link for another `version` shows the change and waits.
+- `POST /api/presets/:presetId/generations` (`presetGenerateInputSchema`: `version`,
+  `character_id`, `prompt?`, `seed?`, plus `request_key?`): refuses 404 `preset_not_found`, 409
+  `preset_stale`, 409 `preset_unavailable` before the service is called (nothing stored, nothing
+  charged); then resolves the look and seed (`resolveDirection`) into Motion Transfer's input and
+  `submit`s it like `POST /api/generate` (same recipe, so the same take reuses). A new generation
+  gets a `preset_generations` row (`presets/001`): preset id, version, the catalog entry as it was,
+  and the visitor's changes. The recipe holds the concrete values, so a re-run renders the version
+  it was made from whatever the catalog says later. A take started from the wizard (after "Open in
+  Motion Transfer", or the library's "Animate") is an ordinary Motion Transfer take without a row.
 
 ### Import boundaries
 
