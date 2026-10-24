@@ -481,6 +481,7 @@ browser test `*.fake.spec.ts` when it needs a generation to succeed; it then run
 | `COMPOSE_PROJECT_NAME` | the directory name | Docker Compose | Compose project and volume (`<name>_sqlite-data`). |
 | `IN_FLIGHT_MAX` | 1 | `limits.ts` | Generations `preparing..finalizing` at once; 0 refuses new ones. |
 | `GENERATION_DISPATCH_MS` | 3000 | `dispatcher.ts` | Dispatcher wake and poll interval. |
+| `COMFY_UPLOAD_TIMEOUT_MS` | 600000 | `comfy-provider.ts` | How long one input file's upload to Comfy may take (30000–3600000); job requests keep 30 s. |
 | `GENERATE_RATE_LIMIT`, `UPLOAD_RATE_LIMIT`, `LOGIN_RATE_LIMIT`, `LOGIN_TOTAL_RATE_LIMIT` | 3, 10, 10, 300 | `limits.ts` | Per-minute limits. |
 | `PUBLIC_APP_URL`, `CLIENT_IP_HEADER`, `ENABLE_DEBUG` | — | see `.env.example` | Deployment settings. |
 

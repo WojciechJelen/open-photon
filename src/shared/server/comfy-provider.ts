@@ -29,27 +29,72 @@ export type Provider = {
   target?: () => ProviderTarget;
 };
 
-let client: Comfy | undefined;
+/** How long a Comfy request about a job may take: a submit, a status read. */
+const REQUEST_TIMEOUT_MS = 30_000;
 
-function sdk() {
-  // The key is passed explicitly; the SDK reads `COMFY_BASE_URL` itself, which `comfyTarget()`
-  // validated with the SDK's own rules at boot.
-  client ??= new Comfy({
-    apiKey: comfyTarget().apiKey,
-    clientInfo: "open-photon",
-    timeoutMs: 30_000,
-  });
+const UPLOAD_TIMEOUT_ENV_VAR = "COMFY_UPLOAD_TIMEOUT_MS";
 
-  return client;
+// 128 MiB, the upload limit, at about 1.8 Mbit/s. QA sent 110 MiB to a Runpod proxy in 107 s.
+const DEFAULT_UPLOAD_TIMEOUT_MS = 600_000;
+const MAX_UPLOAD_TIMEOUT_MS = 3_600_000;
+
+/**
+ * How long sending one input file to Comfy may take, hashing and the dedup probe included:
+ * `COMFY_UPLOAD_TIMEOUT_MS`, default 10 minutes, from the 30 s a job request gets to an hour. A
+ * generation holds its place in flight while its files upload. `comfy-boot.ts` checks it at
+ * startup.
+ */
+export function uploadTimeoutMs(env: Record<string, string | undefined>) {
+  const value = env[UPLOAD_TIMEOUT_ENV_VAR]?.trim();
+
+  if (!value) {
+    return DEFAULT_UPLOAD_TIMEOUT_MS;
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isInteger(parsed) || parsed < REQUEST_TIMEOUT_MS || parsed > MAX_UPLOAD_TIMEOUT_MS) {
+    throw new Error(
+      `${UPLOAD_TIMEOUT_ENV_VAR} must be a whole number of milliseconds from ${REQUEST_TIMEOUT_MS} to ${MAX_UPLOAD_TIMEOUT_MS}, not "${value}".`,
+    );
+  }
+
+  return parsed;
 }
 
-const sdkProvider: Provider = {
-  job: (id) => sdk().jobs.get(id),
-  submit: async (graph, idempotencyKey) =>
-    (await sdk().submit(sdk().workflows.fromJson(graph), { idempotencyKey })).id,
-  upload: async (path) =>
-    assetReferenceSchema.parse(await sdk().assets.fromFile(path).asReference()),
-};
+/**
+ * Comfy through the SDK, with two clients for one target: job requests (submit, status) answer
+ * within `requestMs`; an upload gets `uploadMs` for the whole file. The SDK takes one timeout per
+ * client and none per upload, and its default timeout also bounds a request body's transfer (and
+ * undici's inactivity limits), so a large file needs a client of its own. Both send the same key;
+ * the SDK reads `COMFY_BASE_URL` itself, which `comfyTarget()` validated with the SDK's own rules
+ * at boot.
+ */
+export function createSdkProvider(
+  apiKey: string | undefined,
+  { requestMs, uploadMs }: { requestMs: number; uploadMs: number },
+): Provider {
+  let jobs: Comfy | undefined;
+  let uploads: Comfy | undefined;
+
+  const client = () =>
+    (jobs ??= new Comfy({ apiKey, clientInfo: "open-photon", timeoutMs: requestMs }));
+
+  const uploadClient = () =>
+    (uploads ??= new Comfy({ apiKey, clientInfo: "open-photon", timeoutMs: uploadMs }));
+
+  return {
+    job: (id) => client().jobs.get(id),
+    submit: async (graph, idempotencyKey) =>
+      (await client().submit(client().workflows.fromJson(graph), { idempotencyKey })).id,
+    // `fromFile` streams the file from disk. The signal bounds the probe and the transfer
+    // together, which the client's timeout bounds one request at a time.
+    upload: async (path) =>
+      assetReferenceSchema.parse(
+        await uploadClient().assets.fromFile(path).asReference(AbortSignal.timeout(uploadMs)),
+      ),
+  };
+}
 
 // `vite build` replaces `import.meta.env.PROD` with `true`; under plain Node (`test:server`, the
 // scripts) `import.meta.env` does not exist, and in `vite dev` it is `false`.
@@ -80,7 +125,13 @@ export function providerKind(env: Record<string, string | undefined>, built = bu
 let selected: Provider | undefined;
 
 function selectedProvider() {
-  selected ??= providerKind(process.env) === "fake" ? fakeProvider : sdkProvider;
+  selected ??=
+    providerKind(process.env) === "fake"
+      ? fakeProvider
+      : createSdkProvider(comfyTarget().apiKey, {
+          requestMs: REQUEST_TIMEOUT_MS,
+          uploadMs: uploadTimeoutMs(process.env),
+        });
 
   return selected;
 }

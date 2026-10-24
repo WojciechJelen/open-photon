@@ -242,6 +242,11 @@ test("Comfy's errors map to error codes: a refusal fails the row, an uncertain s
       upload: () => Promise.reject(new TypeError("fetch failed", { cause: refused })),
     },
     {
+      // A file that did not reach Comfy in time: nothing was submitted.
+      expected: ["failed", "timeout", 0],
+      upload: () => Promise.reject(new DOMException("The operation timed out.", "TimeoutError")),
+    },
+    {
       expected: ["failed", "provider_rejected", 1],
       submit: () =>
         Promise.reject(
@@ -631,6 +636,20 @@ test("a code counts each generation Comfy may have accepted, once, and refuses p
   const failed = await generate(input(), limited, unreachable.double);
 
   assert.equal(findGeneration(failed.id)?.status, "failed");
+  assert.equal(used(), 1);
+
+  // An upload that ran out of time: nothing was submitted either, so the count comes back too.
+  const slow = provider((key) => Promise.resolve(`job-${key}`));
+
+  slow.double.upload = () =>
+    Promise.reject(new DOMException("The operation timed out.", "TimeoutError"));
+
+  const timedOut = findGeneration((await generate(input(), limited, slow.double)).id);
+
+  assert.deepEqual(
+    [timedOut?.status, timedOut?.error_code, timedOut?.provider_job_id, slow.submits.length],
+    ["failed", "timeout", null, 0],
+  );
   assert.equal(used(), 1);
 
   // An uncertain submit may have reached Comfy: it counts.
