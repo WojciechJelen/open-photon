@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { expect, type Page, test } from "@playwright/test";
 
 import { open } from "../../../../tests/e2e/session.ts";
@@ -7,10 +9,8 @@ import { batchListSchema, batchSchema } from "../contracts.ts";
 // larger than the places in flight, so two of its takes wait in line while four render. It
 // renders with no batch page open, and the page shows it again when it is opened.
 
-const look = "Background: a batch rehearsal stage.";
-
-/** The wizard on Direct for the sample motion and Arthur, with this spec's own look. */
-async function direct(page: Page) {
+/** The wizard on Direct for the sample motion and Arthur, with `look`. */
+async function direct(page: Page, look: string) {
   await open(page, "/motionTransfer");
   await page.getByRole("button", { name: "Street dance" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
@@ -29,7 +29,10 @@ test("a six-character batch queues past the places in flight, renders with its p
     await (await request.get("/api/batches")).json(),
   ).allowance;
 
-  await direct(page);
+  // A look no run used before, so every take is new (an earlier run's would come back reused).
+  const look = `Background: a batch rehearsal stage, run ${randomUUID().slice(0, 8)}.`;
+
+  await direct(page, look);
   await page.getByRole("button", { name: "Variations" }).click();
 
   const dialog = page.getByRole("dialog", { name: "Render variations" });
