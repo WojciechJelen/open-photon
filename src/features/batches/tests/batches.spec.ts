@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { expect, type Page, test } from "@playwright/test";
 import { z } from "zod";
 
-import { open, seededResult } from "../../../../tests/e2e/session.ts";
+import { accessCode, open, seededResult } from "../../../../tests/e2e/session.ts";
 import { type Batch, batchListSchema, batchSchema } from "../contracts.ts";
 
 // On the server whose Comfy is a dead port (project `features`): nothing renders, so a batch's
@@ -275,7 +275,7 @@ test("Variations shows the takes, what stays the same and the allowance before a
   expect(after.allowance).toEqual(before.allowance);
 });
 
-test("a Render whose answer is lost asks again for the same takes after a reload, and opens the batch it already admitted", async ({
+test("a Render whose answer is lost asks again for the same takes after the session lapses and a reload, and opens the batch it already admitted", async ({
   page,
 }) => {
   const before = batchListSchema.parse(await (await page.request.get("/api/batches")).json());
@@ -315,8 +315,17 @@ test("a Render whose answer is lost asks again for the same takes after a reload
 
   const batchId = admitted[0]?.id;
 
-  // After a reload the dialog opens on the takes it sent, not fresh seeds, and says why.
-  await page.reload();
+  // The session lapses: asking again is refused before the request is looked at, so it may still
+  // have a batch and stays remembered.
+  await page.context().clearCookies();
+  await dialog.getByRole("button", { name: "Render 2 takes" }).click();
+  await expect(dialog.getByRole("alert")).toHaveText("Enter an access code to do this.");
+
+  // Signed in again (a new page load), the dialog opens on the takes it sent, not fresh seeds,
+  // and says why.
+  const { pathname, search } = new URL(page.url());
+
+  await open(page, `/access?code=${accessCode()}&next=${encodeURIComponent(pathname + search)}`);
   await panel.getByRole("button", { name: "Variations" }).click();
   await expect(takes).toHaveCount(2);
   expect(await takes.allTextContents()).toEqual(seeds);

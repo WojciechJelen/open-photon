@@ -1,8 +1,8 @@
-// The batch request a tab sent for a shot and got no batch for yet: its variation and request
+// The batch request a tab sent for a shot and has not seen a batch for: its variation and request
 // key, per shot. It lives in memory for the page's life, mirrored to the tab's `sessionStorage`,
-// so asking again after a lost answer, a closed dialog or a reload sends the same request under
-// the same key (which answers with the batch it admitted) rather than a second batch of fresh
-// seeds. It is forgotten once a batch is admitted. Client-only.
+// so asking again after a lost answer, a refusal, a closed dialog or a reload sends the same
+// request under the same key (which answers with the batch it admitted, if it did) rather than a
+// second batch of fresh seeds. It is forgotten once a batch is admitted. Client-only.
 import { z } from "zod";
 
 import { type BatchVariation, batchVariationSchema } from "#/features/batches/contracts";

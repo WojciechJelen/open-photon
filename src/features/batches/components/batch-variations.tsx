@@ -236,7 +236,9 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
     const requestKey = keys.current.get(identity) ?? crypto.randomUUID();
 
     keys.current.set(identity, requestKey);
-    // Recorded before it is sent: an answer that never arrives leaves the request to send again.
+    // Recorded before it is sent and kept until a batch opens: a refusal does not prove an
+    // earlier send of this key was not admitted (an expired session is refused before the key is
+    // looked up), so only the batch itself settles it.
     rememberPending(draft, variation, requestKey);
     setSubmitting(true);
     setRefusal(null);
@@ -248,12 +250,6 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
       await navigate({ params: { batchId: result.data.id }, to: "/batches/$batchId" });
 
       return;
-    }
-
-    // A refusal with the app's reason is an answer: nothing was admitted (admission is atomic).
-    // Without one (no answer, a gateway's error) the batch may exist, so the request stays.
-    if (result.refusal.reason !== undefined) {
-      forgetPending(draft);
     }
 
     setSubmitting(false);
@@ -460,8 +456,9 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
           ) : (
             resending && (
               <p className="text-sm text-soft-foreground" role="status">
-                These are the takes you last asked for, which got no answer. Render asks again with
-                the same request: a batch it already started opens instead of starting twice.
+                These are the takes you last asked for, and no batch of them has opened here yet.
+                Render asks again with the same request: a batch it already started opens instead of
+                starting twice.
               </p>
             )
           )}
