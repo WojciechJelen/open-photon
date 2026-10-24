@@ -21,20 +21,21 @@ test("the studio home features Motion Transfer and links its live character tool
 
   // The home has no Soon cards; the main navigation shows every planned category and tool, but
   // disabled: a planned category is a disabled button, a planned tool a disabled menu item that
-  // links nowhere (the menus render outside the nav), and each shipped tool is a link.
+  // links nowhere (the menus render outside the nav), and each shipped tool is a link. Explore is
+  // one page, so a plain link.
   const navigation = page.getByRole("navigation", { name: "Main" });
 
   await expect(navigation.getByRole("button")).toHaveText([
-    "Explore (coming soon)",
     "Image",
     "Video",
     "Audio (coming soon)",
     "Library",
   ]);
-
-  for (const label of ["Explore", "Audio"]) {
-    await expect(navigation.getByRole("button", { name: label })).toBeDisabled();
-  }
+  await expect(navigation.getByRole("button", { name: "Audio" })).toBeDisabled();
+  await expect(navigation.getByRole("link", { exact: true, name: "Explore" })).toHaveAttribute(
+    "href",
+    "/explore",
+  );
 
   for (const [label, shipped, planned] of [
     ["Image", [["Create character", "/characters/new"]], []],
