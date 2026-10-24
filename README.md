@@ -106,6 +106,8 @@ COMFY_PROXY_TOKEN=the-same-secret-as-PROXY_TOKEN
 
 Leave `COMFY_API_KEY` unset for Runpod. Stop the pod when unused; terminate it to
 remove its pod storage too. Separately created network volumes continue billing.
+Each input file has 10 minutes to reach the backend (enough for a 128 MiB clip at about
+1.8 Mbit/s); on a slower uplink, raise `COMFY_UPLOAD_TIMEOUT_MS` (milliseconds, up to an hour).
 
 ### Run locally from source
 
