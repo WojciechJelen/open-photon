@@ -232,8 +232,10 @@ try {
   }, "a failed first download");
 
   // 3. Preparing after the submit started: the stub takes the graph and never answers. The
-  // request is left hanging; killing the app ends it. (The SDK gives up after 30 s, so the kill
-  // below comes well before.)
+  // request is left hanging; killing the app ends it. The SDK gives up after 30 s (the row would
+  // become `unknown` before the kill), so the kill must come sooner.
+  const hangStarted = Date.now();
+
   void generate("Restart check: [stub:hang] was submitting").catch(() => {});
 
   const submitting = await until(
@@ -264,6 +266,10 @@ try {
   const before = await stubState();
 
   assert.equal(submitsOf(before, "[stub:hang]").length, 1);
+  assert.ok(
+    Date.now() - hangStarted < 25_000,
+    "The hung submit is too old to kill before the SDK's 30 s timeout",
+  );
 
   docker("kill", "--signal", "KILL", app);
 

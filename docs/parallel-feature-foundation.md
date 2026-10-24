@@ -358,9 +358,11 @@ process runs per installation, so every claim found then is a stopped process's)
 - `done`, `failed`, `unknown`, `cancelled`: final, untouched.
 
 `dispatcher.test.ts` checks the `waiting`, `preparing` and `finalizing` cases with the fake
-provider in a second process; `scripts/verify-packaged-restart.mjs` kills the app image
-(`docker kill --signal KILL`) with a `waiting`, both kinds of `preparing`, a `queued` and a
-`finalizing` row in place and checks the same outcomes against a stub Comfy.
+provider in a second process. `scripts/verify-packaged-restart.mjs` kills the app image
+(`docker kill --signal KILL`) with a `queued`, a `finalizing`, a sent `preparing` and two
+`waiting` rows in place, turns the older `waiting` row into a never-sent claim by SQL while it is
+down (the window between claim and submit is too short to kill in), and checks the same outcomes
+against a stub Comfy.
 
 `IN_FLIGHT_MAX` (default 1) is one cap over every workflow: there is one `generations` table and
 one dispatcher. `IN_FLIGHT_MAX=0` refuses new generations with 503 `queue_full`, waiting ones
@@ -571,7 +573,7 @@ feature locks, 0 conflicts" and `npm run check:open-weights` "310 nodes scanned 
 | Fake provider refused by a built server | Proven | `NODE_ENV=production node .output/server/index.mjs` exits 1 (F1 report) |
 | Waiting queue against a real provider | Not verified on Cloud or selfhost | — |
 | Any render on the self-host image | Proven on selfhost (Runpod A40, image `0.2.0` from `723614c`) | `src/features/characterBuilder/workflows/README.md`, "Self-host": caption, image and Motion Transfer generations passed `scripts/verify-selfhost.mjs` |
-| Packaged runtime: the app image migrates its database, renders, and settles a `kill -9` | Proven in CI with a stub Comfy | `scripts/verify-packaged-restart.mjs` (CI step after the image build): the image refuses the fake provider, so it renders against `scripts/stub-comfy-api.mjs`; killed with a `queued`, a `finalizing`, a sent `preparing`, a never-sent `preparing` (a claim set by SQL) and a `waiting` row, it restarts to done, done, `unknown`, done, done with two submits, and a clean restart sends nothing |
+| Packaged runtime: the app image migrates its database, collects and stores outputs, and settles a `kill -9` | Proven in CI with a stub Comfy | `scripts/verify-packaged-restart.mjs` (CI step after the image build): the image refuses the fake provider, so it runs against `scripts/stub-comfy-api.mjs`, which renders nothing and serves a fixed PNG through the real download, probe and storage path; killed with a `queued`, a `finalizing`, a sent `preparing` and two `waiting` rows (the older made a never-sent `preparing` claim by SQL after the kill), it restarts to done, done, `unknown`, done, done with two submits under their keys, and a clean restart sends nothing |
 | Two worktrees running `test:server` and `test:e2e` at once | Not verified | Ports and databases are parameterized; no simultaneous run recorded |
 
 Steps 2–4 below passed on a Runpod A40 with the published image `0.2.0` (2026-10-23; step 1's

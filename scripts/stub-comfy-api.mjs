@@ -9,8 +9,9 @@ import { createServer } from "node:http";
 // `STUB_OUTPUT_PNG` from the graph's `SaveImage` nodes.
 //
 // - `POST /api/v2/jobs` records the submit (idempotency key and the graph as JSON text) and
-//   answers 201 with the job; the same `Idempotency-Key` answers the same job. A graph that holds
-//   `[stub:hang]` is recorded and never answered, as if the app stopped mid-submit.
+//   answers 201 with the job; a key it has seen before is a 422 `idempotency_key_reuse`, as the
+//   API documents. A graph that holds `[stub:hang]` is recorded and never answered, as if the app
+//   stopped mid-submit.
 // - `GET /api/v2/jobs/:id`: `succeeded` with outputs, or `running` while the stub holds jobs and
 //   the graph holds `[stub:hold]`.
 // - `GET /api/v2/assets/:id/content`: the PNG, or a 500 while downloads fail.
@@ -21,7 +22,7 @@ const port = Number(process.env.STUB_PORT ?? 8188);
 const png = readFileSync(process.env.STUB_OUTPUT_PNG ?? "/stub/output.png");
 const state = { failDownloads: false, hold: true, submits: [] };
 const jobs = new Map();
-const byKey = new Map();
+const seenKeys = new Set();
 
 function view(job, origin) {
   const done = !(state.hold && job.held);
@@ -100,27 +101,30 @@ createServer(async (request, response) => {
 
     state.submits.push({ at: new Date().toISOString(), graph, key });
 
+    if (key && seenKeys.has(key)) {
+      return json(response, 422, {
+        error: { code: "idempotency_key_reuse", message: `Idempotency key ${key} was used` },
+      });
+    }
+
+    if (key) {
+      seenKeys.add(key);
+    }
+
     if (graph.includes("[stub:hang]")) {
       return;
     }
 
-    let job = key ? jobs.get(byKey.get(key)) : undefined;
+    const job = {
+      createdAt: new Date().toISOString(),
+      held: graph.includes("[stub:hold]"),
+      id: randomUUID(),
+      saveNodes: Object.entries(workflow ?? {})
+        .filter(([, node]) => node.class_type === "SaveImage")
+        .map(([nodeId]) => nodeId),
+    };
 
-    if (!job) {
-      job = {
-        createdAt: new Date().toISOString(),
-        id: randomUUID(),
-        held: graph.includes("[stub:hold]"),
-        saveNodes: Object.entries(workflow ?? {})
-          .filter(([, node]) => node.class_type === "SaveImage")
-          .map(([nodeId]) => nodeId),
-      };
-      jobs.set(job.id, job);
-
-      if (key) {
-        byKey.set(key, job.id);
-      }
-    }
+    jobs.set(job.id, job);
 
     return json(response, 201, view(job, origin));
   }
