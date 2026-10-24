@@ -58,6 +58,31 @@ function takeFragments(text: string, catalog: LookCatalog) {
 }
 
 /**
+ * A background sentence in the visitor's words: one that starts with `Background:` (as every
+ * background fragment and a preset's look do) or `Background as in` (`backgroundBase`), through
+ * the end of its sentence (`.`, `!` or `?` before a space or the end), its line or the text.
+ */
+const backgroundSentence = /(?<=^|\s)Background(?::| as in )[^]*?(?:[.!?](?=\s|$)|(?=\n)|$)/;
+
+/**
+ * `description` without its background sentences (`backgroundSentence`), each taken out with the
+ * space that joined it, and the sentences `taken`. When that leaves only `characterBase`, the
+ * description is blank: `composeLook` leads a picked background with that sentence, and `readLook`
+ * reads it so.
+ */
+function takeBackground(description: string) {
+  const taken: string[] = [];
+  let rest = description;
+
+  for (let match = backgroundSentence.exec(rest); match; match = backgroundSentence.exec(rest)) {
+    taken.push(match[0]);
+    rest = cut(rest, match.index, match[0]);
+  }
+
+  return { rest: taken.length > 0 && rest === characterBase ? "" : rest, taken };
+}
+
+/**
  * The look `prompt` holds. Every catalog fragment found in it is a pick and comes out of the
  * description, each occurrence with the space that joined it, so a fragment never shows twice;
  * when one group's fragments appear more than once, the catalog's first is the pick. What is left
@@ -81,9 +106,10 @@ export function readLook(prompt: string, catalog: LookCatalog = lookCatalog): Lo
 /**
  * `look` with the description typed or pasted as `text`. A catalog fragment in it is a pick, as
  * a click on its tile would make it (`pickOption`: it replaces its group's, drops conflicting
- * picks), and comes out of the description, so the description never holds a fragment: picking
- * that option again cannot add it twice, and removing it leaves none behind. `found` names the
- * options taken from the text.
+ * picks, and a background takes the place of the other background sentences of the text), and
+ * comes out of the description, so the description never holds a fragment: picking that option
+ * again cannot add it twice, and removing it leaves none behind. `found` names the options taken
+ * from the text.
  */
 export function editDescription(
   look: Look,
@@ -92,6 +118,7 @@ export function editDescription(
 ): DescriptionEdit {
   const { found, rest } = takeFragments(text, catalog);
   const dropped: LookOption[] = [];
+  const replaced: string[] = [];
   let next: Look = { ...look, description: rest };
 
   for (const option of found) {
@@ -99,9 +126,10 @@ export function editDescription(
 
     next = picked.look;
     dropped.push(...picked.dropped);
+    replaced.push(...picked.replaced);
   }
 
-  return { dropped, found, look: next };
+  return { dropped, found, look: next, replaced };
 }
 
 /** What `editDescription` gives: `pickOption`'s result and the options found in the text. */
@@ -144,7 +172,10 @@ export function composeLook(look: Look, catalog: LookCatalog = lookCatalog): str
 /**
  * `look` with `optionId` picked: it replaces its group's pick, and drops the picks it conflicts
  * with (either side naming the other in `conflicts`), which come back as `dropped` so the editor
- * can say so. Picking the option already picked changes nothing.
+ * can say so. A background also replaces the background sentences of the description (a
+ * preset's look, a take's prompt read back, the visitor's words), which come back as `replaced`,
+ * so the prompt never asks for two backgrounds. Picking the option already picked changes nothing
+ * else.
  */
 export function pickOption(
   look: Look,
@@ -154,7 +185,7 @@ export function pickOption(
   const option = catalog.options.find(({ id }) => id === optionId);
 
   if (!option) {
-    return { dropped: [], look };
+    return { dropped: [], look, replaced: [] };
   }
 
   const dropped = pickedOptions(look.selection, catalog).filter(
@@ -169,11 +200,19 @@ export function pickOption(
     delete selection[other.group];
   }
 
-  return { dropped, look: { ...look, selection } };
+  const { rest, taken } =
+    option.group === "background"
+      ? takeBackground(look.description)
+      : { rest: look.description, taken: [] };
+
+  return { dropped, look: { description: rest, selection }, replaced: taken };
 }
 
-/** What `pickOption` gives: the next look, and the picks it dropped for a conflict. */
-type PickResult = { dropped: LookOption[]; look: Look };
+/**
+ * What `pickOption` gives: the next look, the picks it dropped for a conflict, and the background
+ * sentences a picked background took out of the description.
+ */
+type PickResult = { dropped: LookOption[]; look: Look; replaced: string[] };
 
 /** `look` without its pick in `group`. */
 export function removeGroup(look: Look, group: LookGroup): Look {

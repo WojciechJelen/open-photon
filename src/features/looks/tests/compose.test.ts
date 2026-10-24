@@ -195,7 +195,7 @@ test("one option per group: a pick replaces its group's, and conflicting picks g
   assert.deepEqual(pickOption(monochrome.look, glow.id).look.selection, { lighting: glow.id });
 
   // An unknown id changes nothing.
-  assert.deepEqual(pickOption(base, "no-such-look"), { dropped: [], look: base });
+  assert.deepEqual(pickOption(base, "no-such-look"), { dropped: [], look: base, replaced: [] });
 });
 
 test("a catalog change leaves a prompt composed before it as it was: the old fragment reads as the visitor's words", () => {
@@ -251,4 +251,67 @@ test("a fragment pasted into the description becomes its pick: picking it again 
     ...edit.look,
     description: "A dancer,  twice.\n",
   });
+});
+
+test("a picked background replaces the background the description states (a preset's look, a take read back, the visitor's words), so the prompt asks for one", () => {
+  const backgrounds = lookCatalog.options.filter(({ group }) => group === "background");
+  const clauses = (prompt: string) => prompt.match(/(?:^|\s)Background(?::| as in )/g) ?? [];
+
+  // Looks no catalog fragment states, as presets and earlier takes have them: a background of
+  // their own, and the workflow's default prompt, whose second sentence keeps the photo's.
+  for (const [stated, look] of [
+    [
+      "Background: a neon-lit city street at night.",
+      `${characterBase} Background: a neon-lit city street at night.`,
+    ],
+    [
+      "Background: a rooftop at golden hour.",
+      `${characterBase} Background: a rooftop at golden hour.`,
+    ],
+    [backgroundBase, `${characterBase} ${backgroundBase}`],
+  ] as const) {
+    assert.deepEqual(readLook(look), { description: look, selection: {} });
+
+    for (const background of backgrounds) {
+      const { look: placed, replaced } = pickOption(readLook(look), background.id);
+      const prompt = composeLook(placed);
+
+      assert.deepEqual(replaced, [stated]);
+      assert.equal(prompt, `${characterBase} ${background.fragment}`);
+      assert.equal(clauses(prompt).length, 1, prompt);
+      assert.deepEqual(readLook(prompt), placed);
+
+      // Lighting and color keep it; removing the background goes back to the photo's.
+      const lit = pick(placed, lowKey.id, noir.id);
+
+      assert.equal(clauses(composeLook(lit)).length, 1);
+      assert.equal(composeLook(removeGroup(placed, "background")), "");
+    }
+
+    // A pick in another group leaves the stated background as it is.
+    assert.equal(composeLook(pick(readLook(look), golden.id)), `${look} ${golden.fragment}`);
+  }
+
+  // The visitor's own words keep everything but their background sentence.
+  const typed = "A dancer.\nBackground: a forest at dawn, mist between the trees. Red jacket.";
+  const placed = pickOption({ description: typed, selection: {} }, beach.id);
+
+  assert.deepEqual(placed.replaced, ["Background: a forest at dawn, mist between the trees."]);
+  assert.equal(composeLook(placed.look), `A dancer.\nRed jacket. ${beach.fragment}`);
+  assert.equal(composeLook(removeGroup(placed.look, "background")), "A dancer.\nRed jacket.");
+
+  // Only a sentence that sets the background is one: other words about it stay.
+  const dancers = "Background dancers in matching jackets.";
+
+  assert.deepEqual(pickOption({ description: dancers, selection: {} }, beach.id).replaced, []);
+
+  // A background fragment pasted next to another background sentence takes its place too.
+  const pasted = editDescription(
+    { description: "", selection: {} },
+    `${characterBase} Background: a rooftop at golden hour. ${neon.fragment}`,
+  );
+
+  assert.deepEqual(pasted.replaced, ["Background: a rooftop at golden hour."]);
+  assert.deepEqual(pasted.look, { description: "", selection: { background: neon.id } });
+  assert.equal(composeLook(pasted.look), `${characterBase} ${neon.fragment}`);
 });

@@ -24,6 +24,8 @@ import { Route as CharactersIndexRouteImport } from './routes/characters.index'
 import { Route as CharactersNewRouteImport } from './routes/characters.new'
 import { Route as GGenerationIdRouteImport } from './routes/g.$generationId'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
+import { Route as PresetsIndexRouteImport } from './routes/presets.index'
+import { Route as PresetsPresetIdRouteImport } from './routes/presets.$presetId'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as ApiBatchesBatchIdRouteImport } from './routes/api.batches.$batchId'
 import { Route as ApiCharactersCharacterIdRouteImport } from './routes/api.characters.$characterId'
@@ -37,6 +39,7 @@ import { Route as ApiGenerationsGenerationIdPublishRouteImport } from './routes/
 import { Route as ApiGenerationsGenerationIdRecipeDotjsonRouteImport } from './routes/api.generations.$generationId.recipe[.]json'
 import { Route as ApiGenerationsGenerationIdRerunRouteImport } from './routes/api.generations.$generationId.rerun'
 import { Route as ApiGenerationsGenerationIdRetryRouteImport } from './routes/api.generations.$generationId.retry'
+import { Route as ApiPresetsPresetIdGenerationsRouteImport } from './routes/api.presets.$presetId.generations'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -113,6 +116,16 @@ const MediaFilenameRoute = MediaFilenameRouteImport.update({
   path: '/media/$filename',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PresetsIndexRoute = PresetsIndexRouteImport.update({
+  id: '/presets/',
+  path: '/presets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PresetsPresetIdRoute = PresetsPresetIdRouteImport.update({
+  id: '/presets/$presetId',
+  path: '/presets/$presetId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RSlugRoute = RSlugRouteImport.update({
   id: '/r/$slug',
   path: '/r/$slug',
@@ -186,6 +199,12 @@ const ApiGenerationsGenerationIdRetryRoute =
     path: '/retry',
     getParentRoute: () => ApiGenerationsGenerationIdRoute,
   } as any)
+const ApiPresetsPresetIdGenerationsRoute =
+  ApiPresetsPresetIdGenerationsRouteImport.update({
+    id: '/api/presets/$presetId/generations',
+    path: '/api/presets/$presetId/generations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -201,9 +220,11 @@ export interface FileRoutesByFullPath {
   '/characters/new': typeof CharactersNewRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
+  '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
   '/batches/': typeof BatchesIndexRoute
   '/characters/': typeof CharactersIndexRoute
+  '/presets/': typeof PresetsIndexRoute
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
@@ -216,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/api/generations/$generationId/recipe.json': typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
+  '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -231,9 +253,11 @@ export interface FileRoutesByTo {
   '/characters/new': typeof CharactersNewRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
+  '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
   '/batches': typeof BatchesIndexRoute
   '/characters': typeof CharactersIndexRoute
+  '/presets': typeof PresetsIndexRoute
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
@@ -246,6 +270,7 @@ export interface FileRoutesByTo {
   '/api/generations/$generationId/recipe.json': typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
+  '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -262,9 +287,11 @@ export interface FileRoutesById {
   '/characters/new': typeof CharactersNewRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
+  '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
   '/batches/': typeof BatchesIndexRoute
   '/characters/': typeof CharactersIndexRoute
+  '/presets/': typeof PresetsIndexRoute
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
@@ -277,6 +304,7 @@ export interface FileRoutesById {
   '/api/generations/$generationId/recipe.json': typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
+  '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -294,9 +322,11 @@ export interface FileRouteTypes {
     | '/characters/new'
     | '/g/$generationId'
     | '/media/$filename'
+    | '/presets/$presetId'
     | '/r/$slug'
     | '/batches/'
     | '/characters/'
+    | '/presets/'
     | '/api/batches/$batchId'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
@@ -309,6 +339,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/recipe.json'
     | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
+    | '/api/presets/$presetId/generations'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -324,9 +355,11 @@ export interface FileRouteTypes {
     | '/characters/new'
     | '/g/$generationId'
     | '/media/$filename'
+    | '/presets/$presetId'
     | '/r/$slug'
     | '/batches'
     | '/characters'
+    | '/presets'
     | '/api/batches/$batchId'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
@@ -339,6 +372,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/recipe.json'
     | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
+    | '/api/presets/$presetId/generations'
   id:
     | '__root__'
     | '/'
@@ -354,9 +388,11 @@ export interface FileRouteTypes {
     | '/characters/new'
     | '/g/$generationId'
     | '/media/$filename'
+    | '/presets/$presetId'
     | '/r/$slug'
     | '/batches/'
     | '/characters/'
+    | '/presets/'
     | '/api/batches/$batchId'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
@@ -369,6 +405,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/recipe.json'
     | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
+    | '/api/presets/$presetId/generations'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -385,13 +422,16 @@ export interface RootRouteChildren {
   CharactersNewRoute: typeof CharactersNewRoute
   GGenerationIdRoute: typeof GGenerationIdRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
+  PresetsPresetIdRoute: typeof PresetsPresetIdRoute
   RSlugRoute: typeof RSlugRoute
   BatchesIndexRoute: typeof BatchesIndexRoute
   CharactersIndexRoute: typeof CharactersIndexRoute
+  PresetsIndexRoute: typeof PresetsIndexRoute
   ApiDebugHeartbeatRoute: typeof ApiDebugHeartbeatRoute
   ApiDebugStreamsRoute: typeof ApiDebugStreamsRoute
   ApiGenerationsGenerationIdRoute: typeof ApiGenerationsGenerationIdRouteWithChildren
   ApiAssetsAssetIdTrimRoute: typeof ApiAssetsAssetIdTrimRoute
+  ApiPresetsPresetIdGenerationsRoute: typeof ApiPresetsPresetIdGenerationsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -501,6 +541,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MediaFilenameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/presets/': {
+      id: '/presets/'
+      path: '/presets'
+      fullPath: '/presets/'
+      preLoaderRoute: typeof PresetsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/presets/$presetId': {
+      id: '/presets/$presetId'
+      path: '/presets/$presetId'
+      fullPath: '/presets/$presetId'
+      preLoaderRoute: typeof PresetsPresetIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/r/$slug': {
       id: '/r/$slug'
       path: '/r/$slug'
@@ -592,6 +646,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerationsGenerationIdRetryRouteImport
       parentRoute: typeof ApiGenerationsGenerationIdRoute
     }
+    '/api/presets/$presetId/generations': {
+      id: '/api/presets/$presetId/generations'
+      path: '/api/presets/$presetId/generations'
+      fullPath: '/api/presets/$presetId/generations'
+      preLoaderRoute: typeof ApiPresetsPresetIdGenerationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -673,13 +734,16 @@ const rootRouteChildren: RootRouteChildren = {
   CharactersNewRoute: CharactersNewRoute,
   GGenerationIdRoute: GGenerationIdRoute,
   MediaFilenameRoute: MediaFilenameRoute,
+  PresetsPresetIdRoute: PresetsPresetIdRoute,
   RSlugRoute: RSlugRoute,
   BatchesIndexRoute: BatchesIndexRoute,
   CharactersIndexRoute: CharactersIndexRoute,
+  PresetsIndexRoute: PresetsIndexRoute,
   ApiDebugHeartbeatRoute: ApiDebugHeartbeatRoute,
   ApiDebugStreamsRoute: ApiDebugStreamsRoute,
   ApiGenerationsGenerationIdRoute: ApiGenerationsGenerationIdRouteWithChildren,
   ApiAssetsAssetIdTrimRoute: ApiAssetsAssetIdTrimRoute,
+  ApiPresetsPresetIdGenerationsRoute: ApiPresetsPresetIdGenerationsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

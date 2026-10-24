@@ -11,7 +11,7 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { NavigationIcon, type NavigationIconName } from "#/shared/components/navigation-icons";
 
-type ToolPath = "/characters" | "/characters/new" | "/motionTransfer";
+type ToolPath = "/characters" | "/characters/new" | "/motionTransfer" | "/presets";
 
 /** A category of the main navigation that has shipped tools. */
 export type NavigationCategory = "Image" | "Library" | "Video";
@@ -50,12 +50,11 @@ const navigation: NavigationEntry[] = [
         label: "Motion Transfer",
         to: "/motionTransfer",
       },
-      //TODO: https://linear.app/devs3/issue/DEV-289
       {
         description: "Start with a ready-made motion and look.",
-        disabled: true,
         icon: "motionPresets",
         label: "Motion presets",
+        to: "/presets",
       },
       //TODO: https://linear.app/devs3/issue/DEV-291
       {

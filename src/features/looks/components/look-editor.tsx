@@ -78,14 +78,19 @@ export function LookEditor({ errors, onChange, value }: DirectionEditorProps) {
 
   const picked = pickedOptions(look.selection);
 
-  // A catalog fragment typed or pasted into the description becomes its pick.
+  // A catalog fragment typed or pasted into the description becomes its pick; a background one
+  // takes the place of the other background sentences of the text.
   const describe = (text: string) => {
-    const { dropped, found, look: next } = editDescription(look, text);
+    const { dropped, found, look: next, replaced } = editDescription(look, text);
 
     write(
       next,
       [
-        ...found.map(({ label }) => `${label} picked from your words.`),
+        ...found.map(({ group, label }) =>
+          group === "background" && replaced.length > 0
+            ? `${label} picked from your words, in place of the other background in them.`
+            : `${label} picked from your words.`,
+        ),
         ...dropped.map(({ label }) => `${label} removed: it does not combine with your words.`),
       ].join(" "),
     );
@@ -98,11 +103,15 @@ export function LookEditor({ errors, onChange, value }: DirectionEditorProps) {
       return;
     }
 
-    const { dropped, look: next } = pickOption(look, option.id);
+    const { dropped, look: next, replaced } = pickOption(look, option.id);
     const before = picked.find(({ group }) => group === option.group);
 
     const said = [
-      before ? `${option.label} replaced ${before.label}.` : `${option.label} added.`,
+      before
+        ? `${option.label} replaced ${before.label}.`
+        : replaced.length > 0
+          ? `${option.label} replaced the background of the look.`
+          : `${option.label} added.`,
       ...dropped.map(({ label }) => `${label} removed: it does not combine with ${option.label}.`),
     ];
 
