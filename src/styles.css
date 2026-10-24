@@ -201,10 +201,13 @@
 }
 
 /* The compare player's frames fit the viewport with the transport under them: a portrait frame is
-   at most the viewport's height less the page's header and its navigation row, heading row and
-   transport (`--stage-chrome`, taller on a phone, where the heading and the view toggle stack), so
-   at most 9/16 of that wide (and never over 28.75rem, alone in the swipe view); a side-by-side
-   pair, twice that and the gap between them. */
+   at most the viewport's height less what lies above the frames and the transport under them
+   (`--stage-chrome`), so at most 9/16 of that wide (and never over 28.75rem, alone in the swipe
+   view); a side-by-side pair, twice that and the gap between them. The player measures
+   `--stage-chrome` once it runs in the browser (`src/features/motionTransfer/components/
+   compare-player.tsx`), however the header, the navigation and the heading wrap; the values here
+   are the server-rendered first guess: the result page at 1440×800, and on a phone, where the
+   heading and the view toggle stack. */
 :root {
   --stage-chrome: 21.875rem;
 }

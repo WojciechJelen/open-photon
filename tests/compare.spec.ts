@@ -149,3 +149,29 @@ test("on a laptop screen the frames and the transport fit without scrolling, sid
     expect((transport?.y ?? 0) + (transport?.height ?? 0), view).toBeLessThanOrEqual(800);
   }
 });
+
+test("where the heading or the navigation wraps, the frames still leave the transport on screen", async ({
+  page,
+}) => {
+  // 1024×768: the heading and the view toggle wrap beside the side panel; 375×812: the
+  // navigation wraps onto a second row.
+  for (const [width, height] of [
+    [1024, 768],
+    [375, 812],
+  ] as const) {
+    await page.setViewportSize({ height, width });
+    await open(page, `/g/${seededResult().id}`);
+
+    for (const view of ["Side by side", "Swipe"]) {
+      await page.getByRole("radio", { name: view }).click();
+
+      const label = `${view} at ${width}×${height}`;
+      const transport = await page.getByRole("slider", { name: "Seek" }).boundingBox();
+      const play = await page.getByRole("button", { name: "Play" }).boundingBox();
+
+      expect(transport, label).not.toBeNull();
+      expect((play?.y ?? 0) + (play?.height ?? 0), label).toBeLessThanOrEqual(height);
+      expect((transport?.y ?? 0) + (transport?.height ?? 0), label).toBeLessThanOrEqual(height);
+    }
+  }
+});

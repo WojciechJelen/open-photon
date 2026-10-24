@@ -29,7 +29,8 @@ export type CompareView = "side" | "swipe";
  * The source clip and the result on one clock. The result is the master: its play, pause, seeks,
  * stalls and rate drive the source, which is muted (the result carries the clip's audio, so it
  * plays once). One transport controls both: play/pause, a scrubber, sound and full screen; a
- * portrait pair is sized so the frames and the transport fit the viewport together.
+ * portrait pair is sized so the frames and the transport fit the viewport together: the player
+ * measures what lies above its frames and what below them (`--stage-chrome`, `src/styles.css`).
  * `view` is side by side, or swipe: the result lies over the source and a swipe slider uncovers
  * it from the right (`clip-split`, `src/styles.css`). Switching keeps both videos playing: the
  * same two elements only move.
@@ -47,6 +48,7 @@ export function ComparePlayer({
   source: string;
   view: CompareView;
 }) {
+  const player = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const resultVideo = useRef<HTMLVideoElement>(null);
   const sourceVideo = useRef<HTMLVideoElement>(null);
@@ -74,6 +76,46 @@ export function ComparePlayer({
   useEffect(() => {
     box.current?.style.setProperty("--split", `${split}%`);
   }, [split]);
+
+  useEffect(() => {
+    /**
+     * Sets `--stage-chrome` to the page above the frames (header, navigation, heading, however
+     * they wrap) plus the gap and the transport below them and a 1rem margin, so the frames take
+     * the rest of the viewport's height. Full screen shows the frames alone: nothing to measure.
+     */
+    function measure() {
+      const outer = player.current;
+      const stage = box.current;
+
+      if (!outer || !stage || document.fullscreenElement) {
+        return;
+      }
+
+      const frames = stage.getBoundingClientRect();
+      const below = outer.getBoundingClientRect().height - frames.height;
+
+      outer.style.setProperty(
+        "--stage-chrome",
+        `calc(${frames.top + window.scrollY + below}px + 1rem)`,
+      );
+    }
+
+    measure();
+
+    // What lies above the frames changes the page's height when it wraps or grows (web fonts, a
+    // status line); the viewport's size changes how it wraps.
+    const observer = new ResizeObserver(measure);
+
+    observer.observe(document.body);
+    window.addEventListener("resize", measure);
+    document.addEventListener("fullscreenchange", measure);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+      document.removeEventListener("fullscreenchange", measure);
+    };
+  }, []);
 
   /**
    * Puts the source at the result's time (past the source's end: its last frame) and lets it play
@@ -136,7 +178,7 @@ export function ComparePlayer({
   const swipe = view === "swipe";
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" ref={player}>
       <div
         className={cn(
           "relative grid gap-3",
