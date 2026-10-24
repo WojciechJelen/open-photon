@@ -185,7 +185,8 @@ file stops startup. Foreign keys are not enforced while migrating, so a migratio
 table others point at (`shared/002-waiting-queue.sql`). Applied today: `shared/001`
 (outputs, `target_origin`, `submit_started_at`), `shared/002` (waiting queue), `shared/003`
 (`generation_requests`), `shared/004` (`assets.kind` `text`), `characters/001` (library columns,
-one character per generation), `motionTransfer/001` (the pre-rendered takes' partial index).
+one character per generation), `motionTransfer/001` (the pre-rendered takes' partial index),
+`batches/001` (batches and their items).
 
 ### Access policy and seeders
 
@@ -287,6 +288,33 @@ slot), `DefaultDirectionEditor`, `GenerateButton`, `RerunButton`. They are fille
 builder, `/characters/new`, carrying the draft. The studio (`/`) links Motion Transfer and both
 character tools ("Describe a character", "Character library"); the main navigation's Image ›
 Create character and Library › Characters open them.
+It also mounts batches' `BatchVariations` in `directGenerationActions` and
+`resultGenerationActions`, around the default Generate and Re-run (see "Batches").
+
+### Batches
+
+`src/features/batches/` (DEV-292): several variations of one Motion Transfer shot, admitted at
+once and compared at `/batches/:id`. Contracts in `contracts.ts`:
+
+- `POST /api/batches`, `createBatchInputSchema`: `shot` (a `DraftSnapshot`, every member valid,
+  a motion required), `variation` (`{ kind: "seeds", seeds }`: 2 or 4 distinct seeds, the shot's
+  character required; or `{ kind: "characters", characters }`: 2–6 distinct ids, with the shot's
+  motion, look and seed in common) and a required `request_key` (UUID). Each item is the shot
+  through `withSeed`/`withCharacter` (`variations.ts`), sent to `submitMany` of
+  `motion-transfer` with the request key, in one transaction with the batch's own rows: all
+  items `waiting` in order or nothing (400/404/422 invalid, 403 `code_exhausted`, 409
+  `request_key_conflict`). 201 with `batchSchema`; the same key again is 200 with the batch it
+  admitted, whatever the body, and stores nothing. Reused items (`reused`) are free.
+- `GET /api/batches/:id` (`batchSchema`): each item's `variation`, `reused`, current
+  `generation` snapshot, its resolved `seed` (`seedOf` of the recipe) and `character`. A failed
+  or cancelled generation's retry (`POST /api/generations/:id/retry`, from the batch page or
+  the take's `/g/:id`) is followed through `parent_id`; `attempt` counts the retries. `unknown`
+  is never retried.
+- `GET /api/batches` (`batchListSchema`): the workspace's latest 50 batches with their items'
+  statuses, and the session's `allowance` (`max`, `used`, `remaining`), which the dialog shows
+  before anything is submitted.
+- Tables `batches` (one per request key) and `batch_items` (position, generation, variation,
+  reused) in `batches/001-batches.sql`; no status of their own. Every endpoint needs a session.
 
 ### Import boundaries
 
@@ -392,7 +420,8 @@ A request may carry `request_key` (a UUID in the JSON body, read by `readInput`)
   stored, charged and rate-limited once, and both get the same receipt.
 
 Request keys are a client contract, not a user-facing one. Motion Transfer's client
-(`use-generate.ts`) does not send one today; a feature that retries requests should.
+(`use-generate.ts`) does not send one today; a feature that retries requests should. The batch
+dialog sends one per batch it asks for (`POST /api/batches`).
 
 ## Ownership and branching
 
@@ -593,7 +622,7 @@ rebuild and step 5 were not run). To repeat them, someone with a Runpod pod:
   never imported and none of its files is a runtime workflow, but the app image packages its
   `workflows/` and `samples/` and the self-host image its `workflows/`. Its status, what it proved
   and what it did not: `src/features/motion-score/README.md`.
-- No HTTP route calls `submitMany` and no route cancels a waiting generation; batches (DEV-292)
-  own both.
+- `POST /api/batches` (DEV-292) is the one route that calls `submitMany`. No route cancels a
+  waiting generation: a batch's waiting take cannot be taken out of line yet.
 - Waiting queue against a real provider (step 5 above), packaged-runtime and two-worktree
   verification.
