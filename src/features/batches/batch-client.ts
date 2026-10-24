@@ -49,9 +49,9 @@ export function retryGeneration(id: string) {
   });
 }
 
-/** `count` random seeds, all different, as a seed batch varies them. */
-export function randomSeeds(count: number) {
-  const seeds = new Set<number>();
+/** `count` random seeds, all different, as a seed batch varies them, starting with `kept`. */
+export function randomSeeds(count: number, kept: readonly number[] = []) {
+  const seeds = new Set(kept);
 
   while (seeds.size < count) {
     seeds.add(crypto.getRandomValues(new Uint32Array(1))[0] ?? 0);

@@ -363,20 +363,27 @@ function TakeCard({
   const take = item.position + 1;
   const video = generation.outputs.find((output) => output.name === "video");
   const poster = generation.outputs.find((output) => output.name === "poster");
-  const [retrying, setRetrying] = useState(false);
+  // The generation a retry was asked for: Retry stays held from the click until the batch shows
+  // the attempt it admitted, so a second click cannot retry the same failure twice.
+  const [retried, setRetried] = useState<string | null>(null);
+  const retrying = retried === generation.id;
   const [refusal, setRefusal] = useState<string | null>(null);
 
   async function retry() {
-    setRetrying(true);
+    setRetried(generation.id);
     setRefusal(null);
 
     const result = await retryGeneration(generation.id);
 
-    setRetrying(false);
-
     if ("data" in result) {
       onChange();
-    } else if (result.refusal.reason === "access_required") {
+
+      return;
+    }
+
+    setRetried(null);
+
+    if (result.refusal.reason === "access_required") {
       onAccess();
     } else {
       setRefusal(result.refusal.message);

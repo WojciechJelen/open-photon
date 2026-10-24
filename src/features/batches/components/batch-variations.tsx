@@ -31,6 +31,12 @@ import {
   MIN_CHARACTERS,
   SEED_COUNTS,
 } from "#/features/batches/contracts";
+import {
+  forgetPending,
+  recallPending,
+  rememberPending,
+  variationKey,
+} from "#/features/batches/pending-request";
 import { planItems } from "#/features/batches/variations";
 import type { CharacterSummary } from "#/features/characters";
 import type { DraftSnapshot } from "#/features/motionTransfer/api";
@@ -164,18 +170,35 @@ function useReads() {
  * same, each item's effective inputs, the generations it needs against what the access code has
  * left, and Render, which admits the batch and opens its page (`/batches/:id`). The request key
  * belongs to the exact batch asked for: asking again for it (a lost answer, a second click)
- * returns the batch already admitted.
+ * returns the batch already admitted. A request this tab sent for the shot without getting its
+ * batch (`recallPending`: the answer was lost, the dialog closed, the page reloaded) opens the
+ * dialog on that request again, under its key, rather than on fresh seeds.
  */
 function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
   const navigate = useNavigate();
   const reads = useReads();
-  const [kind, setKind] = useState<BatchVariation["kind"]>("seeds");
-  const [count, setCount] = useState<number>(SEED_COUNTS[0]);
-  const [seeds, setSeeds] = useState(() => randomSeeds(SEED_COUNTS[SEED_COUNTS.length - 1] ?? 4));
-  const [picked, setPicked] = useState<string[]>(draft.character ? [draft.character] : []);
-  const [pending, setPending] = useState(false);
+  const [pending] = useState(() => recallPending(draft));
+  const sent = pending?.variation;
+  const [kind, setKind] = useState<BatchVariation["kind"]>(sent?.kind ?? "seeds");
+
+  const [count, setCount] = useState<number>(
+    sent?.kind === "seeds" ? sent.seeds.length : SEED_COUNTS[0],
+  );
+
+  const [seeds, setSeeds] = useState(() =>
+    randomSeeds(SEED_COUNTS[SEED_COUNTS.length - 1] ?? 4, sent?.kind === "seeds" ? sent.seeds : []),
+  );
+
+  const [picked, setPicked] = useState<string[]>(
+    sent?.kind === "characters" ? sent.characters : draft.character ? [draft.character] : [],
+  );
+
+  const [submitting, setSubmitting] = useState(false);
   const [refusal, setRefusal] = useState<Refusal | null>(null);
-  const keys = useRef(new Map<string, string>());
+
+  const keys = useRef(
+    new Map<string, string>(pending ? [[variationKey(pending.variation), pending.key]] : []),
+  );
 
   const characters = reads.kind === "ready" ? reads.characters : [];
   const byId = new Map(characters.map((character) => [character.id, character]));
@@ -184,6 +207,8 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
 
   const variation: BatchVariation =
     kind === "seeds" ? { kind, seeds: seeds.slice(0, count) } : { characters: chosen, kind };
+
+  const resending = sent !== undefined && variationKey(sent) === variationKey(variation);
 
   const valid =
     kind === "seeds"
@@ -207,23 +232,31 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
     );
 
   async function submit() {
-    const body = { shot: draft, variation };
-    const identity = JSON.stringify(body);
+    const identity = variationKey(variation);
     const requestKey = keys.current.get(identity) ?? crypto.randomUUID();
 
     keys.current.set(identity, requestKey);
-    setPending(true);
+    // Recorded before it is sent: an answer that never arrives leaves the request to send again.
+    rememberPending(draft, variation, requestKey);
+    setSubmitting(true);
     setRefusal(null);
 
-    const result = await postBatch(body, requestKey);
+    const result = await postBatch({ shot: draft, variation }, requestKey);
 
     if ("data" in result) {
+      forgetPending(draft);
       await navigate({ params: { batchId: result.data.id }, to: "/batches/$batchId" });
 
       return;
     }
 
-    setPending(false);
+    // A refusal with the app's reason is an answer: nothing was admitted (admission is atomic).
+    // Without one (no answer, a gateway's error) the batch may exist, so the request stays.
+    if (result.refusal.reason !== undefined) {
+      forgetPending(draft);
+    }
+
+    setSubmitting(false);
     setRefusal(result.refusal);
   }
 
@@ -420,23 +453,30 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
             </p>
           </section>
 
-          {refusal && (
+          {refusal ? (
             <p className="text-sm text-destructive-foreground" role="alert">
               {refusal.message}
             </p>
+          ) : (
+            resending && (
+              <p className="text-sm text-soft-foreground" role="status">
+                These are the takes you last asked for, which got no answer. Render asks again with
+                the same request: a batch it already started opens instead of starting twice.
+              </p>
+            )
           )}
         </div>
       )}
 
       <DialogFooter>
         <Button
-          disabled={reads.kind !== "ready" || !valid || pending}
+          disabled={reads.kind !== "ready" || !valid || submitting}
           onClick={() => void submit()}
           type="button"
           variant="photon"
         >
           <LayersIcon />
-          {pending ? "Starting…" : `Render ${size} ${size === 1 ? "take" : "takes"}`}
+          {submitting ? "Starting…" : `Render ${size} ${size === 1 ? "take" : "takes"}`}
         </Button>
       </DialogFooter>
     </DialogContent>

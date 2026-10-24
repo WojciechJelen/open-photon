@@ -432,7 +432,9 @@ A request may carry `request_key` (a UUID in the JSON body, read by `readInput`)
 
 Request keys are a client contract, not a user-facing one. Motion Transfer's client
 (`use-generate.ts`) does not send one today; a feature that retries requests should. The batch
-dialog sends one per batch it asks for (`POST /api/batches`).
+dialog sends one per batch it asks for (`POST /api/batches`) and keeps a request it got no batch
+for in the tab's `sessionStorage` (`src/features/batches/pending-request.ts`), so after a lost
+answer, a closed dialog or a reload it opens on that request and sends it again under its key.
 
 ## Ownership and branching
 

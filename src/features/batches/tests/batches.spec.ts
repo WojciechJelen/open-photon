@@ -7,7 +7,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { z } from "zod";
 
 import { open, seededResult } from "../../../../tests/e2e/session.ts";
-import { batchListSchema, batchSchema } from "../contracts.ts";
+import { type Batch, batchListSchema, batchSchema } from "../contracts.ts";
 
 // On the server whose Comfy is a dead port (project `features`): nothing renders, so a batch's
 // takes fail as Comfy cannot be reached, which shows what a failed take offers.
@@ -275,6 +275,71 @@ test("Variations shows the takes, what stays the same and the allowance before a
   expect(after.allowance).toEqual(before.allowance);
 });
 
+test("a Render whose answer is lost asks again for the same takes after a reload, and opens the batch it already admitted", async ({
+  page,
+}) => {
+  const before = batchListSchema.parse(await (await page.request.get("/api/batches")).json());
+  const known = new Set(before.batches.map((each) => each.id));
+
+  await direct(page, `Background: a lost answer ${randomUUID()}.`);
+
+  const panel = page.getByRole("complementary", { name: "Your shot" });
+  const dialog = page.getByRole("dialog", { name: "Render variations" });
+  const takes = dialog.getByRole("list", { name: "Takes" }).getByRole("listitem");
+
+  await panel.getByRole("button", { name: "Variations" }).click();
+  await expect(takes).toHaveCount(2);
+
+  const seeds = await takes.allTextContents();
+
+  // The server admits the batch, but its answer never reaches the page.
+  const admitted: Batch[] = [];
+
+  await page.route("**/api/batches", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+
+      return;
+    }
+
+    admitted.push(batchSchema.parse(await (await route.fetch()).json()));
+    await route.abort();
+  });
+  await dialog.getByRole("button", { name: "Render 2 takes" }).click();
+  await expect(dialog.getByRole("alert")).toHaveText(
+    "The request did not reach the server. Check the connection.",
+  );
+  await page.unroute("**/api/batches");
+
+  expect(admitted).toHaveLength(1);
+
+  const batchId = admitted[0]?.id;
+
+  // After a reload the dialog opens on the takes it sent, not fresh seeds, and says why.
+  await page.reload();
+  await panel.getByRole("button", { name: "Variations" }).click();
+  await expect(takes).toHaveCount(2);
+  expect(await takes.allTextContents()).toEqual(seeds);
+  await expect(dialog.getByRole("status")).toContainText("These are the takes you last asked for");
+
+  // Asking again opens the batch the lost request admitted, and nothing else is stored.
+  await dialog.getByRole("button", { name: "Render 2 takes" }).click();
+  await expect(page).toHaveURL(`/batches/${batchId}`);
+
+  const after = batchListSchema.parse(await (await page.request.get("/api/batches")).json());
+
+  expect(after.batches.filter((each) => !known.has(each.id)).map((each) => each.id)).toEqual([
+    batchId,
+  ]);
+
+  // Once a batch opened, Variations starts afresh.
+  await page.goBack();
+  await panel.getByRole("button", { name: "Variations" }).click();
+  await expect(takes).toHaveCount(2);
+  expect(await takes.allTextContents()).not.toEqual(seeds);
+  await expect(dialog.getByRole("status")).toHaveCount(0);
+});
+
 test("a take that fails keeps its place in the batch and offers the shared retry", async ({
   page,
 }) => {
@@ -305,9 +370,37 @@ test("a take that fails keeps its place in the batch and offers the shared retry
   await expect(page.getByRole("link", { name: "Use this take" })).toHaveCount(0);
 
   // Retry is the shared one: the take's generation gets a child with a new seed, which the batch
-  // follows as the take's next attempt.
+  // follows as the take's next attempt. Until the batch shows that attempt (its reads held back
+  // here), Retry stays held, so the failure cannot be retried, and charged, twice.
+  const first = batch.items[0]?.generation.id ?? "";
+
+  let release = () => {};
+
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await page.route(`**/api/batches/${batch.id}`, async (route) => {
+    await held;
+    await route.continue();
+  });
+
+  const retriedOnce = page.waitForResponse(
+    (response) => response.url().endsWith(`/api/generations/${first}/retry`) && response.ok(),
+  );
+
   await page.getByRole("button", { name: "Retry take 1" }).click();
+  await retriedOnce;
+  await expect(page.getByRole("button", { name: "Retry take 1" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Retry take 1" })).toHaveText("Retrying…");
+  release();
+  await page.unrouteAll({ behavior: "wait" });
   await expect(page.getByText("Attempt 2: rendered again after a failure.")).toBeVisible();
+  expect(
+    database((connection) =>
+      connection.prepare("SELECT count(*) AS n FROM generations WHERE parent_id = ?").get(first),
+    ),
+  ).toEqual({ n: 1 });
 
   const retried = batchSchema.parse(
     await (await page.request.get(`/api/batches/${batch.id}`)).json(),
