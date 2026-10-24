@@ -101,6 +101,50 @@ test("Back and Forward retrace the steps, a reload keeps the step, and the slate
   await expect(slate(page)).toContainText("Maya");
 });
 
+test("an edited direction is kept in the URL: Back to an entry without it shows that entry's direction (the source take's, as a reload does), Forward the edit", async ({
+  page,
+}) => {
+  // The seeded take's direction: look "e2e seeded result", seed 1 (not the default).
+  const { characterId, id, sourceAssetId } = seededResult();
+  const seedButton = page.getByRole("button", { name: /Advanced/ });
+
+  await open(
+    page,
+    `/motionTransfer?step=character&from=${id}&motion=${sourceAssetId}&character=${characterId}`,
+  );
+  await slate(page).getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Direct the shot");
+  await expect(page.getByLabel("Look")).toHaveValue("e2e seeded result");
+  await expect(seedButton).toContainText("Seed: 1");
+
+  await page.getByLabel("Look").fill("an edited look");
+  await seedButton.click();
+  await page.getByLabel("Seed", { exact: true }).fill("77");
+  await expect(page).toHaveURL(/prompt=an\+edited\+look/);
+  await expect(page).toHaveURL(/seed=77/);
+
+  // The Character entry was made before the edit, without direction fields.
+  await page.goBack();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who performs it?");
+  await expect(slate(page)).toContainText("e2e seeded result");
+  await expect(slate(page)).not.toContainText("an edited look");
+
+  // Forward lands on the edited entry, which holds the edit.
+  await page.goForward();
+  await expect(page.getByLabel("Look")).toHaveValue("an edited look");
+  await expect(seedButton).toContainText("Seed: 77");
+
+  // From the older entry, Continue goes on with that entry's direction, as a reload of it shows.
+  await page.goBack();
+  await slate(page).getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByLabel("Look")).toHaveValue("e2e seeded result");
+  await expect(seedButton).toContainText("Seed: 1");
+  await page.reload();
+  await page.locator("html[data-hydrated]").waitFor();
+  await expect(page.getByLabel("Look")).toHaveValue("e2e seeded result");
+  await expect(seedButton).toContainText("Seed: 1");
+});
+
 test("a link to the old picker opens the wizard with its picks", async ({ page }) => {
   const { characterId, sourceAssetId } = seededResult();
 
@@ -133,8 +177,8 @@ test.describe("without a session", () => {
       page,
       `/motionTransfer?step=direct&motion=${sourceAssetId}&character=${characterId}`,
     );
-    await page.getByRole("button", { name: "Neon street at night" }).click();
-    await expect(page.getByLabel("Look")).toHaveValue(/neon-lit/);
+    await page.getByRole("button", { exact: true, name: "Neon street" }).click();
+    await expect(page.getByLabel("Prompt sent")).toContainText("neon-lit");
     await slate(page).getByRole("button", { name: "Generate" }).click();
 
     const dialog = page.getByRole("dialog", { name: "Enter your access code" });

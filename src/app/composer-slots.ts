@@ -8,8 +8,8 @@ import { createElement } from "react";
 
 import { LibraryCharacterPicker } from "#/features/characters/components/library-character-picker";
 import { type CreateCharacterHref, libraryHref } from "#/features/characters/library";
+import { LookEditor } from "#/features/looks";
 import type { CharacterPickerProps, ComposerSlots } from "#/features/motionTransfer/api";
-import { DefaultDirectionEditor } from "#/features/motionTransfer/components/direction-editor";
 import {
   GenerateButton,
   RerunButton,
@@ -31,6 +31,6 @@ function CharacterPicker(props: CharacterPickerProps) {
 export const composerSlots: ComposerSlots = {
   characterPicker: CharacterPicker,
   directGenerationActions: GenerateButton,
-  directionEditor: DefaultDirectionEditor,
+  directionEditor: LookEditor,
   resultGenerationActions: RerunButton,
 };

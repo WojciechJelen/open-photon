@@ -16,6 +16,7 @@ import {
   type Direction,
   directionFields,
   type MotionTransferDraft,
+  parseDraft,
   shownStep,
   snapshotDraft,
   startingDirection,
@@ -63,14 +64,30 @@ const nextStep: Record<WizardStep, WizardStep> = {
  * (`shownStep`), and the URL follows it. A pick replaces the history entry, a step change adds
  * one. Another page opens it on a draft with `draftHref`. The direction (look, seed) is the
  * Direct step's form while the wizard is open; it starts from the draft's direction fields over
- * the direction of the take the draft comes `from` ("Change the shot", the remixes), and
- * another such start opens the form afresh. The access code is asked for by one dialog, which
- * then carries on with what asked for it (an upload, Generate).
+ * the direction of the take the draft comes `from` ("Change the shot", the remixes), another
+ * `from` opens the form afresh, and every edit is written to the URL's direction fields (the
+ * history entry replaced), so a reload and the step links keep it. A URL whose direction fields
+ * the form did not write (Back, Forward, a link) starts the form again as a reload of it would:
+ * its fields over the `from` take's direction, else the default. The
+ * access code is asked for by one dialog, which then carries on with what asked for it (an
+ * upload, Generate).
  */
 export function MotionTransferWizard(props: WizardProps) {
-  const { from, prompt, seed } = props.draft;
+  return <Wizard key={props.draft.from ?? ""} {...props} />;
+}
 
-  return <Wizard key={JSON.stringify([from, prompt, seed])} {...props} />;
+/**
+ * The URL's direction fields for `direction`, as the route's search decodes them: a field that
+ * does not validate (a look over 500 characters, a seed that is not a number) is left out.
+ */
+function urlDirection(direction: Direction) {
+  const { prompt, seed } = parseDraft(directionFields(direction));
+
+  return { prompt, seed };
+}
+
+function fieldsKey({ prompt, seed }: MotionTransferDraft) {
+  return JSON.stringify([prompt, seed]);
 }
 
 function Wizard({
@@ -98,6 +115,52 @@ function Wizard({
   const [direction, setDirection] = useState<Direction>(() =>
     startingDirection(draft, selection.direction ?? defaultDirection),
   );
+
+  // The URL's direction fields the form last saw, and those its own edits wrote that the URL has
+  // not shown yet (a navigation can land after the next keystroke).
+  const urlFields = fieldsKey(draft);
+  const seenFields = useRef(urlFields);
+  const written = useRef<string[]>([]);
+
+  const startDirection = selection.direction ?? defaultDirection;
+
+  useEffect(() => {
+    const fields = { prompt: draft.prompt, seed: draft.seed };
+    const key = fieldsKey(fields);
+
+    if (seenFields.current === key) {
+      return;
+    }
+
+    seenFields.current = key;
+    const own = written.current.indexOf(key);
+
+    if (own === -1) {
+      // Not the form's own edit landing: the same URL must make the same take however it was
+      // reached, so resolve it as a fresh load does, not over what the form held before.
+      written.current = [];
+      setDirection(startingDirection(fields, startDirection));
+    } else {
+      written.current.splice(0, own + 1);
+    }
+  }, [draft.prompt, draft.seed, startDirection]);
+
+  const changeDirection = (next: Direction) => {
+    setDirection(next);
+
+    const fields = urlDirection(next);
+    const key = fieldsKey(fields);
+
+    if (key !== (written.current.at(-1) ?? urlFields)) {
+      written.current.push(key);
+      void navigate({
+        replace: true,
+        resetScroll: false,
+        search: (previous) => ({ ...previous, ...fields, step }),
+        to: "/motionTransfer",
+      });
+    }
+  };
 
   const access = useAccessCode();
   const { release } = access;
@@ -313,7 +376,7 @@ function Wizard({
                 errors={generate.errors}
                 failure={generate.failure}
                 formId={formId}
-                onChange={setDirection}
+                onChange={changeDirection}
                 onSubmit={() =>
                   generate.submit({ character: characterChoice, motion: motionChoice }, direction)
                 }
