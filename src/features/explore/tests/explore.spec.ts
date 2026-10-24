@@ -224,12 +224,17 @@ test.describe("with the pre-rendered sample takes", () => {
     await expect(remake).toBeFocused();
     await page.keyboard.press("Enter");
 
-    // The wizard opens at character selection with the take's motion and look kept.
+    // The wizard opens at character selection with the take's motion, look and seed kept.
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who performs it?");
 
     const search = Object.fromEntries(new URL(page.url()).searchParams);
 
-    expect(search).toEqual({ from: first.id, motion: seededResult().sourceAssetId });
+    expect(search).toEqual({
+      from: first.id,
+      motion: seededResult().sourceAssetId,
+      prompt: "e2e seeded result",
+      seed: "1",
+    });
 
     const slate = page.getByRole("complementary", { name: "Your shot" });
 
@@ -269,6 +274,11 @@ test.describe("with the pre-rendered sample takes", () => {
       );
 
     expect(overflowing).toBe(0);
+
+    // Each card shows its seed on a line of its own, whatever the length of its look.
+    for (const card of await examples(page).getByRole("listitem").all()) {
+      await expect(card.getByText(/^Seed \d+$/)).toBeVisible();
+    }
 
     await open(page, `/explore/${first.shareSlug}`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -326,5 +336,44 @@ test.describe("with the pre-rendered sample takes", () => {
     await expect(tile.locator("img")).toHaveAttribute("src", /\/media\/[0-9a-f-]{36}\.jpg$/);
     await expect(tile.locator("video")).toHaveCount(0);
     await expect(tile.getByRole("link", { name: /Make this with my character/ })).toBeVisible();
+  });
+
+  test("with the browser offline, opening an example shows its error with Try again, and Try again loads it once back online, on a first visit and after opening it before", async ({
+    context,
+    page,
+  }) => {
+    const [first] = prerendered.takes;
+
+    if (!first) {
+      throw new Error("No sample characters were seeded");
+    }
+
+    const card = examples(page).getByRole("link", { name: new RegExp(`^${first.title} performs`) });
+
+    const heading = page.getByRole("heading", { level: 1 });
+
+    // The app hydrated online; then the network goes away entirely, not one request.
+    await page.setViewportSize({ height: 800, width: 1280 });
+    await open(page, "/explore");
+
+    for (const visit of ["first", "again"]) {
+      await context.setOffline(true);
+      await card.click();
+      await expect(page.getByRole("alert"), `${visit} visit`).toContainText(
+        "This example could not be loaded",
+      );
+      expect(page.url()).toBe(new URL(`/explore/${first.shareSlug}`, page.url()).href);
+
+      // Still offline, Try again says the same; online, it loads the example in place.
+      await page.getByRole("button", { name: "Try again" }).click();
+      await expect(page.getByRole("alert")).toContainText("This example could not be loaded");
+      await context.setOffline(false);
+      await page.getByRole("button", { name: "Try again" }).click();
+      await expect(heading).toHaveText(`${first.title} performs Street dance`);
+
+      // Back to the gallery in the page, for the visit after one online.
+      await page.goBack();
+      await expect(heading).toHaveText("Finished takes, ready to remake");
+    }
   });
 });

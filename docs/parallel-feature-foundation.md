@@ -374,11 +374,15 @@ is said to be private, even though the take's share page shows it); the characte
 `visibleCharacter(…, false)` allows (never an upload), its image only when it is the very image
 the take used. Answers are `exploreEntrySchema`/`exploreDetailSchema` (`contracts.ts`), so no
 server path or other column leaks. Filters: `motion` (a sample motion's slug, or `own-clip`) and
-`look` (12 hex digits of the look's SHA-256), in the URL. "Make this with my character" is the
-wizard opened on `parseDraft({ from: id, motion })` (`draftHref`): the take's look and seed come
-from `from` (a pre-rendered take's direction is public), its clip when it is a sample's, else
-the wizard asks for a motion first. Browsing and opening it submit nothing; Generate is the
-wizard's, through `POST /api/generate` and its access and quota gate. The main navigation's
+`look` (12 hex digits of the look's SHA-256), in the URL; a look's chip is named by the sentences
+that tell it apart from the other looks shown (`look-labels.ts`). "Make this with my character" is
+the wizard opened on `parseDraft({ from: id, motion, prompt, seed })` (`draftHref`): the take's
+look and seed spelled out as its recipe holds them (a pre-rendered take's direction is public),
+even when they are the workflow's defaults, so the Direct step shows them; its clip when it is a
+sample's, else the wizard asks for a motion first. Browsing and opening it submit nothing;
+Generate is the wizard's, through `POST /api/generate` and its access and quota gate. The error
+pages of `/explore` and `/explore/:slug` ship with their routes (`codeSplitGroupings`), so with
+the network gone they show Try again rather than the browser's error. The main navigation's
 Explore is a link to it.
 
 ### Import boundaries

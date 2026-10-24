@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
+
 import { expect, test } from "@playwright/test";
 
 import { addPrerenderedTakes, count, open } from "../../../../tests/e2e/session.ts";
@@ -8,10 +11,40 @@ import { generationSchema } from "../../../shared/contracts.ts";
 // the remake pay for nothing; Generate pays for one generation through the shared service.
 const database = process.env.E2E_FAKE_DATABASE_PATH ?? "";
 
+// The example's look, as the looks editor composes one (the visitor's words, kept character for
+// character, then a background and a lighting pick), and a seed of its own: the remake must keep
+// both byte for byte.
+const words = "A dancer in a red  jacket,\nwhite sneakers.";
+
+const look = `${words} Background: a sunny sandy beach with the blue sea and sky behind. Lighting: warm golden-hour sunlight from a low angle, long soft shadows.`;
+
+const seed = 424_242;
+
+// What `scripts/prerender-samples.mjs` renders every sample with: the workflow's own look and
+// seed, as a blank look and seed send them.
+const defaults: { prompt: string; seed: number } = JSON.parse(
+  readFileSync("src/features/motionTransfer/workflows/defaults.json", "utf8"),
+);
+
 let prerendered: ReturnType<typeof addPrerenderedTakes>;
 
 test.beforeAll(() => {
   prerendered = addPrerenderedTakes(database);
+
+  // Arthur's take has a look and seed of its own; Maya's those of a real pre-rendered sample.
+  const [example, , sample] = prerendered.takes;
+  const writable = new DatabaseSync(database);
+
+  try {
+    const direct = writable.prepare(
+      "UPDATE generations SET recipe = json_set(recipe, '$.params.prompt', ?, '$.params.seed', ?) WHERE id = ?",
+    );
+
+    direct.run(look, seed, example?.id ?? "");
+    direct.run(defaults.prompt, defaults.seed, sample?.id ?? "");
+  } finally {
+    writable.close();
+  }
 });
 
 test.afterAll(() => prerendered.remove());
@@ -61,9 +94,32 @@ test("Explore → Make this with my character → upload a photo → Generate en
   await page.getByLabel("I may use this person's likeness").check();
   await page.getByRole("button", { name: "Use photo" }).click();
   await page.getByRole("button", { exact: true, name: "Continue" }).click();
-  await expect(page.getByRole("complementary", { name: "Your shot" })).toContainText(
-    "e2e seeded result",
-  );
+
+  // The Direct step starts from the example: its look in the looks editor (the words and both
+  // picks) and its seed, through a reload and Back and Forward.
+  const direct = async () => {
+    await expect(page.getByLabel("Prompt sent")).toHaveText(look);
+    await expect(page.getByLabel("Look")).toHaveValue(words);
+
+    for (const pick of ["Sunny beach", "Golden hour"]) {
+      await expect(page.getByRole("button", { exact: true, name: pick })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    }
+
+    // The seed shows on the folded Advanced section's button.
+    await expect(page.getByRole("button", { name: /^Advanced/ })).toContainText(`Seed: ${seed}`);
+  };
+
+  await direct();
+  await page.reload();
+  await page.locator("html[data-hydrated]").waitFor();
+  await direct();
+  await page.goBack();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who performs it?");
+  await page.goForward();
+  await direct();
   expect(count("generations", database)).toBe(generations);
 
   await page.getByRole("button", { name: "Generate" }).click();
@@ -82,8 +138,9 @@ test("Explore → Make this with my character → upload a photo → Generate en
 
   expect(generation.status).toBe("done");
   expect(id).not.toBe(example.id);
-  expect(recipe.params.prompt).toBe(exampleRecipe.params.prompt);
-  expect(recipe.params.seed).toBe(exampleRecipe.params.seed);
+  expect(exampleRecipe.params.prompt).toBe(look);
+  expect(recipe.params.prompt).toBe(look);
+  expect(recipe.params.seed).toBe(seed);
   expect(recipe.inputs.driving_video_sha256).toBe(exampleRecipe.inputs.driving_video_sha256);
   expect(recipe.inputs.reference_image_sha256).not.toBe(
     exampleRecipe.inputs.reference_image_sha256,
@@ -91,4 +148,64 @@ test("Explore → Make this with my character → upload a photo → Generate en
   // One new generation, paid for once, through the shared service.
   expect(count("generations", database)).toBe(generations + 1);
   expect(usedTotal()).toBe(paid + 1);
+});
+
+test("remaking a sample rendered with the workflow's defaults shows its look and seed in Direct, and Generate makes the recipe a blank look and seed make", async ({
+  page,
+}) => {
+  const sample = prerendered.takes[2];
+
+  if (!sample) {
+    throw new Error("No sample characters were seeded");
+  }
+
+  const generations = count("generations", database);
+
+  await open(page, `/explore/${sample.shareSlug}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    `${sample.title} performs Street dance`,
+  );
+  await page.getByRole("link", { exact: true, name: "Make this with my character" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who performs it?");
+  await page.locator("html[data-hydrated]").waitFor();
+  await page.getByRole("button", { name: "Kenji" }).click();
+  await page.getByRole("button", { exact: true, name: "Continue" }).click();
+
+  // The look is the workflow's default, spelled out in the Look field as the take was made with
+  // it (no picks) and sent as it is spelled.
+  await expect(page.getByLabel("Look")).toHaveValue(defaults.prompt);
+  await expect(page.getByLabel("Prompt sent")).toHaveText(defaults.prompt);
+  await expect(page.getByRole("list", { name: "Your picks" })).toHaveCount(0);
+
+  // The seed is the number, on the folded Advanced section's button and in its field.
+  const advanced = page.getByRole("button", { name: /^Advanced/ });
+
+  await expect(advanced).toContainText(`Seed: ${defaults.seed}`);
+  await advanced.click();
+  await expect(page.getByLabel("Seed", { exact: true })).toHaveValue(String(defaults.seed));
+  expect(count("generations", database)).toBe(generations);
+
+  const motion = new URL(page.url()).searchParams.get("motion");
+  const kenji = prerendered.takes.find(({ title }) => title === "Kenji");
+
+  await page.getByRole("button", { name: "Generate" }).click();
+  await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your shot is ready", {
+    timeout: 30_000,
+  });
+
+  const id = page.url().split("/g/")[1] ?? "";
+  const recipe = await (await page.request.get(`/api/generations/${id}/recipe.json`)).json();
+
+  expect(recipe.params.prompt).toBe(defaults.prompt);
+  expect(recipe.params.seed).toBe(defaults.seed);
+
+  // The same picks with a blank look and seed are the same recipe: the take is reused, not made
+  // again.
+  const blank = await page.request.post("/api/generate", {
+    data: { character_id: kenji?.characterId, motion_asset_id: motion },
+  });
+
+  expect(await blank.json()).toMatchObject({ id, reused: true });
+  expect(count("generations", database)).toBe(generations + 1);
 });

@@ -5,6 +5,7 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { ExamplePreview } from "#/features/explore/components/example-preview";
 import type { ExploreEntry, ExploreSearch } from "#/features/explore/contracts";
+import { lookLabels } from "#/features/explore/look-labels";
 import { Hud } from "#/shared/components/brand";
 
 /** Each distinct value of one of an entry's tags, in the entries' order. */
@@ -50,8 +51,11 @@ function FilterRow({
   );
 }
 
-/** One example: its preview and title open its page; the action below recreates it. */
-function ExampleCard({ entry }: { entry: ExploreEntry }) {
+/**
+ * One example: its preview and title open its page; the action below recreates it. `lookLabel`
+ * names its look among the gallery's (`lookLabels`).
+ */
+function ExampleCard({ entry, lookLabel }: { entry: ExploreEntry; lookLabel: string }) {
   return (
     <li className="flex min-w-0 flex-col overflow-hidden rounded-xl border bg-card">
       <Link
@@ -74,9 +78,9 @@ function ExampleCard({ entry }: { entry: ExploreEntry }) {
           <span className="text-base leading-tight font-semibold group-hover:underline">
             {entry.title}
           </span>
-          <span className="line-clamp-2 text-xs text-muted-foreground">
-            {entry.look.label} · seed {entry.seed}
-          </span>
+          {/* The look may take two lines; the seed keeps a line of its own, so a clamp never hides it. */}
+          <span className="line-clamp-2 text-xs text-muted-foreground">{lookLabel}</span>
+          <span className="text-xs text-muted-foreground">Seed {entry.seed}</span>
         </span>
       </Link>
       <div className="grid px-3 pb-3">
@@ -110,6 +114,7 @@ export function ExploreGallery({
 }) {
   const motions = distinct(entries.map(({ motion }) => motion));
   const looks = distinct(entries.map(({ look }) => look));
+  const labels = lookLabels(looks);
 
   const shown = entries.filter(
     (entry) =>
@@ -157,7 +162,11 @@ export function ExploreGallery({
           current={search.look}
           label="Filter by look"
           name="look"
-          options={looks.map(({ key, label, text }) => ({ key, label, title: text }))}
+          options={looks.map(({ key, text }) => ({
+            key,
+            label: labels.get(key) ?? text,
+            title: text,
+          }))}
           onFilter={onFilter}
         />
       </div>
@@ -172,7 +181,11 @@ export function ExploreGallery({
           className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4"
         >
           {shown.map((entry) => (
-            <ExampleCard entry={entry} key={entry.id} />
+            <ExampleCard
+              entry={entry}
+              key={entry.id}
+              lookLabel={labels.get(entry.look.key) ?? entry.look.text}
+            />
           ))}
         </ul>
       ) : (

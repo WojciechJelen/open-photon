@@ -32,10 +32,10 @@ export const exploreSearchSchema = z.object({
 export type ExploreSearch = z.output<typeof exploreSearchSchema>;
 
 /**
- * The look an example was made with: its text exactly as the recipe holds it (`text`), a short
- * name for a filter chip (`label`) and a stable key for the URL (`key`).
+ * The look an example was made with: its text exactly as the recipe holds it (`text`) and a
+ * stable key for the URL (`key`). The gallery names it among the looks it shows (`lookLabels`).
  */
-const lookSchema = z.object({ key: z.string(), label: z.string(), text: z.string() });
+const lookSchema = z.object({ key: z.string(), text: z.string() });
 
 /**
  * The motion an example performs: a sample motion (`sample`, keyed by its slug, with its title),
@@ -45,10 +45,10 @@ const motionTagSchema = z.object({ key: z.string(), sample: z.boolean(), title: 
 
 /**
  * "Make this with my character": the Motion Transfer draft that recreates the example (validated
- * by Motion Transfer's `parseDraft`): `from` the example, so the wizard starts from its look and
- * seed, and its motion clip when that clip is public (`motionKept`); `href` opens the wizard on
- * it (`draftHref`), at character selection when the motion is kept, else at motion selection.
- * Opening it submits nothing.
+ * by Motion Transfer's `parseDraft`): `from` the example, its look and seed (`prompt`, `seed`, as
+ * its recipe holds them, defaults too, so the Direct step shows them), and its motion clip when
+ * that clip is public (`motionKept`); `href` opens the wizard on it (`draftHref`), at character
+ * selection when the motion is kept, else at motion selection. Opening it submits nothing.
  */
 const remixSchema = z.object({
   draft: motionTransferDraftSchema,

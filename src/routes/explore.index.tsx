@@ -15,6 +15,9 @@ const description =
 
 // Filters are applied on the page, so changing one reuses the loaded examples.
 export const Route = createFileRoute("/explore/")({
+  // Only the page is a chunk of its own: the error page (Try again) ships with the route, as
+  // `/explore/$slug`'s does, since it is what shows when the network is gone.
+  codeSplitGroupings: [["component"]],
   validateSearch: exploreSearchSchema,
   loader: () => loadExplore(),
   // A filter changes only the search: the examples loaded a moment ago are still the list.

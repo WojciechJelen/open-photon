@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import test from "node:test";
 
+import { defaultParseSearch } from "@tanstack/react-router";
+
 import { mintCode } from "../../../../tests/temp-database.ts";
 import { findAccessCode, findAccessCodeById } from "../../../shared/server/access-codes.ts";
 import { createAccessPolicy } from "../../../shared/server/access-policy.ts";
@@ -223,7 +225,6 @@ test("the readable recipe and look come from the published recipe; looks are key
     detail.look.text,
     "The character as photographed. Background: a neon-lit city street at night.",
   );
-  assert.equal(detail.look.label, "The character as photographed.");
   assert.match(detail.look.key, /^[a-f0-9]{12}$/);
   assert.equal(detail.seed, 7);
   assert.deepEqual(
@@ -244,38 +245,46 @@ test("the readable recipe and look come from the published recipe; looks are key
   assert.notEqual(looks.get(other.id), looks.get(curated.id));
 });
 
-test("Make this with my character is a validated draft: from the take, its sample motion, no character, no step", () => {
-  const { remix } = readExampleBySlug(curated.slug, ORIGIN) ?? {};
+test("Make this with my character is a validated draft: from the take, its sample motion, its look and seed, no character, no step", () => {
+  const detail = readExampleBySlug(curated.slug, ORIGIN);
 
-  assert.ok(remix);
-  assert.deepEqual(remix.draft, { from: curated.id, motion: motion?.id });
-  assert.equal(remix.motionKept, true);
-  assert.equal(remix.href, draftHref({ from: curated.id, motion: motion?.id }));
+  assert.ok(detail);
 
-  // The wizard reads the link back as this draft, and the shot keeps it with a character picked.
-  const search = Object.fromEntries(new URL(remix.href, ORIGIN).searchParams);
+  const { remix } = detail;
 
-  assert.equal(new URL(remix.href, ORIGIN).pathname, "/motionTransfer");
-  assert.deepEqual(motionTransferDraftSchema.parse(search), {
+  // The look and seed as the recipe holds them (`addTake`'s), spelled out in the draft.
+  const draft = {
     from: curated.id,
     motion: motion?.id,
-  });
+    prompt: "The character as photographed. Background: a neon-lit city street at night.",
+    seed: 7,
+  };
+
+  assert.deepEqual(remix.draft, draft);
+  assert.equal(remix.motionKept, true);
+  assert.equal(remix.href, draftHref(draft));
+
+  // The wizard reads the link back as this draft (its route's search parsing), and the shot keeps
+  // it with a character picked.
+  const url = new URL(remix.href, ORIGIN);
+
+  assert.equal(url.pathname, "/motionTransfer");
+  assert.deepEqual(motionTransferDraftSchema.parse(defaultParseSearch(url.search)), draft);
   assert.deepEqual(withCharacter(snapshotDraft(remix.draft), maya?.id ?? ""), {
     character: maya?.id,
-    from: curated.id,
-    motion: motion?.id,
+    ...draft,
   });
 });
 
-test("a take driven by someone's own clip lists without it: no source, motion left to pick, look and seed kept by from", () => {
+test("a take driven by someone's own clip lists without it: no source, motion left to pick, look and seed kept", () => {
   const upload = addAsset("video", "upload");
-  const own = addTake({ drivingSha256: upload.sha256 });
+  const own = addTake({ drivingSha256: upload.sha256, prompt: "A plain studio look.", seed: 3 });
   const detail = readExampleBySlug(own.slug, ORIGIN);
 
   assert.ok(detail);
   assert.equal(detail.source, null);
   assert.deepEqual(detail.motion, { key: OWN_CLIP, sample: false, title: "Their own clip" });
-  assert.deepEqual(detail.remix.draft, { from: own.id });
+  assert.deepEqual(detail.remix.draft, { from: own.id, prompt: "A plain studio look.", seed: 3 });
   assert.equal(detail.remix.motionKept, false);
   assert.equal(JSON.stringify(detail).includes(upload.id), false);
   assert.equal(JSON.stringify(detail).includes(upload.sha256), false);

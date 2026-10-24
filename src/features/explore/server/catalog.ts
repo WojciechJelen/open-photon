@@ -69,21 +69,26 @@ const examplesQuery = `SELECT generations.id, generations.share_slug, generation
     AND EXISTS (SELECT 1 FROM generation_outputs
       WHERE generation_id = generations.id AND name = 'video')`;
 
-/** A look's chip name: its first sentence, at most 40 characters, so a chip fits a phone. */
-function lookLabel(text: string) {
-  const sentence = (/^.*?[.!?](?=\s|$)/s.exec(text.trim())?.[0] ?? text).trim();
-
-  return sentence.length > 40 ? `${sentence.slice(0, 39).trimEnd()}…` : sentence || "No look";
-}
-
 /**
  * The draft that recreates the take `id` with another character (`parseDraft`: validated, what
- * does not validate left out): `from` it, for its look and seed (a pre-rendered take's direction
- * is public, like its recipe), and its motion clip when that clip is a sample motion's, which
- * anyone may pick. Another clip is left out, so the wizard asks for a motion and keeps the rest.
+ * does not validate left out): `from` it, its look and seed as its recipe holds them (`params`; a
+ * pre-rendered take's direction is public, like its recipe), and its motion clip when that clip is
+ * a sample motion's, which anyone may pick. Another clip is left out, so the wizard asks for a
+ * motion and keeps the rest. The look and seed are explicit even when they are the workflow's
+ * defaults (which `from` alone starts as a blank look and seed), so the Direct step shows them; a
+ * value equal to the default makes the same recipe as a blank one.
  */
-function remixOf(id: string, sampleClipId: string | null) {
-  const draft = parseDraft({ from: id, motion: sampleClipId ?? undefined });
+function remixOf(
+  id: string,
+  sampleClipId: string | null,
+  params: { prompt: string; seed: number },
+) {
+  const draft = parseDraft({
+    from: id,
+    motion: sampleClipId ?? undefined,
+    prompt: params.prompt,
+    seed: params.seed,
+  });
 
   return { draft, href: draftHref(draft), motionKept: draft.motion !== undefined };
 }
@@ -128,10 +133,9 @@ function readExample(row: ExampleRow, origin: string): ExploreDetail | null {
     finishedAt: share.finishedAt,
     id: row.id,
     motion: { key: sample ? row.motion_slug : OWN_CLIP, sample, title: motionTitle },
-    // The look as the recipe holds it, its chip name, and a key: 12 hex digits of its SHA-256.
+    // The look as the recipe holds it, and a key: 12 hex digits of its SHA-256.
     look: {
       key: createHash("sha256").update(params.prompt).digest("hex").slice(0, 12),
-      label: lookLabel(params.prompt),
       text: params.prompt,
     },
     pageUrl: share.pageUrl,
@@ -145,7 +149,7 @@ function readExample(row: ExampleRow, origin: string): ExploreDetail | null {
       workflow,
     },
     recipeUrl: `/api/generations/${row.id}/recipe.json`,
-    remix: remixOf(row.id, source ? source.id : null),
+    remix: remixOf(row.id, source ? source.id : null, params),
     result,
     seed: params.seed,
     slug: row.share_slug,

@@ -10,6 +10,10 @@ import {
 import { loadExample } from "#/features/explore/explore.functions";
 
 export const Route = createFileRoute("/explore/$slug")({
+  // Only the page is a chunk of its own: the error (Try again) and not-found pages ship with the
+  // route, since they are what shows when the network is gone, when no chunk can be fetched (a
+  // lazy one that fails to load reloads the whole document, which offline is the browser's error).
+  codeSplitGroupings: [["component"]],
   loader: async ({ params }) => {
     const example = await loadExample({ data: params.slug });
 
