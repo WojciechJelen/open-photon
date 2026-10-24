@@ -14,8 +14,12 @@ at 4.4 s. Nothing in them is edited: no crop, no grading, no compositing.
 Every render is `motion-transfer.v1` (Wan Animate 2, `ef8b31e8…a3b1a9`) at 480×848 with the
 preset's `defaults` exactly: seed `20261019` and the prompt the catalog lists (the neutral
 "…as it appears there. Background as in the reference image." for `street-dance`, the same first
-sentence plus the `Neon street at night` or `Golden-hour rooftop` starter phrase of
-`src/features/motionTransfer/look.ts` for the other two). Checked by eye at 0.5 s, 2.5 s and
+sentence plus the `Neon street at night` or `Golden-hour rooftop` starter phrase the Direct step
+offered before the looks editor (DEV-291) replaced its starters, for the other two). The looks
+catalog has no fragment equal to these sentences, so the preset page's looks editor shows them as
+the visitor's own words and sends them unchanged until the visitor edits them; a background picked
+there takes the place of the look's background sentence (`pickOption` in
+`src/features/looks/compose.ts`), so the prompt asks for one. Checked by eye at 0.5 s, 2.5 s and
 4.5 s: the street-dance take keeps the photo's plain grey background, the neon take puts Kenji on a
 night street lit by neon signs, the golden-hour take puts Rosa on a rooftop over a city at sunset;
 in all three the character keeps the photo's face and outfit and follows the clip's moves.

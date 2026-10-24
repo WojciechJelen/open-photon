@@ -66,23 +66,35 @@ test("the gallery lists every preset with its example still, and opening it and 
   expect(posts).toEqual([]);
 });
 
-test("the preset fills in the look and seed; the character and every edit survive a reload, and Motion Transfer opens on the same draft", async ({
+/** How many sentences of `prompt` set the background ("Background: …", "Background as in …"). */
+const backgroundClauses = (prompt: string) =>
+  prompt.match(/(?:^|\s)Background(?::| as in )/g)?.length ?? 0;
+
+test("the preset fills in the look and seed byte for byte; the character and every edit survive a reload, and Motion Transfer opens on the same draft", async ({
   page,
 }) => {
+  const character = "The character from the reference image, as it appears there.";
+  const presetLook = `${character} Background: a rooftop at golden hour.`;
+
+  const neonStreet =
+    "Background: a neon-lit city street at night, wet pavement reflecting pink and blue signs.";
+
   await open(page, "/presets/golden-hour-rooftop");
   // A link without a version records the one shown.
   await expect(page).toHaveURL(/version=1/);
 
   const look = page.getByRole("textbox", { name: /Look/ });
   const seed = page.getByRole("textbox", { name: "Seed" });
+  const sent = page.getByLabel("Prompt sent");
 
-  await expect(look).toHaveValue(
-    "The character from the reference image, as it appears there. Background: a rooftop at golden hour.",
-  );
+  // The preset's look is no catalog fragment, so the looks editor shows it as the visitor's own
+  // words, and the prompt it sends is the preset's, unchanged.
+  await expect(look).toHaveValue(presetLook);
+  await expect(sent).toHaveText(presetLook);
   await expect(seed).toHaveValue("20261019");
-  await expect(page.getByRole("button", { name: "Golden-hour rooftop" })).toHaveAttribute(
+  await expect(page.getByRole("button", { exact: true, name: "Neon street" })).toHaveAttribute(
     "aria-pressed",
-    "true",
+    "false",
   );
 
   // Generate without a character asks for one, and starts nothing.
@@ -92,8 +104,10 @@ test("the preset fills in the look and seed; the character and every edit surviv
   await page.getByRole("button", { name: "Arthur" }).click();
   await expect(page).toHaveURL(/character=/);
   await seed.fill("4242");
-  await page.getByRole("button", { name: "Neon street at night" }).click();
-  await expect(look).toHaveValue(/Background: a neon-lit city street at night\.$/);
+  // A picked background takes the place of the preset's: the prompt asks for one.
+  await page.getByRole("button", { exact: true, name: "Neon street" }).click();
+  await expect(sent).toHaveText(`${character} ${neonStreet}`);
+  await expect(look).toHaveValue("");
 
   await page.reload();
   await page.locator("html[data-hydrated]").waitFor();
@@ -102,9 +116,12 @@ test("the preset fills in the look and seed; the character and every edit surviv
     "true",
   );
   await expect(seed).toHaveValue("4242");
-  await expect(look).toHaveValue(
-    "The character from the reference image, as it appears there. Background: a rooftop at golden hour. Background: a neon-lit city street at night.",
+  await expect(look).toHaveValue("");
+  await expect(page.getByRole("button", { exact: true, name: "Neon street" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
   );
+  await expect(sent).toHaveText(`${character} ${neonStreet}`);
 
   // Motion Transfer gets the preset as its draft: motion, character, look and seed, on Direct.
   await page.getByRole("link", { name: "Open in Motion Transfer" }).click();
@@ -116,9 +133,56 @@ test("the preset fills in the look and seed; the character and every edit surviv
   expect(search.get("seed")).toBe("4242");
   expect(search.get("motion")).toMatch(/^[0-9a-f-]{36}$/);
   expect(search.get("character")).toMatch(/^[0-9a-f-]{36}$/);
-  await expect(page.getByRole("textbox", { name: /Look/ })).toHaveValue(
-    "The character from the reference image, as it appears there. Background: a rooftop at golden hour. Background: a neon-lit city street at night.",
-  );
+  await expect(page.getByLabel("Prompt sent")).toHaveText(`${character} ${neonStreet}`);
+});
+
+test("a background picked on any preset replaces the preset's own: the prompt shown and the one Generate sends ask for one background", async ({
+  page,
+}) => {
+  const sentBodies: { prompt?: string }[] = [];
+
+  // Only the request matters here: answer it without rendering anything.
+  await page.route("**/api/presets/*/generations", async (route) => {
+    sentBodies.push(route.request().postDataJSON());
+    await route.fulfill({
+      json: { error: "Not rendered in this test.", reason: "preset_unavailable" },
+      status: 409,
+    });
+  });
+
+  for (const preset of presets) {
+    await open(page, `/presets/${preset.id}?version=${preset.version}`);
+
+    const tiles = page.getByRole("group", { name: /^Background/ }).getByRole("button");
+    const labels = (await tiles.allTextContents()).map((label) => label.trim());
+
+    expect(labels.length).toBeGreaterThan(0);
+    expect(backgroundClauses(preset.defaults.prompt)).toBe(1);
+
+    for (const label of labels) {
+      await open(page, `/presets/${preset.id}?version=${preset.version}`);
+      await page.getByRole("button", { name: "Arthur" }).click();
+      await expect(page).toHaveURL(/character=/);
+
+      const sent = page.getByLabel("Prompt sent");
+      const tile = page.getByRole("button", { exact: true, name: label });
+
+      await expect(sent).toHaveText(preset.defaults.prompt);
+      await tile.click();
+      await expect(tile).toHaveAttribute("aria-pressed", "true");
+      await expect(sent).not.toHaveText(preset.defaults.prompt);
+
+      const shown = (await sent.textContent()) ?? "";
+
+      expect(backgroundClauses(shown), `${preset.id} + ${label}: ${shown}`).toBe(1);
+
+      const before = sentBodies.length;
+
+      await page.getByRole("button", { exact: true, name: "Generate" }).click();
+      await expect.poll(() => sentBodies.length).toBe(before + 1);
+      expect(sentBodies.at(-1)?.prompt, `${preset.id} + ${label}`).toBe(shown);
+    }
+  }
 });
 
 test("a link to another version of a preset says so and waits; an unknown preset is not found", async ({
@@ -165,7 +229,7 @@ test("the gallery and a preset's controls work from the keyboard", async ({ page
     );
   }
 
-  for (const name of ["Play example", "Choose photo", "Neon street at night", "Generate"]) {
+  for (const name of ["Play example", "Choose photo", "Neon street", "Low-key", "Generate"]) {
     expect(reached).toContain(name);
   }
 
