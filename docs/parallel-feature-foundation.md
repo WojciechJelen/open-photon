@@ -357,6 +357,11 @@ process runs per installation, so every claim found then is a stopped process's)
   it had (`finalize_attempts`; the third failure fails it `finalize_failed`).
 - `done`, `failed`, `unknown`, `cancelled`: final, untouched.
 
+`dispatcher.test.ts` checks the `waiting`, `preparing` and `finalizing` cases with the fake
+provider in a second process; `scripts/verify-packaged-restart.mjs` kills the app image
+(`docker kill --signal KILL`) with a `waiting`, both kinds of `preparing`, a `queued` and a
+`finalizing` row in place and checks the same outcomes against a stub Comfy.
+
 `IN_FLIGHT_MAX` (default 1) is one cap over every workflow: there is one `generations` table and
 one dispatcher. `IN_FLIGHT_MAX=0` refuses new generations with 503 `queue_full`, waiting ones
 included. Every submit carries the row's idempotency key; a submit error the provider refused
@@ -566,7 +571,7 @@ feature locks, 0 conflicts" and `npm run check:open-weights` "310 nodes scanned 
 | Fake provider refused by a built server | Proven | `NODE_ENV=production node .output/server/index.mjs` exits 1 (F1 report) |
 | Waiting queue against a real provider | Not verified on Cloud or selfhost | — |
 | Any render on the self-host image | Proven on selfhost (Runpod A40, image `0.2.0` from `723614c`) | `src/features/characterBuilder/workflows/README.md`, "Self-host": caption, image and Motion Transfer generations passed `scripts/verify-selfhost.mjs` |
-| Packaged runtime: image lists namespaced migrations, a fake generation inside the image, restart in the image | Not verified | Only `docker build --check` for both Dockerfiles and an arm64 app image listing `src/features/characterBuilder` were run |
+| Packaged runtime: the app image migrates its database, renders, and settles a `kill -9` | Proven in CI with a stub Comfy | `scripts/verify-packaged-restart.mjs` (CI step after the image build): the image refuses the fake provider, so it renders against `scripts/stub-comfy-api.mjs`; killed with a `queued`, a `finalizing`, a sent `preparing`, a never-sent `preparing` (a claim set by SQL) and a `waiting` row, it restarts to done, done, `unknown`, done, done with two submits, and a clean restart sends nothing |
 | Two worktrees running `test:server` and `test:e2e` at once | Not verified | Ports and databases are parameterized; no simultaneous run recorded |
 
 Steps 2–4 below passed on a Runpod A40 with the published image `0.2.0` (2026-10-23; step 1's
@@ -600,5 +605,4 @@ rebuild and step 5 were not run). To repeat them, someone with a Runpod pod:
   and what it did not: `src/features/motion-score/README.md`.
 - No HTTP route calls `submitMany` and no route cancels a waiting generation; batches (DEV-292)
   own both.
-- Waiting queue against a real provider (step 5 above), packaged-runtime and two-worktree
-  verification.
+- Waiting queue against a real provider (step 5 above) and two-worktree verification.

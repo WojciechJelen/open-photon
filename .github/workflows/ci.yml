@@ -59,6 +59,8 @@ jobs:
         run: npm run test:e2e
       - name: Build production image and scan client output
         run: docker build --platform linux/amd64 --tag open-photon:ci .
+      - name: Kill and restart the packaged app with generations waiting, preparing and finalizing
+        run: node scripts/verify-packaged-restart.mjs
       - name: Check access and upload memory on native AMD64
         env:
           MEMORY_DOCKER_CONTEXT: default
