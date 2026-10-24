@@ -209,3 +209,41 @@ test("remaking a sample rendered with the workflow's defaults shows its look and
   expect(await blank.json()).toMatchObject({ id, reused: true });
   expect(count("generations", database)).toBe(generations + 1);
 });
+
+test("on a remake of a sample rendered with the workflow's defaults, a picked background takes the place of the default's, as on a blank look", async ({
+  page,
+}) => {
+  const sample = prerendered.takes[2];
+  const kenji = prerendered.takes.find(({ title }) => title === "Kenji");
+
+  if (!sample || !kenji) {
+    throw new Error("No sample characters were seeded");
+  }
+
+  const beach = page.getByRole("button", { exact: true, name: "Sunny beach" });
+  const sent = page.getByLabel("Prompt sent");
+
+  await open(page, `/explore/${sample.shareSlug}`);
+  await page.getByRole("link", { exact: true, name: "Make this with my character" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who performs it?");
+  await page.locator("html[data-hydrated]").waitFor();
+
+  const motion = new URL(page.url()).searchParams.get("motion") ?? "";
+
+  await page.getByRole("button", { name: "Kenji" }).click();
+  await page.getByRole("button", { exact: true, name: "Continue" }).click();
+  await expect(page.getByLabel("Look")).toHaveValue(defaults.prompt);
+  await beach.click();
+
+  // One background: the beach, in place of the default's "as in the reference image".
+  const remade = await sent.innerText();
+
+  expect(remade.match(/\bBackground\b/g)).toHaveLength(1);
+  expect(remade).toContain("Background: a sunny sandy beach");
+
+  // The same pick on a blank look sends the same prompt, so it makes the same recipe.
+  await open(page, `/motionTransfer?step=direct&motion=${motion}&character=${kenji.characterId}`);
+  await expect(page.getByLabel("Look")).toHaveValue("");
+  await beach.click();
+  await expect(sent).toHaveText(remade);
+});
