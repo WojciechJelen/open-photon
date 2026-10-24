@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
@@ -102,9 +102,22 @@ test("Render is not held back by the allowance: the server admits a batch whose 
   expect(batch.items[0]?.generation.id).toBe(seeded.id);
   await expect(page).toHaveURL(`/batches/${batch.id}`);
 
+  // The new take was charged at admission (the code's one generation), the reused one never. Comfy
+  // is a dead port here, so the new take fails before the provider takes it, and that refunds it:
+  // wait for the failure, then the code has its generation back and the reused take cost nothing.
+  await expect
+    .poll(
+      async () =>
+        batchSchema
+          .parse(await (await page.request.get(`/api/batches/${batch.id}`)).json())
+          .items.map((item) => item.generation.status),
+      { timeout: 30_000 },
+    )
+    .toEqual(["done", "failed"]);
+
   const list = batchListSchema.parse(await (await page.request.get("/api/batches")).json());
 
-  expect(list.allowance).toEqual({ max: 1, remaining: 0, used: 1 });
+  expect(list.allowance).toEqual({ max: 1, remaining: 1, used: 0 });
   await context.close();
 });
 
@@ -115,7 +128,8 @@ test("a landscape take shows its whole frame in the comparison grid, on desktop 
     data: {
       request_key: randomUUID(),
       shot: { character: seededResult().characterId, motion: seededResult().sourceAssetId },
-      variation: { kind: "seeds", seeds: [7_100_001, 7_100_002] },
+      // Seeds no run used before, so the takes are new (an earlier run's would come back reused).
+      variation: { kind: "seeds", seeds: [randomInt(2 ** 40), 2 ** 40 + randomInt(2 ** 40)] },
     },
   });
 
