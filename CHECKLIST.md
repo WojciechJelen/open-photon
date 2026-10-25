@@ -7,6 +7,20 @@ Current setup is in [README.md](README.md#setup).
 
 ## Deployment evidence after the Docker simplification
 
+- **October 25, image `0.2.1` (DEV-299):** released from `b97eeef` (#31, [publish run](https://github.com/WojciechJelen/open-photon/actions/runs/40224022084));
+  app index `sha256:3262df66…` (amd64 + arm64), GPU index `sha256:4480e7a1…`, both pullable
+  anonymously. One Runpod A40 pod (Secure CA-MTL-1, $0.59/h, image `open-photon-comfy:0.2.1`, the
+  template's 50 GB disk and 80 GB volume): nine `Verified`, three `… 0 missing` and serving 5 min 38 s
+  after creation. The published ARM64 app, self-host mode on a fresh volume, took a fresh 118 MiB
+  clip (123,731,968 bytes: a 5.0 s H.264/AAC clip plus a trailing MP4 `free` box of random bytes,
+  never uploaded before, no pre-upload) through the wizard with Arthur, no look, seed 2026102502:
+  generation `63823dc5-bc37-4130-a753-cd566722bbc3` reached done; upload to the pod and submit took
+  47.1 s (past the old 30 s bound), submit to done 220.6 s, peak 37,691 MiB; `verify-selfhost.mjs`
+  passed. An earlier take on the same pod, `fede2062-70a4-4583-9a9d-16e292bb0915`, used a 120 MiB
+  clip that had already gone to staging and Comfy Cloud (not to this pod); it also reached done
+  (46.2 s upload and submit) and passed, but is not the fresh-clip proof. A 130 MiB file got 413
+  from the packaged app with nothing stored. Pod deleted after 15 min 45 s, about $0.16.
+
 - **October 23, image `0.2.0`:** the published self-host image (digest `b7d55526…`, source
   `723614c`) on a Runpod A40: first boot downloaded and verified all nine files (43.4 GB,
   the three gated FLUX 3 files included) in 5 min 17 s and served 9 min 15 s after creation; a
