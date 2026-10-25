@@ -331,9 +331,12 @@ test("a Render whose answer is lost asks again for the same takes after the sess
   expect(await takes.allTextContents()).toEqual(seeds);
   await expect(dialog.getByRole("status")).toContainText("These are the takes you last asked for");
 
-  // Asking again opens the batch the lost request admitted, and nothing else is stored.
+  // Asking again opens the batch the lost request admitted, and nothing else is stored. The URL
+  // changes before the batch page has loaded; going back before it shows would only cancel that
+  // navigation and leave the dialog open on the Direct step.
   await dialog.getByRole("button", { name: "Render 2 takes" }).click();
   await expect(page).toHaveURL(`/batches/${batchId}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("2 seed variations");
 
   const after = batchListSchema.parse(await (await page.request.get("/api/batches")).json());
 
