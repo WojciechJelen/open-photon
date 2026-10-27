@@ -1,0 +1,39 @@
+{
+  "owner": "storyboard",
+  "label": "maya-card3",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/work/feature-evidence/storyboard/graphs/card-klein-landscape.api.json",
+  "sets": [
+    "4.text=A storyboard frame. The character is the person in the reference image. Low angle close-up from the edge of the ledge, the character sits holding a water bottle, gazing out at the glowing skyline, cool blue moonlight contrasting with the warm city glow. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as a photograph in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "7.seed=424242"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/src/features/characters/samples/characters/maya.png",
+      "ref_id": "7f901f52-d83a-45c2-b426-dc768bf2a4a8"
+    }
+  ],
+  "balance_before_cents": 7321.4697800305,
+  "job_id": "1901891a-d54e-4b9a-9996-28dd738b23bb",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.87,
+    "submit_to_done": 19.972,
+    "queued_before_running_observed": 12.628
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "storyboard_card_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1390347,
+      "file": "9-0-storyboard_card_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7320.556434660501,
+  "balance_delta_cents": 0.9133
+}

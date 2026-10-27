@@ -1,0 +1,98 @@
+[
+  {
+    "label": "maya-card1",
+    "character": "maya",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Wide shot of an empty city rooftop at golden hour sunset, the character stands center frame stretching arms overhead, muscles defined, warm orange sky reflecting on the concrete. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as a photograph in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "maya-card2",
+    "character": "maya",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Medium shot of the same rooftop as twilight deepens and distant city lights flicker to life, the character performs a dynamic breakdance spin with motion blur, neon reflections on the ground. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as a photograph in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "maya-card3",
+    "character": "maya",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Low angle close-up from the edge of the ledge, the character sits holding a water bottle, gazing out at the glowing skyline, cool blue moonlight contrasting with the warm city glow. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as a photograph in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "maya-card4",
+    "character": "maya",
+    "prompt": "A storyboard frame. The character is the person in the reference image. High-angle wide shot of the rooftop at night, the character remains seated on the ledge in silhouette against the vast illuminated cityscape, water bottle resting beside them, stillness in the scene. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as a photograph in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "theo-card1",
+    "character": "theo",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Medium shot in a sunlit kitchen, the character stands at a counter reading a printed recipe, sunlight streaming through a window illuminating the text. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as a stylized 3D render in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "theo-card2",
+    "character": "theo",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Medium shot of the same kitchen, the character stands over a bowl cracking eggs with a fork, steam rising slightly from the shell fragments. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as a stylized 3D render in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "theo-card3",
+    "character": "theo",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Medium shot in the same kitchen, the character carefully removes a frosted birthday cake from a hot oven, holding a long spatula and wearing an apron. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as a stylized 3D render in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "theo-card4",
+    "character": "theo",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Wide shot in a dim living room at night, the character carries the lit cake across the room where a friend waits, the candlelight reflecting off the dark wood floor. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as a stylized 3D render in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "yuki-card1",
+    "character": "yuki",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Wide shot of a rainy neon-lit alley at night, the character runs forward holding a red umbrella in one hand and a glowing paper lantern in the other, raindrops flying around. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "yuki-card2",
+    "character": "yuki",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Medium shot in the same wet alley, the character leaps into the air over a large puddle, the red umbrella twisting violently in the wind while the lantern drifts low. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "yuki-card3",
+    "character": "yuki",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Low angle shot under an old stone shrine gate, the character crouches low to shield themselves from the downpour, soaked and dripping but laughing with eyes crinkled in joy. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "yuki-card4",
+    "character": "yuki",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Close-up of the character huddled under the shrine gate's eaves, water streaming down their face as they laugh freely, the red umbrella and lantern resting nearby on the ground. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "yuki-anime-card1",
+    "character": "yuki",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Wide shot of a rainy neon-lit alley at night, the character runs forward holding a red umbrella and a glowing paper lantern in each hand, splashing through shallow puddles under flickering streetlights. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as an anime-style illustration in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "yuki-anime-card2",
+    "character": "yuki",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Medium shot in the same dark alley, the character leaps over a large puddle, the red umbrella flipping open by the wind while the paper lantern floats away into the rain. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as an anime-style illustration in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "yuki-anime-card3",
+    "character": "yuki",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Close-up from behind, the character stands under the stone archway of a shrine gate at night, soaked to the skin with rain dripping off their clothes, laughing happily. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as an anime-style illustration in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  },
+  {
+    "label": "yuki-anime-card4",
+    "character": "yuki",
+    "prompt": "A storyboard frame. The character is the person in the reference image. Low angle medium shot under the wet shrine gate in the same rainy alley, the character laughs with eyes crinkled, holding only the lost paper lantern in one hand while rain falls around them. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as an anime-style illustration in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "seed": 424242
+  }
+]

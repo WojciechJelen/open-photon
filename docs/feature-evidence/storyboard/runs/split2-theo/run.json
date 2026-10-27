@@ -1,0 +1,31 @@
+{
+  "owner": "storyboard",
+  "label": "split2-theo",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/work/feature-evidence/storyboard/graphs/split-qwen35-4b.api.json",
+  "sets": [
+    "18:11.prompt=Theo bakes a birthday cake for a friend: he reads a recipe in a sunny kitchen, cracks eggs into a bowl, takes the finished cake out of the oven, and carries it with lit candles into a dark living room where his friend waits."
+  ],
+  "images": [],
+  "balance_before_cents": 7363.5583359735,
+  "job_id": "ff719867-ff63-4ba7-8dd7-d861ba57b3e0",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 1.037,
+    "submit_to_done": 5.407,
+    "queued_before_running_observed": 2.938
+  },
+  "outputs": [
+    {
+      "node": "18:13",
+      "index": 0,
+      "name": "storyboard_scenes_00001.txt",
+      "contentType": "",
+      "bytes": 645,
+      "file": "18_13-0-storyboard_scenes_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7363.3073144685,
+  "balance_delta_cents": 0.251
+}

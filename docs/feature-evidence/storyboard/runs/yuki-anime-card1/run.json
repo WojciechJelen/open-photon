@@ -1,0 +1,39 @@
+{
+  "owner": "storyboard",
+  "label": "yuki-anime-card1",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/work/feature-evidence/storyboard/graphs/card-klein-landscape.api.json",
+  "sets": [
+    "4.text=A storyboard frame. The character is the person in the reference image. Wide shot of a rainy neon-lit alley at night, the character runs forward holding a red umbrella and a glowing paper lantern in each hand, splashing through shallow puddles under flickering streetlights. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as an anime-style illustration in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "7.seed=424242"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/src/features/characters/samples/characters/yuki.png",
+      "ref_id": "3af12664-2380-4851-aeed-5b4a6958f036"
+    }
+  ],
+  "balance_before_cents": 7074.7294678485,
+  "job_id": "5fba4b7f-2dcd-491f-adc3-efdedbc2c6b1",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.039,
+    "submit_to_done": 8.444,
+    "queued_before_running_observed": 3.344
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "storyboard_card_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1720467,
+      "file": "9-0-storyboard_card_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7074.200043488,
+  "balance_delta_cents": 0.5294
+}

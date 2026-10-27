@@ -1,0 +1,39 @@
+{
+  "owner": "storyboard",
+  "label": "theo-card1",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/work/feature-evidence/storyboard/graphs/card-klein-landscape.api.json",
+  "sets": [
+    "4.text=A storyboard frame. The character is the person in the reference image. Medium shot in a sunlit kitchen, the character stands at a counter reading a printed recipe, sunlight streaming through a window illuminating the text. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as a stylized 3D render in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "7.seed=424242"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/src/features/characters/samples/characters/theo.png",
+      "ref_id": "003cb473-893e-4eea-b473-b56353f3c0ad"
+    }
+  ],
+  "balance_before_cents": 7293.030005958,
+  "job_id": "e779ff8c-440e-4622-a863-c3507f60f803",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.912,
+    "submit_to_done": 27.191,
+    "queued_before_running_observed": 17.443
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "storyboard_card_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1387811,
+      "file": "9-0-storyboard_card_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7292.122008938,
+  "balance_delta_cents": 0.908
+}

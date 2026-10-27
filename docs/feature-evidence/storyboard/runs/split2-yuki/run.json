@@ -1,0 +1,31 @@
+{
+  "owner": "storyboard",
+  "label": "split2-yuki",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/work/feature-evidence/storyboard/graphs/split-qwen35-4b.api.json",
+  "sets": [
+    "18:11.prompt=On a rainy night Yuki runs through a neon-lit alley holding a red umbrella in one hand and a paper lantern in the other, jumps over a puddle, loses the umbrella to the wind, and finally shelters under a shrine gate, soaked but laughing."
+  ],
+  "images": [],
+  "balance_before_cents": 7354.1456341715,
+  "job_id": "56ec862d-ac7d-4a71-9287-58db88365947",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 0.976,
+    "submit_to_done": 12.777,
+    "queued_before_running_observed": 2.994
+  },
+  "outputs": [
+    {
+      "node": "18:13",
+      "index": 0,
+      "name": "storyboard_scenes_00001.txt",
+      "contentType": "",
+      "bytes": 729,
+      "file": "18_13-0-storyboard_scenes_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7353.323629943,
+  "balance_delta_cents": 0.822
+}

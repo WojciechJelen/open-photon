@@ -1,0 +1,39 @@
+{
+  "owner": "storyboard",
+  "label": "yuki-anime-card3",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/work/feature-evidence/storyboard/graphs/card-klein-landscape.api.json",
+  "sets": [
+    "4.text=A storyboard frame. The character is the person in the reference image. Close-up from behind, the character stands under the stone archway of a shrine gate at night, soaked to the skin with rain dripping off their clothes, laughing happily. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as an anime-style illustration in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "7.seed=424242"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/src/features/characters/samples/characters/yuki.png",
+      "ref_id": "3af12664-2380-4851-aeed-5b4a6958f036"
+    }
+  ],
+  "balance_before_cents": 7052.568436137501,
+  "job_id": "cc8521c3-5928-4f2d-95df-168e81da1376",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.292,
+    "submit_to_done": 10.284,
+    "queued_before_running_observed": 2.936
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "storyboard_card_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1614383,
+      "file": "9-0-storyboard_card_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7051.760408844,
+  "balance_delta_cents": 0.808
+}

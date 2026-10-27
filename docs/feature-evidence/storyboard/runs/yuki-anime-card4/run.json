@@ -1,0 +1,39 @@
+{
+  "owner": "storyboard",
+  "label": "yuki-anime-card4",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/work/feature-evidence/storyboard/graphs/card-klein-landscape.api.json",
+  "sets": [
+    "4.text=A storyboard frame. The character is the person in the reference image. Low angle medium shot under the wet shrine gate in the same rainy alley, the character laughs with eyes crinkled, holding only the lost paper lantern in one hand while rain falls around them. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as an anime-style illustration in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "7.seed=424242"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/src/features/characters/samples/characters/yuki.png",
+      "ref_id": "3af12664-2380-4851-aeed-5b4a6958f036"
+    }
+  ],
+  "balance_before_cents": 7048.675948577,
+  "job_id": "77d6fcf8-62cc-4a01-98d5-15798bc7827e",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 4.361,
+    "submit_to_done": 12.662,
+    "queued_before_running_observed": 2.933
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "storyboard_card_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1729910,
+      "file": "9-0-storyboard_card_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7047.592469733,
+  "balance_delta_cents": 1.0835
+}
