@@ -11,12 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MotionTransferRouteImport } from './routes/motionTransfer'
+import { Route as ProductStudioRouteImport } from './routes/product-studio'
 import { Route as ApiBatchesRouteImport } from './routes/api.batches'
 import { Route as ApiCharacterCaptionsRouteImport } from './routes/api.character-captions'
 import { Route as ApiCharacterGenerationsRouteImport } from './routes/api.character-generations'
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiGenerateRouteImport } from './routes/api.generate'
 import { Route as ApiImageUploadsRouteImport } from './routes/api.image-uploads'
+import { Route as ApiProductShotsRouteImport } from './routes/api.product-shots'
 import { Route as ApiShareOriginRouteImport } from './routes/api.share-origin'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as BatchesIndexRouteImport } from './routes/batches.index'
@@ -35,6 +37,7 @@ import { Route as ApiCharactersCharacterIdRouteImport } from './routes/api.chara
 import { Route as ApiDebugHeartbeatRouteImport } from './routes/api.debug.heartbeat'
 import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
 import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
+import { Route as ApiProductShotsShootIdRouteImport } from './routes/api.product-shots.$shootId'
 import { Route as ApiAssetsAssetIdTrimRouteImport } from './routes/api.assets.$assetId.trim'
 import { Route as ApiCharacterGenerationsGenerationIdCharacterRouteImport } from './routes/api.character-generations.$generationId.character'
 import { Route as ApiGenerationsGenerationIdEventsRouteImport } from './routes/api.generations.$generationId.events'
@@ -52,6 +55,11 @@ const IndexRoute = IndexRouteImport.update({
 const MotionTransferRoute = MotionTransferRouteImport.update({
   id: '/motionTransfer',
   path: '/motionTransfer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductStudioRoute = ProductStudioRouteImport.update({
+  id: '/product-studio',
+  path: '/product-studio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBatchesRoute = ApiBatchesRouteImport.update({
@@ -82,6 +90,11 @@ const ApiGenerateRoute = ApiGenerateRouteImport.update({
 const ApiImageUploadsRoute = ApiImageUploadsRouteImport.update({
   id: '/api/image-uploads',
   path: '/api/image-uploads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiProductShotsRoute = ApiProductShotsRouteImport.update({
+  id: '/api/product-shots',
+  path: '/api/product-shots',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiShareOriginRoute = ApiShareOriginRouteImport.update({
@@ -176,6 +189,11 @@ const ApiGenerationsGenerationIdRoute =
     path: '/api/generations/$generationId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiProductShotsShootIdRoute = ApiProductShotsShootIdRouteImport.update({
+  id: '/$shootId',
+  path: '/$shootId',
+  getParentRoute: () => ApiProductShotsRoute,
+} as any)
 const ApiAssetsAssetIdTrimRoute = ApiAssetsAssetIdTrimRouteImport.update({
   id: '/api/assets/$assetId/trim',
   path: '/api/assets/$assetId/trim',
@@ -227,12 +245,14 @@ const ApiPresetsPresetIdGenerationsRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/product-studio': typeof ProductStudioRoute
   '/api/batches': typeof ApiBatchesRouteWithChildren
   '/api/character-captions': typeof ApiCharacterCaptionsRoute
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/image-uploads': typeof ApiImageUploadsRoute
+  '/api/product-shots': typeof ApiProductShotsRouteWithChildren
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
@@ -251,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
+  '/api/product-shots/$shootId': typeof ApiProductShotsShootIdRoute
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
@@ -263,12 +284,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/product-studio': typeof ProductStudioRoute
   '/api/batches': typeof ApiBatchesRouteWithChildren
   '/api/character-captions': typeof ApiCharacterCaptionsRoute
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/image-uploads': typeof ApiImageUploadsRoute
+  '/api/product-shots': typeof ApiProductShotsRouteWithChildren
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
@@ -287,6 +310,7 @@ export interface FileRoutesByTo {
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
+  '/api/product-shots/$shootId': typeof ApiProductShotsShootIdRoute
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
@@ -300,12 +324,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/product-studio': typeof ProductStudioRoute
   '/api/batches': typeof ApiBatchesRouteWithChildren
   '/api/character-captions': typeof ApiCharacterCaptionsRoute
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/image-uploads': typeof ApiImageUploadsRoute
+  '/api/product-shots': typeof ApiProductShotsRouteWithChildren
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
@@ -324,6 +350,7 @@ export interface FileRoutesById {
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
+  '/api/product-shots/$shootId': typeof ApiProductShotsShootIdRoute
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
@@ -338,12 +365,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/motionTransfer'
+    | '/product-studio'
     | '/api/batches'
     | '/api/character-captions'
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
     | '/api/image-uploads'
+    | '/api/product-shots'
     | '/api/share-origin'
     | '/api/uploads'
     | '/batches/$batchId'
@@ -362,6 +391,7 @@ export interface FileRouteTypes {
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
+    | '/api/product-shots/$shootId'
     | '/api/assets/$assetId/trim'
     | '/api/character-generations/$generationId/character'
     | '/api/generations/$generationId/events'
@@ -374,12 +404,14 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/motionTransfer'
+    | '/product-studio'
     | '/api/batches'
     | '/api/character-captions'
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
     | '/api/image-uploads'
+    | '/api/product-shots'
     | '/api/share-origin'
     | '/api/uploads'
     | '/batches/$batchId'
@@ -398,6 +430,7 @@ export interface FileRouteTypes {
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
+    | '/api/product-shots/$shootId'
     | '/api/assets/$assetId/trim'
     | '/api/character-generations/$generationId/character'
     | '/api/generations/$generationId/events'
@@ -410,12 +443,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/motionTransfer'
+    | '/product-studio'
     | '/api/batches'
     | '/api/character-captions'
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
     | '/api/image-uploads'
+    | '/api/product-shots'
     | '/api/share-origin'
     | '/api/uploads'
     | '/batches/$batchId'
@@ -434,6 +469,7 @@ export interface FileRouteTypes {
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
+    | '/api/product-shots/$shootId'
     | '/api/assets/$assetId/trim'
     | '/api/character-generations/$generationId/character'
     | '/api/generations/$generationId/events'
@@ -447,12 +483,14 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MotionTransferRoute: typeof MotionTransferRoute
+  ProductStudioRoute: typeof ProductStudioRoute
   ApiBatchesRoute: typeof ApiBatchesRouteWithChildren
   ApiCharacterCaptionsRoute: typeof ApiCharacterCaptionsRoute
   ApiCharacterGenerationsRoute: typeof ApiCharacterGenerationsRouteWithChildren
   ApiCharactersRoute: typeof ApiCharactersRouteWithChildren
   ApiGenerateRoute: typeof ApiGenerateRoute
   ApiImageUploadsRoute: typeof ApiImageUploadsRoute
+  ApiProductShotsRoute: typeof ApiProductShotsRouteWithChildren
   ApiShareOriginRoute: typeof ApiShareOriginRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   BatchesBatchIdRoute: typeof BatchesBatchIdRoute
@@ -487,6 +525,13 @@ declare module '@tanstack/react-router' {
       path: '/motionTransfer'
       fullPath: '/motionTransfer'
       preLoaderRoute: typeof MotionTransferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product-studio': {
+      id: '/product-studio'
+      path: '/product-studio'
+      fullPath: '/product-studio'
+      preLoaderRoute: typeof ProductStudioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/batches': {
@@ -529,6 +574,13 @@ declare module '@tanstack/react-router' {
       path: '/api/image-uploads'
       fullPath: '/api/image-uploads'
       preLoaderRoute: typeof ApiImageUploadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/product-shots': {
+      id: '/api/product-shots'
+      path: '/api/product-shots'
+      fullPath: '/api/product-shots'
+      preLoaderRoute: typeof ApiProductShotsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/share-origin': {
@@ -657,6 +709,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerationsGenerationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/product-shots/$shootId': {
+      id: '/api/product-shots/$shootId'
+      path: '/$shootId'
+      fullPath: '/api/product-shots/$shootId'
+      preLoaderRoute: typeof ApiProductShotsShootIdRouteImport
+      parentRoute: typeof ApiProductShotsRoute
+    }
     '/api/assets/$assetId/trim': {
       id: '/api/assets/$assetId/trim'
       path: '/api/assets/$assetId/trim'
@@ -755,6 +814,18 @@ const ApiCharactersRouteWithChildren = ApiCharactersRoute._addFileChildren(
   ApiCharactersRouteChildren,
 )
 
+interface ApiProductShotsRouteChildren {
+  ApiProductShotsShootIdRoute: typeof ApiProductShotsShootIdRoute
+}
+
+const ApiProductShotsRouteChildren: ApiProductShotsRouteChildren = {
+  ApiProductShotsShootIdRoute: ApiProductShotsShootIdRoute,
+}
+
+const ApiProductShotsRouteWithChildren = ApiProductShotsRoute._addFileChildren(
+  ApiProductShotsRouteChildren,
+)
+
 interface ApiGenerationsGenerationIdRouteChildren {
   ApiGenerationsGenerationIdEventsRoute: typeof ApiGenerationsGenerationIdEventsRoute
   ApiGenerationsGenerationIdPublishRoute: typeof ApiGenerationsGenerationIdPublishRoute
@@ -783,12 +854,14 @@ const ApiGenerationsGenerationIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MotionTransferRoute: MotionTransferRoute,
+  ProductStudioRoute: ProductStudioRoute,
   ApiBatchesRoute: ApiBatchesRouteWithChildren,
   ApiCharacterCaptionsRoute: ApiCharacterCaptionsRoute,
   ApiCharacterGenerationsRoute: ApiCharacterGenerationsRouteWithChildren,
   ApiCharactersRoute: ApiCharactersRouteWithChildren,
   ApiGenerateRoute: ApiGenerateRoute,
   ApiImageUploadsRoute: ApiImageUploadsRoute,
+  ApiProductShotsRoute: ApiProductShotsRouteWithChildren,
   ApiShareOriginRoute: ApiShareOriginRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   BatchesBatchIdRoute: BatchesBatchIdRoute,

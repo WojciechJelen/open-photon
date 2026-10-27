@@ -4,6 +4,7 @@ import {
   CpuIcon,
   FileCodeIcon,
   LibraryIcon,
+  PackageIcon,
   LockOpenIcon,
   SparklesIcon,
   UserIcon,
@@ -95,7 +96,8 @@ function Filmstrip({
   );
 }
 
-// The character tools beside Motion Transfer, live: the builder and the library.
+// The image and character tools beside Motion Transfer, live: the builder, the library and the
+// product studio.
 const characterTools = [
   {
     icon: <UserIcon />,
@@ -110,6 +112,13 @@ const characterTools = [
     text: "Find, favorite and rename the workspace's characters, uploaded or generated, and animate any of them.",
     title: "Character library",
     to: "/characters",
+  },
+  {
+    icon: <PackageIcon />,
+    model: "FLUX 3 Image Klein · BiRefNet",
+    text: "Upload a product photo and get a packshot, a lifestyle scene or an ad visual around the product's own pixels.",
+    title: "Product Studio",
+    to: "/product-studio",
   },
 ] as const;
 

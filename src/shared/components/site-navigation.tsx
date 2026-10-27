@@ -11,7 +11,12 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { NavigationIcon, type NavigationIconName } from "#/shared/components/navigation-icons";
 
-type ToolPath = "/characters" | "/characters/new" | "/motionTransfer" | "/presets";
+type ToolPath =
+  | "/characters"
+  | "/characters/new"
+  | "/motionTransfer"
+  | "/presets"
+  | "/product-studio";
 
 /** A category of the main navigation that has shipped tools. */
 export type NavigationCategory = "Image" | "Library" | "Video";
@@ -39,6 +44,12 @@ const navigation: NavigationEntry[] = [
         icon: "createCharacter",
         label: "Create character",
         to: "/characters/new",
+      },
+      {
+        description: "Put a product photo in a packshot, lifestyle or ad scene.",
+        icon: "lookLighting",
+        label: "Product Studio",
+        to: "/product-studio",
       },
     ],
   },
