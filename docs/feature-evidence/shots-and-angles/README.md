@@ -104,3 +104,14 @@ node --experimental-strip-types $C/comfy-run.ts --repo $PWD --owner shots-and-an
 ```
 
 The runtime workflow is `src/features/angles/workflows/angle-view.v1.json`: candidate A with one branch. Its prompt is set per view, and the reference and the seed are bound through `angle-view.v1.inputs.json`.
+
+## App smoke (real Cloud, through the app)
+
+- **Run:** 2026-10-27, `npm run dev` on :3130 against Comfy Cloud, with the render lease held by hand (`render-lease.ts acquire/release shots-and-angles app-smoke`).
+- **Calls:**
+  1. Sign in with a minted code.
+  2. `POST /api/angle-sets` with Maya and `["three-quarter"]`: 201, set `ae6a1efe-c182-480c-a631-30bdf42c4893`.
+  3. The view (generation `9094839c-a24b-40dd-9814-c05d6e16fdb7`) reached `done` in 33.1 s from the POST.
+  4. `POST /api/angle-sets/ae6a1efe-c182-480c-a631-30bdf42c4893/items/0/character`: 201, library character `1e43e376-9232-4d61-937f-21637223be3b`.
+- **Cost:** 2.54¢ (Cloud balance 7091.64 → 7089.11 cents, read 20 s after done).
+- **Output** ([`sheets/app-smoke-maya-three-quarter.jpg`](sheets/app-smoke-maya-three-quarter.jpg)): a real ≈45° three-quarter turn. Maya, her hoodie, cargo pockets and sneakers are consistent. A darker studio-wall edge appears at the left border.
