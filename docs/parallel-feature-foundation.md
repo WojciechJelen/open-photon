@@ -170,11 +170,15 @@ review before distribution the FLUX Kommunity licence asks for (§2.e(i); no con
 `{ share_slug, url }` (`url` from `PUBLIC_APP_URL`, else the request's origin), the same slug
 again when it is published already (Motion Transfer's included); 404 `not_found`, 409 `not_done`,
 `no_file` (every output is a text) or `not_publishable` (its workflow publishes on done, so a
-missing slug is never added on request). The builder's image and a generated character's library
-card offer it as "Publish & copy link" (`PublishLink`, `src/shared/components/`): the publish is
-recorded whatever the clipboard does, and a link it cannot copy stays in a field to copy by hand.
-A link published before the page opened starts with `GET /api/share-origin`'s origin, so every
-surface copies the server's URL. A character's summary carries its generation's `share_slug`.
+missing slug is never added on request). The builder's image, a generated character's library
+card and `/g/:id` of any workflow that publishes on request (`readGenerationResult`'s `publish`)
+offer it as "Publish & copy link" (`PublishLink`, `src/shared/components/`, worded for the image
+or video it shows): the publish is recorded whatever the clipboard does, and a link it cannot
+copy stays in a field to copy by hand. A link published before the page opened starts with
+`GET /api/share-origin`'s origin, so every surface copies the server's URL. That `/g/:id` of a
+workflow other than Motion Transfer also offers "Retry with a new seed" for a failed or
+cancelled generation (`POST /api/generations/:id/retry`) and opens the retry; both need the
+access code. A character's summary carries its generation's `share_slug`.
 `generationAccess`
 (`src/shared/server/generation/public-access.ts`) makes public: share pages, exactly the file
 outputs of done generations that have a share page (`isSharedOutput`; a text asset never is), and
