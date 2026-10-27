@@ -38,7 +38,14 @@ test("the studio home features Motion Transfer and links its live character tool
   );
 
   for (const [label, shipped, planned] of [
-    ["Image", [["Create character", "/characters/new"]], []],
+    [
+      "Image",
+      [
+        ["Create character", "/characters/new"],
+        ["Photoshoot", "/photoshoot"],
+      ],
+      [],
+    ],
     [
       "Video",
       [
@@ -80,10 +87,11 @@ test("the studio home features Motion Transfer and links its live character tool
 
   const cards = page.getByRole("list", { name: "Character tools" }).getByRole("listitem");
 
-  await expect(cards).toHaveCount(2);
+  await expect(cards).toHaveCount(3);
 
   for (const [name, path] of [
     ["Describe a character", "/characters/new"],
+    ["Character photoshoot", "/photoshoot"],
     ["Character library", "/characters"],
   ] as const) {
     const card = cards.filter({ has: page.getByRole("heading", { name }) });
