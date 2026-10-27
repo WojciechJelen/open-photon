@@ -1,0 +1,38 @@
+{
+  "owner": "shots-and-angles",
+  "label": "A-hiker-threequarter",
+  "target": "cloud",
+  "graph": "work/angles/graphs/qwen2511-angles-lightning.api.json",
+  "sets": [
+    "151.prompt=<sks> front-right quarter view eye-level shot medium shot"
+  ],
+  "images": [
+    {
+      "node": "1",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/inputs/hiker.png",
+      "ref_id": "12e50fd0-aa73-4316-ac73-500cb376b98a"
+    }
+  ],
+  "balance_before_cents": 7385.3875899795,
+  "job_id": "72b14616-80a6-4867-82ae-1a41d66b5c98",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.472,
+    "submit_to_done": 30.028,
+    "queued_before_running_observed": 2.91
+  },
+  "outputs": [
+    {
+      "node": "2",
+      "index": 0,
+      "name": "angles_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1010899,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/A-hiker-threequarter/2-0-angles_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7382.212619443,
+  "balance_delta_cents": 3.175
+}

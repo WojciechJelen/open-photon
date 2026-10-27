@@ -1,0 +1,68 @@
+{
+  "owner": "shots-and-angles",
+  "label": "D-flux3-klein-edit-maya",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/angles/graphs/D-flux3-klein-edit.multi.api.json",
+  "sets": [],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/inputs/maya.png",
+      "ref_id": "7f901f52-d83a-45c2-b426-dc768bf2a4a8"
+    }
+  ],
+  "balance_before_cents": 7317.487221335,
+  "job_id": "d3c4547c-4ac4-4f2f-b640-eb2e1664e3a7",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.999,
+    "submit_to_done": 40.615,
+    "queued_before_running_observed": 22.393
+  },
+  "outputs": [
+    {
+      "node": "baseline_9",
+      "index": 0,
+      "name": "baseline_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1336079,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/maya/baseline_9-0-baseline_00001_.png"
+    },
+    {
+      "node": "front_9",
+      "index": 0,
+      "name": "front_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1324119,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/maya/front_9-0-front_00001_.png"
+    },
+    {
+      "node": "threequarter_9",
+      "index": 0,
+      "name": "threequarter_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1321004,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/maya/threequarter_9-0-threequarter_00001_.png"
+    },
+    {
+      "node": "profile_9",
+      "index": 0,
+      "name": "profile_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1243252,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/maya/profile_9-0-profile_00001_.png"
+    },
+    {
+      "node": "closeup_9",
+      "index": 0,
+      "name": "closeup_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1757762,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/maya/closeup_9-0-closeup_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7315.081167149499,
+  "balance_delta_cents": 2.4061
+}

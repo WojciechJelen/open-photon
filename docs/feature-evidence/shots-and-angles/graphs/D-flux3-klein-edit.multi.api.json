@@ -1,0 +1,546 @@
+{
+ "1": {
+  "inputs": {
+   "unet_name": "flux3-image-klein-int8-convrot.safetensors",
+   "weight_dtype": "default"
+  },
+  "class_type": "UNETLoader",
+  "_meta": {
+   "title": "Load Diffusion Model"
+  }
+ },
+ "2": {
+  "inputs": {
+   "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+   "type": "flux3",
+   "device": "default"
+  },
+  "class_type": "CLIPLoader",
+  "_meta": {
+   "title": "Load CLIP"
+  }
+ },
+ "3": {
+  "inputs": {
+   "vae_name": "flux2-vae.safetensors"
+  },
+  "class_type": "VAELoader",
+  "_meta": {
+   "title": "Load VAE"
+  }
+ },
+ "11": {
+  "inputs": {
+   "image": "ref1.png"
+  },
+  "class_type": "LoadImage",
+  "_meta": {
+   "title": "Reference 1"
+  }
+ },
+ "baseline_4": {
+  "inputs": {
+   "text": "Keep the person, outfit, pose, framing and background exactly as they are.",
+   "clip": [
+    "2",
+    0
+   ]
+  },
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "Edit prompt"
+  }
+ },
+ "baseline_32": {
+  "inputs": {
+   "conditioning": [
+    "baseline_4",
+    0
+   ]
+  },
+  "class_type": "ConditioningZeroOut"
+ },
+ "baseline_17": {
+  "inputs": {
+   "resolution": "resize",
+   "resolution.megapixels": 1,
+   "positive": [
+    "baseline_4",
+    0
+   ],
+   "negative": [
+    "baseline_32",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ],
+   "images.image0": [
+    "11",
+    0
+   ]
+  },
+  "class_type": "ReferenceMultiLatent"
+ },
+ "baseline_7": {
+  "inputs": {
+   "seed": 20261027,
+   "steps": 16,
+   "cfg": 1,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "1",
+    0
+   ],
+   "positive": [
+    "baseline_17",
+    0
+   ],
+   "negative": [
+    "baseline_17",
+    1
+   ],
+   "latent_image": [
+    "baseline_17",
+    2
+   ]
+  },
+  "class_type": "KSampler",
+  "_meta": {
+   "title": "KSampler"
+  }
+ },
+ "baseline_8": {
+  "inputs": {
+   "samples": [
+    "baseline_7",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ]
+  },
+  "class_type": "VAEDecode",
+  "_meta": {
+   "title": "VAE Decode"
+  }
+ },
+ "baseline_9": {
+  "inputs": {
+   "filename_prefix": "baseline",
+   "images": [
+    "baseline_8",
+    0
+   ]
+  },
+  "class_type": "SaveImage"
+ },
+ "front_4": {
+  "inputs": {
+   "text": "Change only the camera: front view at eye level, the camera faces the person straight on, full body from head to toe. Keep the same person, face, hair, outfit, accessories, colors and plain background.",
+   "clip": [
+    "2",
+    0
+   ]
+  },
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "Edit prompt"
+  }
+ },
+ "front_32": {
+  "inputs": {
+   "conditioning": [
+    "front_4",
+    0
+   ]
+  },
+  "class_type": "ConditioningZeroOut"
+ },
+ "front_17": {
+  "inputs": {
+   "resolution": "resize",
+   "resolution.megapixels": 1,
+   "positive": [
+    "front_4",
+    0
+   ],
+   "negative": [
+    "front_32",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ],
+   "images.image0": [
+    "11",
+    0
+   ]
+  },
+  "class_type": "ReferenceMultiLatent"
+ },
+ "front_7": {
+  "inputs": {
+   "seed": 20261027,
+   "steps": 16,
+   "cfg": 1,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "1",
+    0
+   ],
+   "positive": [
+    "front_17",
+    0
+   ],
+   "negative": [
+    "front_17",
+    1
+   ],
+   "latent_image": [
+    "front_17",
+    2
+   ]
+  },
+  "class_type": "KSampler",
+  "_meta": {
+   "title": "KSampler"
+  }
+ },
+ "front_8": {
+  "inputs": {
+   "samples": [
+    "front_7",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ]
+  },
+  "class_type": "VAEDecode",
+  "_meta": {
+   "title": "VAE Decode"
+  }
+ },
+ "front_9": {
+  "inputs": {
+   "filename_prefix": "front",
+   "images": [
+    "front_8",
+    0
+   ]
+  },
+  "class_type": "SaveImage"
+ },
+ "threequarter_4": {
+  "inputs": {
+   "text": "Change only the camera: orbit the camera 45 degrees around to the person's right side, so the person is seen in a three-quarter view with the body and face turned 45 degrees away from the camera, full body from head to toe. Keep the same person, face, hair, outfit, accessories, colors and plain background.",
+   "clip": [
+    "2",
+    0
+   ]
+  },
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "Edit prompt"
+  }
+ },
+ "threequarter_32": {
+  "inputs": {
+   "conditioning": [
+    "threequarter_4",
+    0
+   ]
+  },
+  "class_type": "ConditioningZeroOut"
+ },
+ "threequarter_17": {
+  "inputs": {
+   "resolution": "resize",
+   "resolution.megapixels": 1,
+   "positive": [
+    "threequarter_4",
+    0
+   ],
+   "negative": [
+    "threequarter_32",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ],
+   "images.image0": [
+    "11",
+    0
+   ]
+  },
+  "class_type": "ReferenceMultiLatent"
+ },
+ "threequarter_7": {
+  "inputs": {
+   "seed": 20261027,
+   "steps": 16,
+   "cfg": 1,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "1",
+    0
+   ],
+   "positive": [
+    "threequarter_17",
+    0
+   ],
+   "negative": [
+    "threequarter_17",
+    1
+   ],
+   "latent_image": [
+    "threequarter_17",
+    2
+   ]
+  },
+  "class_type": "KSampler",
+  "_meta": {
+   "title": "KSampler"
+  }
+ },
+ "threequarter_8": {
+  "inputs": {
+   "samples": [
+    "threequarter_7",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ]
+  },
+  "class_type": "VAEDecode",
+  "_meta": {
+   "title": "VAE Decode"
+  }
+ },
+ "threequarter_9": {
+  "inputs": {
+   "filename_prefix": "threequarter",
+   "images": [
+    "threequarter_8",
+    0
+   ]
+  },
+  "class_type": "SaveImage"
+ },
+ "profile_4": {
+  "inputs": {
+   "text": "Change only the camera: orbit the camera 90 degrees around to the person's right side, so the head and the whole body are seen in a full side profile, full body from head to toe. Keep the same person, face, hair, outfit, accessories, colors and plain background.",
+   "clip": [
+    "2",
+    0
+   ]
+  },
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "Edit prompt"
+  }
+ },
+ "profile_32": {
+  "inputs": {
+   "conditioning": [
+    "profile_4",
+    0
+   ]
+  },
+  "class_type": "ConditioningZeroOut"
+ },
+ "profile_17": {
+  "inputs": {
+   "resolution": "resize",
+   "resolution.megapixels": 1,
+   "positive": [
+    "profile_4",
+    0
+   ],
+   "negative": [
+    "profile_32",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ],
+   "images.image0": [
+    "11",
+    0
+   ]
+  },
+  "class_type": "ReferenceMultiLatent"
+ },
+ "profile_7": {
+  "inputs": {
+   "seed": 20261027,
+   "steps": 16,
+   "cfg": 1,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "1",
+    0
+   ],
+   "positive": [
+    "profile_17",
+    0
+   ],
+   "negative": [
+    "profile_17",
+    1
+   ],
+   "latent_image": [
+    "profile_17",
+    2
+   ]
+  },
+  "class_type": "KSampler",
+  "_meta": {
+   "title": "KSampler"
+  }
+ },
+ "profile_8": {
+  "inputs": {
+   "samples": [
+    "profile_7",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ]
+  },
+  "class_type": "VAEDecode",
+  "_meta": {
+   "title": "VAE Decode"
+  }
+ },
+ "profile_9": {
+  "inputs": {
+   "filename_prefix": "profile",
+   "images": [
+    "profile_8",
+    0
+   ]
+  },
+  "class_type": "SaveImage"
+ },
+ "closeup_4": {
+  "inputs": {
+   "text": "Change only the camera: move the camera in for a close-up portrait of the person's head and shoulders at eye level. Keep the same person, face, hair, outfit, accessories, colors and plain background.",
+   "clip": [
+    "2",
+    0
+   ]
+  },
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "Edit prompt"
+  }
+ },
+ "closeup_32": {
+  "inputs": {
+   "conditioning": [
+    "closeup_4",
+    0
+   ]
+  },
+  "class_type": "ConditioningZeroOut"
+ },
+ "closeup_17": {
+  "inputs": {
+   "resolution": "resize",
+   "resolution.megapixels": 1,
+   "positive": [
+    "closeup_4",
+    0
+   ],
+   "negative": [
+    "closeup_32",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ],
+   "images.image0": [
+    "11",
+    0
+   ]
+  },
+  "class_type": "ReferenceMultiLatent"
+ },
+ "closeup_7": {
+  "inputs": {
+   "seed": 20261027,
+   "steps": 16,
+   "cfg": 1,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 1,
+   "model": [
+    "1",
+    0
+   ],
+   "positive": [
+    "closeup_17",
+    0
+   ],
+   "negative": [
+    "closeup_17",
+    1
+   ],
+   "latent_image": [
+    "closeup_17",
+    2
+   ]
+  },
+  "class_type": "KSampler",
+  "_meta": {
+   "title": "KSampler"
+  }
+ },
+ "closeup_8": {
+  "inputs": {
+   "samples": [
+    "closeup_7",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ]
+  },
+  "class_type": "VAEDecode",
+  "_meta": {
+   "title": "VAE Decode"
+  }
+ },
+ "closeup_9": {
+  "inputs": {
+   "filename_prefix": "closeup",
+   "images": [
+    "closeup_8",
+    0
+   ]
+  },
+  "class_type": "SaveImage"
+ }
+}

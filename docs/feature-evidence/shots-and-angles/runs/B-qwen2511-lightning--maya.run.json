@@ -1,0 +1,68 @@
+{
+  "owner": "shots-and-angles",
+  "label": "B-qwen2511-lightning-maya",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/angles/graphs/B-qwen2511-lightning.multi.api.json",
+  "sets": [],
+  "images": [
+    {
+      "node": "1",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/inputs/maya.png",
+      "ref_id": "7f901f52-d83a-45c2-b426-dc768bf2a4a8"
+    }
+  ],
+  "balance_before_cents": 7115.3213555135,
+  "job_id": "052480fc-d321-4b86-9865-3fd8dc2f592e",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.968,
+    "submit_to_done": 34.985,
+    "queued_before_running_observed": 2.962
+  },
+  "outputs": [
+    {
+      "node": "baseline_2",
+      "index": 0,
+      "name": "baseline_00001_.png",
+      "contentType": "image/png",
+      "bytes": 981701,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/B-qwen2511-lightning/maya/baseline_2-0-baseline_00001_.png"
+    },
+    {
+      "node": "front_2",
+      "index": 0,
+      "name": "front_00001_.png",
+      "contentType": "image/png",
+      "bytes": 981845,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/B-qwen2511-lightning/maya/front_2-0-front_00001_.png"
+    },
+    {
+      "node": "threequarter_2",
+      "index": 0,
+      "name": "threequarter_00001_.png",
+      "contentType": "image/png",
+      "bytes": 916904,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/B-qwen2511-lightning/maya/threequarter_2-0-threequarter_00001_.png"
+    },
+    {
+      "node": "profile_2",
+      "index": 0,
+      "name": "profile_00001_.png",
+      "contentType": "image/png",
+      "bytes": 913632,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/B-qwen2511-lightning/maya/profile_2-0-profile_00001_.png"
+    },
+    {
+      "node": "closeup_2",
+      "index": 0,
+      "name": "closeup_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1370468,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/B-qwen2511-lightning/maya/closeup_2-0-closeup_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7111.461605812,
+  "balance_delta_cents": 3.8597
+}

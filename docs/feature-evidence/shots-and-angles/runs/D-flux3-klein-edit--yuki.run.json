@@ -1,0 +1,68 @@
+{
+  "owner": "shots-and-angles",
+  "label": "D-flux3-klein-edit-yuki",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/angles/graphs/D-flux3-klein-edit.multi.api.json",
+  "sets": [],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/inputs/yuki.png",
+      "ref_id": "3af12664-2380-4851-aeed-5b4a6958f036"
+    }
+  ],
+  "balance_before_cents": 7269.9420496365,
+  "job_id": "2435a9c6-8583-478a-845d-dee9dc2af301",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.421,
+    "submit_to_done": 26.302,
+    "queued_before_running_observed": 3.795
+  },
+  "outputs": [
+    {
+      "node": "baseline_9",
+      "index": 0,
+      "name": "baseline_00001_.png",
+      "contentType": "image/png",
+      "bytes": 556599,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/yuki/baseline_9-0-baseline_00001_.png"
+    },
+    {
+      "node": "front_9",
+      "index": 0,
+      "name": "front_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1065939,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/yuki/front_9-0-front_00001_.png"
+    },
+    {
+      "node": "threequarter_9",
+      "index": 0,
+      "name": "threequarter_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1072728,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/yuki/threequarter_9-0-threequarter_00001_.png"
+    },
+    {
+      "node": "profile_9",
+      "index": 0,
+      "name": "profile_00001_.png",
+      "contentType": "image/png",
+      "bytes": 986718,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/yuki/profile_9-0-profile_00001_.png"
+    },
+    {
+      "node": "closeup_9",
+      "index": 0,
+      "name": "closeup_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1505638,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/yuki/closeup_9-0-closeup_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7267.2196762905005,
+  "balance_delta_cents": 2.7224
+}

@@ -1,0 +1,68 @@
+{
+  "owner": "shots-and-angles",
+  "label": "C-qwen2511-base40-hiker",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/angles/graphs/C-qwen2511-base40.multi.api.json",
+  "sets": [],
+  "images": [
+    {
+      "node": "1",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/inputs/hiker.png",
+      "ref_id": "12e50fd0-aa73-4316-ac73-500cb376b98a"
+    }
+  ],
+  "balance_before_cents": 7262.19776743,
+  "job_id": "c8d5a948-14b8-409e-aad1-1fe81b0cb15c",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.041,
+    "submit_to_done": 257.776,
+    "queued_before_running_observed": 2.933
+  },
+  "outputs": [
+    {
+      "node": "baseline_2",
+      "index": 0,
+      "name": "baseline_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1006926,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/C-qwen2511-base40/hiker/baseline_2-0-baseline_00001_.png"
+    },
+    {
+      "node": "front_2",
+      "index": 0,
+      "name": "front_00001_.png",
+      "contentType": "image/png",
+      "bytes": 984630,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/C-qwen2511-base40/hiker/front_2-0-front_00001_.png"
+    },
+    {
+      "node": "threequarter_2",
+      "index": 0,
+      "name": "threequarter_00001_.png",
+      "contentType": "image/png",
+      "bytes": 996521,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/C-qwen2511-base40/hiker/threequarter_2-0-threequarter_00001_.png"
+    },
+    {
+      "node": "profile_2",
+      "index": 0,
+      "name": "profile_00001_.png",
+      "contentType": "image/png",
+      "bytes": 966307,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/C-qwen2511-base40/hiker/profile_2-0-profile_00001_.png"
+    },
+    {
+      "node": "closeup_2",
+      "index": 0,
+      "name": "closeup_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1302967,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/C-qwen2511-base40/hiker/closeup_2-0-closeup_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7229.303539640499,
+  "balance_delta_cents": 32.8942
+}

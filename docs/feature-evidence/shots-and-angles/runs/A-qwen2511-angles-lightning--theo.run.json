@@ -1,0 +1,68 @@
+{
+  "owner": "shots-and-angles",
+  "label": "A-qwen2511-angles-lightning-theo",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/angles/graphs/A-qwen2511-angles-lightning.multi.api.json",
+  "sets": [],
+  "images": [
+    {
+      "node": "1",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/inputs/theo.png",
+      "ref_id": "003cb473-893e-4eea-b473-b56353f3c0ad"
+    }
+  ],
+  "balance_before_cents": 7353.323629943,
+  "job_id": "745bf2fa-9baf-406c-92cb-890dec77ae31",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.984,
+    "submit_to_done": 36.57,
+    "queued_before_running_observed": 3.383
+  },
+  "outputs": [
+    {
+      "node": "baseline_2",
+      "index": 0,
+      "name": "baseline_00001_.png",
+      "contentType": "image/png",
+      "bytes": 932363,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/A-qwen2511-angles-lightning/theo/baseline_2-0-baseline_00001_.png"
+    },
+    {
+      "node": "front_2",
+      "index": 0,
+      "name": "front_00001_.png",
+      "contentType": "image/png",
+      "bytes": 934256,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/A-qwen2511-angles-lightning/theo/front_2-0-front_00001_.png"
+    },
+    {
+      "node": "threequarter_2",
+      "index": 0,
+      "name": "threequarter_00001_.png",
+      "contentType": "image/png",
+      "bytes": 907431,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/A-qwen2511-angles-lightning/theo/threequarter_2-0-threequarter_00001_.png"
+    },
+    {
+      "node": "profile_2",
+      "index": 0,
+      "name": "profile_00001_.png",
+      "contentType": "image/png",
+      "bytes": 854644,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/A-qwen2511-angles-lightning/theo/profile_2-0-profile_00001_.png"
+    },
+    {
+      "node": "closeup_2",
+      "index": 0,
+      "name": "closeup_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1157603,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/A-qwen2511-angles-lightning/theo/closeup_2-0-closeup_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7349.311406553,
+  "balance_delta_cents": 4.0122
+}
