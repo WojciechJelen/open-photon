@@ -119,3 +119,31 @@ see the table in `runs.md`.
   prompt pins the outfit.
 - "No text" is not always obeyed for signage in busy street scenes.
 - Self-host: not verified (no pod in this program); the split model adds 9.3 GB to every pod's lock.
+
+## App smoke on Comfy Cloud (2026-10-27, after merging `imageEdit` at `f22b99a`)
+
+`npm run dev` on this worktree (port 3140, `data/feat-storyboard.sqlite`, `target: cloud`), render
+lease held by hand (`render-lease.ts acquire storyboard app-smoke` … `release`), driven through the
+app's own API by `work/smoke.mjs` (not committed; the log is `app-smoke/smoke.json`):
+
+1. `POST /api/storyboards` (Maya, the maya sequence, style `realistic`, no scenes): 201, `scenes:
+   writing`; the split (`storyboard-scenes` v1, generation `676c7cde…`, recipe `target: cloud`,
+   workflow SHA-256 `37f1d1b5…`) was `ready` 16.1 s later with four scenes.
+2. `POST /api/storyboards/:id/generations` for cards 1–4: 201; all four `image-edit` v1 generations
+   done 54.2 s later (`IN_FLIGHT_MAX=1`, so one after another: card 1 done 14.2 s, card 3 40.2 s, card 4 52.4 s after the request, card 2 in between), each recipe `target: cloud`, 1344×768, `origin: { feature:
+   "storyboard", storyboard_id, card }`, all at the storyboard's seed `265967286548949`.
+3. Regenerate card 2 only (same description, so a new seed `226344821764068`): 201, done in 16.1 s.
+   Cards 1, 3 and 4 kept their generation ids, asset ids and bytes: SHA-256 of each downloaded file
+   equal before and after (`untouched_cards_identical: true`); card 2 has a new generation and new
+   bytes; history `[1, 2, 1, 1]`.
+4. Re-read (`GET /api/storyboards/:id`, as a reload does) and the list (`GET /api/storyboards`): the
+   same four current generations, the storyboard listed. `/storyboards/:id` and `/g/<card 1>` answer
+   200 with the session.
+
+Looked at (`sheets/app-smoke.jpg`, `sheets/app-smoke-card2-regenerated.jpg`): Maya's braids, mustard
+hoodie, cargo pants and sneakers on all four; 1 sunset rooftop, arms spread; 2 twilight kick
+(regenerated: another dance pose, same rooftop and light); 3 night, cross-legged with a water bottle,
+but on a street-side ledge rather than the rooftop; 4 night skyline, bottle beside her. The split
+again mentioned "their usual outfit" (harmless). Cost of the five app jobs was not measured
+separately (no balance read around the app run); the comfy-run measurements above put it at about
+3–5 ¢.

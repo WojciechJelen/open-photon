@@ -1,0 +1,159 @@
+[
+  {
+    "t": "2026-10-27T21:30:02.484Z",
+    "event": "created",
+    "status": 201,
+    "id": "2ed09ec9-d6eb-43bf-81d2-d19e1edd9627",
+    "scenes": "writing"
+  },
+  {
+    "t": "2026-10-27T21:30:18.557Z",
+    "event": "split",
+    "seconds": 16.072,
+    "state": "ready",
+    "generation": "676c7cde-45b5-4610-9f1b-a53e67da31ce",
+    "descriptions": [
+      "Wide shot of an empty city rooftop at sunset with warm orange and pink light, the character stands center frame stretching their arms wide to warm up against the cooling air.",
+      "Medium shot on the same rooftop as twilight deepens and distant city lights begin to flicker on, the character breaks into dynamic spins and kicks while wearing their usual outfit.",
+      "Low angle medium shot of the character sitting cross-legged on the concrete ledge at night under cool blue streetlights, holding a clear plastic water bottle in both hands.",
+      "Close-up from the front of the character looking out over the illuminated skyline at night, the water bottle resting on the ledge beside them as they gaze quietly."
+    ]
+  },
+  {
+    "t": "2026-10-27T21:30:18.572Z",
+    "event": "generate-all",
+    "status": 201
+  },
+  {
+    "t": "2026-10-27T21:31:12.807Z",
+    "event": "four-done",
+    "seconds": 54.213,
+    "cards": [
+      {
+        "asset": "d2da01b2-fa02-4ce4-8307-49acc0dfb242",
+        "bytes": 1394615,
+        "generation": "18954daa-b242-4501-81c2-816782baeb58",
+        "seed": 265967286548949,
+        "sha256": "2b3e3226957ba202afd7cdf29725fe997957e91f301e1afca16ee6a4fa4141e9",
+        "status": "done",
+        "stored_sha256": "2b3e3226957ba202afd7cdf29725fe997957e91f301e1afca16ee6a4fa4141e9"
+      },
+      {
+        "asset": "12429283-7668-408e-89a7-70674d72e492",
+        "bytes": 1334052,
+        "generation": "03cfcb05-87f5-4eea-aef1-96b1587801c4",
+        "seed": 265967286548949,
+        "sha256": "c9e93fac9ce09527209a3a089eea2008e017b7b5c926092503f71e6ce5679d92",
+        "status": "done",
+        "stored_sha256": "c9e93fac9ce09527209a3a089eea2008e017b7b5c926092503f71e6ce5679d92"
+      },
+      {
+        "asset": "712a8f1e-d1e4-4ed3-a7e6-fd966e4b27ce",
+        "bytes": 1389452,
+        "generation": "3fd3085e-8bff-42cf-a94d-0e67daecc7b5",
+        "seed": 265967286548949,
+        "sha256": "70a97fefad0ffe8d2bbf66ce3d5f6e5a48ea9573d060225588c6e9fea303b12e",
+        "status": "done",
+        "stored_sha256": "70a97fefad0ffe8d2bbf66ce3d5f6e5a48ea9573d060225588c6e9fea303b12e"
+      },
+      {
+        "asset": "4eb638d1-c656-4aaa-a214-70c97e4b197c",
+        "bytes": 1467065,
+        "generation": "efa42fb7-2b1a-4752-a6f5-df4cd7f477a4",
+        "seed": 265967286548949,
+        "sha256": "c61476c8353757a8fe3950112c239b76426e6c6e70c930bebfae0cb1c139f60d",
+        "status": "done",
+        "stored_sha256": "c61476c8353757a8fe3950112c239b76426e6c6e70c930bebfae0cb1c139f60d"
+      }
+    ]
+  },
+  {
+    "t": "2026-10-27T21:31:12.817Z",
+    "event": "regenerate-2",
+    "status": 201
+  },
+  {
+    "t": "2026-10-27T21:31:28.918Z",
+    "event": "regenerated",
+    "seconds": 16.072,
+    "cards": [
+      {
+        "asset": "d2da01b2-fa02-4ce4-8307-49acc0dfb242",
+        "bytes": 1394615,
+        "generation": "18954daa-b242-4501-81c2-816782baeb58",
+        "seed": 265967286548949,
+        "sha256": "2b3e3226957ba202afd7cdf29725fe997957e91f301e1afca16ee6a4fa4141e9",
+        "status": "done",
+        "stored_sha256": "2b3e3226957ba202afd7cdf29725fe997957e91f301e1afca16ee6a4fa4141e9"
+      },
+      {
+        "asset": "7d110f9f-c127-4238-bbca-5268fe2f6ca5",
+        "bytes": 1367461,
+        "generation": "aedc9966-b075-49af-af96-c5ce0f90dd65",
+        "seed": 226344821764068,
+        "sha256": "3de91869021dbcda09bfa615d6ecb6addc5c73d558eb0272a7d576de6b0d0e2d",
+        "status": "done",
+        "stored_sha256": "3de91869021dbcda09bfa615d6ecb6addc5c73d558eb0272a7d576de6b0d0e2d"
+      },
+      {
+        "asset": "712a8f1e-d1e4-4ed3-a7e6-fd966e4b27ce",
+        "bytes": 1389452,
+        "generation": "3fd3085e-8bff-42cf-a94d-0e67daecc7b5",
+        "seed": 265967286548949,
+        "sha256": "70a97fefad0ffe8d2bbf66ce3d5f6e5a48ea9573d060225588c6e9fea303b12e",
+        "status": "done",
+        "stored_sha256": "70a97fefad0ffe8d2bbf66ce3d5f6e5a48ea9573d060225588c6e9fea303b12e"
+      },
+      {
+        "asset": "4eb638d1-c656-4aaa-a214-70c97e4b197c",
+        "bytes": 1467065,
+        "generation": "efa42fb7-2b1a-4752-a6f5-df4cd7f477a4",
+        "seed": 265967286548949,
+        "sha256": "c61476c8353757a8fe3950112c239b76426e6c6e70c930bebfae0cb1c139f60d",
+        "status": "done",
+        "stored_sha256": "c61476c8353757a8fe3950112c239b76426e6c6e70c930bebfae0cb1c139f60d"
+      }
+    ],
+    "untouched_cards_identical": true
+  },
+  {
+    "t": "2026-10-27T21:31:28.931Z",
+    "event": "reopen",
+    "status": 200,
+    "same_generations": true,
+    "in_list": true,
+    "history": [1, 2, 1, 1]
+  },
+  {
+    "t": "2026-10-27T21:31:28.934Z",
+    "event": "generation",
+    "id": "18954daa-b242-4501-81c2-816782baeb58",
+    "status": "done",
+    "created_at": "2026-10-27T21:30:18.566Z",
+    "finished_at": "2026-10-27T21:30:32.803Z"
+  },
+  {
+    "t": "2026-10-27T21:31:28.937Z",
+    "event": "generation",
+    "id": "aedc9966-b075-49af-af96-c5ce0f90dd65",
+    "status": "done",
+    "created_at": "2026-10-27T21:31:12.814Z",
+    "finished_at": "2026-10-27T21:31:27.059Z"
+  },
+  {
+    "t": "2026-10-27T21:31:28.940Z",
+    "event": "generation",
+    "id": "3fd3085e-8bff-42cf-a94d-0e67daecc7b5",
+    "status": "done",
+    "created_at": "2026-10-27T21:30:18.567Z",
+    "finished_at": "2026-10-27T21:30:58.758Z"
+  },
+  {
+    "t": "2026-10-27T21:31:28.943Z",
+    "event": "generation",
+    "id": "efa42fb7-2b1a-4752-a6f5-df4cd7f477a4",
+    "status": "done",
+    "created_at": "2026-10-27T21:30:18.567Z",
+    "finished_at": "2026-10-27T21:31:10.920Z"
+  }
+]
