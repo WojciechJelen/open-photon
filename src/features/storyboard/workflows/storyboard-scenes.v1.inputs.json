@@ -1,0 +1,15 @@
+{
+  "workflow": "storyboard-scenes.v1.json",
+  "inputs": {
+    "request": {
+      "node": "3",
+      "field": "prompt",
+      "class_type": "TextGenerate"
+    },
+    "seed": {
+      "node": "3",
+      "field": "sampling_mode.seed",
+      "class_type": "TextGenerate"
+    }
+  }
+}

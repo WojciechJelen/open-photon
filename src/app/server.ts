@@ -12,6 +12,7 @@ import { motionTransferAccess } from "../features/motionTransfer/server/public-a
 import { seedSampleMotions } from "../features/motionTransfer/server/samples.ts";
 import { motionTransferDefinition } from "../features/motionTransfer/workflows/definition.ts";
 import { presetsAccess } from "../features/presets/server/public-access.ts";
+import { storyboardScenesDefinition } from "../features/storyboard/workflows/scenes-definition.ts";
 import { studioAccess } from "../features/studio/server/public-access.ts";
 import { createAccessPolicy } from "../shared/server/access-policy.ts";
 import { database } from "../shared/server/db.server.ts";
@@ -38,6 +39,7 @@ workflows.compose([
   motionTransferDefinition,
   characterGenerationDefinition,
   characterCaptionDefinition,
+  storyboardScenesDefinition,
 ]);
 
 /** Each feature's seeder: idempotent, so it runs on every start, each in its own transaction. */

@@ -5,6 +5,7 @@ import {
   FileCodeIcon,
   LibraryIcon,
   LockOpenIcon,
+  PanelsTopLeftIcon,
   SparklesIcon,
   UserIcon,
 } from "lucide-react";
@@ -95,7 +96,7 @@ function Filmstrip({
   );
 }
 
-// The character tools beside Motion Transfer, live: the builder and the library.
+// The character tools beside Motion Transfer, live: the builder, the library and storyboards.
 const characterTools = [
   {
     icon: <UserIcon />,
@@ -110,6 +111,13 @@ const characterTools = [
     text: "Find, favorite and rename the workspace's characters, uploaded or generated, and animate any of them.",
     title: "Character library",
     to: "/characters",
+  },
+  {
+    icon: <PanelsTopLeftIcon />,
+    model: "FLUX 3 Image Klein · Qwen3.5",
+    text: "Pick a character, describe a short sequence, and render it as four editable scene cards.",
+    title: "Storyboard",
+    to: "/storyboards",
   },
 ] as const;
 

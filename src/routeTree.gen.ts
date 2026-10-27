@@ -18,6 +18,7 @@ import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiGenerateRouteImport } from './routes/api.generate'
 import { Route as ApiImageUploadsRouteImport } from './routes/api.image-uploads'
 import { Route as ApiShareOriginRouteImport } from './routes/api.share-origin'
+import { Route as ApiStoryboardsRouteImport } from './routes/api.storyboards'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as BatchesIndexRouteImport } from './routes/batches.index'
 import { Route as BatchesBatchIdRouteImport } from './routes/batches.$batchId'
@@ -30,11 +31,14 @@ import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
 import { Route as PresetsIndexRouteImport } from './routes/presets.index'
 import { Route as PresetsPresetIdRouteImport } from './routes/presets.$presetId'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
+import { Route as StoryboardsIndexRouteImport } from './routes/storyboards.index'
+import { Route as StoryboardsStoryboardIdRouteImport } from './routes/storyboards.$storyboardId'
 import { Route as ApiBatchesBatchIdRouteImport } from './routes/api.batches.$batchId'
 import { Route as ApiCharactersCharacterIdRouteImport } from './routes/api.characters.$characterId'
 import { Route as ApiDebugHeartbeatRouteImport } from './routes/api.debug.heartbeat'
 import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
 import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
+import { Route as ApiStoryboardsStoryboardIdRouteImport } from './routes/api.storyboards.$storyboardId'
 import { Route as ApiAssetsAssetIdTrimRouteImport } from './routes/api.assets.$assetId.trim'
 import { Route as ApiCharacterGenerationsGenerationIdCharacterRouteImport } from './routes/api.character-generations.$generationId.character'
 import { Route as ApiGenerationsGenerationIdEventsRouteImport } from './routes/api.generations.$generationId.events'
@@ -43,6 +47,7 @@ import { Route as ApiGenerationsGenerationIdRecipeDotjsonRouteImport } from './r
 import { Route as ApiGenerationsGenerationIdRerunRouteImport } from './routes/api.generations.$generationId.rerun'
 import { Route as ApiGenerationsGenerationIdRetryRouteImport } from './routes/api.generations.$generationId.retry'
 import { Route as ApiPresetsPresetIdGenerationsRouteImport } from './routes/api.presets.$presetId.generations'
+import { Route as ApiStoryboardsStoryboardIdGenerationsRouteImport } from './routes/api.storyboards.$storyboardId.generations'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -87,6 +92,11 @@ const ApiImageUploadsRoute = ApiImageUploadsRouteImport.update({
 const ApiShareOriginRoute = ApiShareOriginRouteImport.update({
   id: '/api/share-origin',
   path: '/api/share-origin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoryboardsRoute = ApiStoryboardsRouteImport.update({
+  id: '/api/storyboards',
+  path: '/api/storyboards',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiUploadsRoute = ApiUploadsRouteImport.update({
@@ -149,6 +159,16 @@ const RSlugRoute = RSlugRouteImport.update({
   path: '/r/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoryboardsIndexRoute = StoryboardsIndexRouteImport.update({
+  id: '/storyboards/',
+  path: '/storyboards/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoryboardsStoryboardIdRoute = StoryboardsStoryboardIdRouteImport.update({
+  id: '/storyboards/$storyboardId',
+  path: '/storyboards/$storyboardId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBatchesBatchIdRoute = ApiBatchesBatchIdRouteImport.update({
   id: '/$batchId',
   path: '/$batchId',
@@ -175,6 +195,12 @@ const ApiGenerationsGenerationIdRoute =
     id: '/api/generations/$generationId',
     path: '/api/generations/$generationId',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiStoryboardsStoryboardIdRoute =
+  ApiStoryboardsStoryboardIdRouteImport.update({
+    id: '/$storyboardId',
+    path: '/$storyboardId',
+    getParentRoute: () => ApiStoryboardsRoute,
   } as any)
 const ApiAssetsAssetIdTrimRoute = ApiAssetsAssetIdTrimRouteImport.update({
   id: '/api/assets/$assetId/trim',
@@ -223,6 +249,12 @@ const ApiPresetsPresetIdGenerationsRoute =
     path: '/api/presets/$presetId/generations',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiStoryboardsStoryboardIdGenerationsRoute =
+  ApiStoryboardsStoryboardIdGenerationsRouteImport.update({
+    id: '/generations',
+    path: '/generations',
+    getParentRoute: () => ApiStoryboardsStoryboardIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -234,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/api/generate': typeof ApiGenerateRoute
   '/api/image-uploads': typeof ApiImageUploadsRoute
   '/api/share-origin': typeof ApiShareOriginRoute
+  '/api/storyboards': typeof ApiStoryboardsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
   '/characters/new': typeof CharactersNewRoute
@@ -242,15 +275,18 @@ export interface FileRoutesByFullPath {
   '/media/$filename': typeof MediaFilenameRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
+  '/storyboards/$storyboardId': typeof StoryboardsStoryboardIdRoute
   '/batches/': typeof BatchesIndexRoute
   '/characters/': typeof CharactersIndexRoute
   '/explore/': typeof ExploreIndexRoute
   '/presets/': typeof PresetsIndexRoute
+  '/storyboards/': typeof StoryboardsIndexRoute
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
+  '/api/storyboards/$storyboardId': typeof ApiStoryboardsStoryboardIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
@@ -259,6 +295,7 @@ export interface FileRoutesByFullPath {
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
   '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
+  '/api/storyboards/$storyboardId/generations': typeof ApiStoryboardsStoryboardIdGenerationsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -270,6 +307,7 @@ export interface FileRoutesByTo {
   '/api/generate': typeof ApiGenerateRoute
   '/api/image-uploads': typeof ApiImageUploadsRoute
   '/api/share-origin': typeof ApiShareOriginRoute
+  '/api/storyboards': typeof ApiStoryboardsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
   '/characters/new': typeof CharactersNewRoute
@@ -278,15 +316,18 @@ export interface FileRoutesByTo {
   '/media/$filename': typeof MediaFilenameRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
+  '/storyboards/$storyboardId': typeof StoryboardsStoryboardIdRoute
   '/batches': typeof BatchesIndexRoute
   '/characters': typeof CharactersIndexRoute
   '/explore': typeof ExploreIndexRoute
   '/presets': typeof PresetsIndexRoute
+  '/storyboards': typeof StoryboardsIndexRoute
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
+  '/api/storyboards/$storyboardId': typeof ApiStoryboardsStoryboardIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
@@ -295,6 +336,7 @@ export interface FileRoutesByTo {
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
   '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
+  '/api/storyboards/$storyboardId/generations': typeof ApiStoryboardsStoryboardIdGenerationsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -307,6 +349,7 @@ export interface FileRoutesById {
   '/api/generate': typeof ApiGenerateRoute
   '/api/image-uploads': typeof ApiImageUploadsRoute
   '/api/share-origin': typeof ApiShareOriginRoute
+  '/api/storyboards': typeof ApiStoryboardsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
   '/characters/new': typeof CharactersNewRoute
@@ -315,15 +358,18 @@ export interface FileRoutesById {
   '/media/$filename': typeof MediaFilenameRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
+  '/storyboards/$storyboardId': typeof StoryboardsStoryboardIdRoute
   '/batches/': typeof BatchesIndexRoute
   '/characters/': typeof CharactersIndexRoute
   '/explore/': typeof ExploreIndexRoute
   '/presets/': typeof PresetsIndexRoute
+  '/storyboards/': typeof StoryboardsIndexRoute
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
+  '/api/storyboards/$storyboardId': typeof ApiStoryboardsStoryboardIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
@@ -332,6 +378,7 @@ export interface FileRoutesById {
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
   '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
+  '/api/storyboards/$storyboardId/generations': typeof ApiStoryboardsStoryboardIdGenerationsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -345,6 +392,7 @@ export interface FileRouteTypes {
     | '/api/generate'
     | '/api/image-uploads'
     | '/api/share-origin'
+    | '/api/storyboards'
     | '/api/uploads'
     | '/batches/$batchId'
     | '/characters/new'
@@ -353,15 +401,18 @@ export interface FileRouteTypes {
     | '/media/$filename'
     | '/presets/$presetId'
     | '/r/$slug'
+    | '/storyboards/$storyboardId'
     | '/batches/'
     | '/characters/'
     | '/explore/'
     | '/presets/'
+    | '/storyboards/'
     | '/api/batches/$batchId'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
+    | '/api/storyboards/$storyboardId'
     | '/api/assets/$assetId/trim'
     | '/api/character-generations/$generationId/character'
     | '/api/generations/$generationId/events'
@@ -370,6 +421,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
     | '/api/presets/$presetId/generations'
+    | '/api/storyboards/$storyboardId/generations'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -381,6 +433,7 @@ export interface FileRouteTypes {
     | '/api/generate'
     | '/api/image-uploads'
     | '/api/share-origin'
+    | '/api/storyboards'
     | '/api/uploads'
     | '/batches/$batchId'
     | '/characters/new'
@@ -389,15 +442,18 @@ export interface FileRouteTypes {
     | '/media/$filename'
     | '/presets/$presetId'
     | '/r/$slug'
+    | '/storyboards/$storyboardId'
     | '/batches'
     | '/characters'
     | '/explore'
     | '/presets'
+    | '/storyboards'
     | '/api/batches/$batchId'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
+    | '/api/storyboards/$storyboardId'
     | '/api/assets/$assetId/trim'
     | '/api/character-generations/$generationId/character'
     | '/api/generations/$generationId/events'
@@ -406,6 +462,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
     | '/api/presets/$presetId/generations'
+    | '/api/storyboards/$storyboardId/generations'
   id:
     | '__root__'
     | '/'
@@ -417,6 +474,7 @@ export interface FileRouteTypes {
     | '/api/generate'
     | '/api/image-uploads'
     | '/api/share-origin'
+    | '/api/storyboards'
     | '/api/uploads'
     | '/batches/$batchId'
     | '/characters/new'
@@ -425,15 +483,18 @@ export interface FileRouteTypes {
     | '/media/$filename'
     | '/presets/$presetId'
     | '/r/$slug'
+    | '/storyboards/$storyboardId'
     | '/batches/'
     | '/characters/'
     | '/explore/'
     | '/presets/'
+    | '/storyboards/'
     | '/api/batches/$batchId'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
+    | '/api/storyboards/$storyboardId'
     | '/api/assets/$assetId/trim'
     | '/api/character-generations/$generationId/character'
     | '/api/generations/$generationId/events'
@@ -442,6 +503,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
     | '/api/presets/$presetId/generations'
+    | '/api/storyboards/$storyboardId/generations'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -454,6 +516,7 @@ export interface RootRouteChildren {
   ApiGenerateRoute: typeof ApiGenerateRoute
   ApiImageUploadsRoute: typeof ApiImageUploadsRoute
   ApiShareOriginRoute: typeof ApiShareOriginRoute
+  ApiStoryboardsRoute: typeof ApiStoryboardsRouteWithChildren
   ApiUploadsRoute: typeof ApiUploadsRoute
   BatchesBatchIdRoute: typeof BatchesBatchIdRoute
   CharactersNewRoute: typeof CharactersNewRoute
@@ -462,10 +525,12 @@ export interface RootRouteChildren {
   MediaFilenameRoute: typeof MediaFilenameRoute
   PresetsPresetIdRoute: typeof PresetsPresetIdRoute
   RSlugRoute: typeof RSlugRoute
+  StoryboardsStoryboardIdRoute: typeof StoryboardsStoryboardIdRoute
   BatchesIndexRoute: typeof BatchesIndexRoute
   CharactersIndexRoute: typeof CharactersIndexRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
   PresetsIndexRoute: typeof PresetsIndexRoute
+  StoryboardsIndexRoute: typeof StoryboardsIndexRoute
   ApiDebugHeartbeatRoute: typeof ApiDebugHeartbeatRoute
   ApiDebugStreamsRoute: typeof ApiDebugStreamsRoute
   ApiGenerationsGenerationIdRoute: typeof ApiGenerationsGenerationIdRouteWithChildren
@@ -536,6 +601,13 @@ declare module '@tanstack/react-router' {
       path: '/api/share-origin'
       fullPath: '/api/share-origin'
       preLoaderRoute: typeof ApiShareOriginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/storyboards': {
+      id: '/api/storyboards'
+      path: '/api/storyboards'
+      fullPath: '/api/storyboards'
+      preLoaderRoute: typeof ApiStoryboardsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/uploads': {
@@ -622,6 +694,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/storyboards/': {
+      id: '/storyboards/'
+      path: '/storyboards'
+      fullPath: '/storyboards/'
+      preLoaderRoute: typeof StoryboardsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/storyboards/$storyboardId': {
+      id: '/storyboards/$storyboardId'
+      path: '/storyboards/$storyboardId'
+      fullPath: '/storyboards/$storyboardId'
+      preLoaderRoute: typeof StoryboardsStoryboardIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/batches/$batchId': {
       id: '/api/batches/$batchId'
       path: '/$batchId'
@@ -656,6 +742,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/generations/$generationId'
       preLoaderRoute: typeof ApiGenerationsGenerationIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/storyboards/$storyboardId': {
+      id: '/api/storyboards/$storyboardId'
+      path: '/$storyboardId'
+      fullPath: '/api/storyboards/$storyboardId'
+      preLoaderRoute: typeof ApiStoryboardsStoryboardIdRouteImport
+      parentRoute: typeof ApiStoryboardsRoute
     }
     '/api/assets/$assetId/trim': {
       id: '/api/assets/$assetId/trim'
@@ -713,6 +806,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPresetsPresetIdGenerationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/storyboards/$storyboardId/generations': {
+      id: '/api/storyboards/$storyboardId/generations'
+      path: '/generations'
+      fullPath: '/api/storyboards/$storyboardId/generations'
+      preLoaderRoute: typeof ApiStoryboardsStoryboardIdGenerationsRouteImport
+      parentRoute: typeof ApiStoryboardsStoryboardIdRoute
+    }
   }
 }
 
@@ -755,6 +855,33 @@ const ApiCharactersRouteWithChildren = ApiCharactersRoute._addFileChildren(
   ApiCharactersRouteChildren,
 )
 
+interface ApiStoryboardsStoryboardIdRouteChildren {
+  ApiStoryboardsStoryboardIdGenerationsRoute: typeof ApiStoryboardsStoryboardIdGenerationsRoute
+}
+
+const ApiStoryboardsStoryboardIdRouteChildren: ApiStoryboardsStoryboardIdRouteChildren =
+  {
+    ApiStoryboardsStoryboardIdGenerationsRoute:
+      ApiStoryboardsStoryboardIdGenerationsRoute,
+  }
+
+const ApiStoryboardsStoryboardIdRouteWithChildren =
+  ApiStoryboardsStoryboardIdRoute._addFileChildren(
+    ApiStoryboardsStoryboardIdRouteChildren,
+  )
+
+interface ApiStoryboardsRouteChildren {
+  ApiStoryboardsStoryboardIdRoute: typeof ApiStoryboardsStoryboardIdRouteWithChildren
+}
+
+const ApiStoryboardsRouteChildren: ApiStoryboardsRouteChildren = {
+  ApiStoryboardsStoryboardIdRoute: ApiStoryboardsStoryboardIdRouteWithChildren,
+}
+
+const ApiStoryboardsRouteWithChildren = ApiStoryboardsRoute._addFileChildren(
+  ApiStoryboardsRouteChildren,
+)
+
 interface ApiGenerationsGenerationIdRouteChildren {
   ApiGenerationsGenerationIdEventsRoute: typeof ApiGenerationsGenerationIdEventsRoute
   ApiGenerationsGenerationIdPublishRoute: typeof ApiGenerationsGenerationIdPublishRoute
@@ -790,6 +917,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGenerateRoute: ApiGenerateRoute,
   ApiImageUploadsRoute: ApiImageUploadsRoute,
   ApiShareOriginRoute: ApiShareOriginRoute,
+  ApiStoryboardsRoute: ApiStoryboardsRouteWithChildren,
   ApiUploadsRoute: ApiUploadsRoute,
   BatchesBatchIdRoute: BatchesBatchIdRoute,
   CharactersNewRoute: CharactersNewRoute,
@@ -798,10 +926,12 @@ const rootRouteChildren: RootRouteChildren = {
   MediaFilenameRoute: MediaFilenameRoute,
   PresetsPresetIdRoute: PresetsPresetIdRoute,
   RSlugRoute: RSlugRoute,
+  StoryboardsStoryboardIdRoute: StoryboardsStoryboardIdRoute,
   BatchesIndexRoute: BatchesIndexRoute,
   CharactersIndexRoute: CharactersIndexRoute,
   ExploreIndexRoute: ExploreIndexRoute,
   PresetsIndexRoute: PresetsIndexRoute,
+  StoryboardsIndexRoute: StoryboardsIndexRoute,
   ApiDebugHeartbeatRoute: ApiDebugHeartbeatRoute,
   ApiDebugStreamsRoute: ApiDebugStreamsRoute,
   ApiGenerationsGenerationIdRoute: ApiGenerationsGenerationIdRouteWithChildren,
