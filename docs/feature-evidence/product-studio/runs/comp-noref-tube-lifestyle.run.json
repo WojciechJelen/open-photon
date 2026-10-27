@@ -1,0 +1,55 @@
+{
+  "owner": "product-studio",
+  "label": "comp-noref-tube-lifestyle",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/graphs/composite-noref.api.json",
+  "sets": [
+    "4.text=Lifestyle product photograph of a white cosmetic squeeze tube of face cream standing upright on a pale travertine stone shelf in a bright bathroom, a small green eucalyptus sprig and a folded linen towel beside it, soft morning window light from the left, a natural soft shadow under the product, shallow depth of field, photorealistic.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "10",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/tube.png",
+      "ref_id": "267bb143-9735-46a2-923e-d0308d079dfb"
+    }
+  ],
+  "balance_before_cents": 7354.6012920944995,
+  "job_id": "b137370f-41bf-4f16-87f4-74c9fa0a3c6f",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.923,
+    "submit_to_done": 8.217,
+    "queued_before_running_observed": 2.922
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "product_composite_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1206186,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/comp-noref-tube-lifestyle/9-0-product_composite_00001_.png"
+    },
+    {
+      "node": "60",
+      "index": 0,
+      "name": "debug_raw_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1209252,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/comp-noref-tube-lifestyle/60-0-debug_raw_00001_.png"
+    },
+    {
+      "node": "62",
+      "index": 0,
+      "name": "debug_mask_00001_.png",
+      "contentType": "image/png",
+      "bytes": 18336,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/comp-noref-tube-lifestyle/62-0-debug_mask_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7354.1456341715,
+  "balance_delta_cents": 0.4557
+}

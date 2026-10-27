@@ -1,0 +1,55 @@
+{
+  "owner": "product-studio",
+  "label": "comp-thermos-packshot",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/graphs/composite-ref.api.json",
+  "sets": [
+    "4.text=Professional e-commerce packshot of a polished chrome stainless steel water bottle with a black lid standing upright in the center. Seamless pure white studio background, soft even lighting, a soft natural contact shadow directly under the product, clean and minimal, photorealistic, high detail.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "10",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/thermos.png",
+      "ref_id": "0665d7f9-a840-4888-9fe6-63c9ec49db45"
+    }
+  ],
+  "balance_before_cents": 7203.1629366695,
+  "job_id": "1f6c158e-5c19-44c7-abfe-4c92f99c3203",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.832,
+    "submit_to_done": 15.179,
+    "queued_before_running_observed": 2.942
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "product_composite_00001_.png",
+      "contentType": "image/png",
+      "bytes": 875410,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/comp-thermos-packshot/9-0-product_composite_00001_.png"
+    },
+    {
+      "node": "60",
+      "index": 0,
+      "name": "debug_raw_00001_.png",
+      "contentType": "image/png",
+      "bytes": 912749,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/comp-thermos-packshot/60-0-debug_raw_00001_.png"
+    },
+    {
+      "node": "62",
+      "index": 0,
+      "name": "debug_mask_00001_.png",
+      "contentType": "image/png",
+      "bytes": 18447,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/comp-thermos-packshot/62-0-debug_mask_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7201.8162871485,
+  "balance_delta_cents": 1.3466
+}

@@ -1,0 +1,49 @@
+{
+  "owner": "product-studio",
+  "label": "final-thermos-packshot",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/src/features/productStudio/workflows/product-shot.v1.json",
+  "sets": [
+    "20.target_height=736",
+    "20.target_width=608",
+    "24.x=208",
+    "21.x=208",
+    "24.y=160",
+    "21.y=160",
+    "22.height=1024",
+    "23.height=1024",
+    "22.width=1024",
+    "23.width=1024",
+    "4.text=Professional e-commerce packshot of a polished chrome stainless steel water bottle with a black lid, placed in the center. Background: a seamless pure white studio backdrop. Soft even studio lighting, a soft natural contact shadow directly under the product, clean and minimal, photorealistic, high detail.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "10",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/thermos.png",
+      "ref_id": "0665d7f9-a840-4888-9fe6-63c9ec49db45"
+    }
+  ],
+  "balance_before_cents": 7038.5679927435,
+  "job_id": "00bb0715-f0c3-4105-8206-72c4051dcfcf",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.905,
+    "submit_to_done": 47.402,
+    "queued_before_running_observed": 37.665
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "product_shot_00001_.png",
+      "contentType": "image/png",
+      "bytes": 831234,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/final-thermos-packshot/9-0-product_shot_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7037.652549991501,
+  "balance_delta_cents": 0.9154
+}

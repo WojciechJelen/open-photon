@@ -1,0 +1,39 @@
+{
+  "owner": "product-studio",
+  "label": "klein-tube-lifestyle",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/flux3-klein-edit.api.json",
+  "sets": [
+    "4.text=Lifestyle product photograph of a white cosmetic squeeze tube of face cream standing upright on a light oak table in a bright, airy interior, soft daylight from a window on the left, a ceramic vase and a linen cloth softly blurred in the background, a natural soft shadow under the product, shallow depth of field, photorealistic. Keep the product exactly as in the reference image: the same shape, proportions, colours, materials, logo and every word of the label text, unchanged and legible.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/tube.png",
+      "ref_id": "267bb143-9735-46a2-923e-d0308d079dfb"
+    }
+  ],
+  "balance_before_cents": 7012.476959394,
+  "job_id": "6749c712-5039-4800-bacf-951632f94823",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.636,
+    "submit_to_done": 8.65,
+    "queued_before_running_observed": 3.764
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1102907,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/klein-tube-lifestyle/9-0-image_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7011.9570048505,
+  "balance_delta_cents": 0.52
+}

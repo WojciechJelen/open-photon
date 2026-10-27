@@ -1,0 +1,49 @@
+{
+  "owner": "product-studio",
+  "label": "final-tube-lifestyle-portrait",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/src/features/productStudio/workflows/product-shot.v1.json",
+  "sets": [
+    "20.target_height=864",
+    "20.target_width=576",
+    "24.x=160",
+    "21.x=160",
+    "24.y=176",
+    "21.y=176",
+    "22.height=1152",
+    "23.height=1152",
+    "22.width=896",
+    "23.width=896",
+    "4.text=Lifestyle product photograph of a white cosmetic squeeze tube of face cream, placed in a real setting. Setting: a light oak table in a bright, airy interior, soft daylight from a window on the left, a ceramic vase and a linen cloth softly blurred in the background. Natural light, a natural soft shadow under the product, shallow depth of field, photorealistic.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "10",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/tube.png",
+      "ref_id": "267bb143-9735-46a2-923e-d0308d079dfb"
+    }
+  ],
+  "balance_before_cents": 7025.988126406,
+  "job_id": "0cdbee01-9e42-461c-aa4d-c683bb68399e",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.212,
+    "submit_to_done": 8.216,
+    "queued_before_running_observed": 3.348
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "product_shot_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1131910,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/final-tube-lifestyle-portrait/9-0-product_shot_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7025.449275611,
+  "balance_delta_cents": 0.5389
+}

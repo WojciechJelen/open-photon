@@ -1,0 +1,49 @@
+{
+  "owner": "product-studio",
+  "label": "final-thermos-advertising-landscape",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/src/features/productStudio/workflows/product-shot.v1.json",
+  "sets": [
+    "20.target_height=576",
+    "20.target_width=576",
+    "24.x=320",
+    "21.x=320",
+    "24.y=160",
+    "21.y=160",
+    "22.height=832",
+    "23.height=832",
+    "22.width=1216",
+    "23.width=1216",
+    "4.text=Advertising key visual of a polished chrome stainless steel water bottle with a black lid, placed as the hero of the image. Backdrop: a round pastel podium in front of a bold gradient backdrop in coral and deep violet. Dramatic studio lighting with a rim light, a soft reflection and shadow under the product, premium commercial photography, photorealistic.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "10",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/thermos.png",
+      "ref_id": "0665d7f9-a840-4888-9fe6-63c9ec49db45"
+    }
+  ],
+  "balance_before_cents": 7024.627947502,
+  "job_id": "79d6258b-63d3-4b52-969d-72c23b425345",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.246,
+    "submit_to_done": 7.887,
+    "queued_before_running_observed": 2.982
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "product_shot_00001_.png",
+      "contentType": "image/png",
+      "bytes": 999052,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/final-thermos-advertising-landscape/9-0-product_shot_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7024.049874006,
+  "balance_delta_cents": 0.5781
+}
