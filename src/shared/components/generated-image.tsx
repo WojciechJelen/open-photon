@@ -13,14 +13,23 @@ export const GENERATED_IMAGE_ALT = "AI-generated image, made with Open Photon";
  * it is shown (the FLUX Kommunity licence asks for it; everything this app generates is): a label
  * over it, alt text that says so, and, with `download`, a Download whose file is named
  * `ai-generated-<id>.<ext>` (`serveMedia`). It shows nothing of the recipe: a caption enhanced for
- * it stays private.
+ * it stays private. `place` tells one image of a generation that shows several from the others
+ * (`imagePlace`): in its alt text and its Download's name.
  */
-export function GeneratedImage({ asset, download = false }: { asset: Asset; download?: boolean }) {
+export function GeneratedImage({
+  asset,
+  download = false,
+  place,
+}: {
+  asset: Asset;
+  download?: boolean;
+  place?: string;
+}) {
   return (
     <figure className="flex flex-col gap-3">
       <div className="relative">
         <img
-          alt={GENERATED_IMAGE_ALT}
+          alt={place ? `${GENERATED_IMAGE_ALT} (${place})` : GENERATED_IMAGE_ALT}
           className="w-full rounded-3xl border bg-screen"
           height={asset.height ?? undefined}
           src={mediaUrl(asset)}
@@ -35,7 +44,11 @@ export function GeneratedImage({ asset, download = false }: { asset: Asset; down
       </figcaption>
       {download && (
         <Button asChild size="lg" variant="outline">
-          <a download href={`${mediaUrl(asset)}?download=1`}>
+          <a
+            aria-label={place ? `Download ${place}` : undefined}
+            download
+            href={`${mediaUrl(asset)}?download=1`}
+          >
             <DownloadIcon />
             Download
           </a>
@@ -43,4 +56,12 @@ export function GeneratedImage({ asset, download = false }: { asset: Asset; down
       )}
     </figure>
   );
+}
+
+/**
+ * Which of a generation's `count` image outputs the one at `index` is (`image 2 of 3`), for
+ * `GeneratedImage`'s `place`; `undefined` when it is the only one.
+ */
+export function imagePlace(index: number, count: number) {
+  return count > 1 ? `image ${index + 1} of ${count}` : undefined;
 }

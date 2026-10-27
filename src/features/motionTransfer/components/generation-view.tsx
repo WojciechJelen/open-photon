@@ -24,7 +24,7 @@ import type { ResultGenerationActionsProps } from "#/features/motionTransfer/slo
 import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
 import { Hud, PageGlow, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
-import { GeneratedImage } from "#/shared/components/generated-image";
+import { GeneratedImage, imagePlace } from "#/shared/components/generated-image";
 import { OpenWeightsBadge, SiteHeader } from "#/shared/components/site";
 import { generationReceiptSchema, type GenerationSnapshot } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
@@ -245,8 +245,13 @@ function OutputsView({ data }: { data: OutputsResult }) {
               : stageTitle({ position: live.generation.position, status })}
           {live.providerUnavailable && " · Comfy is not answering"}
         </p>
-        {images.map(({ asset, name }) => (
-          <GeneratedImage asset={asset} download key={name} />
+        {images.map(({ asset, name }, index) => (
+          <GeneratedImage
+            asset={asset}
+            download
+            key={name}
+            place={imagePlace(index, images.length)}
+          />
         ))}
         {status === "done" && images.length === 0 && (
           <p className="text-sm text-soft-foreground">This generation has no image to show here.</p>

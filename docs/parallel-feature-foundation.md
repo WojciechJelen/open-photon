@@ -104,6 +104,24 @@ mirroring the two Motion Transfer outputs. `finalize.ts` downloads each declared
 is stored as downloaded (`kind: "image"`, no FFmpeg), a video as an MP4, and a `poster: true`
 video also gets a JPEG still at 0.5 s (`src/shared/server/media/poster.ts`).
 
+Nothing a declared image or video node yields is dropped: finalize stores every file of the
+declared kind, in Comfy's order, the first under the declared `name` and each further one under
+`outputFileName(name, index)` (`definition.ts`): `image`, `image-2`, `image-3`, …; each further
+video of a `poster: true` output gets its own still, `poster-2`, … (`final_asset_id` and
+`poster_asset_id` keep the first). A node that yields one file is stored exactly as before, so
+every existing workflow keeps its names. Registering a definition refuses a declared name that
+is another file output's name (or `poster`, when a poster is cut) followed by `-<digits>`
+(`outputsProblem`), so a further file can never overwrite a declared output. Readers list an
+output's further files right after it, in their order (`image-10` after `image-9`;
+`storedOutputs` in `generations.ts`): `readOutputs`, `generationSchema.outputs`, `/g/:id` and
+`/r/:slug` show every stored image (`GeneratedImage` with `place`, `image 2 of 3`, in its alt
+text and its Download's name when there are several), each downloads as its own
+`ai-generated-<asset id>.<ext>`, and `createFromGeneration` saves any of them by name (`image-2`).
+A text output still stores one text (below). Features still render one image per generation and
+group generations (`submitMany`), so each image has its own progress, retry, download and save;
+this only makes sure a node that returns a batch is never silently cut to its first file
+(`src/shared/server/generation/multi-outputs.test.ts`).
+
 A definition may also derive outputs from the stored ones (`deriveOutputs`), which finalize
 adds before the row is `done`, in the same write; the row holds its place in flight while it
 runs, so a derivation bounds its own work. Motion Transfer derives `compare`

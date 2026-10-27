@@ -7,7 +7,7 @@ import { RecipePanel } from "#/features/motionTransfer/components/recipe-panel";
 import type { loadShare } from "#/features/motionTransfer/generate.functions";
 import { Hud, PageGlow, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
-import { GeneratedImage } from "#/shared/components/generated-image";
+import { GeneratedImage, imagePlace } from "#/shared/components/generated-image";
 import { LoopingVideo } from "#/shared/components/looping-video";
 import { OpenWeightsBadge, SiteFooter, SiteHeader } from "#/shared/components/site";
 import { mediaUrl } from "#/shared/media";
@@ -77,8 +77,13 @@ function OutputsSharePage({ share }: { share: Extract<Share, { view: "outputs" }
       </SiteHeader>
       <main className="mx-auto flex w-full max-w-150 flex-col gap-6 px-4 pt-10 pb-24 sm:px-8">
         <Hud>{outputsShareTitle}</Hud>
-        {images.map(({ asset, name }) => (
-          <GeneratedImage asset={asset} download key={name} />
+        {images.map(({ asset, name }, index) => (
+          <GeneratedImage
+            asset={asset}
+            download
+            key={name}
+            place={imagePlace(index, images.length)}
+          />
         ))}
       </main>
       <SiteFooter tagline="Open Photon · MIT licensed · Built on ComfyUI" />
