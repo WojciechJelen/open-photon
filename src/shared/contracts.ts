@@ -77,9 +77,11 @@ const generationErrorCodeSchema = z.enum([
 /**
  * One named file output of a done generation, as result and share pages get it: the `name` its
  * workflow declares (`video`, `image`, …, and `poster` for the still cut from a video output that
- * asks for one), what it is (`media`: the stored asset's kind) and the asset, served at
- * `/media/<asset id>.<ext>`. A page shows a generation by the media of its outputs. Text outputs
- * are never among them (`generationTextOutputSchema`).
+ * asks for one; when the node yields several files, the first has that name and each further one
+ * `<name>-2`, `<name>-3`, …, listed right after it in Comfy's order), what it is (`media`: the
+ * stored asset's kind) and the asset, served at `/media/<asset id>.<ext>`. A page shows a
+ * generation by the media of its outputs. Text outputs are never among them
+ * (`generationTextOutputSchema`).
  */
 const generationOutputSchema = z.object({
   asset: assetSchema,

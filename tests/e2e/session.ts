@@ -176,6 +176,106 @@ export function addTextOnlyGeneration() {
 }
 
 /**
+ * Adds a done generation with a share page of a workflow other than Motion Transfer that no
+ * feature registers (`test-outputs`), whose outputs are `outputs` (name → asset id), as finalize
+ * and publishing store one. Returns its id, its share slug and a function that removes it.
+ */
+export function addOutputsGeneration(outputs: Record<string, string>) {
+  const id = randomUUID();
+  const shareSlug = randomUUID().replaceAll("-", "").slice(0, 16);
+  const now = new Date().toISOString();
+
+  query((database) => {
+    database
+      .prepare(
+        `INSERT INTO generations (id, workflow_id, workflow_version, recipe, recipe_hash,
+          idempotency_key, provider_job_id, target, status, progress, share_slug, created_at,
+          submitted_at, finished_at)
+        VALUES (?, 'test-outputs', 1, '{}', ?, ?, ?, 'cloud', 'done', 100, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        createHash("sha256").update(id).digest("hex"),
+        randomUUID(),
+        `e2e-outputs-${id}`,
+        shareSlug,
+        now,
+        now,
+        now,
+      );
+
+    for (const [name, assetId] of Object.entries(outputs)) {
+      database
+        .prepare("INSERT INTO generation_outputs (generation_id, name, asset_id) VALUES (?, ?, ?)")
+        .run(id, name, assetId);
+    }
+  }, true);
+
+  return { id, remove: () => removeGeneration(id), shareSlug };
+}
+
+/**
+ * The seeded result's video and poster asset ids, and the image asset ids of the sample
+ * characters (by title).
+ */
+export function seededFiles() {
+  return query((database) => {
+    const seeded = database
+      .prepare("SELECT final_asset_id, poster_asset_id FROM generations WHERE provider_job_id = ?")
+      .get(SEEDED_JOB_ID);
+
+    const images = database
+      .prepare("SELECT image_asset_id FROM characters WHERE is_sample = 1 ORDER BY title")
+      .all()
+      .map((row) => String(row.image_asset_id));
+
+    return {
+      images,
+      poster: String(seeded?.poster_asset_id),
+      video: String(seeded?.final_asset_id),
+    };
+  });
+}
+
+/**
+ * Adds a poster asset of its own (the seeded poster's JPEG with one more byte, so another
+ * SHA-256) for a test that tells two posters apart. Returns its id and a function that removes it.
+ */
+export function addPosterCopy() {
+  const id = randomUUID();
+  const directory = join(dirname(process.env.E2E_DATABASE_PATH ?? ""), "assets");
+  const { poster } = seededFiles();
+
+  const path = query((database) =>
+    String(database.prepare("SELECT path FROM assets WHERE id = ?").get(poster)?.path),
+  );
+
+  const bytes = Buffer.concat([readFileSync(join(directory, path)), Buffer.from([0])]);
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+  const file = join(directory, `${sha256}.jpg`);
+
+  writeFileSync(file, bytes);
+  query((database) => {
+    database
+      .prepare(
+        `INSERT INTO assets (id, sha256, kind, role, source_asset_id, path, mime, bytes, width,
+          height, created_at)
+        SELECT ?, ?, kind, role, source_asset_id, ?, mime, ?, width, height, created_at
+        FROM assets WHERE id = ?`,
+      )
+      .run(id, sha256, `${sha256}.jpg`, bytes.length, poster);
+  }, true);
+
+  return {
+    id,
+    remove: () => {
+      query((database) => database.prepare("DELETE FROM assets WHERE id = ?").run(id), true);
+      rmSync(file, { force: true });
+    },
+  };
+}
+
+/**
  * Takes the second place the e2e server allows in flight (`IN_FLIGHT_MAX` in
  * `playwright.config.ts`) with `addQueuedGeneration`, so both are taken; the returned function
  * gives it back.

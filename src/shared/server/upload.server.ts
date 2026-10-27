@@ -10,7 +10,6 @@ import type { ServerRequest } from "srvx";
 import { incomingPath } from "./assets.ts";
 
 export const MAX_UPLOAD_BYTES = 128 * 1024 * 1024;
-const MAX_REQUEST_BYTES = MAX_UPLOAD_BYTES + 64 * 1024;
 
 /** A request the upload routes refuse; `handleUpload` turns it into `{ error, reason? }` JSON. */
 export class UploadError extends Error {
@@ -129,15 +128,20 @@ class IncomingFile extends Writable {
 
 /**
  * Streams the one file of a multipart request (in `fileField`, alongside only `fieldNames`) to a
- * temporary file, hashing it on the way. Over 128 MiB is a 413 before anything is written when
- * the request declares its length, and as soon as the limit is crossed otherwise.
+ * temporary file, hashing it on the way. Over `maxBytes` (128 MiB unless the route sets less) is
+ * a 413 before anything is written when the request declares its length, and as soon as the
+ * limit is crossed otherwise.
  */
 async function receiveUpload(
   request: ServerRequest,
   fileField: string,
   fieldNames: readonly string[],
+  maxBytes: number,
 ): Promise<Upload> {
   const contentType = request.headers.get("content-type") ?? "";
+  const tooLarge = `Maximum file size is ${maxBytes / (1024 * 1024)} MiB`;
+  // Room for the multipart envelope and the text fields around the file.
+  const maxRequestBytes = maxBytes + 64 * 1024;
 
   if (!contentType.startsWith("multipart/form-data;")) {
     throw new UploadError(415, "Use multipart/form-data");
@@ -145,8 +149,8 @@ async function receiveUpload(
 
   const length = Number(request.headers.get("content-length") ?? 0);
 
-  if (length > MAX_REQUEST_BYTES) {
-    throw new UploadError(413, "Maximum file size is 128 MiB");
+  if (length > maxRequestBytes) {
+    throw new UploadError(413, tooLarge);
   }
 
   const body = request.runtime?.node?.req ?? request.body;
@@ -184,7 +188,7 @@ async function receiveUpload(
         fieldSize: 1024,
         fields: fieldNames.length,
         files: 1,
-        fileSize: MAX_UPLOAD_BYTES,
+        fileSize: maxBytes,
         headerPairs: 32,
         headerSize: 8192,
       },
@@ -214,7 +218,7 @@ async function receiveUpload(
       }
 
       file.on("limit", () => {
-        failure = new UploadError(413, "Maximum file size is 128 MiB");
+        failure = new UploadError(413, tooLarge);
       });
 
       saving = pipeline(
@@ -238,12 +242,7 @@ async function receiveUpload(
           owned.add(chunk.buffer);
         }
 
-        callback(
-          received > MAX_REQUEST_BYTES
-            ? new UploadError(413, "Maximum file size is 128 MiB")
-            : null,
-          chunk,
-        );
+        callback(received > maxRequestBytes ? new UploadError(413, tooLarge) : null, chunk);
       },
     });
 
@@ -287,20 +286,21 @@ async function receiveUpload(
 }
 
 /**
- * Receives the upload, hands it to `store` (which moves the file away or throws an
- * `UploadError`), and deletes the temporary file whatever happens. An `UploadError` becomes a
- * `{ error, reason? }` JSON response with its status.
+ * Receives the upload (at most `maxBytes`, 128 MiB by default), hands it to `store` (which moves
+ * the file away or throws an `UploadError`), and deletes the temporary file whatever happens. An
+ * `UploadError` becomes a `{ error, reason? }` JSON response with its status.
  */
 export async function handleUpload(
   request: ServerRequest,
   fileField: string,
   fieldNames: readonly string[],
   store: (upload: Upload) => Promise<Response>,
+  maxBytes = MAX_UPLOAD_BYTES,
 ) {
   let temporary: string | undefined;
 
   try {
-    const upload = await receiveUpload(request, fileField, fieldNames);
+    const upload = await receiveUpload(request, fileField, fieldNames, maxBytes);
     temporary = upload.temporary;
 
     return await store(upload);

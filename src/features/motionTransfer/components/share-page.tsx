@@ -7,7 +7,11 @@ import { RecipePanel } from "#/features/motionTransfer/components/recipe-panel";
 import type { loadShare } from "#/features/motionTransfer/generate.functions";
 import { Hud, PageGlow, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
-import { GeneratedImage } from "#/shared/components/generated-image";
+import {
+  GeneratedOutputs,
+  generatedTitle,
+  shownOutputs,
+} from "#/shared/components/generated-outputs";
 import { LoopingVideo } from "#/shared/components/looping-video";
 import { OpenWeightsBadge, SiteFooter, SiteHeader } from "#/shared/components/site";
 import { mediaUrl } from "#/shared/media";
@@ -20,14 +24,21 @@ export const shareTitle = "Motion Transfer: one motion, another character";
 export const shareDescription =
   "The motion of one clip, performed by another character. Made with Open Photon on the Wan Animate 2 workflow.";
 
-/**
- * What the share page of a generation of another workflow (an image) is called, `<title>` and
- * `og:title` too: it says the image is AI-generated (the FLUX Kommunity licence asks for it).
- */
-export const outputsShareTitle = "AI-generated image · Open Photon";
+type OutputsShare = Extract<Share, { view: "outputs" }>;
 
-export const outputsShareDescription =
-  "An AI-generated image made with Open Photon, on open-weights ComfyUI workflows. Run it yourself.";
+/**
+ * What the share page of a generation of another workflow is called (`<title>` and `og:title`)
+ * and how it is described, by what it shows (a video before an image): both say it is
+ * AI-generated (the FLUX Kommunity licence asks for it for an image).
+ */
+export function outputsShareText(share: OutputsShare) {
+  const media = shownOutputs(share.outputs).media ?? "image";
+
+  return {
+    description: `An AI-generated ${media} made with Open Photon, on open-weights ComfyUI workflows. Run it yourself.`,
+    title: generatedTitle(media),
+  };
+}
 
 /** A SHA-256 shortened for reading: its first and last eight characters. */
 function shortHash(sha256: string) {
@@ -61,25 +72,23 @@ function InputRow({
 
 /**
  * The public share page of a done generation of a workflow other than Motion Transfer, by the
- * media of its outputs: each image output, labelled AI-generated, with Download (an image
- * generation has no poster and no video).
+ * media of its outputs: each image and each video output with its poster (`GeneratedOutputs`),
+ * labelled AI-generated, with Download.
  */
-function OutputsSharePage({ share }: { share: Extract<Share, { view: "outputs" }> }) {
-  const images = share.outputs.filter(({ media }) => media === "image");
+function OutputsSharePage({ share }: { share: OutputsShare }) {
+  const { category } = shownOutputs(share.outputs);
 
   return (
     <div className="relative isolate">
       <PageGlow />
-      <SiteHeader category={images.length > 0 ? "Image" : undefined}>
+      <SiteHeader category={category}>
         <span className="hidden sm:inline-flex">
           <OpenWeightsBadge />
         </span>
       </SiteHeader>
       <main className="mx-auto flex w-full max-w-150 flex-col gap-6 px-4 pt-10 pb-24 sm:px-8">
-        <Hud>{outputsShareTitle}</Hud>
-        {images.map(({ asset, name }) => (
-          <GeneratedImage asset={asset} download key={name} />
-        ))}
+        <Hud>{outputsShareText(share).title}</Hud>
+        <GeneratedOutputs outputs={share.outputs} />
       </main>
       <SiteFooter tagline="Open Photon · MIT licensed · Built on ComfyUI" />
     </div>

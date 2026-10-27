@@ -24,7 +24,11 @@ import type { ResultGenerationActionsProps } from "#/features/motionTransfer/slo
 import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
 import { Hud, PageGlow, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
-import { GeneratedImage } from "#/shared/components/generated-image";
+import {
+  GeneratedOutputs,
+  generatedTitle,
+  shownOutputs,
+} from "#/shared/components/generated-outputs";
 import { OpenWeightsBadge, SiteHeader } from "#/shared/components/site";
 import { generationReceiptSchema, type GenerationSnapshot } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
@@ -208,24 +212,26 @@ function resultAssets(result: Result | null) {
 
 /**
  * `/g/:id` of a generation of a workflow other than Motion Transfer, by the media of its outputs:
- * its status as its event stream reports it and, once done, each image output, labelled
- * AI-generated, with Download (an image generation has no poster and no video). A done snapshot
- * lists its outputs (`generationSchema`), stored with its status in one write, so done is final
- * here: a generation whose outputs are all text (a caption) shows that it has no file to show,
- * never the text.
+ * its status as its event stream reports it and, once done, each image and each video output with
+ * its poster (`GeneratedOutputs`), labelled AI-generated, with Download. A done snapshot lists its
+ * outputs (`generationSchema`), stored with its status in one write, so done is final here: a
+ * generation whose outputs are all text (a caption) shows that it has no file to show, never the
+ * text.
  */
 function OutputsView({ data }: { data: OutputsResult }) {
   const live = useLiveGeneration(data.generation);
   const { status } = live.generation;
 
-  const images = live.generation.outputs.flatMap((output) =>
-    output.media === "image" ? [output] : [],
+  const outputs = live.generation.outputs.flatMap((output) =>
+    output.media === "text" ? [] : [output],
   );
+
+  const { category, media } = shownOutputs(outputs);
 
   return (
     <div className="relative isolate min-h-svh">
       <PageGlow />
-      <SiteHeader category={images.length > 0 ? "Image" : undefined}>
+      <SiteHeader category={category}>
         <span className="hidden sm:inline-flex">
           <OpenWeightsBadge />
         </span>
@@ -245,11 +251,11 @@ function OutputsView({ data }: { data: OutputsResult }) {
               : stageTitle({ position: live.generation.position, status })}
           {live.providerUnavailable && " · Comfy is not answering"}
         </p>
-        {images.map(({ asset, name }) => (
-          <GeneratedImage asset={asset} download key={name} />
-        ))}
-        {status === "done" && images.length === 0 && (
-          <p className="text-sm text-soft-foreground">This generation has no image to show here.</p>
+        <GeneratedOutputs outputs={outputs} />
+        {status === "done" && media === null && (
+          <p className="text-sm text-soft-foreground">
+            This generation has no image or video to show here.
+          </p>
         )}
       </main>
     </div>
@@ -274,6 +280,20 @@ export function GenerationView({
   ) : (
     <OutputsView data={data} />
   );
+}
+
+/**
+ * The `<title>` of `/g/:id` as it loads: a Motion Transfer take's; another workflow's generation
+ * by the media of its outputs once done (`AI-generated video · Open Photon`), else neutral.
+ */
+export function generationTitle(data: Result) {
+  if (data.view === "motionTransfer") {
+    return "Your take · Motion Transfer · Open Photon";
+  }
+
+  const { media } = shownOutputs(data.outputs);
+
+  return media ? generatedTitle(media) : "Generation · Open Photon";
 }
 
 /**
