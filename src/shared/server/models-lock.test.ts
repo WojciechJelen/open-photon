@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { readModelsLock } from "./models-lock.ts";
+import { lockedModels, readModelsLock } from "./models-lock.ts";
 
 const revision = "a".repeat(40);
 
@@ -51,4 +51,77 @@ test("a pin may come from a Comfy-Org repackaging or from BFL's FLUX 3 Image Kle
     ),
   );
   assert.throws(lockWith(directory, bfl, "FLUX-1-dev-non-commercial"));
+});
+
+const lightning = `https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/${revision}/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors`;
+
+/** A lock of the one Lightning LoRA pin, with `url` and `directory`. */
+function loraLock(directory: string, url: string, pinDirectory = "loras") {
+  const path = join(directory, "models.lock");
+  const file = "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors";
+
+  writeFileSync(
+    path,
+    JSON.stringify({
+      models: [
+        { directory: pinDirectory, file, license: "Apache-2.0", sha256: "c".repeat(64), url },
+      ],
+      version: 1,
+    }),
+  );
+
+  return () => readModelsLock(path);
+}
+
+const loraGraph = {
+  "1": {
+    class_type: "LoraLoaderModelOnly",
+    inputs: {
+      lora_name: "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+      model: ["2", 0],
+      strength_model: 1,
+    },
+  },
+};
+
+test("two LoRA repositories outside Comfy-Org are allowed by id, their root files installed under loras", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "open-photon-lock-"));
+  t.after(() => rmSync(directory, { force: true, recursive: true }));
+
+  const angles = `https://huggingface.co/fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA/resolve/${revision}/qwen-image-edit-2511-multiple-angles-lora.safetensors`;
+  const lock = loraLock(directory, lightning)();
+
+  assert.equal(lock.models[0]?.url, lightning);
+  assert.deepEqual(lockedModels(loraGraph, lock), [
+    {
+      file: "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+      license: "Apache-2.0",
+      sha256: "c".repeat(64),
+    },
+  ]);
+  assert.equal(loraLock(directory, angles)().models[0]?.url, angles);
+
+  // Another repository of the same organisations, a branch, or another install directory are not.
+  assert.throws(
+    loraLock(
+      directory,
+      `https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/${revision}/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors`,
+    ),
+  );
+  assert.throws(
+    loraLock(
+      directory,
+      `https://huggingface.co/fal/Qwen-Image-Edit-2509-Multiple-Angles-LoRA/resolve/${revision}/qwen-image-edit-2511-multiple-angles-lora.safetensors`,
+    ),
+  );
+  assert.throws(
+    loraLock(
+      directory,
+      "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+    ),
+  );
+  assert.throws(
+    () => lockedModels(loraGraph, loraLock(directory, lightning, "diffusion_models")()),
+    /does not match its install path/,
+  );
 });

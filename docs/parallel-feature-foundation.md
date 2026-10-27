@@ -43,7 +43,7 @@ one per workflow version, owned by its feature (`src/features/motionTransfer/wor
 | `recipeSchema` | Strict schema decoding every recipe this version stored. Every recipe carries `recipeIdentitySchema` (`target`, `workflow { id, version, sha256 }`, `models`); the type is `WorkflowRecipe`. `hashRecipe` refuses a recipe naming another workflow before hashing. |
 | `assetInputs(recipe)` | Stored files (by SHA-256) to upload, keyed by graph param; `{}` for a scalar-only workflow, which submits without an upload and stores no `provider_inputs`. |
 | `buildGraph(recipe, providerInputs)` | The API graph; both workflows use the shared binder `buildGraph(graph, inputsMap, values)` (`src/shared/server/workflow-graph.ts`). An inputs-map entry is one binding or a non-empty list of bindings (`inputsMapSchema`); every binding must name a node of its `class_type` and a literal field. |
-| `outputs` | `OutputDeclaration[]`: `{ name, nodeId, media: "image" \| "video" \| "text", poster? }`. One asset per name; at most one `poster`, on a video. |
+| `outputs` | `OutputDeclaration[]`: `{ name, nodeId, media: "image" \| "video" \| "text", poster? }`. One asset per name: a node's further files are stored as `<name>-2`, `<name>-3`, … (see Named outputs); at most one `poster`, on a video. |
 | `seedOf`, `rebase(recipe, { seed, target })` | The recipe's seed, and the recipe a re-run (same seed) or retry (new seed) renders on the current target; `null` when the workflow file changed. |
 | `promptOf` (optional) | The text prompt, read as provenance when a generated character is saved. |
 | `shareRecipe` (optional) | What the public share page `/r/:slug` (`readGenerationShare`) shows of the recipe; without it, the stored recipe. The character image leaves out the enhanced caption, a private text output. |
@@ -53,6 +53,15 @@ The registry is `workflows` in the same file: `src/app/server.ts` sets the compo
 with `workflows.compose([...])`; tests add theirs with `workflows.register`. Duplicate
 `id`/`version` pairs and unstorable output declarations throw. A stored generation finds its
 definition again by `(workflow_id, workflow_version)`.
+
+A `models.lock` pin (`src/shared/server/models-lock.ts`) is a `.safetensors` file in
+`diffusion_models`, `loras`, `text_encoders`, `clip_vision` or `vae`, licensed Apache-2.0 or FLUX
+Kommunity 1.0, at a 40-hex revision URL of a `Comfy-Org/*` repository, of
+`black-forest-labs/flux-3-image-klein-comfy`, or of exactly two other repositories, allowed by id
+(not by organisation): `fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA` and
+`lightx2v/Qwen-Image-Edit-2511-Lightning` (Apache-2.0, ungated). Their files sit at the repository
+root (`…/resolve/<rev>/<file>`) and are pinned with `directory: "loras"`; every other pin's URL
+ends in `/<directory>/<file>`, its install path.
 
 ### Generation service
 

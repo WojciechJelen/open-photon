@@ -5,10 +5,25 @@ import { z } from "zod";
 import type { WorkflowGraph } from "./workflow-graph.ts";
 
 /**
+ * Hugging Face repositories outside Comfy-Org that a lock may pin from, each by its exact id (not
+ * its whole organisation), with the files at the repository's root: two Apache-2.0, ungated
+ * LoRAs for Qwen-Image-Edit-2511, installed under `loras/`.
+ */
+const ROOT_LORA_REPOSITORIES = [
+  "fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA",
+  "lightx2v/Qwen-Image-Edit-2511-Lightning",
+];
+
+const rootLoraUrl = new RegExp(
+  `^https://huggingface\\.co/(?:${ROOT_LORA_REPOSITORIES.map((id) => id.replaceAll(".", "\\.")).join("|")})/resolve/[a-f0-9]{40}/`,
+);
+
+/**
  * A feature's `models.lock`: every weights file its workflows load, pinned to an immutable
- * Hugging Face revision (a 40-hex commit) of a Comfy-Org repackaging or of Black Forest Labs'
- * FLUX 3 Image Klein ComfyUI repository (gated), with its SHA-256 and licence: Apache-2.0, or the
- * FLUX Kommunity License v1.0 of the FLUX 3 transformer and VAE.
+ * Hugging Face revision (a 40-hex commit) of a Comfy-Org repackaging, of Black Forest Labs'
+ * FLUX 3 Image Klein ComfyUI repository (gated), or of one of `ROOT_LORA_REPOSITORIES`, with its
+ * SHA-256 and licence: Apache-2.0, or the FLUX Kommunity License v1.0 of the FLUX 3 transformer
+ * and VAE.
  */
 const modelsLockSchema = z.strictObject({
   version: z.literal(1),
@@ -19,8 +34,12 @@ const modelsLockSchema = z.strictObject({
         directory: z.enum(["diffusion_models", "loras", "text_encoders", "clip_vision", "vae"]),
         url: z
           .string()
-          .regex(
-            /^https:\/\/huggingface\.co\/(?:Comfy-Org\/[^/]+|black-forest-labs\/flux-3-image-klein-comfy)\/resolve\/[a-f0-9]{40}\//,
+          .refine(
+            (url) =>
+              /^https:\/\/huggingface\.co\/(?:Comfy-Org\/[^/]+|black-forest-labs\/flux-3-image-klein-comfy)\/resolve\/[a-f0-9]{40}\//.test(
+                url,
+              ) || rootLoraUrl.test(url),
+            "A pin's URL is a 40-hex revision of a Comfy-Org repository, of black-forest-labs/flux-3-image-klein-comfy or of an allowed LoRA repository",
           ),
         sha256: z.string().regex(/^[a-f0-9]{64}$/),
         license: z.enum(["Apache-2.0", "FLUX-Kommunity-1.0"]),
@@ -91,7 +110,12 @@ export function lockedModels(graph: WorkflowGraph, lock: ModelsLock) {
   }
 
   for (const model of pins.values()) {
-    if (!model.url.endsWith(`/${model.directory}/${model.file}`)) {
+    // A file of an allowed LoRA repository sits at its root and installs under `loras/`.
+    const installed = rootLoraUrl.test(model.url)
+      ? model.directory === "loras" && model.url.replace(rootLoraUrl, "") === model.file
+      : model.url.endsWith(`/${model.directory}/${model.file}`);
+
+    if (!installed) {
       throw new Error(`Model URL does not match its install path: ${model.file}`);
     }
   }
