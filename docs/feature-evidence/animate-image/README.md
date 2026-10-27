@@ -92,6 +92,28 @@ Every output: 81 frames, 16 fps, 5.0625 s, H.264 High, yuv420p, `moov` before `m
 - Spent on this gate: 48.06 ¢ (seven 4-step clips 24.05 ¢, one 20-step clip 22.18 ¢, three
   input images 1.83 ¢), of the $10 budget.
 
+## App smoke (Comfy Cloud, through `/animate`)
+
+After the app was built, one real render went through the app on `:3150` (dev server, Cloud
+target) with the render lease held by hand (2026-10-27 19:38:55–19:39:55 UTC), driven in
+Chromium by Playwright: sign in with an access code, upload the dog image
+(`POST /api/image-uploads`), describe "The golden retriever stands up, wags its tail happily and
+looks around the park. Static camera.", Animate (`POST /api/animations`, request key), follow
+the event stream (queued 6 s → running 8 s → done 35 s after the page's first request), play,
+"Publish & copy link", then the shared pages.
+
+- Generation `8e44a192-b33d-4b7b-85d6-166ec3ad528e`: `done`, recipe `target: cloud`, workflow
+  `animate-image` v1 `2e38515e…a130`, 848×480, random seed 65302527059828
+  ([`smoke/recipe.json`](smoke/recipe.json), [`smoke/generation.json`](smoke/generation.json)).
+- Outputs `video` (848×480 MP4, 5,063 ms, H.264 High yuv420p, 81 frames) and `poster` (JPEG).
+  Frames: [`smoke/sheet.jpg`](smoke/sheet.jpg): the dog stands up, wags (the fast tail blurs)
+  and walks off to the left; coat and face kept.
+- `/g/:id` 200; after publishing, `/r/bb5aa06c84acd17b` 200 with a session and without one,
+  with `og:video`; `?download=1` 200 `video/mp4`, `attachment`.
+- Submit → done 30.2 s (`submitted_at` → `finished_at`); Cloud balance delta 3.00 ¢.
+- Screens: [`smoke/animate-page-done.jpg`](smoke/animate-page-done.jpg),
+  [`smoke/share-page.jpg`](smoke/share-page.jpg).
+
 ## Not benchmarked, and why
 
 - `video_wan2_2_5B_ti2v.json` (Wan 2.2 5B, also Apache-2.0): not run; the 14B 4-step result

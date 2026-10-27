@@ -1,0 +1,30 @@
+{
+  "workflow": "animate-image.v1.json",
+  "inputs": {
+    "image": {
+      "node": "1",
+      "field": "image",
+      "class_type": "LoadImage"
+    },
+    "prompt": {
+      "node": "4",
+      "field": "text",
+      "class_type": "CLIPTextEncode"
+    },
+    "seed": {
+      "node": "13",
+      "field": "noise_seed",
+      "class_type": "KSamplerAdvanced"
+    },
+    "width": {
+      "node": "6",
+      "field": "width",
+      "class_type": "WanImageToVideo"
+    },
+    "height": {
+      "node": "6",
+      "field": "height",
+      "class_type": "WanImageToVideo"
+    }
+  }
+}

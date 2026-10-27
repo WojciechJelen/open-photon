@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnimateRouteImport } from './routes/animate'
 import { Route as MotionTransferRouteImport } from './routes/motionTransfer'
+import { Route as ApiAnimationsRouteImport } from './routes/api.animations'
 import { Route as ApiBatchesRouteImport } from './routes/api.batches'
 import { Route as ApiCharacterCaptionsRouteImport } from './routes/api.character-captions'
 import { Route as ApiCharacterGenerationsRouteImport } from './routes/api.character-generations'
@@ -49,9 +51,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnimateRoute = AnimateRouteImport.update({
+  id: '/animate',
+  path: '/animate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MotionTransferRoute = MotionTransferRouteImport.update({
   id: '/motionTransfer',
   path: '/motionTransfer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAnimationsRoute = ApiAnimationsRouteImport.update({
+  id: '/api/animations',
+  path: '/api/animations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBatchesRoute = ApiBatchesRouteImport.update({
@@ -226,7 +238,9 @@ const ApiPresetsPresetIdGenerationsRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/animate': typeof AnimateRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/api/animations': typeof ApiAnimationsRoute
   '/api/batches': typeof ApiBatchesRouteWithChildren
   '/api/character-captions': typeof ApiCharacterCaptionsRoute
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
@@ -262,7 +276,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/animate': typeof AnimateRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/api/animations': typeof ApiAnimationsRoute
   '/api/batches': typeof ApiBatchesRouteWithChildren
   '/api/character-captions': typeof ApiCharacterCaptionsRoute
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
@@ -299,7 +315,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/animate': typeof AnimateRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/api/animations': typeof ApiAnimationsRoute
   '/api/batches': typeof ApiBatchesRouteWithChildren
   '/api/character-captions': typeof ApiCharacterCaptionsRoute
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
@@ -337,7 +355,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/animate'
     | '/motionTransfer'
+    | '/api/animations'
     | '/api/batches'
     | '/api/character-captions'
     | '/api/character-generations'
@@ -373,7 +393,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/animate'
     | '/motionTransfer'
+    | '/api/animations'
     | '/api/batches'
     | '/api/character-captions'
     | '/api/character-generations'
@@ -409,7 +431,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/animate'
     | '/motionTransfer'
+    | '/api/animations'
     | '/api/batches'
     | '/api/character-captions'
     | '/api/character-generations'
@@ -446,7 +470,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnimateRoute: typeof AnimateRoute
   MotionTransferRoute: typeof MotionTransferRoute
+  ApiAnimationsRoute: typeof ApiAnimationsRoute
   ApiBatchesRoute: typeof ApiBatchesRouteWithChildren
   ApiCharacterCaptionsRoute: typeof ApiCharacterCaptionsRoute
   ApiCharacterGenerationsRoute: typeof ApiCharacterGenerationsRouteWithChildren
@@ -482,11 +508,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/animate': {
+      id: '/animate'
+      path: '/animate'
+      fullPath: '/animate'
+      preLoaderRoute: typeof AnimateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/motionTransfer': {
       id: '/motionTransfer'
       path: '/motionTransfer'
       fullPath: '/motionTransfer'
       preLoaderRoute: typeof MotionTransferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/animations': {
+      id: '/api/animations'
+      path: '/api/animations'
+      fullPath: '/api/animations'
+      preLoaderRoute: typeof ApiAnimationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/batches': {
@@ -782,7 +822,9 @@ const ApiGenerationsGenerationIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnimateRoute: AnimateRoute,
   MotionTransferRoute: MotionTransferRoute,
+  ApiAnimationsRoute: ApiAnimationsRoute,
   ApiBatchesRoute: ApiBatchesRouteWithChildren,
   ApiCharacterCaptionsRoute: ApiCharacterCaptionsRoute,
   ApiCharacterGenerationsRoute: ApiCharacterGenerationsRouteWithChildren,

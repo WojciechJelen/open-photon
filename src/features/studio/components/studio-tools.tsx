@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRightIcon,
+  ClapperboardIcon,
   CpuIcon,
   FileCodeIcon,
   LibraryIcon,
@@ -95,7 +96,8 @@ function Filmstrip({
   );
 }
 
-// The character tools beside Motion Transfer, live: the builder and the library.
+// The character tools beside Motion Transfer, live: the builder, the library, and Animate Image,
+// which brings a character (or any still) to life from a description.
 const characterTools = [
   {
     icon: <UserIcon />,
@@ -110,6 +112,13 @@ const characterTools = [
     text: "Find, favorite and rename the workspace's characters, uploaded or generated, and animate any of them.",
     title: "Character library",
     to: "/characters",
+  },
+  {
+    icon: <ClapperboardIcon />,
+    model: "Wan 2.2 14B image-to-video",
+    text: "Upload an image or pick a character, describe the action, and get a 5 s video of it. No motion clip needed.",
+    title: "Animate an image",
+    to: "/animate",
   },
 ] as const;
 
