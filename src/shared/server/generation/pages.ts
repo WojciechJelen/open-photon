@@ -9,9 +9,10 @@ import { settleAbandoned } from "./service.ts";
  * What `/g/:id` shows of a generation whatever its workflow, for a page that renders it by the
  * media of its outputs: the generation as stored (a `preparing` row a stopped server left is
  * settled first; a `waiting` one with its place in line), its named outputs once done, whether it
- * is a pre-rendered sample (whose page is public), its recipe and its workflow; `null` for a
- * malformed or unknown id. It never asks Comfy: the page's event stream finalizes a row Comfy has
- * finished.
+ * is a pre-rendered sample (whose page is public), its recipe, its workflow and when that
+ * workflow publishes (`publish`: `"on-request"` when its owner may publish it from the page);
+ * `null` for a malformed or unknown id. It never asks Comfy: the page's event stream finalizes a
+ * row Comfy has finished.
  */
 export function readGenerationResult(id: string) {
   const parsed = z.uuid().safeParse(id);
@@ -27,6 +28,7 @@ export function readGenerationResult(id: string) {
     generation: snapshot(row),
     outputs: row.status === "done" ? readOutputs(row.id) : [],
     prerendered: row.is_prerendered,
+    publish: workflows.find(row)?.publish ?? "on-done",
     recipe: row.recipe,
     workflow: { id: row.workflow_id, version: row.workflow_version },
   };
