@@ -1,0 +1,48 @@
+{
+  "owner": "foundation",
+  "label": "bo-klein-pe-c-e2-pose",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=\"Show this same person sitting on a wooden park bench in daylight, leaning slightly forward with forearms resting on the knees and both hands clasped in front. Keep the person's face, hairstyle, clothing and accessories exactly the same.\"",
+    "7.seed=11",
+    "47.sampling_mode.seed=11"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/refs/ref-c-teen-varsity-backpack.png",
+      "ref_id": "605a85bd-e7bb-4698-9435-41458a7b9215"
+    }
+  ],
+  "balance_before_cents": 7097.816163875999,
+  "job_id": "71384ec7-3d10-41ed-9b40-803f4db05fc8",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.006,
+    "submit_to_done": 10.311,
+    "queued_before_running_observed": 2.927
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1690375,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/bakeoff/bo-klein-pe-c-e2-pose/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1205,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/bakeoff/bo-klein-pe-c-e2-pose/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7097.0260176835,
+  "balance_delta_cents": 0.7901
+}

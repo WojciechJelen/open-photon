@@ -1,0 +1,15 @@
+{
+  "workflow": "image-edit-enhanced.v1.json",
+  "inputs": {
+    "prompt": { "node": "47", "field": "prompt", "class_type": "TextGenerate" },
+    "seed": [
+      { "node": "7", "field": "seed", "class_type": "KSampler" },
+      { "node": "47", "field": "sampling_mode.seed", "class_type": "TextGenerate" }
+    ],
+    "width": { "node": "44", "field": "width", "class_type": "EmptyFlux2LatentImage" },
+    "height": { "node": "44", "field": "height", "class_type": "EmptyFlux2LatentImage" },
+    "reference_1": { "node": "11", "field": "image", "class_type": "LoadImage" },
+    "reference_2": { "node": "12", "field": "image", "class_type": "LoadImage" },
+    "reference_3": { "node": "13", "field": "image", "class_type": "LoadImage" }
+  }
+}

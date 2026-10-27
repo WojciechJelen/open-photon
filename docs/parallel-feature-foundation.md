@@ -313,6 +313,54 @@ The definitions implementing them are `workflows/caption-definition.ts`
 (`character-generation.v1`, FLUX 3 Image Klein distilled; its `shareRecipe` leaves the enhanced
 caption off the public share page). FLUX.2 is gone: no fallback, no legacy recipe.
 
+### Image edit
+
+`src/features/imageEdit/` is the shared reference-image edit (FLUX 3 Image Klein distilled, chosen
+by the identity bake-off in `docs/feature-evidence/image-edit/`): two workflow definitions and
+their contracts, no route, table or UI. A consumer (a photoshoot, a product shot, a set of
+angles, a storyboard card) keeps its own routes and records and submits through the shared
+service with its own prompt and references; it never copies the workflow.
+
+- `api.ts` (server): `imageEditDefinition` (`image-edit` v1, the prompt as given),
+  `imageEditEnhancedDefinition` (`image-edit-enhanced` v1, FLUX 3's prompt upsampler first, with
+  the references), `imageEditDefinitionFor(input)` (the enhanced one for `enhance: true`),
+  `imageEditInputSchema`, `ImageEditInput`, `IMAGE_EDIT_OUTPUT` (`"image"`),
+  `IMAGE_EDIT_CAPTION_OUTPUT` (`"caption"`).
+- `index.ts` (client): `imageEditInputSchema`, `ImageEditInput`, `ImageEditReference`,
+  `IMAGE_EDIT_OUTPUT`, `IMAGE_EDIT_CAPTION_OUTPUT`, `IMAGE_EDIT_MAX_REFERENCES` (3),
+  `IMAGE_EDIT_SIDE` (256–2048, step 16), `IMAGE_EDIT_PIXELS` (0.5–1.6 × 2^20 px).
+- Input: `prompt` (trimmed, 1–2000), `references` (1–3, the first is the primary subject:
+  `{ asset_id }`, a stored image such as a `POST /api/image-uploads` upload or a done
+  generation's image output, or `{ character_id }`, a library character's image through
+  `getCharacter`), `seed?`, `width?`/`height?` (both or neither; otherwise the first reference's
+  aspect at about 1 MP, resolved into the recipe), `enhance?`, `origin?` (`{ feature, … }`, the
+  consumer's provenance, stored in the recipe; a share page shows only `feature`).
+- Outputs: `image` (one PNG); the enhanced edit also the private text `caption`. Both publish on
+  request (`PublishLink`, `POST /api/generations/:id/publish`), as the FLUX Kommunity licence
+  asks; `promptOf` is the user's prompt. The first reference's character is the generation's
+  `character_id`, so `createFromGeneration` saves an edit like a character image.
+- Refusals (`GenerateError`, nothing stored): 422 `invalid_input` (not the schema, or `enhance`
+  of the other definition), 404 `asset_not_found`/`character_not_found`, 422 `not_image`,
+  `consent_required`, `invalid_size`.
+
+```ts
+import { imageEditDefinitionFor, IMAGE_EDIT_OUTPUT, type ImageEditInput } from "../../imageEdit/api.ts";
+import { submit, submitMany } from "../../../shared/server/generation/service.ts";
+
+const input: ImageEditInput = {
+  prompt: "Show the same woman on a rainy street at night. Keep her face, hair and outfit the same.",
+  references: [{ character_id }, { asset_id: productUploadId }],
+  origin: { feature: "photoshoot", shoot_id },
+};
+const receipt = await submit(imageEditDefinitionFor(input), input, { admit, requestKey, scope });
+// One generation per variation, all or none, under one request key (`<key>#<index>`):
+const receipts = submitMany(imageEditDefinitionFor(items[0]), items, { admit, requestKey, scope });
+// Done: `generation.outputs` has `{ name: IMAGE_EDIT_OUTPUT, media: "image", asset }`.
+```
+
+All items of one `submitMany` share their `enhance`. Workflows, inputs map, recipe, lock and
+measured Cloud latency and cost: `src/features/imageEdit/workflows/README.md`.
+
 ### Motion Transfer draft and composer slots
 
 `src/features/motionTransfer/api.ts` exports the draft contract (`draft.ts`):
@@ -694,6 +742,7 @@ the fake provider otherwise.
 | `motion-transfer.v1` (Wan Animate 2) | 5 files, `Comfy-Org/Wan-Animate-2` @ `e7181fe` | 25.6 GB (23.9 GiB) | Measured 31,426 MiB for a 5 s 480×848 render on an RTX 5090 32 GB, and 38,935 MiB (whole-device peak while the generation ran) on an A40 48 GB with image `0.2.0`; 48 GB recommended |
 | `character-generation.v1` (FLUX 3 Image Klein distilled, int8) | 3 files: 2 from `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated), VAE from `Comfy-Org/Flux-2-Klein-4B` @ `533c4cb` | 11.0 GB (10.3 GiB) | Measured 10,653 MiB (whole-device peak while the generation ran) for 768×1344 on an A40 |
 | `character-caption.v1` (FLUX 3 prompt upsampler, w4a8) | 1 file, `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated) | 6.7 GB (6.3 GiB) | Measured 6,601 MiB (whole-device peak while the generation ran) on an A40 |
+| `image-edit.v1`, `image-edit-enhanced.v1` (FLUX 3 Image Klein edit) | The same 4 files as the character builder's lock, byte for byte (3 for the direct edit) | no new weights | Not measured on self-host |
 | Every lock (installed on each pod boot) | 9 distinct files | 43.4 GB (40.4 GiB) | One GPU runs one job at a time: the largest peak, Motion Transfer's |
 
 Weights are the `x-linked-size` of each pinned URL (for the gated FLUX 3 files, which answer 401

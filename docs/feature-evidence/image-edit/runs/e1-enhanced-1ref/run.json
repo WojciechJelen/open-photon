@@ -1,0 +1,44 @@
+{
+  "owner": "foundation",
+  "label": "ie-e1-enhanced-1ref",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-feature-integration/docs/feature-evidence/image-edit/graphs/e1-enhanced-1ref.api.json",
+  "sets": [],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/refs/ref-b-older-man-open-hands.png",
+      "ref_id": "12b0b0c9-2251-404b-a676-b7ec30678b54"
+    }
+  ],
+  "balance_before_cents": 7042.172903539,
+  "job_id": "d27bf2d1-5211-4443-97a5-9d0bf5501ce3",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.931,
+    "submit_to_done": 10.35,
+    "queued_before_running_observed": 2.942
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1715082,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/imageedit/e1-enhanced-1ref/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1253,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/imageedit/e1-enhanced-1ref/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7041.3503261435,
+  "balance_delta_cents": 0.8226
+}
