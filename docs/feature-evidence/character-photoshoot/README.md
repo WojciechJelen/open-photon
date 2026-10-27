@@ -103,6 +103,19 @@ A four-shot photoshoot therefore costs about 3.3–4 ¢ on Cloud. Total spend of
 under the $3 budget. Queue wait for the shared lease is not included (it was 3–10 min per job with
 six agents).
 
+## App smoke on Cloud (through the app, lease held by hand)
+
+`npx vite dev` on :3110 with the Cloud key (`IN_FLIGHT_MAX=1`), commit `592a07f`; a browser picked
+Yuki and Outdoors and clicked "Shoot 4 photos" (`POST /api/photoshoots` 201, photoshoot
+`8961997c-e485-4dec-becb-4356d62a88d7`). The four `image-edit-enhanced` generations
+(`8b8f233f…`, `03aa7ae2…`, `682377a0…`, `7688abd0…`) ran one after another and were all `done`
+103.8 s after the click (submit → finished 16.0 s, 13.6 s, 45.3 s, 14.9 s), each with a 768×1344
+`image` and a private `caption`; balance 7016.29 → 7012.48 ¢ (3.81 ¢ for the photoshoot).
+"Save to library" on shot 2 created character `3e84b990…` (`origin: generated`); `/g/<id>` 200;
+publishing gave `/r/b14a2740590e9ccf` 200. Screenshot: `sheets/app-smoke-yuki-outdoors.jpg`
+(meadow walk, barefoot at the surf in profile, seated on a log, arms raised on a lookout; anime
+style, hair, eyes and outfit kept).
+
 ## Limitations
 
 - Framing words are followed loosely: "waist-up" and "close-up" mostly happen, "from below" /
