@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p2-yuki-studio-1",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=A waist-up portrait photograph in a professional photo studio in front of a seamless paper backdrop. The person is facing the camera with arms crossed and a confident expression; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: moody Rembrandt lighting with a triangle of light on the shadow-side cheek, on a dark charcoal backdrop. The person is the one in the reference image, keeping exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories, rendered in the same visual style as the reference. One person only, natural anatomy with complete hands.",
+    "7.seed=1002"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/yuki.png",
+      "ref_id": "3af12664-2380-4851-aeed-5b4a6958f036"
+    }
+  ],
+  "balance_before_cents": 7160.7670514559995,
+  "job_id": "11d65051-59d4-4864-a3f2-67af35e8d033",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.832,
+    "submit_to_done": 11.756,
+    "queued_before_running_observed": 3.179
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1516004,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/yuki-studio-1/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1277,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/yuki-studio-1/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7159.9632953314995,
+  "balance_delta_cents": 0.8038
+}

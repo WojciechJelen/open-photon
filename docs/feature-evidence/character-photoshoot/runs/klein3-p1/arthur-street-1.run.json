@@ -1,0 +1,39 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3-arthur-street-1",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/docs/feature-evidence/character-photoshoot/graphs/klein3-edit.api.json",
+  "sets": [
+    "4.text=The same person as in the reference image, with exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories, rendered in the same visual style as the reference image. A full-body shot from across the street of this person on a busy city street, walking across a zebra crossing, glancing sideways past the camera. Lighting: bright overcast daylight with soft shadows. One person only, natural anatomy with complete hands.",
+    "7.seed=1002"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/arthur.png",
+      "ref_id": "cad5f157-a0d2-4cb9-a84e-f18e8c980e19"
+    }
+  ],
+  "balance_before_cents": 7380.4396386985,
+  "job_id": "39451143-a6ed-4e40-b99c-3c29d1eec740",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.012,
+    "submit_to_done": 10.379,
+    "queued_before_running_observed": 3.003
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "photoshoot_klein3_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1554288,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3/arthur-street-1/9-0-photoshoot_klein3_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7379.7637219954995,
+  "balance_delta_cents": 0.6759
+}

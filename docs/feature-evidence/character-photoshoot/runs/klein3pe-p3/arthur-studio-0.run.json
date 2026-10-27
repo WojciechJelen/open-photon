@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p3-arthur-studio-0",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=Full-body shot from head to toe: the person from the reference image in a professional photo studio in front of a seamless paper backdrop. The person is standing turned three-quarters to the camera with one hand on the hip and the other arm relaxed; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: a large softbox key light from the left and a soft fill, on a light grey backdrop. Keep the exact visual style and medium of the reference image: a drawing or anime illustration stays a drawing in the same style, a 3D render stays a 3D render, a photo stays a photo. Keep exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories. One person only, natural anatomy with complete hands.",
+    "7.seed=1001"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/arthur.png",
+      "ref_id": "cad5f157-a0d2-4cb9-a84e-f18e8c980e19"
+    }
+  ],
+  "balance_before_cents": 7026.8098860089995,
+  "job_id": "904e1722-a9de-4efd-994f-b1818838235c",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.935,
+    "submit_to_done": 10.548,
+    "queued_before_running_observed": 2.93
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1162674,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/arthur-studio-0/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1267,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/arthur-studio-0/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7025.988126406,
+  "balance_delta_cents": 0.8218
+}

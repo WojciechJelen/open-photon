@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p2-cyborg-studio-2",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=A full-body shot, camera at chest height photograph in a professional photo studio in front of a seamless paper backdrop. The person is sitting on a simple wooden stool, leaning forward with forearms resting on the knees; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: bright high-key butterfly lighting on a pure white backdrop. The person is the one in the reference image, keeping exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories, rendered in the same visual style as the reference. One person only, natural anatomy with complete hands.",
+    "7.seed=1003"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/fixtures/wan/reference.png",
+      "ref_id": "5bb7edb2-01e9-4bd5-9e45-a0041a164056"
+    }
+  ],
+  "balance_before_cents": 7099.6375664834995,
+  "job_id": "440b696e-489e-47a9-8f2b-5f4f30dc31d2",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.911,
+    "submit_to_done": 12.694,
+    "queued_before_running_observed": 2.926
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1381156,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/cyborg-studio-2/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1291,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/cyborg-studio-2/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7098.631756689,
+  "balance_delta_cents": 1.0058
+}

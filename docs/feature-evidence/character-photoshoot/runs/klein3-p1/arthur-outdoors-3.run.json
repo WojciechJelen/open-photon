@@ -1,0 +1,39 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3-arthur-outdoors-3",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/docs/feature-evidence/character-photoshoot/graphs/klein3-edit.api.json",
+  "sets": [
+    "4.text=The same person as in the reference image, with exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories, rendered in the same visual style as the reference image. A full-body shot from a low angle with the valley behind of this person outdoors in nature, standing on a rocky mountain lookout with arms raised in triumph. Lighting: crisp bright midday sun under a deep blue sky. One person only, natural anatomy with complete hands.",
+    "7.seed=1004"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/arthur.png",
+      "ref_id": "cad5f157-a0d2-4cb9-a84e-f18e8c980e19"
+    }
+  ],
+  "balance_before_cents": 7355.8076527115,
+  "job_id": "6812e46c-27f7-441d-8b75-7175e4d80ef2",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.065,
+    "submit_to_done": 13.865,
+    "queued_before_running_observed": 2.946
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "photoshoot_klein3_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1464956,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3/arthur-outdoors-3/9-0-photoshoot_klein3_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7354.6012920944995,
+  "balance_delta_cents": 1.2064
+}

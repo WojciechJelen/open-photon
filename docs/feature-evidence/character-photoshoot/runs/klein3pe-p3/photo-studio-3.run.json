@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p3-photo-studio-3",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=Full-body shot from a low angle: the person from the reference image in a professional photo studio in front of a seamless paper backdrop. The person is walking toward the camera mid-stride with arms swinging naturally; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: dramatic coloured rim lights in teal and orange outlining the figure against a black backdrop. Keep the exact visual style and medium of the reference image: a drawing or anime illustration stays a drawing in the same style, a 3D render stays a 3D render, a photo stays a photo. Keep exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories. One person only, natural anatomy with complete hands.",
+    "7.seed=1004"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/inputs/photo-ref/9-0-image_flux3_klein_distilled_t2i_00001_.png",
+      "ref_id": "5eac51c0-3aac-4c4a-ac08-f0221f61b1c7"
+    }
+  ],
+  "balance_before_cents": 7046.402181102,
+  "job_id": "c6bb234e-94fd-430b-ab10-1e0ba39d8307",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.014,
+    "submit_to_done": 15.132,
+    "queued_before_running_observed": 2.911
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1327203,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/photo-studio-3/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1315,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/photo-studio-3/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7044.968179428,
+  "balance_delta_cents": 1.434
+}

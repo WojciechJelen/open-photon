@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p3-photo-editorial-1",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=Tight head-and-shoulders close-up: the person from the reference image in a high-end fashion magazine editorial set in an elegant interior. The person is resting the chin lightly on one hand and looking off to the side; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: hard direct flash with a crisp shadow on the wall behind. Keep the exact visual style and medium of the reference image: a drawing or anime illustration stays a drawing in the same style, a 3D render stays a 3D render, a photo stays a photo. Keep exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories. One person only, natural anatomy with complete hands.",
+    "7.seed=1002"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/inputs/photo-ref/9-0-image_flux3_klein_distilled_t2i_00001_.png",
+      "ref_id": "5eac51c0-3aac-4c4a-ac08-f0221f61b1c7"
+    }
+  ],
+  "balance_before_cents": 7040.793411523,
+  "job_id": "66f95910-b39a-4f7f-a38d-b0aab320ab1d",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.838,
+    "submit_to_done": 10.358,
+    "queued_before_running_observed": 2.942
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1809052,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/photo-editorial-1/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1200,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/photo-editorial-1/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7040.0095592894995,
+  "balance_delta_cents": 0.7839
+}
