@@ -114,9 +114,11 @@ is another file output's name (or `poster`, when a poster is cut) followed by `-
 (`outputsProblem`), so a further file can never overwrite a declared output. Readers list an
 output's further files right after it, in their order (`image-10` after `image-9`;
 `storedOutputs` in `generations.ts`): `readOutputs`, `generationSchema.outputs`, `/g/:id` and
-`/r/:slug` show every stored image (`GeneratedImage` with `place`, `image 2 of 3`, in its alt
-text and its Download's name when there are several), each downloads as its own
-`ai-generated-<asset id>.<ext>`, and `createFromGeneration` saves any of them by name (`image-2`).
+`/r/:slug` show every stored image and video in their order (`GeneratedOutputs`: `GeneratedImage`
+and `GeneratedVideo` with `place`, `image 2 of 3`, `video 2 of 3`, in its accessible name and its
+Download's when there are several; `poster-<N>` is the poster of `video-<N>`, never shown on its
+own), each image downloads as its own `ai-generated-<asset id>.<ext>`, and
+`createFromGeneration` saves any of them by name (`image-2`).
 A text output still stores one text (below). Features still render one image per generation and
 group generations (`submitMany`), so each image has its own progress, retry, download and save;
 this only makes sure a node that returns a batch is never silently cut to its first file
@@ -173,19 +175,24 @@ character images stay private, and a generated character's image only shows on a
 page once its own generation is published (`visibleCharacter`). Every `/r/<slug>` and
 `/media/<id>.<ext>` URL that existed before the backfill still answers.
 
-An image a workflow produces is disclosed as AI-generated wherever it is shown (the FLUX
-Kommunity licence asks for it): `GeneratedImage` (`src/shared/components/`) shows an image output
-on `/g/:id` and `/r/:slug` with an "AI-generated image" label, alt text that says so (also the
-share card's `og:image:alt`) and Download, and `?download=1` names an image output
-`ai-generated-<id>.<ext>`, a `final` asset a generation lists as an output
+An image or video a workflow produces is disclosed as AI-generated wherever it is shown (the FLUX
+Kommunity licence asks for it for an image): `GeneratedImage` and `GeneratedVideo`
+(`src/shared/components/`) show an output on `/g/:id` and `/r/:slug` with an "AI-generated image"
+or "AI-generated video" label, an accessible name that says so (also the share card's
+`og:image:alt`) and Download; a video plays with controls from its poster (`poster` for `video`,
+`poster-<N>` for `video-<N>`) and loads only its metadata first. `?download=1` names an image
+output `ai-generated-<id>.<ext>`, a `final` asset a generation lists as an output
 `open-photon-<id>-<output name>.<ext>` (Motion Transfer's `compare`:
-`open-photon-<id>-compare.mp4`), and anything else `open-photon-<id>.<ext>`, Motion
-Transfer's videos and posters included. An image's share page is titled "AI-generated image ·
-Open Photon" (`<title>`, `og:title`), and a Motion Transfer share page says "The character is
-AI-generated." when its character's origin is `generated` (`characterGenerated` of `readShare`),
-even when that image is private. Neither shows a recipe's enhanced caption. A generated
-character's image (a sample or a saved builder render) says "AI-generated image" in its alt text
-wherever it is shown (library, pickers, the studio home).
+`open-photon-<id>-compare.mp4`), and anything else `open-photon-<id>.<ext>`, videos and posters
+included. A share page that shows a video is titled "AI-generated video · Open Photon" and its
+card is that video (`og:type` `video.other`, `og:video`, its poster as `og:image`); one that
+shows only images "AI-generated image · Open Photon" (`<title>`, `og:title`). `/g/:id` is titled
+the same way once done ("Generation · Open Photon" before, or with no file to show), a Motion
+Transfer take "Your take · Motion Transfer · Open Photon". A Motion Transfer share page says "The
+character is AI-generated." when its character's origin is `generated` (`characterGenerated` of
+`readShare`), even when that image is private. Neither shows a recipe's enhanced caption. A
+generated character's image (a sample or a saved builder render) says "AI-generated image" in
+its alt text wherever it is shown (library, pickers, the studio home).
 
 ### Image uploads
 
@@ -729,9 +736,6 @@ rebuild and step 5 were not run). To repeat them, someone with a Runpod pod:
 
 - `tests/compare.spec.ts:135` (a laptop-screen layout check, 823 > 800 px) fails at `37a7a0b`
   and on the branch; it is not caused by the foundation.
-- `/g/:id` titles every result "Your take · Motion Transfer · Open Photon"
-  (`src/routes/g.$generationId.tsx`), image generations included; the page shell belongs to
-  Motion Transfer.
 - `src/features/motion-score/` is an unwired Python PoC, parked as an experiment (DEV-287); it is
   never imported and none of its files is a runtime workflow, but the app image packages its
   `workflows/` and `samples/` and the self-host image its `workflows/`. Its status, what it proved

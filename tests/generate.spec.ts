@@ -352,7 +352,11 @@ test("a done generation whose outputs are all text is final on its page: no Fini
 
     await open(page, `/g/${id}`);
     await expect(status(page)).toHaveAttribute("data-status", "done");
-    await expect(page.getByText("This generation has no image to show here.")).toBeVisible();
+    await expect(
+      page.getByText("This generation has no image or video to show here."),
+    ).toBeVisible();
+    // Neither Motion Transfer's title nor an image's: it shows no file.
+    await expect(page).toHaveTitle("Generation · Open Photon");
     await expect(page.getByText(text)).toHaveCount(0);
 
     // Done is final: the page never reloads its result.
