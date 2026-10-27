@@ -1,0 +1,36 @@
+{
+  "owner": "foundation",
+  "label": "p1-q21",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/qwen-image-2.1-edit.api.json",
+  "sets": [
+    "459:474.prompt=\"Show the same woman standing on a sunny cobblestone street in an old European town in warm late-afternoon light, full body, facing the camera. Keep her face, hair, glasses, hat, sweater, trousers, sneakers and bag exactly the same.\"",
+    "459:458.seed=7"
+  ],
+  "images": [
+    {
+      "node": "470",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/refs/ref-a/9-0-image_flux3_klein_distilled_t2i_00001_.png",
+      "ref_id": "d9abc7f6-3cc5-4d09-b122-efab1ddf1e02"
+    }
+  ],
+  "balance_before_cents": 7355.8076527115,
+  "job_id": "56b2198b-0423-497a-b5b5-47621c3c323e",
+  "status": "failed",
+  "error": {
+    "class_type": "KSampler",
+    "code": "node_execution_error",
+    "message": "module 'os' has no attribute 'memfd_create'\n",
+    "node_id": "459:458",
+    "traceback": "  File \"/app/comfyui/execution.py\", line 548, in execute\n    output_data, output_ui, has_subgraph, has_pending_tasks = await get_output_data(prompt_id, unique_id, obj, input_data_all, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)\n                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/execution.py\", line 353, in get_output_data\n    return_values = await _async_map_node_over_list(prompt_id, unique_id, obj, input_data_all, obj.FUNCTION, allow_interrupt=True, execution_block_cb=execution_block_cb, pre_execute_cb=pre_execute_cb, v3_data=v3_data)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/execution.py\", line 327, in _async_map_node_over_list\n    await process_inputs(input_dict, i)\n\n  File \"/app/comfyui/execution.py\", line 315, in process_inputs\n    result = f(**inputs)\n             ^^^^^^^^^^^\n\n  File \"/app/comfyui/nodes.py\", line 1633, in sample\n    return common_ksampler(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, denoise=denoise)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/nodes.py\", line 1597, in common_ksampler\n    samples = comfy.sample.sample(model, noise, steps, cfg, sampler_name, scheduler, positive, negative, latent_image,\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/comfy/sample.py\", line 82, in sample\n    samples = sampler.sample(noise, positive, negative, cfg=cfg, latent_image=latent_image, start_step=start_step, last_step=last_step, force_full_denoise=force_full_denoise, denoise_mask=noise_mask, sigmas=sigmas, callback=callback, disable_pbar=disable_pbar, seed=seed)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/custom_nodes/ComfyUI-TiledDiffusion/utils.py\", line 51, in KSampler_sample\n    return orig_fn(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/comfy/samplers.py\", line 1464, in sample\n    return sample(self.model, noise, positive, negative, cfg, self.device, sampler, sigmas, self.model_options, latent_image=latent_image, denoise_mask=denoise_mask, callback=callback, disable_pbar=disable_pbar, seed=seed)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/comfy/samplers.py\", line 1354, in sample\n    return cfg_guider.sample(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/comfy/samplers.py\", line 1336, in sample\n    output = executor.execute(noise, latent_image, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/comfy/patcher_extension.py\", line 113, in execute\n    return self.original(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/comfy/samplers.py\", line 1263, in outer_sample\n    output = self.inner_sample(noise, latent_image, device, sampler, sigmas, denoise_mask, callback, disable_pbar, seed, latent_shapes=latent_shapes)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/comfy/samplers.py\", line 1237, in inner_sample\n    with self.model_patcher.writable_models(self.conds, noise.shape, self.model_options):\n\n  File \"/opt/conda/lib/python3.11/contextlib.py\", line 137, in __enter__\n    return next(self.gen)\n           ^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/comfy/model_patcher.py\", line 1416, in writable_models\n    stack.enter_context(patcher.writable_model(model))\n\n  File \"/opt/conda/lib/python3.11/contextlib.py\", line 517, in enter_context\n    result = _enter(cm)\n             ^^^^^^^^^^\n\n  File \"/opt/conda/lib/python3.11/contextlib.py\", line 137, in __enter__\n    return next(self.gen)\n           ^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/comfy/model_patcher.py\", line 1839, in writable_model\n    state, file = comfy.utils.create_safetensors(model.state_dict())\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/comfy/utils.py\", line 104, in create_safetensors\n    f = create_anonymous_file(data_offset + offset)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/comfy/anonymous_file.py\", line 39, in create_anonymous_file\n    file = open(\"aimdo\", \"w+b\", buffering=0,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n  File \"/app/comfyui/comfy/anonymous_file.py\", line 40, in <lambda>\n    opener=lambda name, mode: os.memfd_create(name, os.MFD_CLOEXEC))\n                              ^^^^^^^^^^^^^^^\n"
+  },
+  "timings_s": {
+    "upload": 2.909,
+    "submit_to_done": 5.368,
+    "queued_before_running_observed": 2.924
+  },
+  "outputs": [],
+  "balance_after_cents": 7355.8076527115,
+  "balance_delta_cents": 0
+}

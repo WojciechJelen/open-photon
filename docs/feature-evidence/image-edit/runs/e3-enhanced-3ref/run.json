@@ -1,0 +1,56 @@
+{
+  "owner": "foundation",
+  "label": "ie-e3-enhanced-3ref",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-feature-integration/docs/feature-evidence/image-edit/graphs/e3-enhanced-3ref.api.json",
+  "sets": [],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/refs/ref-a-woman-glasses-hat-bag.png",
+      "ref_id": "d9abc7f6-3cc5-4d09-b122-efab1ddf1e02"
+    },
+    {
+      "node": "12",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/refs/ref-b-older-man-open-hands.png",
+      "ref_id": "12b0b0c9-2251-404b-a676-b7ec30678b54"
+    },
+    {
+      "node": "13",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/refs/ref-c-teen-varsity-backpack.png",
+      "ref_id": "605a85bd-e7bb-4698-9435-41458a7b9215"
+    }
+  ],
+  "balance_before_cents": 7040.0095592894995,
+  "job_id": "a9f8a79b-8ed0-4133-b5b5-dbc56146c3c8",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 9.033,
+    "submit_to_done": 15.19,
+    "queued_before_running_observed": 5.414
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1741170,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/imageedit/e3-enhanced-3ref/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1422,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/imageedit/e3-enhanced-3ref/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7038.5679927435,
+  "balance_delta_cents": 1.4416
+}

@@ -8,6 +8,10 @@ import { characterGenerationDefinition } from "../features/characterBuilder/work
 import { charactersAccess } from "../features/characters/server/public-access.ts";
 import { seedSampleCharacters } from "../features/characters/server/seed.ts";
 import { exploreAccess } from "../features/explore/server/public-access.ts";
+import {
+  imageEditDefinition,
+  imageEditEnhancedDefinition,
+} from "../features/imageEdit/workflows/definition.ts";
 import { motionTransferAccess } from "../features/motionTransfer/server/public-access.ts";
 import { seedSampleMotions } from "../features/motionTransfer/server/samples.ts";
 import { motionTransferDefinition } from "../features/motionTransfer/workflows/definition.ts";
@@ -39,6 +43,8 @@ workflows.compose([
   motionTransferDefinition,
   characterGenerationDefinition,
   characterCaptionDefinition,
+  imageEditDefinition,
+  imageEditEnhancedDefinition,
   storyboardScenesDefinition,
 ]);
 
