@@ -187,6 +187,23 @@ even when that image is private. Neither shows a recipe's enhanced caption. A ge
 character's image (a sample or a saved builder render) says "AI-generated image" in its alt text
 wherever it is shown (library, pickers, the studio home).
 
+### Image uploads
+
+`POST /api/image-uploads` (`uploadImage`, `src/shared/server/image-upload.server.ts`) stores an
+image any feature takes as an input (a product, a scene, a still to animate): multipart, one file
+in the field `image` and no other field, as `POST /api/uploads` takes a video. A session is needed
+(401 `access_required` from the guard) and it takes the upload token first (`uploadRefusal`, 429
+`rate_limited`). The content decides, not the name or declared type: a PNG, JPEG or WebP
+(`classifyImage`), else 422 `not_image`; at most 25 MiB (`IMAGE_UPLOAD_MAX_BYTES`, 413 before
+anything is written when the length is declared) and 8192 px on each side
+(`IMAGE_UPLOAD_MAX_SIDE`, 422 `image_too_large`). It is stored once by content (`kind: "image"`,
+`role: "upload"`) and answered as `assetSchema`: 201, or 200 with the same asset for bytes stored
+before. The client helper `uploadImageFile(file, signal?)` (`src/shared/image-upload.ts`, with
+`IMAGE_UPLOAD_TYPES` for a file picker) answers `{ data }` or `{ refusal }`. A photo of a person
+that a feature renders as that person goes through `POST /api/characters` with the uploader's
+likeness consent instead, and the feature uses the character. `POST /api/characters` stores its
+image the same way (`storeUploadedImage`), after its consent check.
+
 ### Provider target identity
 
 `generations.target` (`cloud | selfhost`) plus `target_origin` (the self-host proxy's origin,
