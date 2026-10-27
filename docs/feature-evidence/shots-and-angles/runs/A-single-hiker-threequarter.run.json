@@ -3,9 +3,7 @@
   "label": "A-hiker-threequarter",
   "target": "cloud",
   "graph": "work/angles/graphs/qwen2511-angles-lightning.api.json",
-  "sets": [
-    "151.prompt=<sks> front-right quarter view eye-level shot medium shot"
-  ],
+  "sets": ["151.prompt=<sks> front-right quarter view eye-level shot medium shot"],
   "images": [
     {
       "node": "1",
