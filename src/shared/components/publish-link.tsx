@@ -52,24 +52,27 @@ type Copy = "copying" | "copied" | "failed";
 
 /**
  * "Publish & copy link" for a done generation whose workflow publishes on request (a character
- * image), or its share link once it is published (`slug`). Publishing is the owner's explicit
- * choice after checking the image (the FLUX Kommunity licence asks for outputs to be reviewed
- * before they are distributed): `POST /api/generations/:id/publish` gives it its public share
- * page, whose link (the server's, `url`) is then copied, or left in the field to copy by hand when
- * the browser does not allow it. A link published before the page opened starts with the
- * server's share origin too. `compact` is the library card's shape; `label` names the image to
- * assistive technology there.
+ * image, an edit), or its share link once it is published (`slug`). Publishing is the owner's
+ * explicit choice after checking the result (the FLUX Kommunity licence asks for outputs to be
+ * reviewed before they are distributed): `POST /api/generations/:id/publish` gives it its public
+ * share page, whose link (the server's, `url`) is then copied, or left in the field to copy by
+ * hand when the browser does not allow it. A link published before the page opened starts with
+ * the server's share origin too. `media` is what the page shows (the wording says "image" or
+ * "video"); `compact` is the library card's shape; `label` names the image to assistive
+ * technology there.
  */
 export function PublishLink({
   compact = false,
   generationId,
   label,
+  media = "image",
   onPublished,
   slug,
 }: {
   compact?: boolean;
   generationId: string;
   label?: string;
+  media?: "image" | "video";
   onPublished?: (slug: string) => void;
   slug: string | null;
 }) {
@@ -145,7 +148,7 @@ export function PublishLink({
         )}
         {(!compact || !url) && (
           <p className="text-sm text-muted-foreground">
-            {!compact && "Anyone with the link sees this AI-generated image. "}
+            {!compact && `Anyone with the link sees this AI-generated ${media}. `}
             <Link
               className="text-soft-foreground underline decoration-edge-strong underline-offset-3 hover:text-foreground hover:decoration-brand"
               params={{ slug: shareSlug }}
@@ -162,7 +165,7 @@ export function PublishLink({
   return (
     <div className="flex flex-col gap-2">
       <p className={compact ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>
-        Publishing makes this AI-generated image public at a share link; check it first.
+        Publishing makes this AI-generated {media} public at a share link; check it first.
       </p>
       <div>
         <Button
