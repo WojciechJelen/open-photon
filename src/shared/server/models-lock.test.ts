@@ -125,3 +125,59 @@ test("two LoRA repositories outside Comfy-Org are allowed by id, their root file
     /does not match its install path/,
   );
 });
+
+/** A lock of one pin with `directory`, `url` and `license`. */
+function pinLock(directory: string, pin: { directory: string; license: string; url: string }) {
+  const path = join(directory, "models.lock");
+
+  writeFileSync(
+    path,
+    JSON.stringify({
+      models: [{ ...pin, file: "birefnet.safetensors", sha256: "d".repeat(64) }],
+      version: 1,
+    }),
+  );
+
+  return () => readModelsLock(path);
+}
+
+test("an MIT background_removal model is allowed only from Comfy-Org/BiRefNet's background_removal/", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "open-photon-lock-"));
+  t.after(() => rmSync(directory, { force: true, recursive: true }));
+
+  const birefnet = `https://huggingface.co/Comfy-Org/BiRefNet/resolve/${revision}/background_removal/birefnet.safetensors`;
+
+  const lock = pinLock(directory, {
+    directory: "background_removal",
+    license: "MIT",
+    url: birefnet,
+  })();
+
+  const graph = {
+    "1": {
+      class_type: "LoadBackgroundRemovalModel",
+      inputs: { bg_removal_name: "birefnet.safetensors" },
+    },
+  };
+
+  assert.deepEqual(lockedModels(graph, lock), [
+    { file: "birefnet.safetensors", license: "MIT", sha256: "d".repeat(64) },
+  ]);
+
+  // MIT or background_removal from any other repository or directory is refused.
+  const elsewhere = `https://huggingface.co/Comfy-Org/Other/resolve/${revision}/background_removal/birefnet.safetensors`;
+
+  assert.throws(
+    pinLock(directory, { directory: "background_removal", license: "MIT", url: elsewhere }),
+  );
+  assert.throws(
+    pinLock(directory, {
+      directory: "vae",
+      license: "MIT",
+      url: `https://huggingface.co/Comfy-Org/Other/resolve/${revision}/vae/birefnet.safetensors`,
+    }),
+  );
+  assert.throws(
+    pinLock(directory, { directory: "background_removal", license: "Apache-2.0", url: elsewhere }),
+  );
+});

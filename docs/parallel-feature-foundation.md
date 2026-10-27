@@ -61,7 +61,10 @@ Kommunity 1.0, at a 40-hex revision URL of a `Comfy-Org/*` repository, of
 (not by organisation): `fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA` and
 `lightx2v/Qwen-Image-Edit-2511-Lightning` (Apache-2.0, ungated). Their files sit at the repository
 root (`…/resolve/<rev>/<file>`) and are pinned with `directory: "loras"`; every other pin's URL
-ends in `/<directory>/<file>`, its install path.
+ends in `/<directory>/<file>`, its install path. One more directory and licence are allowed for one
+repository only: `background_removal` (core `LoadBackgroundRemovalModel.bg_removal_name`, ComfyUI's
+`models/background_removal/`) and MIT, for `Comfy-Org/BiRefNet`'s
+`…/resolve/<rev>/background_removal/<file>`; MIT or `background_removal` anywhere else is refused.
 
 ### Generation service
 
