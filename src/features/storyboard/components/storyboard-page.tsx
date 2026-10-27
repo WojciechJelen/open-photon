@@ -8,7 +8,7 @@ import {
   SparklesIcon,
   TriangleAlertIcon,
 } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -17,6 +17,10 @@ import { Label } from "#/components/ui/label";
 import { Progress } from "#/components/ui/progress";
 import { Textarea } from "#/components/ui/textarea";
 import { IMAGE_EDIT_OUTPUT } from "#/features/imageEdit";
+import {
+  StoryboardFrame,
+  useStoryboardRead,
+} from "#/features/storyboard/components/storyboard-frame";
 import { StylePicker } from "#/features/storyboard/components/style-picker";
 import type { Storyboard, StoryboardCard, StoryboardStyle } from "#/features/storyboard/contracts";
 import { characterAlt, characterName } from "#/features/storyboard/names";
@@ -26,105 +30,33 @@ import {
   putStoryboard,
   retryGeneration,
 } from "#/features/storyboard/storyboard-client";
-import { AccessCodeDialog, AccessStatus } from "#/shared/components/access-code-dialog";
-import { Hud, PageGlow } from "#/shared/components/brand";
+import { Hud } from "#/shared/components/brand";
 import { GENERATED_IMAGE_ALT } from "#/shared/components/generated-image";
-import { SiteHeader } from "#/shared/components/site";
 import type { GenerationSnapshot } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 import type { Refusal } from "#/shared/requests";
-import { useAccessCode } from "#/shared/use-access-code";
-
-// How often the page reads the storyboard again while a card or the scene split is on its way.
-// The dispatcher renders them whether or not the page is open; this only keeps the view current.
-const POLL_MS = 2000;
-
-const HELD = "storyboard";
-
-type PageState =
-  | { kind: "loading" }
-  | { kind: "access" }
-  | { kind: "missing" }
-  | { kind: "error"; refusal: Refusal }
-  | { kind: "ready"; storyboard: Storyboard };
-
-type CardState = "empty" | "waiting" | "running" | "done" | "failed" | "unknown";
-
-function cardState(generation: GenerationSnapshot | null): CardState {
-  switch (generation?.status) {
-    case undefined:
-      return "empty";
-    case "waiting":
-      return "waiting";
-    case "preparing":
-    case "queued":
-    case "running":
-    case "finalizing":
-      return "running";
-    case "done":
-      return "done";
-    case "unknown":
-      return "unknown";
-    case "failed":
-    case "cancelled":
-      return "failed";
-  }
-}
 
 const onItsWay = (storyboard: Storyboard) =>
   storyboard.scenes.state === "writing" ||
   storyboard.cards.some((card) => ["waiting", "running"].includes(cardState(card.generation)));
 
-/**
- * `GET /api/storyboards/:id`, read again every `POLL_MS` while something is on its way (or the
- * last read failed), and at once on `reload`. A storyboard already shown stays when a read fails.
- */
-function useStoryboard(id: string) {
-  const [state, setState] = useState<PageState>({ kind: "loading" });
-  const [requested, reload] = useReducer((count: number) => count + 1, 0);
+type CardState = "empty" | "waiting" | "running" | "done" | "failed" | "unknown";
 
-  useEffect(() => {
-    const controller = new AbortController();
-    let timer: number | undefined;
+/** A card's state in words the page uses, from its current generation's status. */
+function cardState(generation: GenerationSnapshot | null): CardState {
+  const status = generation?.status;
 
-    const read = async () => {
-      const result = await fetchStoryboard(id, controller.signal);
+  if (!status) {
+    return "empty";
+  }
 
-      if (controller.signal.aborted) {
-        return;
-      }
+  if (status === "cancelled") {
+    return "failed";
+  }
 
-      if ("data" in result) {
-        setState({ kind: "ready", storyboard: result.data });
-      } else if (result.refusal.reason === "access_required") {
-        setState({ kind: "access" });
-      } else if (result.refusal.reason === "not_found") {
-        setState({ kind: "missing" });
-      } else {
-        setState((current) =>
-          current.kind === "ready" ? current : { kind: "error", refusal: result.refusal },
-        );
-      }
-
-      const again =
-        "data" in result
-          ? onItsWay(result.data)
-          : !["access_required", "not_found"].includes(result.refusal.reason ?? "");
-
-      if (again) {
-        timer = window.setTimeout(() => void read(), POLL_MS);
-      }
-    };
-
-    void read();
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timer);
-    };
-  }, [id, requested]);
-
-  return { reload, setState, state };
+  return status === "preparing" || status === "queued" || status === "finalizing"
+    ? "running"
+    : status;
 }
 
 /**
@@ -133,7 +65,8 @@ function useStoryboard(id: string) {
  * Generate / Regenerate / Try again; "Generate all" renders every card with a description. A
  * card's actions area (`cardActions`) holds Download and the result page; the composition may
  * add more (Animate). Edits stay on the page until saved (Save, or any Generate, which saves
- * first), so a reload shows what was saved.
+ * first), so a reload shows what was saved. The page reads the storyboard again while a card or
+ * the split is on its way.
  */
 export function StoryboardPage({
   cardActions,
@@ -142,68 +75,26 @@ export function StoryboardPage({
   cardActions?: (card: StoryboardCard) => ReactNode;
   storyboardId: string;
 }) {
-  const { reload, setState, state } = useStoryboard(storyboardId);
-  const access = useAccessCode();
-  const askForCode = useCallback(() => access.hold(HELD, "unlock", reload), [access.hold, reload]);
+  const { reload, show, state } = useStoryboardRead(
+    (signal) => fetchStoryboard(storyboardId, signal),
+    onItsWay,
+  );
 
   return (
-    <div className="relative isolate min-h-svh">
-      <PageGlow />
-      <SiteHeader category="Image">
-        {state.kind !== "loading" && (
-          <AccessStatus onOpen={askForCode} signedIn={state.kind !== "access"} />
-        )}
-      </SiteHeader>
-      <main className="mx-auto flex w-full max-w-330 flex-col gap-8 px-4 py-8 sm:px-8 sm:py-12">
-        {state.kind === "loading" && (
-          <p className="text-muted-foreground" role="status">
-            Loading the storyboard…
-          </p>
-        )}
-        {state.kind === "access" && (
-          <section className="flex flex-col items-start gap-4">
-            <h1 className="font-display text-4xl leading-none font-bold tracking-display">
-              Storyboard
-            </h1>
-            <p className="text-soft-foreground">Enter the access code to see this storyboard.</p>
-            <Button onClick={askForCode} variant="outline">
-              Enter code
-            </Button>
-          </section>
-        )}
-        {state.kind === "missing" && (
-          <section className="flex flex-col items-start gap-4">
-            <h1 className="font-display text-4xl leading-none font-bold tracking-display">
-              Storyboard not found
-            </h1>
-            <Link className="underline underline-offset-3" to="/storyboards">
-              All storyboards
-            </Link>
-          </section>
-        )}
-        {state.kind === "error" && (
-          <section className="flex flex-col items-start gap-4" role="alert">
-            <p className="text-destructive-foreground">{state.refusal.message}</p>
-            <Button onClick={reload} variant="outline">
-              Try again
-            </Button>
-          </section>
-        )}
-        {state.kind === "ready" && (
-          <StoryboardView
-            cardActions={cardActions}
-            onAccess={askForCode}
-            onChange={reload}
-            onStored={(storyboard) => {
-              setState({ kind: "ready", storyboard });
-              reload();
-            }}
-            storyboard={state.storyboard}
-          />
-        )}
-      </main>
-      <AccessCodeDialog {...access.dialog} />
-    </div>
+    <StoryboardFrame holdKey="storyboard" noun="the storyboard" reload={reload} state={state}>
+      {(storyboard, askForCode) => (
+        <StoryboardView
+          cardActions={cardActions}
+          onAccess={askForCode}
+          onChange={reload}
+          onStored={(stored) => {
+            show(stored);
+            reload();
+          }}
+          storyboard={storyboard}
+        />
+      )}
+    </StoryboardFrame>
   );
 }
 

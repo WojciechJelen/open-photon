@@ -1,10 +1,7 @@
 {
   "18:11": {
     "inputs": {
-      "clip": [
-        "18:12",
-        0
-      ],
+      "clip": ["18:12", 0],
       "prompt": "",
       "max_length": 3584,
       "sampling_mode": "on",
@@ -18,10 +15,7 @@
       "thinking": false,
       "use_default_template": true,
       "mtp": "off",
-      "system_prompt": [
-        "18:14",
-        0
-      ]
+      "system_prompt": ["18:14", 0]
     },
     "class_type": "TextGenerate",
     "_meta": {
@@ -41,10 +35,7 @@
   },
   "18:13": {
     "inputs": {
-      "text": [
-        "18:11",
-        0
-      ],
+      "text": ["18:11", 0],
       "filename_prefix": "storyboard_scenes",
       "format": "txt"
     },

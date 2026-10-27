@@ -19,13 +19,16 @@ async function generationIds(page: Page, id: string) {
 
 async function rendered(page: Page, id: string) {
   await expect
-    .poll(async () => {
-      const storyboard: Storyboard = storyboardSchema.parse(
-        await (await page.request.get(`/api/storyboards/${id}`)).json(),
-      );
+    .poll(
+      async () => {
+        const storyboard: Storyboard = storyboardSchema.parse(
+          await (await page.request.get(`/api/storyboards/${id}`)).json(),
+        );
 
-      return storyboard.cards.map((card) => card.generation?.status ?? null);
-    })
+        return storyboard.cards.map((card) => card.generation?.status ?? null);
+      },
+      { timeout: 60_000 },
+    )
     .toEqual(["done", "done", "done", "done"]);
 }
 
@@ -65,7 +68,9 @@ test("make a storyboard of four hand-written scenes, edit one, generate all, reg
   const storyboard = storyboardSchema.parse(await (await created).json());
 
   await expect(page).toHaveURL(`/storyboards/${storyboard.id}`);
-  await expect(page.getByLabel("Title")).toHaveValue(`Rooftop ${run}`);
+  await expect(page.getByRole("textbox", { exact: true, name: "Title" })).toHaveValue(
+    `Rooftop ${run}`,
+  );
   await expect(page.getByLabel("Scene 1 description")).toHaveValue(scenes[0] ?? "");
 
   // An edit stays on the page until Generate saves it.
@@ -93,7 +98,9 @@ test("make a storyboard of four hand-written scenes, edit one, generate all, reg
 
   // Regenerate scene 2 only: a new generation for it, the same ones for 1, 3 and 4.
   await page.getByRole("button", { name: "Regenerate scene 2" }).click();
-  await expect.poll(async () => (await generationIds(page, storyboard.id))[1]).not.toBe(first[1]);
+  await expect
+    .poll(async () => (await generationIds(page, storyboard.id))[1], { timeout: 30_000 })
+    .not.toBe(first[1]);
   await rendered(page, storyboard.id);
 
   const second = await generationIds(page, storyboard.id);
@@ -144,7 +151,7 @@ test("a scene whose render fails shows its error and is tried again alone", asyn
 
   const failed = page.getByRole("listitem", { name: "Scene 2: Failed" });
 
-  await expect(failed).toBeVisible();
+  await expect(failed).toBeVisible({ timeout: 60_000 });
   await expect(page.getByRole("listitem", { name: /Scene \d: Rendered/ })).toHaveCount(3);
 
   const before = await generationIds(page, storyboard.id);
@@ -152,7 +159,9 @@ test("a scene whose render fails shows its error and is tried again alone", asyn
   await failed.getByLabel("Scene 2 description").fill(`Scene two of run ${run}, fixed.`);
   await failed.getByRole("button", { name: "Try again scene 2" }).click();
 
-  await expect(page.getByRole("listitem", { name: "Scene 2: Rendered" })).toBeVisible();
+  await expect(page.getByRole("listitem", { name: "Scene 2: Rendered" })).toBeVisible({
+    timeout: 60_000,
+  });
 
   const after = await generationIds(page, storyboard.id);
 

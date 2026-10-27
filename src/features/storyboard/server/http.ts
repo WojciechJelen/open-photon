@@ -57,6 +57,11 @@ async function answerAdmitted<Input>(
   let result: Admitted | undefined;
 
   const response = await answer(request, async (session, admit) => {
+    // Refused before the body is read, like every other storyboard endpoint.
+    if (!session) {
+      throw new GenerateError(401, "Enter an access code to do this.", "access_required");
+    }
+
     const { input, requestKey } = await readInput(request, schema, BODY_LIMIT);
 
     if (!requestKey) {
@@ -122,19 +127,29 @@ export function handleListStoryboards(request: Request) {
   return readSession(request) ? Response.json(listWorkspaceStoryboards()) : accessRequired();
 }
 
-/** `GET /api/storyboards/:id`: `storyboardSchema`; 400 malformed id, 401, 404. */
-export function handleReadStoryboard(request: Request, value: string) {
+/**
+ * The storyboard id of a request that needs a session: the id, or the 401 (no session) or 400
+ * (a malformed `:storyboardId`) to answer instead.
+ */
+function sessionAndId(request: Request, value: string) {
   if (!readSession(request)) {
     return accessRequired();
   }
 
   const id = z.uuid().safeParse(value);
 
-  if (!id.success) {
-    return invalidId();
+  return id.success ? id.data : invalidId();
+}
+
+/** `GET /api/storyboards/:id`: `storyboardSchema`; 400 malformed id, 401, 404. */
+export function handleReadStoryboard(request: Request, value: string) {
+  const id = sessionAndId(request, value);
+
+  if (id instanceof Response) {
+    return id;
   }
 
-  const storyboard = readStoryboard(id.data);
+  const storyboard = readStoryboard(id);
 
   return storyboard ? Response.json(storyboard) : notFound();
 }
@@ -145,14 +160,10 @@ export function handleReadStoryboard(request: Request, value: string) {
  * nothing, so it takes no request key and no rate-limit token.
  */
 export async function handleSaveStoryboard(request: Request, value: string) {
-  if (!readSession(request)) {
-    return accessRequired();
-  }
+  const id = sessionAndId(request, value);
 
-  const id = z.uuid().safeParse(value);
-
-  if (!id.success) {
-    return invalidId();
+  if (id instanceof Response) {
+    return id;
   }
 
   const body = await readJsonBody(request, saveStoryboardInputSchema, BODY_LIMIT);
@@ -162,7 +173,7 @@ export async function handleSaveStoryboard(request: Request, value: string) {
   }
 
   try {
-    return Response.json(saveStoryboardText(id.data, body.data));
+    return Response.json(saveStoryboardText(id, body.data));
   } catch (error) {
     if (error instanceof GenerateError && error.status === 404) {
       return notFound();

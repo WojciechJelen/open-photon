@@ -65,38 +65,32 @@ const accessRequired = () =>
   new GenerateError(401, "Enter an access code to do this.", "access_required");
 
 /**
- * A generation followed through each failed or cancelled one's child (the shared retry or
- * re-run) to the latest attempt, and how many that took.
+ * A generation followed through each failed or cancelled one's newest child (the shared retry or
+ * re-run) to the latest attempt, and how many attempts that skipped.
  */
-function currentGeneration(id: string) {
-  let row = findGeneration(id);
-  let attempt = 0;
-
-  while (row && (row.status === "failed" || row.status === "cancelled")) {
-    const child = findChild(row.id);
-    const next = child ? findGeneration(child) : null;
-
-    if (!next) {
-      break;
-    }
-
-    row = next;
-    attempt += 1;
-  }
+function currentGeneration(id: string, attempt = 0): { attempt: number; row: Generation } {
+  const row = findGeneration(id);
 
   if (!row) {
     throw new Error(`Storyboard generation ${id} is not stored`);
   }
 
-  return { attempt, row };
+  const child = row.status === "failed" || row.status === "cancelled" ? findChild(row.id) : null;
+
+  return child ? currentGeneration(child, attempt + 1) : { attempt, row };
 }
 
-/** The seed a generation renders with, read from its recipe by its workflow (`seedOf`). */
+/** The seed a generation renders with, as its own workflow reads its recipe (`seedOf`). */
 function seedOf(row: Generation) {
   const definition = workflows.find(row);
-  const recipe = definition?.recipeSchema.safeParse(row.recipe);
 
-  return definition && recipe?.success ? definition.seedOf(recipe.data) : null;
+  if (!definition) {
+    return null;
+  }
+
+  const parsed = definition.recipeSchema.safeParse(row.recipe);
+
+  return parsed.success ? definition.seedOf(parsed.data) : null;
 }
 
 /**

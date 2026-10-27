@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRightIcon } from "lucide-react";
-import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -9,6 +9,10 @@ import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import type { CharacterSummary } from "#/features/characters";
+import {
+  StoryboardFrame,
+  useStoryboardRead,
+} from "#/features/storyboard/components/storyboard-frame";
 import { StylePicker } from "#/features/storyboard/components/style-picker";
 import {
   CARD_COUNT,
@@ -21,23 +25,27 @@ import {
   fetchStoryboards,
   postStoryboard,
 } from "#/features/storyboard/storyboard-client";
-import { AccessCodeDialog, AccessStatus } from "#/shared/components/access-code-dialog";
-import { Hud, PageGlow } from "#/shared/components/brand";
-import { SiteHeader } from "#/shared/components/site";
+import { Hud } from "#/shared/components/brand";
 import { mediaUrl } from "#/shared/media";
-import type { Refusal } from "#/shared/requests";
-import { useAccessCode } from "#/shared/use-access-code";
-import { useRequestSignal } from "#/shared/use-request-signal";
-
-type Loaded =
-  | { kind: "loading" }
-  | { kind: "access" }
-  | { kind: "error"; refusal: Refusal }
-  | { characters: CharacterSummary[]; kind: "ready"; list: StoryboardList };
 
 type SceneSource = "model" | "manual";
 
+type HomeData = { characters: CharacterSummary[]; list: StoryboardList };
+
 const emptyScenes = () => Array.from({ length: CARD_COUNT }, () => "");
+
+/** The workspace's storyboards and the characters to start one from, read together. */
+async function readHome(signal: AbortSignal) {
+  const [list, characters] = await Promise.all([fetchStoryboards(signal), fetchCharacters(signal)]);
+
+  if (!("data" in list)) {
+    return list;
+  }
+
+  return "data" in characters
+    ? { data: { characters: characters.data.characters, list: list.data } }
+    : characters;
+}
 
 /**
  * `/storyboards`: a new storyboard (a library character, a short sequence, a style, and either
@@ -45,89 +53,27 @@ const emptyScenes = () => Array.from({ length: CARD_COUNT }, () => "");
  * recently changed first, each linking to its page. One workspace per installation.
  */
 export function StoryboardHome() {
-  const [state, setState] = useState<Loaded>({ kind: "loading" });
-  const [version, setVersion] = useState(0);
-  const nextSignal = useRequestSignal();
-  const access = useAccessCode();
-  const reload = useCallback(() => setVersion((current) => current + 1), []);
-
-  const askForCode = useCallback(
-    () => access.hold("storyboards", "unlock", reload),
-    [access.hold, reload],
-  );
-
-  useEffect(() => {
-    const signal = nextSignal();
-
-    void Promise.all([fetchStoryboards(signal), fetchCharacters(signal)]).then(
-      ([list, characters]) => {
-        if (signal.aborted) {
-          return;
-        }
-
-        if ("data" in list && "data" in characters) {
-          setState({ characters: characters.data.characters, kind: "ready", list: list.data });
-        } else {
-          const refused =
-            "refusal" in list ? list.refusal : "refusal" in characters ? characters.refusal : null;
-
-          setState(
-            refused?.reason === "access_required"
-              ? { kind: "access" }
-              : { kind: "error", refusal: refused ?? { message: "The request failed." } },
-          );
-        }
-      },
-    );
-  }, [nextSignal, version]);
+  const { reload, state } = useStoryboardRead<HomeData>(readHome, () => false);
 
   return (
-    <div className="relative isolate min-h-svh">
-      <PageGlow />
-      <SiteHeader category="Image">
-        {state.kind !== "loading" && (
-          <AccessStatus onOpen={askForCode} signedIn={state.kind !== "access"} />
-        )}
-      </SiteHeader>
-      <main className="mx-auto flex w-full max-w-330 flex-col gap-10 px-4 py-8 sm:px-8 sm:py-12">
-        <div className="flex flex-col gap-4">
-          <Hud>Storyboard</Hud>
-          <h1 className="font-display text-4xl leading-none font-bold tracking-display sm:text-5xl">
-            Storyboards
-          </h1>
-          <p className="max-w-2xl text-soft-foreground">
-            Pick a character, describe a short sequence, and get four scene cards you can edit and
-            render one by one, the character kept from card to card.
-          </p>
-        </div>
-
-        {state.kind === "loading" && (
-          <p className="text-muted-foreground" role="status">
-            Loading storyboards…
-          </p>
-        )}
-        {state.kind === "access" && (
-          <div className="flex flex-col items-start gap-3">
-            <p className="text-soft-foreground">Enter the access code to make storyboards.</p>
-            <Button onClick={askForCode} variant="outline">
-              Enter code
-            </Button>
+    <StoryboardFrame holdKey="storyboards" noun="storyboards" reload={reload} state={state}>
+      {({ characters, list }, askForCode) => (
+        <>
+          <div className="flex flex-col gap-4">
+            <Hud>Storyboard</Hud>
+            <h1 className="font-display text-4xl leading-none font-bold tracking-display sm:text-5xl">
+              Storyboards
+            </h1>
+            <p className="max-w-2xl text-soft-foreground">
+              Pick a character, describe a short sequence, and get four scene cards you can edit and
+              render one by one, the character kept from card to card.
+            </p>
           </div>
-        )}
-        {state.kind === "error" && (
-          <p className="text-destructive-foreground" role="alert">
-            {state.refusal.message}
-          </p>
-        )}
-        {state.kind === "ready" && (
-          <>
-            <NewStoryboard characters={state.characters} onAccess={askForCode} />
-            <StoryboardIndex list={state.list} />
-          </>
-        )}
-      </main>
-      <AccessCodeDialog {...access.dialog} />
-    </div>
+          <NewStoryboard characters={characters} onAccess={askForCode} />
+          <StoryboardIndex list={list} />
+        </>
+      )}
+    </StoryboardFrame>
   );
 }
 

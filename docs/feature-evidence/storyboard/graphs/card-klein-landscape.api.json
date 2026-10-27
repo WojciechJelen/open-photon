@@ -32,10 +32,7 @@
   "4": {
     "inputs": {
       "text": "Place this person on a sunny city street.",
-      "clip": [
-        "2",
-        0
-      ]
+      "clip": ["2", 0]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
@@ -44,10 +41,7 @@
   },
   "32": {
     "inputs": {
-      "conditioning": [
-        "4",
-        0
-      ]
+      "conditioning": ["4", 0]
     },
     "class_type": "ConditioningZeroOut"
   },
@@ -64,22 +58,10 @@
     "inputs": {
       "resolution": "resize",
       "resolution.megapixels": 1,
-      "positive": [
-        "4",
-        0
-      ],
-      "negative": [
-        "32",
-        0
-      ],
-      "vae": [
-        "3",
-        0
-      ],
-      "images.image0": [
-        "11",
-        0
-      ]
+      "positive": ["4", 0],
+      "negative": ["32", 0],
+      "vae": ["3", 0],
+      "images.image0": ["11", 0]
     },
     "class_type": "ReferenceMultiLatent"
   },
@@ -91,22 +73,10 @@
       "sampler_name": "euler",
       "scheduler": "simple",
       "denoise": 1,
-      "model": [
-        "1",
-        0
-      ],
-      "positive": [
-        "17",
-        0
-      ],
-      "negative": [
-        "17",
-        1
-      ],
-      "latent_image": [
-        "44",
-        0
-      ]
+      "model": ["1", 0],
+      "positive": ["17", 0],
+      "negative": ["17", 1],
+      "latent_image": ["44", 0]
     },
     "class_type": "KSampler",
     "_meta": {
@@ -115,14 +85,8 @@
   },
   "8": {
     "inputs": {
-      "samples": [
-        "7",
-        0
-      ],
-      "vae": [
-        "3",
-        0
-      ]
+      "samples": ["7", 0],
+      "vae": ["3", 0]
     },
     "class_type": "VAEDecode",
     "_meta": {
@@ -132,10 +96,7 @@
   "9": {
     "inputs": {
       "filename_prefix": "storyboard_card",
-      "images": [
-        "8",
-        0
-      ]
+      "images": ["8", 0]
     },
     "class_type": "SaveImage"
   },
