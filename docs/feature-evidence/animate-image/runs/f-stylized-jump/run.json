@@ -1,0 +1,41 @@
+{
+  "owner": "animate-image",
+  "label": "f-stylized-jump",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/graphs/wan22-i2v-14b-4step.api.json",
+  "sets": [
+    "4.text=The cartoon boy in the teal tracksuit crouches, jumps up high with both arms raised in joy, and lands back on his feet, then gives a thumbs up. 3D animation style, static camera, full body in frame.",
+    "6.width=480",
+    "6.height=848",
+    "13.noise_seed=106"
+  ],
+  "images": [
+    {
+      "node": "1",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/src/features/characters/samples/characters/theo.png",
+      "ref_id": "003cb473-893e-4eea-b473-b56353f3c0ad"
+    }
+  ],
+  "balance_before_cents": 7320.556434660501,
+  "job_id": "52690d28-0777-4061-bfdc-ffef97919040",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.928,
+    "submit_to_done": 27.296,
+    "queued_before_running_observed": 2.946
+  },
+  "outputs": [
+    {
+      "node": "17",
+      "index": 0,
+      "name": "video/animate-image_00001_.mp4",
+      "contentType": "video/mp4",
+      "bytes": 1036144,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/runs/f-stylized-jump/17-0-animate-image_00001_.mp4"
+    }
+  ],
+  "balance_after_cents": 7317.487221335,
+  "balance_delta_cents": 3.0692
+}

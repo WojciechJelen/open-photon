@@ -1,0 +1,41 @@
+{
+  "owner": "animate-image",
+  "label": "a-fullbody-wave",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/graphs/wan22-i2v-14b-4step.api.json",
+  "sets": [
+    "4.text=The young woman in the yellow hoodie raises her right hand and waves at the camera, smiling warmly, then lowers her hand back to her side. She stays in place. Static camera, full body in frame, natural motion.",
+    "6.width=480",
+    "6.height=848",
+    "13.noise_seed=101"
+  ],
+  "images": [
+    {
+      "node": "1",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/src/features/characters/samples/characters/maya.png",
+      "ref_id": "7f901f52-d83a-45c2-b426-dc768bf2a4a8"
+    }
+  ],
+  "balance_before_cents": 7375.6158066925,
+  "job_id": "2eb6acba-2aa8-4fd1-a8bc-b8c1fc8c49eb",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.061,
+    "submit_to_done": 35.754,
+    "queued_before_running_observed": 5.392
+  },
+  "outputs": [
+    {
+      "node": "17",
+      "index": 0,
+      "name": "video/animate-image_00001_.mp4",
+      "contentType": "video/mp4",
+      "bytes": 768491,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/runs/a-fullbody-wave/17-0-animate-image_00001_.mp4"
+    }
+  ],
+  "balance_after_cents": 7371.503315985,
+  "balance_delta_cents": 4.1125
+}
