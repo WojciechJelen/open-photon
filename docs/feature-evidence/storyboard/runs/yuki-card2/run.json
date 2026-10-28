@@ -1,0 +1,39 @@
+{
+  "owner": "storyboard",
+  "label": "yuki-card2",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/work/feature-evidence/storyboard/graphs/card-klein-landscape.api.json",
+  "sets": [
+    "4.text=A storyboard frame. The character is the person in the reference image. Medium shot in the same wet alley, the character leaps into the air over a large puddle, the red umbrella twisting violently in the wind while the lantern drifts low. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "7.seed=424242"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/src/features/characters/samples/characters/yuki.png",
+      "ref_id": "3af12664-2380-4851-aeed-5b4a6958f036"
+    }
+  ],
+  "balance_before_cents": 7107.287062201,
+  "job_id": "86c0237e-c14f-4255-9045-725db6ccc728",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.029,
+    "submit_to_done": 8.246,
+    "queued_before_running_observed": 2.95
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "storyboard_card_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1596548,
+      "file": "9-0-storyboard_card_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7106.773957301,
+  "balance_delta_cents": 0.5131
+}

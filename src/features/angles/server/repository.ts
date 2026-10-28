@@ -93,20 +93,6 @@ export function listSets(limit: number) {
   return z.array(setRowSchema).parse(rows);
 }
 
-/**
- * The newest child (`parent_id`) of a failed or cancelled generation: the shared retry (a new
- * seed) or re-run (the same one), from the set's page or the view's `/g/:id`; `null` for none.
- */
-export function findChild(generationId: string) {
-  const row = database
-    .prepare(
-      "SELECT id FROM generations WHERE parent_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1",
-    )
-    .get(generationId);
-
-  return row ? z.object({ id: z.uuid() }).parse(row).id : null;
-}
-
 /** The library character saved from a view's generation, `null` until one is. */
 export function findSavedCharacter(generationId: string) {
   const row = database

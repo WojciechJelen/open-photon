@@ -18,7 +18,8 @@ type ToolPath =
   | "/characters/new"
   | "/motionTransfer"
   | "/photoshoot"
-  | "/presets";
+  | "/presets"
+  | "/storyboards";
 
 /** A category of the main navigation that has shipped tools. */
 export type NavigationCategory = "Image" | "Library" | "Video";
@@ -58,6 +59,12 @@ const navigation: NavigationEntry[] = [
         icon: "createCharacter",
         label: "Shots & Angles",
         to: "/angles",
+      },
+      {
+        description: "Tell a short sequence in four scenes of one character.",
+        icon: "createCharacter",
+        label: "Storyboard",
+        to: "/storyboards",
       },
     ],
   },

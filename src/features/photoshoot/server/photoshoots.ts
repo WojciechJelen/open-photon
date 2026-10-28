@@ -7,7 +7,7 @@ import type { Session } from "../../../shared/server/access.server.ts";
 import type { Provider } from "../../../shared/server/comfy-provider.ts";
 import { database } from "../../../shared/server/db.server.ts";
 import { GenerateError } from "../../../shared/server/generation/errors.ts";
-import { findGeneration, snapshot } from "../../../shared/server/generation/generations.ts";
+import { findLatestAttempt, snapshot } from "../../../shared/server/generation/generations.ts";
 import { type Admit, submitMany } from "../../../shared/server/generation/service.ts";
 import { transaction } from "../../../shared/server/migrate.ts";
 import { createFromGeneration, getCharacter } from "../../characters/api.ts";
@@ -24,7 +24,6 @@ import {
   findShots,
   insertPhotoshoot,
   listPhotoshoots,
-  newestChild,
   type PhotoshootItemRow,
   type PhotoshootRow,
 } from "./repository.ts";
@@ -37,26 +36,13 @@ const LISTED = 30;
  * generation's newest child (the shared retry or re-run) to the latest attempt.
  */
 function currentAttempt(shot: PhotoshootItemRow) {
-  let row = findGeneration(shot.generation_id);
-  let attempt = 0;
+  const current = findLatestAttempt(shot.generation_id);
 
-  while (row?.status === "failed" || row?.status === "cancelled") {
-    const child = newestChild(row.id);
-    const next = child ? findGeneration(child) : null;
-
-    if (!next) {
-      break;
-    }
-
-    row = next;
-    attempt += 1;
-  }
-
-  if (!row) {
+  if (!current) {
     throw new Error(`Photoshoot shot ${shot.position} names no stored generation`);
   }
 
-  return { attempt, row };
+  return current;
 }
 
 /** The photographed character as the page shows it, `null` once it cannot be read. */

@@ -13,7 +13,7 @@ import {
 } from "../../../shared/server/generation/definition.ts";
 import { GenerateError } from "../../../shared/server/generation/errors.ts";
 import {
-  findGeneration,
+  findLatestAttempt,
   type Generation,
   snapshot,
 } from "../../../shared/server/generation/generations.ts";
@@ -27,7 +27,6 @@ import {
   findBatch,
   findBatchByKey,
   findItems,
-  findRetry,
   insertBatch,
   type ItemRow,
   listBatches,
@@ -70,26 +69,13 @@ function generationInput(draft: DraftSnapshot) {
  * generation's child (the shared retry or re-run) to the latest attempt, and how many that took.
  */
 function currentGeneration(item: ItemRow) {
-  let row = findGeneration(item.generation_id);
-  let attempt = 0;
+  const current = findLatestAttempt(item.generation_id);
 
-  while (row && (row.status === "failed" || row.status === "cancelled")) {
-    const retry = findRetry(row.id);
-    const next = retry ? findGeneration(retry) : null;
-
-    if (!next) {
-      break;
-    }
-
-    row = next;
-    attempt += 1;
-  }
-
-  if (!row) {
+  if (!current) {
     throw new Error(`Batch item ${item.position} names no stored generation`);
   }
 
-  return { attempt, row };
+  return current;
 }
 
 /** The seed a generation renders with, read from its recipe by its workflow (`seedOf`). */

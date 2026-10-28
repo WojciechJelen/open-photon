@@ -100,17 +100,3 @@ export function listPhotoshoots(limit: number) {
         .all(limit),
     );
 }
-
-/**
- * The newest child of a generation (`parent_id`): the shared retry (a new seed) or re-run (the
- * same seed) of a failed or cancelled shot, made here or from the generation's own page.
- */
-export function newestChild(generationId: string) {
-  const row = database
-    .prepare(
-      "SELECT id FROM generations WHERE parent_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1",
-    )
-    .get(generationId);
-
-  return row ? z.object({ id: z.uuid() }).parse(row).id : null;
-}

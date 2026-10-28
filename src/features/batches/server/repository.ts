@@ -123,19 +123,3 @@ export function listBatches(limit: number) {
         .all(limit),
     );
 }
-
-/**
- * The latest attempt after a failed or cancelled generation: its newest child (`parent_id`),
- * made here or from the take's page. That is a retry (a new seed) or a re-run (the same seed;
- * the shared service makes a child of a failed generation for one too): either renders the take
- * again.
- */
-export function findRetry(generationId: string) {
-  const row = database
-    .prepare(
-      "SELECT id FROM generations WHERE parent_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1",
-    )
-    .get(generationId);
-
-  return row ? z.object({ id: z.uuid() }).parse(row).id : null;
-}

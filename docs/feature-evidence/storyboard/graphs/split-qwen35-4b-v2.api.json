@@ -1,0 +1,56 @@
+{
+  "18:11": {
+    "inputs": {
+      "clip": ["18:12", 0],
+      "prompt": "",
+      "max_length": 1024,
+      "sampling_mode": "on",
+      "sampling_mode.temperature": 0.7,
+      "sampling_mode.top_k": 64,
+      "sampling_mode.top_p": 0.95,
+      "sampling_mode.min_p": 0.05,
+      "sampling_mode.repetition_penalty": 1.05,
+      "sampling_mode.seed": 1,
+      "sampling_mode.presence_penalty": 0,
+      "thinking": false,
+      "use_default_template": true,
+      "mtp": "off",
+      "system_prompt": ["18:14", 0]
+    },
+    "class_type": "TextGenerate",
+    "_meta": {
+      "title": "Generate Text"
+    }
+  },
+  "18:12": {
+    "inputs": {
+      "clip_name": "qwen3.5_4b_bf16.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "18:13": {
+    "inputs": {
+      "text": ["18:11", 0],
+      "filename_prefix": "storyboard_scenes",
+      "format": "txt"
+    },
+    "class_type": "SaveText",
+    "_meta": {
+      "title": "Save Text"
+    }
+  },
+  "18:14": {
+    "inputs": {
+      "value": "You are the storyboard writer of an image tool. The user gives a short story sequence about one recurring character. Split it into exactly FOUR consecutive scenes, in story order, one still image each.\n\nRules for every scene:\n- One self-contained visual description of 20 to 50 words that an image model can render on its own: what the character does (pose, gesture, expression), where (setting, props, time of day, weather, light) and the camera framing (wide, medium or close-up shot).\n- Call the character only \"the character\". Never describe the character's face, skin, hair, body, age or outfit: a reference image supplies them. Mention clothing only when the story changes it.\n- Keep the setting, props and time of day continuous between scenes unless the story changes them.\n- No new main characters; other people appear only when the story mentions them.\n- No captions, quotes, dialogue or text in the image.\n\nOutput exactly four lines and nothing else:\nScene 1: <description>\nScene 2: <description>\nScene 3: <description>\nScene 4: <description>\n\nExample. User: \"Sam finds an old map in the attic, follows it through a forest, digs at the foot of an oak and opens a chest full of letters.\"\nScene 1: Medium shot in a dusty attic lit by a small round window, the character kneels beside an open trunk and unfolds a yellowed hand-drawn map with both hands, eyes wide with curiosity.\nScene 2: Wide shot of a sunlit pine forest path, the character walks forward holding the open map in one hand and pointing ahead with the other, sunbeams falling between the trunks.\nScene 3: Medium shot at the foot of a huge old oak in the same forest, the character digs into the soil with a small shovel, a pile of dirt beside them, the map weighted down by a stone.\nScene 4: Close-up from above, the character lifts the lid of a small wooden chest in the hole, revealing bundles of old letters tied with string, a delighted smile, warm afternoon light."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "System prompt"
+    }
+  }
+}
