@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p3-photo-outdoors-2",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=Three-quarter-length shot: the person from the reference image outdoors in nature. The person is sitting on a fallen log on a forest path with hands clasped; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: cool shade with shafts of sunlight through the trees. Keep the exact visual style and medium of the reference image: a drawing or anime illustration stays a drawing in the same style, a 3D render stays a 3D render, a photo stays a photo. Keep exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories. One person only, natural anatomy with complete hands.",
+    "7.seed=1003"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/inputs/photo-ref/9-0-image_flux3_klein_distilled_t2i_00001_.png",
+      "ref_id": "5eac51c0-3aac-4c4a-ac08-f0221f61b1c7"
+    }
+  ],
+  "balance_before_cents": 7037.652549991501,
+  "job_id": "e6437e73-1466-4ae1-9174-11510ee14d90",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 4.786,
+    "submit_to_done": 10.514,
+    "queued_before_running_observed": 3.046
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1883660,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/photo-outdoors-2/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1156,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/photo-outdoors-2/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7036.8737445025,
+  "balance_delta_cents": 0.7788
+}

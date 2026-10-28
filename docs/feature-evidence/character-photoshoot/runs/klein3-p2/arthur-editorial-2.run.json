@@ -1,0 +1,39 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3-p2-arthur-editorial-2",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/klein3-edit.api.json",
+  "sets": [
+    "4.text=A full-body shot from below photograph in a high-end fashion magazine editorial set in an elegant interior. The person is standing on a sweeping marble staircase with one hand on the banister, looking back over the shoulder; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: warm chandelier light and deep shadows. The person is the one in the reference image, keeping exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories, rendered in the same visual style as the reference. One person only, natural anatomy with complete hands.",
+    "7.seed=1003"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/arthur.png",
+      "ref_id": "cad5f157-a0d2-4cb9-a84e-f18e8c980e19"
+    }
+  ],
+  "balance_before_cents": 7334.9845997195,
+  "job_id": "f02720a8-afaf-48b5-8c97-65a9f11be69d",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.897,
+    "submit_to_done": 23.377,
+    "queued_before_running_observed": 13.555
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "photoshoot_klein3_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1643872,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3-p2/arthur-editorial-2/9-0-photoshoot_klein3_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7333.9131128345,
+  "balance_delta_cents": 1.0715
+}

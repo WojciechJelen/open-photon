@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRightIcon,
+  CameraIcon,
   ClapperboardIcon,
   CpuIcon,
   FileCodeIcon,
@@ -106,6 +107,13 @@ const characterTools = [
     text: "Describe a character, refine the caption, and render a full-body photo ready for Motion Transfer.",
     title: "Describe a character",
     to: "/characters/new",
+  },
+  {
+    icon: <CameraIcon />,
+    model: "FLUX 3 Image Klein edit",
+    text: "Photograph a library character in a studio, street, editorial or outdoor setting: four poses and lights, same face and outfit.",
+    title: "Character photoshoot",
+    to: "/photoshoot",
   },
   {
     icon: <LibraryIcon />,

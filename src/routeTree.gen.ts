@@ -22,6 +22,7 @@ import { Route as ApiCharacterGenerationsRouteImport } from './routes/api.charac
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiGenerateRouteImport } from './routes/api.generate'
 import { Route as ApiImageUploadsRouteImport } from './routes/api.image-uploads'
+import { Route as ApiPhotoshootsRouteImport } from './routes/api.photoshoots'
 import { Route as ApiShareOriginRouteImport } from './routes/api.share-origin'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as BatchesIndexRouteImport } from './routes/batches.index'
@@ -32,6 +33,8 @@ import { Route as ExploreIndexRouteImport } from './routes/explore.index'
 import { Route as ExploreSlugRouteImport } from './routes/explore.$slug'
 import { Route as GGenerationIdRouteImport } from './routes/g.$generationId'
 import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
+import { Route as PhotoshootIndexRouteImport } from './routes/photoshoot.index'
+import { Route as PhotoshootPhotoshootIdRouteImport } from './routes/photoshoot.$photoshootId'
 import { Route as PresetsIndexRouteImport } from './routes/presets.index'
 import { Route as PresetsPresetIdRouteImport } from './routes/presets.$presetId'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
@@ -41,6 +44,7 @@ import { Route as ApiCharactersCharacterIdRouteImport } from './routes/api.chara
 import { Route as ApiDebugHeartbeatRouteImport } from './routes/api.debug.heartbeat'
 import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
 import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
+import { Route as ApiPhotoshootsPhotoshootIdRouteImport } from './routes/api.photoshoots.$photoshootId'
 import { Route as ApiAssetsAssetIdTrimRouteImport } from './routes/api.assets.$assetId.trim'
 import { Route as ApiCharacterGenerationsGenerationIdCharacterRouteImport } from './routes/api.character-generations.$generationId.character'
 import { Route as ApiGenerationsGenerationIdEventsRouteImport } from './routes/api.generations.$generationId.events'
@@ -48,6 +52,7 @@ import { Route as ApiGenerationsGenerationIdPublishRouteImport } from './routes/
 import { Route as ApiGenerationsGenerationIdRecipeDotjsonRouteImport } from './routes/api.generations.$generationId.recipe[.]json'
 import { Route as ApiGenerationsGenerationIdRerunRouteImport } from './routes/api.generations.$generationId.rerun'
 import { Route as ApiGenerationsGenerationIdRetryRouteImport } from './routes/api.generations.$generationId.retry'
+import { Route as ApiPhotoshootsPhotoshootIdCharacterRouteImport } from './routes/api.photoshoots.$photoshootId.character'
 import { Route as ApiPresetsPresetIdGenerationsRouteImport } from './routes/api.presets.$presetId.generations'
 import { Route as ApiAngleSetsAngleSetIdItemsPositionCharacterRouteImport } from './routes/api.angle-sets.$angleSetId.items.$position.character'
 
@@ -116,6 +121,11 @@ const ApiImageUploadsRoute = ApiImageUploadsRouteImport.update({
   path: '/api/image-uploads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPhotoshootsRoute = ApiPhotoshootsRouteImport.update({
+  id: '/api/photoshoots',
+  path: '/api/photoshoots',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiShareOriginRoute = ApiShareOriginRouteImport.update({
   id: '/api/share-origin',
   path: '/api/share-origin',
@@ -166,6 +176,16 @@ const MediaFilenameRoute = MediaFilenameRouteImport.update({
   path: '/media/$filename',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PhotoshootIndexRoute = PhotoshootIndexRouteImport.update({
+  id: '/photoshoot/',
+  path: '/photoshoot/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PhotoshootPhotoshootIdRoute = PhotoshootPhotoshootIdRouteImport.update({
+  id: '/photoshoot/$photoshootId',
+  path: '/photoshoot/$photoshootId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PresetsIndexRoute = PresetsIndexRouteImport.update({
   id: '/presets/',
   path: '/presets/',
@@ -213,6 +233,12 @@ const ApiGenerationsGenerationIdRoute =
     path: '/api/generations/$generationId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPhotoshootsPhotoshootIdRoute =
+  ApiPhotoshootsPhotoshootIdRouteImport.update({
+    id: '/$photoshootId',
+    path: '/$photoshootId',
+    getParentRoute: () => ApiPhotoshootsRoute,
+  } as any)
 const ApiAssetsAssetIdTrimRoute = ApiAssetsAssetIdTrimRouteImport.update({
   id: '/api/assets/$assetId/trim',
   path: '/api/assets/$assetId/trim',
@@ -254,6 +280,12 @@ const ApiGenerationsGenerationIdRetryRoute =
     path: '/retry',
     getParentRoute: () => ApiGenerationsGenerationIdRoute,
   } as any)
+const ApiPhotoshootsPhotoshootIdCharacterRoute =
+  ApiPhotoshootsPhotoshootIdCharacterRouteImport.update({
+    id: '/character',
+    path: '/character',
+    getParentRoute: () => ApiPhotoshootsPhotoshootIdRoute,
+  } as any)
 const ApiPresetsPresetIdGenerationsRoute =
   ApiPresetsPresetIdGenerationsRouteImport.update({
     id: '/api/presets/$presetId/generations',
@@ -280,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/image-uploads': typeof ApiImageUploadsRoute
+  '/api/photoshoots': typeof ApiPhotoshootsRouteWithChildren
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
@@ -287,12 +320,14 @@ export interface FileRoutesByFullPath {
   '/explore/$slug': typeof ExploreSlugRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
+  '/photoshoot/$photoshootId': typeof PhotoshootPhotoshootIdRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
   '/angles/': typeof AnglesIndexRoute
   '/batches/': typeof BatchesIndexRoute
   '/characters/': typeof CharactersIndexRoute
   '/explore/': typeof ExploreIndexRoute
+  '/photoshoot/': typeof PhotoshootIndexRoute
   '/presets/': typeof PresetsIndexRoute
   '/api/angle-sets/$angleSetId': typeof ApiAngleSetsAngleSetIdRouteWithChildren
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
@@ -300,6 +335,7 @@ export interface FileRoutesByFullPath {
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
+  '/api/photoshoots/$photoshootId': typeof ApiPhotoshootsPhotoshootIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
@@ -307,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/api/generations/$generationId/recipe.json': typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
+  '/api/photoshoots/$photoshootId/character': typeof ApiPhotoshootsPhotoshootIdCharacterRoute
   '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
   '/api/angle-sets/$angleSetId/items/$position/character': typeof ApiAngleSetsAngleSetIdItemsPositionCharacterRoute
 }
@@ -323,6 +360,7 @@ export interface FileRoutesByTo {
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/image-uploads': typeof ApiImageUploadsRoute
+  '/api/photoshoots': typeof ApiPhotoshootsRouteWithChildren
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
@@ -330,12 +368,14 @@ export interface FileRoutesByTo {
   '/explore/$slug': typeof ExploreSlugRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
+  '/photoshoot/$photoshootId': typeof PhotoshootPhotoshootIdRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
   '/angles': typeof AnglesIndexRoute
   '/batches': typeof BatchesIndexRoute
   '/characters': typeof CharactersIndexRoute
   '/explore': typeof ExploreIndexRoute
+  '/photoshoot': typeof PhotoshootIndexRoute
   '/presets': typeof PresetsIndexRoute
   '/api/angle-sets/$angleSetId': typeof ApiAngleSetsAngleSetIdRouteWithChildren
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
@@ -343,6 +383,7 @@ export interface FileRoutesByTo {
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
+  '/api/photoshoots/$photoshootId': typeof ApiPhotoshootsPhotoshootIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
@@ -350,6 +391,7 @@ export interface FileRoutesByTo {
   '/api/generations/$generationId/recipe.json': typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
+  '/api/photoshoots/$photoshootId/character': typeof ApiPhotoshootsPhotoshootIdCharacterRoute
   '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
   '/api/angle-sets/$angleSetId/items/$position/character': typeof ApiAngleSetsAngleSetIdItemsPositionCharacterRoute
 }
@@ -367,6 +409,7 @@ export interface FileRoutesById {
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
   '/api/image-uploads': typeof ApiImageUploadsRoute
+  '/api/photoshoots': typeof ApiPhotoshootsRouteWithChildren
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
@@ -374,12 +417,14 @@ export interface FileRoutesById {
   '/explore/$slug': typeof ExploreSlugRoute
   '/g/$generationId': typeof GGenerationIdRoute
   '/media/$filename': typeof MediaFilenameRoute
+  '/photoshoot/$photoshootId': typeof PhotoshootPhotoshootIdRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
   '/angles/': typeof AnglesIndexRoute
   '/batches/': typeof BatchesIndexRoute
   '/characters/': typeof CharactersIndexRoute
   '/explore/': typeof ExploreIndexRoute
+  '/photoshoot/': typeof PhotoshootIndexRoute
   '/presets/': typeof PresetsIndexRoute
   '/api/angle-sets/$angleSetId': typeof ApiAngleSetsAngleSetIdRouteWithChildren
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
@@ -387,6 +432,7 @@ export interface FileRoutesById {
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
   '/api/debug/streams': typeof ApiDebugStreamsRoute
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
+  '/api/photoshoots/$photoshootId': typeof ApiPhotoshootsPhotoshootIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
   '/api/generations/$generationId/events': typeof ApiGenerationsGenerationIdEventsRoute
@@ -394,6 +440,7 @@ export interface FileRoutesById {
   '/api/generations/$generationId/recipe.json': typeof ApiGenerationsGenerationIdRecipeDotjsonRoute
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
+  '/api/photoshoots/$photoshootId/character': typeof ApiPhotoshootsPhotoshootIdCharacterRoute
   '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
   '/api/angle-sets/$angleSetId/items/$position/character': typeof ApiAngleSetsAngleSetIdItemsPositionCharacterRoute
 }
@@ -412,6 +459,7 @@ export interface FileRouteTypes {
     | '/api/characters'
     | '/api/generate'
     | '/api/image-uploads'
+    | '/api/photoshoots'
     | '/api/share-origin'
     | '/api/uploads'
     | '/batches/$batchId'
@@ -419,12 +467,14 @@ export interface FileRouteTypes {
     | '/explore/$slug'
     | '/g/$generationId'
     | '/media/$filename'
+    | '/photoshoot/$photoshootId'
     | '/presets/$presetId'
     | '/r/$slug'
     | '/angles/'
     | '/batches/'
     | '/characters/'
     | '/explore/'
+    | '/photoshoot/'
     | '/presets/'
     | '/api/angle-sets/$angleSetId'
     | '/api/batches/$batchId'
@@ -432,6 +482,7 @@ export interface FileRouteTypes {
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
+    | '/api/photoshoots/$photoshootId'
     | '/api/assets/$assetId/trim'
     | '/api/character-generations/$generationId/character'
     | '/api/generations/$generationId/events'
@@ -439,6 +490,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/recipe.json'
     | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
+    | '/api/photoshoots/$photoshootId/character'
     | '/api/presets/$presetId/generations'
     | '/api/angle-sets/$angleSetId/items/$position/character'
   fileRoutesByTo: FileRoutesByTo
@@ -455,6 +507,7 @@ export interface FileRouteTypes {
     | '/api/characters'
     | '/api/generate'
     | '/api/image-uploads'
+    | '/api/photoshoots'
     | '/api/share-origin'
     | '/api/uploads'
     | '/batches/$batchId'
@@ -462,12 +515,14 @@ export interface FileRouteTypes {
     | '/explore/$slug'
     | '/g/$generationId'
     | '/media/$filename'
+    | '/photoshoot/$photoshootId'
     | '/presets/$presetId'
     | '/r/$slug'
     | '/angles'
     | '/batches'
     | '/characters'
     | '/explore'
+    | '/photoshoot'
     | '/presets'
     | '/api/angle-sets/$angleSetId'
     | '/api/batches/$batchId'
@@ -475,6 +530,7 @@ export interface FileRouteTypes {
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
+    | '/api/photoshoots/$photoshootId'
     | '/api/assets/$assetId/trim'
     | '/api/character-generations/$generationId/character'
     | '/api/generations/$generationId/events'
@@ -482,6 +538,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/recipe.json'
     | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
+    | '/api/photoshoots/$photoshootId/character'
     | '/api/presets/$presetId/generations'
     | '/api/angle-sets/$angleSetId/items/$position/character'
   id:
@@ -498,6 +555,7 @@ export interface FileRouteTypes {
     | '/api/characters'
     | '/api/generate'
     | '/api/image-uploads'
+    | '/api/photoshoots'
     | '/api/share-origin'
     | '/api/uploads'
     | '/batches/$batchId'
@@ -505,12 +563,14 @@ export interface FileRouteTypes {
     | '/explore/$slug'
     | '/g/$generationId'
     | '/media/$filename'
+    | '/photoshoot/$photoshootId'
     | '/presets/$presetId'
     | '/r/$slug'
     | '/angles/'
     | '/batches/'
     | '/characters/'
     | '/explore/'
+    | '/photoshoot/'
     | '/presets/'
     | '/api/angle-sets/$angleSetId'
     | '/api/batches/$batchId'
@@ -518,6 +578,7 @@ export interface FileRouteTypes {
     | '/api/debug/heartbeat'
     | '/api/debug/streams'
     | '/api/generations/$generationId'
+    | '/api/photoshoots/$photoshootId'
     | '/api/assets/$assetId/trim'
     | '/api/character-generations/$generationId/character'
     | '/api/generations/$generationId/events'
@@ -525,6 +586,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/recipe.json'
     | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
+    | '/api/photoshoots/$photoshootId/character'
     | '/api/presets/$presetId/generations'
     | '/api/angle-sets/$angleSetId/items/$position/character'
   fileRoutesById: FileRoutesById
@@ -542,6 +604,7 @@ export interface RootRouteChildren {
   ApiCharactersRoute: typeof ApiCharactersRouteWithChildren
   ApiGenerateRoute: typeof ApiGenerateRoute
   ApiImageUploadsRoute: typeof ApiImageUploadsRoute
+  ApiPhotoshootsRoute: typeof ApiPhotoshootsRouteWithChildren
   ApiShareOriginRoute: typeof ApiShareOriginRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   BatchesBatchIdRoute: typeof BatchesBatchIdRoute
@@ -549,12 +612,14 @@ export interface RootRouteChildren {
   ExploreSlugRoute: typeof ExploreSlugRoute
   GGenerationIdRoute: typeof GGenerationIdRoute
   MediaFilenameRoute: typeof MediaFilenameRoute
+  PhotoshootPhotoshootIdRoute: typeof PhotoshootPhotoshootIdRoute
   PresetsPresetIdRoute: typeof PresetsPresetIdRoute
   RSlugRoute: typeof RSlugRoute
   AnglesIndexRoute: typeof AnglesIndexRoute
   BatchesIndexRoute: typeof BatchesIndexRoute
   CharactersIndexRoute: typeof CharactersIndexRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
+  PhotoshootIndexRoute: typeof PhotoshootIndexRoute
   PresetsIndexRoute: typeof PresetsIndexRoute
   ApiDebugHeartbeatRoute: typeof ApiDebugHeartbeatRoute
   ApiDebugStreamsRoute: typeof ApiDebugStreamsRoute
@@ -656,6 +721,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiImageUploadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/photoshoots': {
+      id: '/api/photoshoots'
+      path: '/api/photoshoots'
+      fullPath: '/api/photoshoots'
+      preLoaderRoute: typeof ApiPhotoshootsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/share-origin': {
       id: '/api/share-origin'
       path: '/api/share-origin'
@@ -726,6 +798,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MediaFilenameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/photoshoot/': {
+      id: '/photoshoot/'
+      path: '/photoshoot'
+      fullPath: '/photoshoot/'
+      preLoaderRoute: typeof PhotoshootIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/photoshoot/$photoshootId': {
+      id: '/photoshoot/$photoshootId'
+      path: '/photoshoot/$photoshootId'
+      fullPath: '/photoshoot/$photoshootId'
+      preLoaderRoute: typeof PhotoshootPhotoshootIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/presets/': {
       id: '/presets/'
       path: '/presets'
@@ -789,6 +875,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerationsGenerationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/photoshoots/$photoshootId': {
+      id: '/api/photoshoots/$photoshootId'
+      path: '/$photoshootId'
+      fullPath: '/api/photoshoots/$photoshootId'
+      preLoaderRoute: typeof ApiPhotoshootsPhotoshootIdRouteImport
+      parentRoute: typeof ApiPhotoshootsRoute
+    }
     '/api/assets/$assetId/trim': {
       id: '/api/assets/$assetId/trim'
       path: '/api/assets/$assetId/trim'
@@ -837,6 +930,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/generations/$generationId/retry'
       preLoaderRoute: typeof ApiGenerationsGenerationIdRetryRouteImport
       parentRoute: typeof ApiGenerationsGenerationIdRoute
+    }
+    '/api/photoshoots/$photoshootId/character': {
+      id: '/api/photoshoots/$photoshootId/character'
+      path: '/character'
+      fullPath: '/api/photoshoots/$photoshootId/character'
+      preLoaderRoute: typeof ApiPhotoshootsPhotoshootIdCharacterRouteImport
+      parentRoute: typeof ApiPhotoshootsPhotoshootIdRoute
     }
     '/api/presets/$presetId/generations': {
       id: '/api/presets/$presetId/generations'
@@ -921,6 +1021,33 @@ const ApiCharactersRouteWithChildren = ApiCharactersRoute._addFileChildren(
   ApiCharactersRouteChildren,
 )
 
+interface ApiPhotoshootsPhotoshootIdRouteChildren {
+  ApiPhotoshootsPhotoshootIdCharacterRoute: typeof ApiPhotoshootsPhotoshootIdCharacterRoute
+}
+
+const ApiPhotoshootsPhotoshootIdRouteChildren: ApiPhotoshootsPhotoshootIdRouteChildren =
+  {
+    ApiPhotoshootsPhotoshootIdCharacterRoute:
+      ApiPhotoshootsPhotoshootIdCharacterRoute,
+  }
+
+const ApiPhotoshootsPhotoshootIdRouteWithChildren =
+  ApiPhotoshootsPhotoshootIdRoute._addFileChildren(
+    ApiPhotoshootsPhotoshootIdRouteChildren,
+  )
+
+interface ApiPhotoshootsRouteChildren {
+  ApiPhotoshootsPhotoshootIdRoute: typeof ApiPhotoshootsPhotoshootIdRouteWithChildren
+}
+
+const ApiPhotoshootsRouteChildren: ApiPhotoshootsRouteChildren = {
+  ApiPhotoshootsPhotoshootIdRoute: ApiPhotoshootsPhotoshootIdRouteWithChildren,
+}
+
+const ApiPhotoshootsRouteWithChildren = ApiPhotoshootsRoute._addFileChildren(
+  ApiPhotoshootsRouteChildren,
+)
+
 interface ApiGenerationsGenerationIdRouteChildren {
   ApiGenerationsGenerationIdEventsRoute: typeof ApiGenerationsGenerationIdEventsRoute
   ApiGenerationsGenerationIdPublishRoute: typeof ApiGenerationsGenerationIdPublishRoute
@@ -959,6 +1086,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCharactersRoute: ApiCharactersRouteWithChildren,
   ApiGenerateRoute: ApiGenerateRoute,
   ApiImageUploadsRoute: ApiImageUploadsRoute,
+  ApiPhotoshootsRoute: ApiPhotoshootsRouteWithChildren,
   ApiShareOriginRoute: ApiShareOriginRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   BatchesBatchIdRoute: BatchesBatchIdRoute,
@@ -966,12 +1094,14 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreSlugRoute: ExploreSlugRoute,
   GGenerationIdRoute: GGenerationIdRoute,
   MediaFilenameRoute: MediaFilenameRoute,
+  PhotoshootPhotoshootIdRoute: PhotoshootPhotoshootIdRoute,
   PresetsPresetIdRoute: PresetsPresetIdRoute,
   RSlugRoute: RSlugRoute,
   AnglesIndexRoute: AnglesIndexRoute,
   BatchesIndexRoute: BatchesIndexRoute,
   CharactersIndexRoute: CharactersIndexRoute,
   ExploreIndexRoute: ExploreIndexRoute,
+  PhotoshootIndexRoute: PhotoshootIndexRoute,
   PresetsIndexRoute: PresetsIndexRoute,
   ApiDebugHeartbeatRoute: ApiDebugHeartbeatRoute,
   ApiDebugStreamsRoute: ApiDebugStreamsRoute,

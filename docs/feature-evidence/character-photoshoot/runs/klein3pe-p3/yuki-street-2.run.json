@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p3-yuki-street-2",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=Waist-up shot: the person from the reference image on a busy city street. The person is sitting at a small café table on the sidewalk, holding a coffee cup in one hand; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: dappled midday sun through a striped awning. Keep the exact visual style and medium of the reference image: a drawing or anime illustration stays a drawing in the same style, a 3D render stays a 3D render, a photo stays a photo. Keep exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories. One person only, natural anatomy with complete hands.",
+    "7.seed=1003"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/yuki.png",
+      "ref_id": "3af12664-2380-4851-aeed-5b4a6958f036"
+    }
+  ],
+  "balance_before_cents": 7073.112745171,
+  "job_id": "beaf0d0b-ed39-492b-b1cf-077f4e43eba5",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 4.444,
+    "submit_to_done": 19.997,
+    "queued_before_running_observed": 5.323
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1834697,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/yuki-street-2/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1231,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/yuki-street-2/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7071.2854811345005,
+  "balance_delta_cents": 1.8273
+}

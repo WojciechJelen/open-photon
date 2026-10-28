@@ -17,6 +17,7 @@ type ToolPath =
   | "/characters"
   | "/characters/new"
   | "/motionTransfer"
+  | "/photoshoot"
   | "/presets";
 
 /** A category of the main navigation that has shipped tools. */
@@ -45,6 +46,12 @@ const navigation: NavigationEntry[] = [
         icon: "createCharacter",
         label: "Create character",
         to: "/characters/new",
+      },
+      {
+        description: "Photograph a character in a new setting, four poses.",
+        icon: "characters",
+        label: "Photoshoot",
+        to: "/photoshoot",
       },
       {
         description: "See a character from other camera angles.",

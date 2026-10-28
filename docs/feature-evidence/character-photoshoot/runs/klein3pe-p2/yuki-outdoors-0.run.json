@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p2-yuki-outdoors-0",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=A full-body shot photograph outdoors in nature. The person is walking through a flower meadow, one hand brushing the tall grass; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: warm backlight from a low sun with a soft glow around the hair. The person is the one in the reference image, keeping exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories, rendered in the same visual style as the reference. One person only, natural anatomy with complete hands.",
+    "7.seed=1001"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/yuki.png",
+      "ref_id": "3af12664-2380-4851-aeed-5b4a6958f036"
+    }
+  ],
+  "balance_before_cents": 7105.821056674,
+  "job_id": "a2995a2b-7bfa-44af-add9-100e67a2b5a3",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.882,
+    "submit_to_done": 10.537,
+    "queued_before_running_observed": 2.996
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1655883,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/yuki-outdoors-0/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1299,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/yuki-outdoors-0/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7105.012110837,
+  "balance_delta_cents": 0.8089
+}

@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p2-cyborg-editorial-0",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=A full-body shot photograph in a high-end fashion magazine editorial set in an elegant interior. The person is lounging sideways in a velvet armchair with one arm draped over the backrest; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: soft window light from tall windows with long shadows. The person is the one in the reference image, keeping exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories, rendered in the same visual style as the reference. One person only, natural anatomy with complete hands.",
+    "7.seed=1001"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/fixtures/wan/reference.png",
+      "ref_id": "5bb7edb2-01e9-4bd5-9e45-a0041a164056"
+    }
+  ],
+  "balance_before_cents": 7082.540039421499,
+  "job_id": "1756e658-28c3-402d-84ec-cbee18e6d5bb",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.907,
+    "submit_to_done": 15.394,
+    "queued_before_running_observed": 3.158
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1494664,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/cyborg-editorial-0/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1372,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/cyborg-editorial-0/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7081.265548984,
+  "balance_delta_cents": 1.2745
+}

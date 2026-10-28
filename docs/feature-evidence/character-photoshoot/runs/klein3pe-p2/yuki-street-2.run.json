@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p2-yuki-street-2",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=A waist-up shot photograph on a busy city street. The person is sitting at a small café table on the sidewalk, holding a coffee cup in one hand; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: dappled midday sun through a striped awning. The person is the one in the reference image, keeping exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories, rendered in the same visual style as the reference. One person only, natural anatomy with complete hands.",
+    "7.seed=1003"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/yuki.png",
+      "ref_id": "3af12664-2380-4851-aeed-5b4a6958f036"
+    }
+  ],
+  "balance_before_cents": 7143.135678774001,
+  "job_id": "439e8381-11f7-4228-9fcd-f3a070b186fb",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.902,
+    "submit_to_done": 10.447,
+    "queued_before_running_observed": 3.037
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1777993,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/yuki-street-2/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1262,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/yuki-street-2/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7142.329172199,
+  "balance_delta_cents": 0.8065
+}
