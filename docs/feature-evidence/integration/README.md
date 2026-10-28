@@ -19,7 +19,7 @@ the images and video frames were looked at.
 | `image-edit` v1 (Storyboard cards, Rosa, Photo) | 4 | 10.3–13.6 s | each card follows its scene; same face and green outfit on all four |
 | `product-shot` v1 (Product Studio, Calem bottle, Lifestyle) | 1 | 14.2 s | product pixels and label kept, generated table scene |
 | `animate-image` v1 (Photoshoot → Animate handoff, staircase shot) | 1 | 36.3 s | H.264 High / yuv420p, 480×848, 81 frames, 5.06 s; he walks down the stairs, identity kept ([frames](integration-smoke-animate.jpg)) |
-| `motion-transfer` v1 (preset Street dance, the character saved from the photoshoot) | 1 | 75.3 s | `video`, `poster` and derived `compare` stored (multi-output finalize regression) |
+| `motion-transfer` v1 (preset Street dance, the character saved from the photoshoot) | 1 | 75.3 s | `video`, `poster` and derived `compare` stored (multi-output finalize regression); the saved photoshoot character dances ([compare frames](integration-smoke-motion-transfer.jpg)) |
 | `character-generation` v1 | 1 | 29.7 s | one `image` output (multi-output finalize regression) |
 
 15 generations ran one at a time in submission order across five features. Cloud balance
