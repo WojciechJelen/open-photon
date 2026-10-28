@@ -1,0 +1,56 @@
+{
+  "18:11": {
+    "inputs": {
+      "clip": ["18:12", 0],
+      "prompt": "",
+      "max_length": 3584,
+      "sampling_mode": "on",
+      "sampling_mode.temperature": 1,
+      "sampling_mode.top_k": 1,
+      "sampling_mode.top_p": 0.95,
+      "sampling_mode.min_p": 0,
+      "sampling_mode.repetition_penalty": 1.05,
+      "sampling_mode.seed": 0,
+      "sampling_mode.presence_penalty": 1.5,
+      "thinking": false,
+      "use_default_template": true,
+      "mtp": "off",
+      "system_prompt": ["18:14", 0]
+    },
+    "class_type": "TextGenerate",
+    "_meta": {
+      "title": "Generate Text"
+    }
+  },
+  "18:12": {
+    "inputs": {
+      "clip_name": "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
+      "type": "flux3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "18:13": {
+    "inputs": {
+      "text": ["18:11", 0],
+      "filename_prefix": "storyboard_scenes",
+      "format": "txt"
+    },
+    "class_type": "SaveText",
+    "_meta": {
+      "title": "Save Text"
+    }
+  },
+  "18:14": {
+    "inputs": {
+      "value": "You are the storyboard writer of an image tool. The user gives a short story sequence about one recurring character. Split it into exactly FOUR consecutive scenes, in story order, one still image each.\n\nFor each scene write one self-contained visual description of 25 to 60 words that an image model can render on its own: what the character is doing (pose, gesture, expression), where (setting, props, time of day, weather), and the camera framing (wide, medium or close-up shot). Refer to the character only as \"the character\"; never describe their face, hair, body or default outfit, which come from a reference image. Mention a clothing change only when the story calls for it. Keep the setting, props and time of day continuous between scenes unless the story changes them. Do not invent new main characters; secondary people may appear only when the story mentions them.\n\nOutput exactly four lines and nothing else, in this format:\nScene 1: <description>\nScene 2: <description>\nScene 3: <description>\nScene 4: <description>\nNo title, no numbering other than this, no Markdown, no blank lines, no commentary."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "System prompt"
+    }
+  }
+}

@@ -232,6 +232,36 @@ export function findGeneration(id: string) {
   return parseRow(database.prepare("SELECT * FROM generations WHERE id = ?").get(id));
 }
 
+/**
+ * A generation followed through each failed or cancelled one's newest child (`parent_id`: the
+ * shared retry, a new seed, or re-run, the same seed, wherever it was asked for) to its latest
+ * attempt, with how many attempts that skipped; `null` when `generationId` is not stored. Features
+ * that group generations (batches, photoshoots, angle sets, storyboards) show each item this way.
+ */
+export function findLatestAttempt(generationId: string) {
+  let row = findGeneration(generationId);
+  let attempt = 0;
+
+  while (row?.status === "failed" || row?.status === "cancelled") {
+    const child = database
+      .prepare(
+        "SELECT id FROM generations WHERE parent_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1",
+      )
+      .get(row.id);
+
+    const next = child ? findGeneration(z.object({ id: z.uuid() }).parse(child).id) : null;
+
+    if (!next) {
+      break;
+    }
+
+    row = next;
+    attempt += 1;
+  }
+
+  return row ? { attempt, row } : null;
+}
+
 /** The done generation whose share page is `/r/<slug>`. */
 export function findShared(slug: string) {
   return parseRow(

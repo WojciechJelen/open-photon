@@ -1,0 +1,31 @@
+{
+  "owner": "storyboard",
+  "label": "split2-maya",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/work/feature-evidence/storyboard/graphs/split-qwen35-4b.api.json",
+  "sets": [
+    "18:11.prompt=Maya arrives on an empty city rooftop at sunset, stretches to warm up, breakdances while the city lights come on, then sits on the ledge drinking water and looking at the skyline at night."
+  ],
+  "images": [],
+  "balance_before_cents": 7379.7637219954995,
+  "job_id": "8ef1f8dd-bdea-45e7-bb1d-383b71296a84",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 1.396,
+    "submit_to_done": 18.014,
+    "queued_before_running_observed": 12.893
+  },
+  "outputs": [
+    {
+      "node": "18:13",
+      "index": 0,
+      "name": "storyboard_scenes_00001.txt",
+      "contentType": "",
+      "bytes": 788,
+      "file": "18_13-0-storyboard_scenes_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7379.2542500885,
+  "balance_delta_cents": 0.5095
+}

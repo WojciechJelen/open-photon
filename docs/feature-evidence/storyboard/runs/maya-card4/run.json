@@ -1,0 +1,39 @@
+{
+  "owner": "storyboard",
+  "label": "maya-card4",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/work/feature-evidence/storyboard/graphs/card-klein-landscape.api.json",
+  "sets": [
+    "4.text=A storyboard frame. The character is the person in the reference image. High-angle wide shot of the rooftop at night, the character remains seated on the ledge in silhouette against the vast illuminated cityscape, water bottle resting beside them, stillness in the scene. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it as a photograph in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "7.seed=424242"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/src/features/characters/samples/characters/maya.png",
+      "ref_id": "7f901f52-d83a-45c2-b426-dc768bf2a4a8"
+    }
+  ],
+  "balance_before_cents": 7304.673748393499,
+  "job_id": "cdb5e3ec-7f34-4520-bd0e-74b13c2860ea",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.15,
+    "submit_to_done": 29.692,
+    "queued_before_running_observed": 22.361
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "storyboard_card_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1459600,
+      "file": "9-0-storyboard_card_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7303.833758687,
+  "balance_delta_cents": 0.84
+}

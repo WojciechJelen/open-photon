@@ -7,6 +7,7 @@ import {
   FileCodeIcon,
   LibraryIcon,
   LockOpenIcon,
+  PanelsTopLeftIcon,
   Rotate3dIcon,
   SparklesIcon,
   UserIcon,
@@ -98,8 +99,9 @@ function Filmstrip({
   );
 }
 
-// The character tools beside Motion Transfer, live: the builder, the library, Shots & Angles, and
-// Animate Image, which brings a character (or any still) to life from a description.
+// The character tools beside Motion Transfer, live: the builder, the photoshoot, the library, Shots &
+// Angles, storyboards, and Animate Image, which brings a character (or any still) to life from a
+// description.
 const characterTools = [
   {
     icon: <UserIcon />,
@@ -128,6 +130,13 @@ const characterTools = [
     text: "See a character from the front, three-quarter, profile and close up, each view rendered anew, and save the one you like to the library.",
     title: "Shots & Angles",
     to: "/angles",
+  },
+  {
+    icon: <PanelsTopLeftIcon />,
+    model: "FLUX 3 Image Klein · Qwen3.5",
+    text: "Pick a character, describe a short sequence, and render it as four editable scene cards.",
+    title: "Storyboard",
+    to: "/storyboards",
   },
   {
     icon: <ClapperboardIcon />,

@@ -1,0 +1,39 @@
+{
+  "owner": "storyboard",
+  "label": "yuki-card4",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/work/feature-evidence/storyboard/graphs/card-klein-landscape.api.json",
+  "sets": [
+    "4.text=A storyboard frame. The character is the person in the reference image. Close-up of the character huddled under the shrine gate's eaves, water streaming down their face as they laugh freely, the red umbrella and lantern resting nearby on the ground. Keep the character's face, hair, body and outfit exactly as in the reference image. Render it in the same visual style as the reference image, cinematic wide 16:9 composition, no text, no captions, no borders.",
+    "7.seed=424242"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-storyboard/src/features/characters/samples/characters/yuki.png",
+      "ref_id": "3af12664-2380-4851-aeed-5b4a6958f036"
+    }
+  ],
+  "balance_before_cents": 7094.982119054001,
+  "job_id": "4bebb093-c697-4b6d-bec5-7d101d47de4d",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.831,
+    "submit_to_done": 12.756,
+    "queued_before_running_observed": 3.033
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "storyboard_card_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1706182,
+      "file": "9-0-storyboard_card_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7093.9285376160005,
+  "balance_delta_cents": 1.0536
+}
