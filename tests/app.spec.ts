@@ -115,14 +115,22 @@ test("no page scrolls sideways, on a phone or a desktop", async ({ page }) => {
 test("a button reached with the keyboard shows its focus ring", async ({ page }) => {
   await open(page, "/");
 
-  // Tab from the top of the page to the first button (the main navigation's first category).
+  // Tab from the top of the page to the first button: the main navigation's first category. (Not
+  // the first `data-slot="button"` on the page: the menu triggers are `dropdown-menu-trigger`, and
+  // the next such button sits past every studio card.)
   for (let step = 0; step < 20; step += 1) {
     await page.keyboard.press("Tab");
 
-    if (await page.evaluate(() => document.activeElement?.matches('button[data-slot="button"]'))) {
+    if (
+      await page.evaluate(() => document.activeElement?.matches('nav[aria-label="Main"] button'))
+    ) {
       break;
     }
   }
+
+  await expect(
+    page.getByRole("navigation", { name: "Main" }).getByRole("button").first(),
+  ).toBeFocused();
 
   const ring = await page.evaluate(() => {
     const focused = document.activeElement;
