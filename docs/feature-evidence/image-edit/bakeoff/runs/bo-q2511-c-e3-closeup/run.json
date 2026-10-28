@@ -1,0 +1,39 @@
+{
+  "owner": "foundation",
+  "label": "bo-q2511-c-e3-closeup",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/qwen-edit-2511.api.json",
+  "sets": [
+    "170:151.prompt=\"A tight head-and-shoulders close-up portrait of this same person looking into the camera, soft window light from the left, shallow depth of field. Keep the face, hairstyle and any glasses or hat exactly the same, and the same clothing at the collar.\"",
+    "170:169.seed=11"
+  ],
+  "images": [
+    {
+      "node": "41",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/refs/ref-c-teen-varsity-backpack.png",
+      "ref_id": "605a85bd-e7bb-4698-9435-41458a7b9215"
+    }
+  ],
+  "balance_before_cents": 7128.543426855,
+  "job_id": "187ec698-edcc-45d2-8563-4fdb00184a40",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.102,
+    "submit_to_done": 42.169,
+    "queued_before_running_observed": 2.891
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1260988,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/bakeoff/bo-q2511-c-e3-closeup/9-0-image_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7123.6214800805,
+  "balance_delta_cents": 4.9219
+}

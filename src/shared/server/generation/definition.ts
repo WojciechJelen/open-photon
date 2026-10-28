@@ -36,11 +36,14 @@ export type WorkflowRecipe = { [key: string]: Json | undefined } & z.infer<
  * generation's output `name` (`generation_outputs`). An `image` output (PNG, JPEG or WebP, from a
  * `SaveImage` node) is stored as it is downloaded. A `video` output is an MP4 (a `SaveVideo`
  * node); with `poster`, a JPEG still of it at 0.5 s (its first frame when it is shorter) is stored
- * too, as the output `poster`. A `text` output is a text file the node saved (core `SaveText`,
- * format `txt`: Comfy's jobs API lists it as a `.txt` file; it does not list a `PreviewAny`
- * node's text): the first one that is not blank, at most `TEXT_OUTPUT_MAX_BYTES` of valid UTF-8,
- * is stored byte for byte as a private `.txt` asset and shown inline by the generation's API
- * (`generationSchema`); none, or one too long or not UTF-8, fails the generation.
+ * too, as the output `poster`. Every file an `image` or `video` node yields is stored, in Comfy's
+ * order: the first under `name`, each further one under `outputFileName` (`image-2`, `image-3`,
+ * …; a further video's poster `poster-2`, …), so a declared name never ends in `-<digits>` after
+ * another file output's name (`outputsProblem`). A `text` output is a text file the node saved
+ * (core `SaveText`, format `txt`: Comfy's jobs API lists it as a `.txt` file; it does not list a
+ * `PreviewAny` node's text): the first one that is not blank, at most `TEXT_OUTPUT_MAX_BYTES` of
+ * valid UTF-8, is stored byte for byte as a private `.txt` asset and shown inline by the
+ * generation's API (`generationSchema`); none, or one too long or not UTF-8, fails the generation.
  */
 export type OutputDeclaration = {
   name: string;
@@ -51,6 +54,20 @@ export type OutputDeclaration = {
 
 /** The name of the still cut from the `video` output that declares `poster`. */
 export const POSTER_OUTPUT = "poster";
+
+/**
+ * The name the file at `index` (from 0, in Comfy's order) of the image or video output `name` is
+ * stored under: `name` for the first, `name-<index + 1>` for each further one (`image`,
+ * `image-2`, `image-3`, …).
+ */
+export function outputFileName(name: string, index: number) {
+  return index === 0 ? name : `${name}-${index + 1}`;
+}
+
+/** Whether `name` is one `outputFileName` gives a further file of the output `base`. */
+function isFurtherFileOf(name: string, base: string) {
+  return name.startsWith(`${base}-`) && /^\d+$/.test(name.slice(base.length + 1));
+}
 
 /** What `prepareRecipe` knows besides the input: the endpoint the generation will run on. */
 type PrepareContext = { target: ProviderTarget };
@@ -149,6 +166,19 @@ function outputsProblem(outputs: readonly OutputDeclaration[]) {
 
   if (posters.length === 1 && names.includes(POSTER_OUTPUT)) {
     return `names an output "${POSTER_OUTPUT}", the name of its poster`;
+  }
+
+  const fileNames = [
+    ...outputs.flatMap(({ media, name }) => (media === "text" ? [] : [name])),
+    ...(posters.length === 1 ? [POSTER_OUTPUT] : []),
+  ];
+
+  for (const name of names) {
+    const base = fileNames.find((fileName) => isFurtherFileOf(name, fileName));
+
+    if (base) {
+      return `names an output "${name}", a name further files of "${base}" are stored under`;
+    }
   }
 
   return null;

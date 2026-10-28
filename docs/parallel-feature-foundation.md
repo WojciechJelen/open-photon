@@ -43,7 +43,7 @@ one per workflow version, owned by its feature (`src/features/motionTransfer/wor
 | `recipeSchema` | Strict schema decoding every recipe this version stored. Every recipe carries `recipeIdentitySchema` (`target`, `workflow { id, version, sha256 }`, `models`); the type is `WorkflowRecipe`. `hashRecipe` refuses a recipe naming another workflow before hashing. |
 | `assetInputs(recipe)` | Stored files (by SHA-256) to upload, keyed by graph param; `{}` for a scalar-only workflow, which submits without an upload and stores no `provider_inputs`. |
 | `buildGraph(recipe, providerInputs)` | The API graph; both workflows use the shared binder `buildGraph(graph, inputsMap, values)` (`src/shared/server/workflow-graph.ts`). An inputs-map entry is one binding or a non-empty list of bindings (`inputsMapSchema`); every binding must name a node of its `class_type` and a literal field. |
-| `outputs` | `OutputDeclaration[]`: `{ name, nodeId, media: "image" \| "video" \| "text", poster? }`. One asset per name; at most one `poster`, on a video. |
+| `outputs` | `OutputDeclaration[]`: `{ name, nodeId, media: "image" \| "video" \| "text", poster? }`. One asset per name: a node's further files are stored as `<name>-2`, `<name>-3`, … (see Named outputs); at most one `poster`, on a video. |
 | `seedOf`, `rebase(recipe, { seed, target })` | The recipe's seed, and the recipe a re-run (same seed) or retry (new seed) renders on the current target; `null` when the workflow file changed. |
 | `promptOf` (optional) | The text prompt, read as provenance when a generated character is saved. |
 | `shareRecipe` (optional) | What the public share page `/r/:slug` (`readGenerationShare`) shows of the recipe; without it, the stored recipe. The character image leaves out the enhanced caption, a private text output. |
@@ -53,6 +53,18 @@ The registry is `workflows` in the same file: `src/app/server.ts` sets the compo
 with `workflows.compose([...])`; tests add theirs with `workflows.register`. Duplicate
 `id`/`version` pairs and unstorable output declarations throw. A stored generation finds its
 definition again by `(workflow_id, workflow_version)`.
+
+A `models.lock` pin (`src/shared/server/models-lock.ts`) is a `.safetensors` file in
+`diffusion_models`, `loras`, `text_encoders`, `clip_vision` or `vae`, licensed Apache-2.0 or FLUX
+Kommunity 1.0, at a 40-hex revision URL of a `Comfy-Org/*` repository, of
+`black-forest-labs/flux-3-image-klein-comfy`, or of exactly two other repositories, allowed by id
+(not by organisation): `fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA` and
+`lightx2v/Qwen-Image-Edit-2511-Lightning` (Apache-2.0, ungated). Their files sit at the repository
+root (`…/resolve/<rev>/<file>`) and are pinned with `directory: "loras"`; every other pin's URL
+ends in `/<directory>/<file>`, its install path. One more directory and licence are allowed for one
+repository only: `background_removal` (core `LoadBackgroundRemovalModel.bg_removal_name`, ComfyUI's
+`models/background_removal/`) and MIT, for `Comfy-Org/BiRefNet`'s
+`…/resolve/<rev>/background_removal/<file>`; MIT or `background_removal` anywhere else is refused.
 
 ### Generation service
 
@@ -104,6 +116,26 @@ mirroring the two Motion Transfer outputs. `finalize.ts` downloads each declared
 is stored as downloaded (`kind: "image"`, no FFmpeg), a video as an MP4, and a `poster: true`
 video also gets a JPEG still at 0.5 s (`src/shared/server/media/poster.ts`).
 
+Nothing a declared image or video node yields is dropped: finalize stores every file of the
+declared kind, in Comfy's order, the first under the declared `name` and each further one under
+`outputFileName(name, index)` (`definition.ts`): `image`, `image-2`, `image-3`, …; each further
+video of a `poster: true` output gets its own still, `poster-2`, … (`final_asset_id` and
+`poster_asset_id` keep the first). A node that yields one file is stored exactly as before, so
+every existing workflow keeps its names. Registering a definition refuses a declared name that
+is another file output's name (or `poster`, when a poster is cut) followed by `-<digits>`
+(`outputsProblem`), so a further file can never overwrite a declared output. Readers list an
+output's further files right after it, in their order (`image-10` after `image-9`;
+`storedOutputs` in `generations.ts`): `readOutputs`, `generationSchema.outputs`, `/g/:id` and
+`/r/:slug` show every stored image and video in their order (`GeneratedOutputs`: `GeneratedImage`
+and `GeneratedVideo` with `place`, `image 2 of 3`, `video 2 of 3`, in its accessible name and its
+Download's when there are several; `poster-<N>` is the poster of `video-<N>`, never shown on its
+own), each image downloads as its own `ai-generated-<asset id>.<ext>`, and
+`createFromGeneration` saves any of them by name (`image-2`).
+A text output still stores one text (below). Features still render one image per generation and
+group generations (`submitMany`), so each image has its own progress, retry, download and save;
+this only makes sure a node that returns a batch is never silently cut to its first file
+(`src/shared/server/generation/multi-outputs.test.ts`).
+
 A definition may also derive outputs from the stored ones (`deriveOutputs`), which finalize
 adds before the row is `done`, in the same write; the row holds its place in flight while it
 runs, so a derivation bounds its own work. Motion Transfer derives `compare`
@@ -138,11 +170,15 @@ review before distribution the FLUX Kommunity licence asks for (§2.e(i); no con
 `{ share_slug, url }` (`url` from `PUBLIC_APP_URL`, else the request's origin), the same slug
 again when it is published already (Motion Transfer's included); 404 `not_found`, 409 `not_done`,
 `no_file` (every output is a text) or `not_publishable` (its workflow publishes on done, so a
-missing slug is never added on request). The builder's image and a generated character's library
-card offer it as "Publish & copy link" (`PublishLink`, `src/shared/components/`): the publish is
-recorded whatever the clipboard does, and a link it cannot copy stays in a field to copy by hand.
-A link published before the page opened starts with `GET /api/share-origin`'s origin, so every
-surface copies the server's URL. A character's summary carries its generation's `share_slug`.
+missing slug is never added on request). The builder's image, a generated character's library
+card and `/g/:id` of any workflow that publishes on request (`readGenerationResult`'s `publish`)
+offer it as "Publish & copy link" (`PublishLink`, `src/shared/components/`, worded for the image
+or video it shows): the publish is recorded whatever the clipboard does, and a link it cannot
+copy stays in a field to copy by hand. A link published before the page opened starts with
+`GET /api/share-origin`'s origin, so every surface copies the server's URL. That `/g/:id` of a
+workflow other than Motion Transfer also offers "Retry with a new seed" for a failed or
+cancelled generation (`POST /api/generations/:id/retry`) and opens the retry; both need the
+access code. A character's summary carries its generation's `share_slug`.
 `generationAccess`
 (`src/shared/server/generation/public-access.ts`) makes public: share pages, exactly the file
 outputs of done generations that have a share page (`isSharedOutput`; a text asset never is), and
@@ -155,19 +191,41 @@ character images stay private, and a generated character's image only shows on a
 page once its own generation is published (`visibleCharacter`). Every `/r/<slug>` and
 `/media/<id>.<ext>` URL that existed before the backfill still answers.
 
-An image a workflow produces is disclosed as AI-generated wherever it is shown (the FLUX
-Kommunity licence asks for it): `GeneratedImage` (`src/shared/components/`) shows an image output
-on `/g/:id` and `/r/:slug` with an "AI-generated image" label, alt text that says so (also the
-share card's `og:image:alt`) and Download, and `?download=1` names an image output
-`ai-generated-<id>.<ext>`, a `final` asset a generation lists as an output
+An image or video a workflow produces is disclosed as AI-generated wherever it is shown (the FLUX
+Kommunity licence asks for it for an image): `GeneratedImage` and `GeneratedVideo`
+(`src/shared/components/`) show an output on `/g/:id` and `/r/:slug` with an "AI-generated image"
+or "AI-generated video" label, an accessible name that says so (also the share card's
+`og:image:alt`) and Download; a video plays with controls from its poster (`poster` for `video`,
+`poster-<N>` for `video-<N>`) and loads only its metadata first. `?download=1` names an image
+output `ai-generated-<id>.<ext>`, a `final` asset a generation lists as an output
 `open-photon-<id>-<output name>.<ext>` (Motion Transfer's `compare`:
-`open-photon-<id>-compare.mp4`), and anything else `open-photon-<id>.<ext>`, Motion
-Transfer's videos and posters included. An image's share page is titled "AI-generated image ·
-Open Photon" (`<title>`, `og:title`), and a Motion Transfer share page says "The character is
-AI-generated." when its character's origin is `generated` (`characterGenerated` of `readShare`),
-even when that image is private. Neither shows a recipe's enhanced caption. A generated
-character's image (a sample or a saved builder render) says "AI-generated image" in its alt text
-wherever it is shown (library, pickers, the studio home).
+`open-photon-<id>-compare.mp4`), and anything else `open-photon-<id>.<ext>`, videos and posters
+included. A share page that shows a video is titled "AI-generated video · Open Photon" and its
+card is that video (`og:type` `video.other`, `og:video`, its poster as `og:image`); one that
+shows only images "AI-generated image · Open Photon" (`<title>`, `og:title`). `/g/:id` is titled
+the same way once done ("Generation · Open Photon" before, or with no file to show), a Motion
+Transfer take "Your take · Motion Transfer · Open Photon". A Motion Transfer share page says "The
+character is AI-generated." when its character's origin is `generated` (`characterGenerated` of
+`readShare`), even when that image is private. Neither shows a recipe's enhanced caption. A
+generated character's image (a sample or a saved builder render) says "AI-generated image" in
+its alt text wherever it is shown (library, pickers, the studio home).
+
+### Image uploads
+
+`POST /api/image-uploads` (`uploadImage`, `src/shared/server/image-upload.server.ts`) stores an
+image any feature takes as an input (a product, a scene, a still to animate): multipart, one file
+in the field `image` and no other field, as `POST /api/uploads` takes a video. A session is needed
+(401 `access_required` from the guard) and it takes the upload token first (`uploadRefusal`, 429
+`rate_limited`). The content decides, not the name or declared type: a PNG, JPEG or WebP
+(`classifyImage`), else 422 `not_image`; at most 25 MiB (`IMAGE_UPLOAD_MAX_BYTES`, 413 before
+anything is written when the length is declared) and 8192 px on each side
+(`IMAGE_UPLOAD_MAX_SIDE`, 422 `image_too_large`). It is stored once by content (`kind: "image"`,
+`role: "upload"`) and answered as `assetSchema`: 201, or 200 with the same asset for bytes stored
+before. The client helper `uploadImageFile(file, signal?)` (`src/shared/image-upload.ts`, with
+`IMAGE_UPLOAD_TYPES` for a file picker) answers `{ data }` or `{ refusal }`. A photo of a person
+that a feature renders as that person goes through `POST /api/characters` with the uploader's
+likeness consent instead, and the feature uses the character. `POST /api/characters` stores its
+image the same way (`storeUploadedImage`), after its consent check.
 
 ### Provider target identity
 
@@ -258,6 +316,54 @@ The definitions implementing them are `workflows/caption-definition.ts`
 (`character-caption.v1`, the FLUX 3 prompt upsampler) and `workflows/definition.ts`
 (`character-generation.v1`, FLUX 3 Image Klein distilled; its `shareRecipe` leaves the enhanced
 caption off the public share page). FLUX.2 is gone: no fallback, no legacy recipe.
+
+### Image edit
+
+`src/features/imageEdit/` is the shared reference-image edit (FLUX 3 Image Klein distilled, chosen
+by the identity bake-off in `docs/feature-evidence/image-edit/`): two workflow definitions and
+their contracts, no route, table or UI. A consumer (a photoshoot, a product shot, a set of
+angles, a storyboard card) keeps its own routes and records and submits through the shared
+service with its own prompt and references; it never copies the workflow.
+
+- `api.ts` (server): `imageEditDefinition` (`image-edit` v1, the prompt as given),
+  `imageEditEnhancedDefinition` (`image-edit-enhanced` v1, FLUX 3's prompt upsampler first, with
+  the references), `imageEditDefinitionFor(input)` (the enhanced one for `enhance: true`),
+  `imageEditInputSchema`, `ImageEditInput`, `IMAGE_EDIT_OUTPUT` (`"image"`),
+  `IMAGE_EDIT_CAPTION_OUTPUT` (`"caption"`).
+- `index.ts` (client): `imageEditInputSchema`, `ImageEditInput`, `ImageEditReference`,
+  `IMAGE_EDIT_OUTPUT`, `IMAGE_EDIT_CAPTION_OUTPUT`, `IMAGE_EDIT_MAX_REFERENCES` (3),
+  `IMAGE_EDIT_SIDE` (256–2048, step 16), `IMAGE_EDIT_PIXELS` (0.5–1.6 × 2^20 px).
+- Input: `prompt` (trimmed, 1–2000), `references` (1–3, the first is the primary subject:
+  `{ asset_id }`, a stored image such as a `POST /api/image-uploads` upload or a done
+  generation's image output, or `{ character_id }`, a library character's image through
+  `getCharacter`), `seed?`, `width?`/`height?` (both or neither; otherwise the first reference's
+  aspect at about 1 MP, resolved into the recipe), `enhance?`, `origin?` (`{ feature, … }`, the
+  consumer's provenance, stored in the recipe; a share page shows only `feature`).
+- Outputs: `image` (one PNG); the enhanced edit also the private text `caption`. Both publish on
+  request (`PublishLink`, `POST /api/generations/:id/publish`), as the FLUX Kommunity licence
+  asks; `promptOf` is the user's prompt. The first reference's character is the generation's
+  `character_id`, so `createFromGeneration` saves an edit like a character image.
+- Refusals (`GenerateError`, nothing stored): 422 `invalid_input` (not the schema, or `enhance`
+  of the other definition), 404 `asset_not_found`/`character_not_found`, 422 `not_image`,
+  `consent_required`, `invalid_size`.
+
+```ts
+import { imageEditDefinitionFor, IMAGE_EDIT_OUTPUT, type ImageEditInput } from "../../imageEdit/api.ts";
+import { submit, submitMany } from "../../../shared/server/generation/service.ts";
+
+const input: ImageEditInput = {
+  prompt: "Show the same woman on a rainy street at night. Keep her face, hair and outfit the same.",
+  references: [{ character_id }, { asset_id: productUploadId }],
+  origin: { feature: "photoshoot", shoot_id },
+};
+const receipt = await submit(imageEditDefinitionFor(input), input, { admit, requestKey, scope });
+// One generation per variation, all or none, under one request key (`<key>#<index>`):
+const receipts = submitMany(imageEditDefinitionFor(items[0]), items, { admit, requestKey, scope });
+// Done: `generation.outputs` has `{ name: IMAGE_EDIT_OUTPUT, media: "image", asset }`.
+```
+
+All items of one `submitMany` share their `enhance`. Workflows, inputs map, recipe, lock and
+measured Cloud latency and cost: `src/features/imageEdit/workflows/README.md`.
 
 ### Motion Transfer draft and composer slots
 
@@ -640,6 +746,7 @@ the fake provider otherwise.
 | `motion-transfer.v1` (Wan Animate 2) | 5 files, `Comfy-Org/Wan-Animate-2` @ `e7181fe` | 25.6 GB (23.9 GiB) | Measured 31,426 MiB for a 5 s 480×848 render on an RTX 5090 32 GB, and 38,935 MiB (whole-device peak while the generation ran) on an A40 48 GB with image `0.2.0`; 48 GB recommended |
 | `character-generation.v1` (FLUX 3 Image Klein distilled, int8) | 3 files: 2 from `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated), VAE from `Comfy-Org/Flux-2-Klein-4B` @ `533c4cb` | 11.0 GB (10.3 GiB) | Measured 10,653 MiB (whole-device peak while the generation ran) for 768×1344 on an A40 |
 | `character-caption.v1` (FLUX 3 prompt upsampler, w4a8) | 1 file, `black-forest-labs/flux-3-image-klein-comfy` @ `feef60b` (gated) | 6.7 GB (6.3 GiB) | Measured 6,601 MiB (whole-device peak while the generation ran) on an A40 |
+| `image-edit.v1`, `image-edit-enhanced.v1` (FLUX 3 Image Klein edit) | The same 4 files as the character builder's lock, byte for byte (3 for the direct edit) | no new weights | Not measured on self-host |
 | Every lock (installed on each pod boot) | 9 distinct files | 43.4 GB (40.4 GiB) | One GPU runs one job at a time: the largest peak, Motion Transfer's |
 
 Weights are the `x-linked-size` of each pinned URL (for the gated FLUX 3 files, which answer 401
@@ -694,9 +801,6 @@ rebuild and step 5 were not run). To repeat them, someone with a Runpod pod:
 
 - `tests/compare.spec.ts:135` (a laptop-screen layout check, 823 > 800 px) fails at `37a7a0b`
   and on the branch; it is not caused by the foundation.
-- `/g/:id` titles every result "Your take · Motion Transfer · Open Photon"
-  (`src/routes/g.$generationId.tsx`), image generations included; the page shell belongs to
-  Motion Transfer.
 - `src/features/motion-score/` is an unwired Python PoC, parked as an experiment (DEV-287); it is
   never imported and none of its files is a runtime workflow, but the app image packages its
   `workflows/` and `samples/` and the self-host image its `workflows/`. Its status, what it proved

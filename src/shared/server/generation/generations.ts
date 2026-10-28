@@ -727,13 +727,41 @@ export function addOutputs(id: string, outputs: Readonly<Record<string, string>>
 
 const storedOutputSchema = z.object({ asset_id: z.string(), name: z.string() });
 
-/** A generation's named outputs whose assets are stored, by name, with their stored asset. */
+/**
+ * Where an output name sorts: by the name it was declared under, then by its file's place, so a
+ * declared output's further files (`image-2`, …, `image-10`; `outputFileName`) follow it in
+ * Comfy's order. A name with no `-<digits>` ending sorts as itself, as SQLite's `ORDER BY name`.
+ */
+function outputOrder(name: string) {
+  const further = /^(.+)-(\d+)$/.exec(name);
+
+  return further?.[1] && further[2]
+    ? { base: further[1], place: Number(further[2]) }
+    : { base: name, place: 1 };
+}
+
+function byOutputOrder(a: { name: string }, b: { name: string }) {
+  const left = outputOrder(a.name);
+  const right = outputOrder(b.name);
+
+  if (left.base !== right.base) {
+    return left.base < right.base ? -1 : 1;
+  }
+
+  return left.place - right.place;
+}
+
+/**
+ * A generation's named outputs whose assets are stored, by name, with their stored asset; an
+ * output's further files right after it, in their order (`byOutputOrder`).
+ */
 function storedOutputs(generationId: string) {
   return database
     .prepare("SELECT name, asset_id FROM generation_outputs WHERE generation_id = ? ORDER BY name")
     .all(generationId)
-    .flatMap((row) => {
-      const { asset_id, name } = storedOutputSchema.parse(row);
+    .map((row) => storedOutputSchema.parse(row))
+    .sort(byOutputOrder)
+    .flatMap(({ asset_id, name }) => {
       const stored = findAsset(asset_id);
 
       return stored ? [{ name, stored }] : [];

@@ -1,0 +1,39 @@
+{
+  "owner": "foundation",
+  "label": "bo-q2511-a-e2-pose",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/qwen-edit-2511.api.json",
+  "sets": [
+    "170:151.prompt=\"Show this same person sitting on a wooden park bench in daylight, leaning slightly forward with forearms resting on the knees and both hands clasped in front. Keep the person's face, hairstyle, clothing and accessories exactly the same.\"",
+    "170:169.seed=11"
+  ],
+  "images": [
+    {
+      "node": "41",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/refs/ref-a-woman-glasses-hat-bag.png",
+      "ref_id": "d9abc7f6-3cc5-4d09-b122-efab1ddf1e02"
+    }
+  ],
+  "balance_before_cents": 7220.2286106165,
+  "job_id": "6b993ffa-735f-408d-9d6c-82b493b4a0b5",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.028,
+    "submit_to_done": 54.416,
+    "queued_before_running_observed": 2.968
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1468796,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/bakeoff/bo-q2511-a-e2-pose/9-0-image_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7213.8341502924995,
+  "balance_delta_cents": 6.3945
+}

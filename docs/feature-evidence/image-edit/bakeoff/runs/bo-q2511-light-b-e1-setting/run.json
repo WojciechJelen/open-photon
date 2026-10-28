@@ -1,0 +1,39 @@
+{
+  "owner": "foundation",
+  "label": "bo-q2511-light-b-e1-setting",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/qwen-edit-2511-lightning.api.json",
+  "sets": [
+    "170:151.prompt=\"Place this same person in a cozy caf\\u00e9 interior at night, lit by warm tungsten lamps with pink neon light from a sign in the window. Full body, standing. Keep the person's face, hairstyle, body, clothing and accessories exactly the same.\"",
+    "170:169.seed=11"
+  ],
+  "images": [
+    {
+      "node": "41",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/refs/ref-b-older-man-open-hands.png",
+      "ref_id": "12b0b0c9-2251-404b-a676-b7ec30678b54"
+    }
+  ],
+  "balance_before_cents": 7081.265548984,
+  "job_id": "72bab140-5114-4b44-8f7d-7179a7e71476",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.008,
+    "submit_to_done": 7.838,
+    "queued_before_running_observed": 2.95
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1179142,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/bakeoff/bo-q2511-light-b-e1-setting/9-0-image_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7080.8833163955005,
+  "balance_delta_cents": 0.3822
+}

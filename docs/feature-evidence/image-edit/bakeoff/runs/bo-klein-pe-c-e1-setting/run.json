@@ -1,0 +1,48 @@
+{
+  "owner": "foundation",
+  "label": "bo-klein-pe-c-e1-setting",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=\"Place this same person in a cozy caf\\u00e9 interior at night, lit by warm tungsten lamps with pink neon light from a sign in the window. Full body, standing. Keep the person's face, hairstyle, body, clothing and accessories exactly the same.\"",
+    "7.seed=11",
+    "47.sampling_mode.seed=11"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/refs/ref-c-teen-varsity-backpack.png",
+      "ref_id": "605a85bd-e7bb-4698-9435-41458a7b9215"
+    }
+  ],
+  "balance_before_cents": 7098.631756689,
+  "job_id": "10a8d4a6-10e3-4056-a7ec-0d33951d1482",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.841,
+    "submit_to_done": 10.334,
+    "queued_before_running_observed": 2.948
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1558451,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/bakeoff/bo-klein-pe-c-e1-setting/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1244,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/bakeoff/bo-klein-pe-c-e1-setting/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7097.816163875999,
+  "balance_delta_cents": 0.8156
+}

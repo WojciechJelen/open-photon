@@ -1,0 +1,39 @@
+{
+  "owner": "foundation",
+  "label": "p1-klein",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/flux3-klein-edit.api.json",
+  "sets": [
+    "4.text=\"Show the same woman standing on a sunny cobblestone street in an old European town in warm late-afternoon light, full body, facing the camera. Keep her face, hair, glasses, hat, sweater, trousers, sneakers and bag exactly the same.\"",
+    "7.seed=7"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/refs/ref-a/9-0-image_flux3_klein_distilled_t2i_00001_.png",
+      "ref_id": "d9abc7f6-3cc5-4d09-b122-efab1ddf1e02"
+    }
+  ],
+  "balance_before_cents": 7380.989067959999,
+  "job_id": "c7438dcf-eb2b-4d51-9e3b-f9720eafe871",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.843,
+    "submit_to_done": 7.964,
+    "queued_before_running_observed": 3.061
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1844964,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/first/p1-klein/9-0-image_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7380.4396386985,
+  "balance_delta_cents": 0.5494
+}

@@ -1,0 +1,39 @@
+{
+  "owner": "foundation",
+  "label": "bo-klein-b-e4-profile",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/flux3-klein-edit.api.json",
+  "sets": [
+    "4.text=\"Show this same person from a full side profile, the camera at 90 degrees to their left side, full body, standing on the same plain light-grey studio backdrop. Keep the face, hairstyle, clothing and accessories exactly the same.\"",
+    "7.seed=11"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/refs/ref-b-older-man-open-hands.png",
+      "ref_id": "12b0b0c9-2251-404b-a676-b7ec30678b54"
+    }
+  ],
+  "balance_before_cents": 7296.610344517,
+  "job_id": "f1476bc4-6ca6-41ed-b04e-a2bd13710d12",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.887,
+    "submit_to_done": 21.362,
+    "queued_before_running_observed": 16.131
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1129502,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/bakeoff/bo-klein-b-e4-profile/9-0-image_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7295.903023805,
+  "balance_delta_cents": 0.7073
+}

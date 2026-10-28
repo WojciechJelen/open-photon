@@ -1,0 +1,143 @@
+{
+  "1": {
+    "_meta": {
+      "title": "Load Diffusion Model"
+    },
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux3-image-klein-int8-convrot.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "2": {
+    "_meta": {
+      "title": "Load CLIP"
+    },
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "flux3",
+      "device": "default"
+    }
+  },
+  "3": {
+    "_meta": {
+      "title": "Load VAE"
+    },
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    }
+  },
+  "4": {
+    "_meta": {
+      "title": "Edit prompt"
+    },
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "The woman from the first image, the older man from the second image and the teenager from the third image sit together at a wooden table in a sunny garden café, all three facing the camera. Keep their faces, hair, glasses, outfits and accessories exactly the same.",
+      "clip": ["2", 0]
+    }
+  },
+  "7": {
+    "_meta": {
+      "title": "KSampler"
+    },
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 11,
+      "steps": 16,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": ["1", 0],
+      "positive": ["17", 0],
+      "negative": ["17", 1],
+      "latent_image": ["44", 0]
+    }
+  },
+  "8": {
+    "_meta": {
+      "title": "VAE Decode"
+    },
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["7", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "9": {
+    "_meta": {
+      "title": "Save Image"
+    },
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "image_edit",
+      "images": ["8", 0]
+    }
+  },
+  "11": {
+    "_meta": {
+      "title": "Reference 1"
+    },
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "reference_1.png"
+    }
+  },
+  "12": {
+    "_meta": {
+      "title": "Reference 2"
+    },
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "reference_2.png"
+    }
+  },
+  "13": {
+    "_meta": {
+      "title": "Reference 3"
+    },
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "reference_3.png"
+    }
+  },
+  "17": {
+    "_meta": {
+      "title": "Reference latents"
+    },
+    "class_type": "ReferenceMultiLatent",
+    "inputs": {
+      "resolution": "resize",
+      "resolution.megapixels": 1,
+      "positive": ["4", 0],
+      "negative": ["32", 0],
+      "vae": ["3", 0],
+      "images.image0": ["11", 0],
+      "images.image1": ["12", 0],
+      "images.image2": ["13", 0]
+    }
+  },
+  "32": {
+    "_meta": {
+      "title": "Negative (zeroed)"
+    },
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": ["4", 0]
+    }
+  },
+  "44": {
+    "_meta": {
+      "title": "Output size"
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": 1344,
+      "height": 768,
+      "batch_size": 1
+    }
+  }
+}

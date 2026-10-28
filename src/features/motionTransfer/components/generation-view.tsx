@@ -1,8 +1,9 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
-import { TriangleAlertIcon } from "lucide-react";
+import { RotateCwIcon, TriangleAlertIcon } from "lucide-react";
 import { type ComponentType, useEffect, useState } from "react";
 
+import { Button } from "#/components/ui/button";
 import {
   MotionTransferHeader,
   type HeaderStep,
@@ -24,7 +25,12 @@ import type { ResultGenerationActionsProps } from "#/features/motionTransfer/slo
 import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
 import { Hud, PageGlow, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
-import { GeneratedImage } from "#/shared/components/generated-image";
+import {
+  GeneratedOutputs,
+  generatedTitle,
+  shownOutputs,
+} from "#/shared/components/generated-outputs";
+import { PublishLink } from "#/shared/components/publish-link";
 import { OpenWeightsBadge, SiteHeader } from "#/shared/components/site";
 import { generationReceiptSchema, type GenerationSnapshot } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
@@ -208,24 +214,62 @@ function resultAssets(result: Result | null) {
 
 /**
  * `/g/:id` of a generation of a workflow other than Motion Transfer, by the media of its outputs:
- * its status as its event stream reports it and, once done, each image output, labelled
- * AI-generated, with Download (an image generation has no poster and no video). A done snapshot
- * lists its outputs (`generationSchema`), stored with its status in one write, so done is final
- * here: a generation whose outputs are all text (a caption) shows that it has no file to show,
- * never the text.
+ * its status as its event stream reports it and, once done, each image and each video output with
+ * its poster (`GeneratedOutputs`), labelled AI-generated, with Download. A done snapshot lists its
+ * outputs (`generationSchema`), stored with its status in one write, so done is final here: a
+ * generation whose outputs are all text (a caption) shows that it has no file to show, never the
+ * text. With the access code: a done generation of a workflow that publishes on request offers
+ * "Publish & copy link" (`PublishLink`), and a failed or cancelled one Retry with a new seed
+ * (`POST /api/generations/:id/retry`), which opens the child it starts.
  */
 function OutputsView({ data }: { data: OutputsResult }) {
   const live = useLiveGeneration(data.generation);
-  const { status } = live.generation;
+  const { id, share_slug, status } = live.generation;
+  const navigate = useNavigate();
+  const nextSignal = useRequestSignal();
 
-  const images = live.generation.outputs.flatMap((output) =>
-    output.media === "image" ? [output] : [],
+  const [retry, setRetry] = useState<{ message: string | null; pending: boolean }>({
+    message: null,
+    pending: false,
+  });
+
+  const outputs = live.generation.outputs.flatMap((output) =>
+    output.media === "text" ? [] : [output],
   );
+
+  const { category, media } = shownOutputs(outputs);
+  const publishable = data.signedIn && data.publish === "on-request" && status === "done";
+  const retryable = data.signedIn && (status === "failed" || status === "cancelled");
+
+  async function startRetry() {
+    // Not passed to the request: a retry that reached the server starts there. Leaving the page
+    // only drops the navigation to the child.
+    const signal = nextSignal();
+
+    setRetry({ message: null, pending: true });
+
+    const answer = await callApi(generationReceiptSchema, `/api/generations/${id}/retry`, {
+      method: "POST",
+    });
+
+    if (signal.aborted) {
+      return;
+    }
+
+    if ("refusal" in answer) {
+      setRetry({ message: answer.refusal.message, pending: false });
+
+      return;
+    }
+
+    // The page is keyed by the generation, so the child opens with a stream of its own.
+    await navigate({ params: { generationId: answer.data.id }, to: "/g/$generationId" });
+  }
 
   return (
     <div className="relative isolate min-h-svh">
       <PageGlow />
-      <SiteHeader category={images.length > 0 ? "Image" : undefined}>
+      <SiteHeader category={category}>
         <span className="hidden sm:inline-flex">
           <OpenWeightsBadge />
         </span>
@@ -245,11 +289,29 @@ function OutputsView({ data }: { data: OutputsResult }) {
               : stageTitle({ position: live.generation.position, status })}
           {live.providerUnavailable && " · Comfy is not answering"}
         </p>
-        {images.map(({ asset, name }) => (
-          <GeneratedImage asset={asset} download key={name} />
-        ))}
-        {status === "done" && images.length === 0 && (
-          <p className="text-sm text-soft-foreground">This generation has no image to show here.</p>
+        {retryable && (
+          <div className="flex flex-col gap-2">
+            <div>
+              <Button disabled={retry.pending} onClick={() => void startRetry()} variant="outline">
+                <RotateCwIcon aria-hidden="true" />
+                {retry.pending ? "Retrying…" : "Retry with a new seed"}
+              </Button>
+            </div>
+            {retry.message && (
+              <p className="text-sm text-destructive-foreground" role="alert">
+                {retry.message}
+              </p>
+            )}
+          </div>
+        )}
+        <GeneratedOutputs outputs={outputs} />
+        {publishable && media !== null && (
+          <PublishLink generationId={id} media={media} slug={share_slug} />
+        )}
+        {status === "done" && media === null && (
+          <p className="text-sm text-soft-foreground">
+            This generation has no image or video to show here.
+          </p>
         )}
       </main>
     </div>
@@ -274,6 +336,20 @@ export function GenerationView({
   ) : (
     <OutputsView data={data} />
   );
+}
+
+/**
+ * The `<title>` of `/g/:id` as it loads: a Motion Transfer take's; another workflow's generation
+ * by the media of its outputs once done (`AI-generated video · Open Photon`), else neutral.
+ */
+export function generationTitle(data: Result) {
+  if (data.view === "motionTransfer") {
+    return "Your take · Motion Transfer · Open Photon";
+  }
+
+  const { media } = shownOutputs(data.outputs);
+
+  return media ? generatedTitle(media) : "Generation · Open Photon";
 }
 
 /**

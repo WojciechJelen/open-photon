@@ -16,6 +16,7 @@ import { Route as ApiCharacterCaptionsRouteImport } from './routes/api.character
 import { Route as ApiCharacterGenerationsRouteImport } from './routes/api.character-generations'
 import { Route as ApiCharactersRouteImport } from './routes/api.characters'
 import { Route as ApiGenerateRouteImport } from './routes/api.generate'
+import { Route as ApiImageUploadsRouteImport } from './routes/api.image-uploads'
 import { Route as ApiShareOriginRouteImport } from './routes/api.share-origin'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as BatchesIndexRouteImport } from './routes/batches.index'
@@ -76,6 +77,11 @@ const ApiCharactersRoute = ApiCharactersRouteImport.update({
 const ApiGenerateRoute = ApiGenerateRouteImport.update({
   id: '/api/generate',
   path: '/api/generate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiImageUploadsRoute = ApiImageUploadsRouteImport.update({
+  id: '/api/image-uploads',
+  path: '/api/image-uploads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiShareOriginRoute = ApiShareOriginRouteImport.update({
@@ -226,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
+  '/api/image-uploads': typeof ApiImageUploadsRoute
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
@@ -261,6 +268,7 @@ export interface FileRoutesByTo {
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
+  '/api/image-uploads': typeof ApiImageUploadsRoute
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
@@ -297,6 +305,7 @@ export interface FileRoutesById {
   '/api/character-generations': typeof ApiCharacterGenerationsRouteWithChildren
   '/api/characters': typeof ApiCharactersRouteWithChildren
   '/api/generate': typeof ApiGenerateRoute
+  '/api/image-uploads': typeof ApiImageUploadsRoute
   '/api/share-origin': typeof ApiShareOriginRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
@@ -334,6 +343,7 @@ export interface FileRouteTypes {
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
+    | '/api/image-uploads'
     | '/api/share-origin'
     | '/api/uploads'
     | '/batches/$batchId'
@@ -369,6 +379,7 @@ export interface FileRouteTypes {
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
+    | '/api/image-uploads'
     | '/api/share-origin'
     | '/api/uploads'
     | '/batches/$batchId'
@@ -404,6 +415,7 @@ export interface FileRouteTypes {
     | '/api/character-generations'
     | '/api/characters'
     | '/api/generate'
+    | '/api/image-uploads'
     | '/api/share-origin'
     | '/api/uploads'
     | '/batches/$batchId'
@@ -440,6 +452,7 @@ export interface RootRouteChildren {
   ApiCharacterGenerationsRoute: typeof ApiCharacterGenerationsRouteWithChildren
   ApiCharactersRoute: typeof ApiCharactersRouteWithChildren
   ApiGenerateRoute: typeof ApiGenerateRoute
+  ApiImageUploadsRoute: typeof ApiImageUploadsRoute
   ApiShareOriginRoute: typeof ApiShareOriginRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   BatchesBatchIdRoute: typeof BatchesBatchIdRoute
@@ -509,6 +522,13 @@ declare module '@tanstack/react-router' {
       path: '/api/generate'
       fullPath: '/api/generate'
       preLoaderRoute: typeof ApiGenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/image-uploads': {
+      id: '/api/image-uploads'
+      path: '/api/image-uploads'
+      fullPath: '/api/image-uploads'
+      preLoaderRoute: typeof ApiImageUploadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/share-origin': {
@@ -768,6 +788,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCharacterGenerationsRoute: ApiCharacterGenerationsRouteWithChildren,
   ApiCharactersRoute: ApiCharactersRouteWithChildren,
   ApiGenerateRoute: ApiGenerateRoute,
+  ApiImageUploadsRoute: ApiImageUploadsRoute,
   ApiShareOriginRoute: ApiShareOriginRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   BatchesBatchIdRoute: BatchesBatchIdRoute,

@@ -1,7 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
 import { composerSlots } from "#/app/composer-slots";
-import { GenerationView } from "#/features/motionTransfer/components/generation-view";
+import {
+  GenerationView,
+  generationTitle,
+} from "#/features/motionTransfer/components/generation-view";
 import { loadResult } from "#/features/motionTransfer/generate.functions";
 import { Problem } from "#/shared/components/problem";
 
@@ -15,7 +18,9 @@ export const Route = createFileRoute("/g/$generationId")({
 
     return result;
   },
-  head: () => ({ meta: [{ title: "Your take · Motion Transfer · Open Photon" }] }),
+  head: ({ loaderData }) => ({
+    meta: [{ title: loaderData ? generationTitle(loaderData) : "Generation not found" }],
+  }),
   component: GenerationPage,
   notFoundComponent: () => (
     <Problem title="Generation not found">

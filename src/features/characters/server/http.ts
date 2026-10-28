@@ -2,8 +2,7 @@ import type { ServerRequest } from "srvx";
 import { z } from "zod";
 
 import { readJsonBody } from "../../../shared/server/access.server.ts";
-import { storeAsset } from "../../../shared/server/assets.ts";
-import { classifyImage, probe } from "../../../shared/server/media/probe.ts";
+import { storeUploadedImage } from "../../../shared/server/image-upload.server.ts";
 import { handleUpload, UploadError } from "../../../shared/server/upload.server.ts";
 import {
   type CharacterList,
@@ -52,26 +51,7 @@ export function uploadCharacter(request: ServerRequest) {
       );
     }
 
-    const image = classifyImage(await probe(upload.temporary, request.signal));
-
-    if (!image) {
-      throw new UploadError(422, "Upload a PNG, JPEG or WebP image.", "not_image");
-    }
-
-    const { asset } = await storeAsset(upload.temporary, {
-      bytes: upload.bytes,
-      duration_ms: null,
-      ext: image.ext,
-      fps: null,
-      has_audio: null,
-      height: image.height,
-      kind: "image",
-      mime: image.mime,
-      role: "upload",
-      sha256: upload.sha256,
-      source_asset_id: null,
-      width: image.width,
-    });
+    const { asset } = await storeUploadedImage(upload, request.signal);
 
     const { character, created } = createFromUpload({
       assetId: asset.id,

@@ -8,6 +8,7 @@ import { classifyImage, probe } from "../media/probe.ts";
 import {
   type AnyWorkflowDefinition,
   type OutputDeclaration,
+  outputFileName,
   POSTER_OUTPUT,
   workflows,
 } from "./definition.ts";
@@ -127,14 +128,17 @@ async function rehostText(
 }
 
 /**
- * Downloads one declared output and stores it as a content-addressed asset: an image as it is
- * (PNG, JPEG or WebP by content); a video as its MP4, with its poster when it declares one.
- * Returns the stored asset ids by output name.
+ * Downloads the file at `index` (in Comfy's order) of one declared output and stores it as a
+ * content-addressed asset under `outputFileName(declared.name, index)`: an image as it is (PNG,
+ * JPEG or WebP by content); a video as its MP4, with its poster (`poster`, `poster-2`, … by the
+ * same index) when it declares one. Returns the stored asset ids by output name.
  */
 async function rehost(
   output: ProviderOutput,
   declared: OutputDeclaration,
+  index: number,
 ): Promise<Array<[name: string, assetId: string]>> {
+  const name = outputFileName(declared.name, index);
   const file = await incomingPath();
   const poster = await incomingPath();
 
@@ -146,7 +150,7 @@ async function rehost(
       const image = classifyImage(info);
 
       if (!image) {
-        throw new Error(`The output ${declared.name} is not a PNG, JPEG or WebP image`);
+        throw new Error(`The output ${name} is not a PNG, JPEG or WebP image`);
       }
 
       const stored = await storeAsset(file, {
@@ -162,7 +166,7 @@ async function rehost(
         width: image.width,
       });
 
-      return [[declared.name, stored.asset.id]];
+      return [[name, stored.asset.id]];
     }
 
     if (!info?.video || info.durationMs === null) {
@@ -187,7 +191,7 @@ async function rehost(
     });
 
     if (!frame) {
-      return [[declared.name, video.asset.id]];
+      return [[name, video.asset.id]];
     }
 
     const still: NewAsset = {
@@ -204,8 +208,8 @@ async function rehost(
     };
 
     return [
-      [declared.name, video.asset.id],
-      [POSTER_OUTPUT, (await storeAsset(poster, still)).asset.id],
+      [name, video.asset.id],
+      [outputFileName(POSTER_OUTPUT, index), (await storeAsset(poster, still)).asset.id],
     ];
   } finally {
     await rm(file, { force: true });
@@ -379,12 +383,13 @@ async function settle(id: string, provider: Provider) {
     const stored = [];
 
     for (const { candidates, declared } of files) {
-      const [first] = candidates;
-
       if (declared.media === "text") {
         stored.push(...(await rehostText(candidates, declared)));
-      } else if (first) {
-        stored.push(...(await rehost(first, declared)));
+        continue;
+      }
+
+      for (const [index, candidate] of candidates.entries()) {
+        stored.push(...(await rehost(candidate, declared, index)));
       }
     }
 
@@ -418,9 +423,11 @@ async function settle(id: string, provider: Provider) {
 const finalizing = new Map<string, Promise<Generation | null>>();
 
 /**
- * Finishes a generation whose Comfy job is complete: downloads each output its workflow declares
- * (`OutputDeclaration`; a Motion Transfer MP4 already carries the driving clip's audio), cuts a
- * poster for a video output that asks for one, stores them as hashed assets under their names,
+ * Finishes a generation whose Comfy job is complete: downloads every file of each image or video
+ * output its workflow declares (`OutputDeclaration`: the first under its name, further ones under
+ * `outputFileName`; a Motion Transfer MP4 already carries the driving clip's audio) and a text
+ * output's first text that is not blank, cuts a poster for each file of a video output that asks
+ * for one, stores them as hashed assets under their names,
  * adds the outputs its workflow derives from them (`deriveOutputs`; one that fails is left out)
  * and moves the row to `done`. `jobs.get` decides: while the job is not complete the row is left
  * untouched; a failed, cancelled or expired job fails it. One run per id at a time; concurrent

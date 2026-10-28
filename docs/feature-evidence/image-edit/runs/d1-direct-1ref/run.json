@@ -1,0 +1,36 @@
+{
+  "owner": "foundation",
+  "label": "ie-d1-direct-1ref",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-feature-integration/docs/feature-evidence/image-edit/graphs/d1-direct-1ref.api.json",
+  "sets": [],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/refs/ref-a-woman-glasses-hat-bag.png",
+      "ref_id": "d9abc7f6-3cc5-4d09-b122-efab1ddf1e02"
+    }
+  ],
+  "balance_before_cents": 7053.2399089185,
+  "job_id": "4ccb96fd-cbeb-477f-b9dd-966e038c9031",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.899,
+    "submit_to_done": 25.279,
+    "queued_before_running_observed": 17.946
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1845221,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/runs/foundation/imageedit/d1-direct-1ref/9-0-image_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7052.568436137501,
+  "balance_delta_cents": 0.6715
+}

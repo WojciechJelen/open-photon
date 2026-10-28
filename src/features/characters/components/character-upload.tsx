@@ -5,7 +5,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import type { CharacterSummary } from "#/features/characters/contracts";
-import { uploadCharacter, uploadTypes } from "#/features/characters/library";
+import { uploadCharacter } from "#/features/characters/library";
+import { IMAGE_UPLOAD_TYPES } from "#/shared/image-upload";
 import type { Refusal } from "#/shared/requests";
 import type { HoldForCode } from "#/shared/use-access-code";
 import { useRequestSignal } from "#/shared/use-request-signal";
@@ -36,7 +37,7 @@ const refusalTitles = new Map([
  * Adds a photo to the workspace library: pick a PNG, JPEG or WebP, tick the likeness consent
  * (the upload button stays disabled without it), and `submitLabel` uploads it
  * (`POST /api/characters`). A refusal (`consent_required`, `not_image`, a limit; the file picker
- * offers `uploadTypes`, the server checks the content) shows with a way on: "Try again" with the
+ * offers `IMAGE_UPLOAD_TYPES`, the server checks the content) shows with a way on: "Try again" with the
  * same file, or "Choose another"; it clears when another character is chosen (`selectedId`). A
  * 401 holds the photo for the access code (`hold`) and uploads it as soon as the code works.
  */
@@ -131,7 +132,7 @@ export function CharacterUpload({
         </p>
       </div>
       <input
-        accept={uploadTypes.join(",")}
+        accept={IMAGE_UPLOAD_TYPES.join(",")}
         aria-describedby={`${id}-rules`}
         aria-label="Upload a photo"
         className="sr-only"

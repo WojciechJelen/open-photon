@@ -103,9 +103,6 @@ export function patchCharacter(id: string, patch: { favorite?: boolean; title?: 
   });
 }
 
-/** The image types the file picker offers (`POST /api/characters` checks the content itself). */
-export const uploadTypes = ["image/png", "image/jpeg", "image/webp"];
-
 /**
  * `POST /api/characters`: an uploaded photo, with the uploader's likeness consent, which the
  * caller asks for first (the server refuses an upload without it, `consent_required`).
