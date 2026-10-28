@@ -224,6 +224,47 @@ test("with Comfy unreachable the stored snapshot still comes first, then a notic
   assert.equal(streamDiagnostics().active, 0);
 });
 
+test("a generation another settle finishes while the stream's own finalize fails ends on its done snapshot, not a Comfy notice", async () => {
+  const row = queued();
+  let calls = 0;
+
+  // The stream's first call follows the job to its end; the second, finalize's, finds the row
+  // already finished by another settle (the dispatcher's) and fails as a lost race does.
+  const raced: Provider = {
+    job: () => {
+      calls += 1;
+
+      if (calls === 1) {
+        return Promise.resolve({
+          error: null,
+          async *events() {},
+          getOutputs: () => [],
+          id: "provider-job",
+          status: "succeeded",
+        } satisfies ProviderJob);
+      }
+
+      transition(row.id, "queued", "finalizing");
+      transition(row.id, "finalizing", "done");
+
+      return Promise.reject(new Error(`Generation ${row.id} is not finalizing`));
+    },
+    submit: () => Promise.reject(new Error("The stream never submits")),
+    upload: () => Promise.reject(new Error("The stream never uploads")),
+  };
+
+  const response = streamGeneration(new Request("http://localhost/events"), row.id, raced);
+  const events = parseEvents(await response.text());
+
+  assert.deepEqual(
+    events.map(({ data }) => [data.kind, data.generation.status]),
+    [
+      ["snapshot", "queued"],
+      ["snapshot", "done"],
+    ],
+  );
+});
+
 test("request abort closes the Comfy subscription and leaves the generation as it was", async () => {
   const row = queued();
   const { provider, subscription } = liveProvider();
