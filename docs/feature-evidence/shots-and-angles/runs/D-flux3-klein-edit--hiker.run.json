@@ -1,0 +1,68 @@
+{
+  "owner": "shots-and-angles",
+  "label": "D-flux3-klein-edit-hiker",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/angles/graphs/D-flux3-klein-edit.multi.api.json",
+  "sets": [],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/inputs/hiker.png",
+      "ref_id": "12e50fd0-aa73-4316-ac73-500cb376b98a"
+    }
+  ],
+  "balance_before_cents": 7328.33172357,
+  "job_id": "718edcac-9a73-4652-80f5-b9b2330e6bd5",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.893,
+    "submit_to_done": 35.311,
+    "queued_before_running_observed": 12.68
+  },
+  "outputs": [
+    {
+      "node": "baseline_9",
+      "index": 0,
+      "name": "baseline_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1256671,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/hiker/baseline_9-0-baseline_00001_.png"
+    },
+    {
+      "node": "front_9",
+      "index": 0,
+      "name": "front_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1250136,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/hiker/front_9-0-front_00001_.png"
+    },
+    {
+      "node": "threequarter_9",
+      "index": 0,
+      "name": "threequarter_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1243880,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/hiker/threequarter_9-0-threequarter_00001_.png"
+    },
+    {
+      "node": "profile_9",
+      "index": 0,
+      "name": "profile_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1241734,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/hiker/profile_9-0-profile_00001_.png"
+    },
+    {
+      "node": "closeup_9",
+      "index": 0,
+      "name": "closeup_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1522235,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-shots-and-angles/work/feature-evidence/shots-and-angles/runs/D-flux3-klein-edit/hiker/closeup_9-0-closeup_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7325.53880743,
+  "balance_delta_cents": 2.7929
+}
