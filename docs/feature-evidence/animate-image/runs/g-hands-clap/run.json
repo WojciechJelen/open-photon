@@ -1,0 +1,41 @@
+{
+  "owner": "animate-image",
+  "label": "g-hands-clap",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/graphs/wan22-i2v-14b-4step.api.json",
+  "sets": [
+    "4.text=The older man claps his hands together three times, then rubs his palms together and smiles at the camera. Static camera, full body in frame, natural hand motion.",
+    "6.width=480",
+    "6.height=848",
+    "13.noise_seed=107"
+  ],
+  "images": [
+    {
+      "node": "1",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/inputs/ref-b.png",
+      "ref_id": "12b0b0c9-2251-404b-a676-b7ec30678b54"
+    }
+  ],
+  "balance_before_cents": 7303.833758687,
+  "job_id": "3e9dae31-84b4-4888-9dee-86594ff02501",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.053,
+    "submit_to_done": 29.582,
+    "queued_before_running_observed": 5.33
+  },
+  "outputs": [
+    {
+      "node": "17",
+      "index": 0,
+      "name": "video/animate-image_00001_.mp4",
+      "contentType": "video/mp4",
+      "bytes": 682121,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/runs/g-hands-clap/17-0-animate-image_00001_.mp4"
+    }
+  ],
+  "balance_after_cents": 7300.866673335,
+  "balance_delta_cents": 2.9671
+}

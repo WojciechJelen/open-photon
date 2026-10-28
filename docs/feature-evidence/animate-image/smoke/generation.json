@@ -1,0 +1,56 @@
+{
+  "character_id": null,
+  "created_at": "2026-10-27T19:38:57.747Z",
+  "error_code": null,
+  "error_message": null,
+  "final_asset_id": "59b0b3ea-c39d-48e4-aeca-9f2a3daf2f4f",
+  "finished_at": "2026-10-27T19:39:31.278Z",
+  "id": "8e44a192-b33d-4b7b-85d6-166ec3ad528e",
+  "outputs": [
+    {
+      "asset": {
+        "bytes": 46292,
+        "created_at": "2026-10-27T19:39:31.278Z",
+        "duration_ms": null,
+        "fps": null,
+        "has_audio": null,
+        "height": 480,
+        "id": "6277e80b-8884-463c-bc68-d36e514e2ece",
+        "kind": "poster",
+        "mime": "image/jpeg",
+        "role": "poster",
+        "sha256": "dd0087ced3e5ae2dfb6cc00e5f43de49792cd49002f585a43ff9d1e2820f539f",
+        "source_asset_id": "59b0b3ea-c39d-48e4-aeca-9f2a3daf2f4f",
+        "width": 848
+      },
+      "media": "poster",
+      "name": "poster"
+    },
+    {
+      "asset": {
+        "bytes": 2265551,
+        "created_at": "2026-10-27T19:39:31.277Z",
+        "duration_ms": 5063,
+        "fps": 16,
+        "has_audio": false,
+        "height": 480,
+        "id": "59b0b3ea-c39d-48e4-aeca-9f2a3daf2f4f",
+        "kind": "video",
+        "mime": "video/mp4",
+        "role": "provider_output",
+        "sha256": "951242ea406b414353a082b9f1386ca22f347d43d35bb416fb11b5f5d266c8bf",
+        "source_asset_id": null,
+        "width": 848
+      },
+      "media": "video",
+      "name": "video"
+    }
+  ],
+  "parent_id": null,
+  "position": null,
+  "poster_asset_id": "6277e80b-8884-463c-bc68-d36e514e2ece",
+  "progress": 100,
+  "share_slug": "bb5aa06c84acd17b",
+  "status": "done",
+  "submitted_at": "2026-10-27T19:39:01.050Z"
+}

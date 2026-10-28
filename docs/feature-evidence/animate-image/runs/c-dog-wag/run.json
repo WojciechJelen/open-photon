@@ -1,0 +1,41 @@
+{
+  "owner": "animate-image",
+  "label": "c-dog-wag",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/graphs/wan22-i2v-14b-4step.api.json",
+  "sets": [
+    "4.text=The golden retriever wags its tail, tilts its head curiously, then lies down on the grass with its front paws stretched forward. Static camera, sunny park, natural animal motion.",
+    "6.width=848",
+    "6.height=480",
+    "13.noise_seed=103"
+  ],
+  "images": [
+    {
+      "node": "1",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/inputs/dog/9-0-image_flux3_klein_distilled_t2i_00001_.png",
+      "ref_id": "b4bcc37b-e218-4b4d-ad18-9d2cead33ad0"
+    }
+  ],
+  "balance_before_cents": 7349.311406553,
+  "job_id": "34b8235f-5691-4e08-a8b7-c572fa6903b4",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 8.396,
+    "submit_to_done": 28.758,
+    "queued_before_running_observed": 5.46
+  },
+  "outputs": [
+    {
+      "node": "17",
+      "index": 0,
+      "name": "video/animate-image_00001_.mp4",
+      "contentType": "video/mp4",
+      "bytes": 2332282,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/runs/c-dog-wag/17-0-animate-image_00001_.mp4"
+    }
+  ],
+  "balance_after_cents": 7346.257650218,
+  "balance_delta_cents": 3.0538
+}
