@@ -1,0 +1,41 @@
+{
+  "owner": "animate-image",
+  "label": "e-fullbody-turnaround",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/graphs/wan22-i2v-14b-4step.api.json",
+  "sets": [
+    "4.text=The woman in the green jumpsuit slowly turns around in place to show her back, then turns back to face the camera and smiles. Static camera, full body in frame, plain studio background.",
+    "6.width=480",
+    "6.height=848",
+    "13.noise_seed=105"
+  ],
+  "images": [
+    {
+      "node": "1",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/src/features/characters/samples/characters/rosa.png",
+      "ref_id": "00c799fd-f06d-4933-bec4-d0070848d6cb"
+    }
+  ],
+  "balance_before_cents": 7332.170399218499,
+  "job_id": "124acbe7-544a-4dd9-aa89-8b2a10e28903",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.367,
+    "submit_to_done": 34.775,
+    "queued_before_running_observed": 2.98
+  },
+  "outputs": [
+    {
+      "node": "17",
+      "index": 0,
+      "name": "video/animate-image_00001_.mp4",
+      "contentType": "video/mp4",
+      "bytes": 891156,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/runs/e-fullbody-turnaround/17-0-animate-image_00001_.mp4"
+    }
+  ],
+  "balance_after_cents": 7328.33172357,
+  "balance_delta_cents": 3.8387
+}

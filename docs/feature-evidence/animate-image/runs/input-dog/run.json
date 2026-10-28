@@ -1,0 +1,34 @@
+{
+  "owner": "animate-image",
+  "label": "input-dog",
+  "target": "cloud",
+  "graph": "src/features/characterBuilder/workflows/character-generation.v1.json",
+  "sets": [
+    "18:4.text=Photorealistic photograph of a golden retriever dog sitting on short green grass in a sunny park, facing the camera with its mouth slightly open, full body visible from ears to paws and tail, trees softly blurred in the background, natural afternoon light, eye-level shot.",
+    "18:6.width=1344",
+    "18:6.height=768",
+    "18:7.seed=1002"
+  ],
+  "images": [],
+  "balance_before_cents": 7387.620924317,
+  "job_id": "8f5358a3-091c-4f03-8929-583a4c91c154",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 1.127,
+    "submit_to_done": 7.893,
+    "queued_before_running_observed": 2.964
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_flux3_klein_distilled_t2i_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1559743,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/inputs/dog/9-0-image_flux3_klein_distilled_t2i_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7387.319146582,
+  "balance_delta_cents": 0.3018
+}

@@ -1,0 +1,55 @@
+{
+  "image": {
+    "height": 768,
+    "sha256": "63637f6b23c23f4debb10232a1a5a1d9fd5a9b3d9531b9c33cff63c606041c90",
+    "width": 1344
+  },
+  "models": [
+    {
+      "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68"
+    },
+    {
+      "file": "wan_2.1_vae.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b"
+    },
+    {
+      "file": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "6122e79d55e0f235698d11d657f3b196c5273c830da00b2b013c5a048d5e6a42"
+    },
+    {
+      "file": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "d176c808d6fc461999b68e321efcb7501b20b8c3797523ed0df14f7d1deff11e"
+    },
+    {
+      "file": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "5471a457b6ac404202a5fbe6c11595a3d5641fc766b00f38763f72303fffc21e"
+    },
+    {
+      "file": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "024f21de095bc8fad9809ded3e9e49a2e170dcf27075da8145ba7d60d8aab7f9"
+    }
+  ],
+  "params": {
+    "height": 480,
+    "prompt": "The golden retriever stands up, wags its tail happily and looks around the park. Static camera.",
+    "seed": 65302527059828,
+    "width": 848
+  },
+  "source": {
+    "asset_id": "f2079067-4936-4be8-a017-dc7325347404",
+    "kind": "upload"
+  },
+  "target": "cloud",
+  "workflow": {
+    "id": "animate-image",
+    "sha256": "2e38515e096d384ea9f0906b4a4a5963ef34e13410e0355bef444bb4a1cea130",
+    "version": 1
+  }
+}

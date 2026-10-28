@@ -1,0 +1,41 @@
+{
+  "owner": "animate-image",
+  "label": "b-portrait-sip",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/graphs/wan22-i2v-14b-4step.api.json",
+  "sets": [
+    "4.text=The woman lifts the white coffee cup to her lips with both hands, takes a slow sip, then lowers the cup back in front of her chest and smiles at the camera. Static camera, soft window light.",
+    "6.width=528",
+    "6.height=768",
+    "13.noise_seed=102"
+  ],
+  "images": [
+    {
+      "node": "1",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/inputs/portrait/9-0-image_flux3_klein_distilled_t2i_00001_.png",
+      "ref_id": "66cca7c2-9f1d-49e0-88b6-3ae99630c590"
+    }
+  ],
+  "balance_before_cents": 7358.818307173,
+  "job_id": "92aec7df-08d1-45a7-bfd1-0e18334c5d4a",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.634,
+    "submit_to_done": 30.336,
+    "queued_before_running_observed": 2.912
+  },
+  "outputs": [
+    {
+      "node": "17",
+      "index": 0,
+      "name": "video/animate-image_00001_.mp4",
+      "contentType": "video/mp4",
+      "bytes": 1819686,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-animate-image/work/feature-evidence/animate-image/runs/b-portrait-sip/17-0-animate-image_00001_.mp4"
+    }
+  ],
+  "balance_after_cents": 7355.8076527115,
+  "balance_delta_cents": 3.0107
+}

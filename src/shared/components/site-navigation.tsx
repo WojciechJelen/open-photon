@@ -11,7 +11,7 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { NavigationIcon, type NavigationIconName } from "#/shared/components/navigation-icons";
 
-type ToolPath = "/characters" | "/characters/new" | "/motionTransfer" | "/presets";
+type ToolPath = "/animate" | "/characters" | "/characters/new" | "/motionTransfer" | "/presets";
 
 /** A category of the main navigation that has shipped tools. */
 export type NavigationCategory = "Image" | "Library" | "Video";
@@ -56,6 +56,12 @@ const navigation: NavigationEntry[] = [
         icon: "motionPresets",
         label: "Motion presets",
         to: "/presets",
+      },
+      {
+        description: "Bring a still image to life from a description.",
+        icon: "motionTransfer",
+        label: "Animate image",
+        to: "/animate",
       },
       //TODO: https://linear.app/devs3/issue/DEV-291
       {
