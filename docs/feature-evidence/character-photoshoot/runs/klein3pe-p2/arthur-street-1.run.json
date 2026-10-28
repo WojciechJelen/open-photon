@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p2-arthur-street-1",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=A full-body shot from across the street photograph on a busy city street. The person is walking across a zebra crossing, glancing sideways past the camera; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: bright overcast daylight with soft shadows. The person is the one in the reference image, keeping exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories, rendered in the same visual style as the reference. One person only, natural anatomy with complete hands.",
+    "7.seed=1002"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/arthur.png",
+      "ref_id": "cad5f157-a0d2-4cb9-a84e-f18e8c980e19"
+    }
+  ],
+  "balance_before_cents": 7323.801247914,
+  "job_id": "f1e00435-f6b9-421e-983b-b305f644e6fe",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.082,
+    "submit_to_done": 10.338,
+    "queued_before_running_observed": 2.967
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1804316,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/arthur-street-1/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1338,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/arthur-street-1/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7322.9660364985,
+  "balance_delta_cents": 0.8352
+}

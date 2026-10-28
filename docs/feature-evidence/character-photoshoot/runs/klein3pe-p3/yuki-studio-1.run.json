@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p3-yuki-studio-1",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=Waist-up portrait: the person from the reference image in a professional photo studio in front of a seamless paper backdrop. The person is facing the camera with arms crossed and a confident expression; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: moody Rembrandt lighting with a triangle of light on the shadow-side cheek, on a dark charcoal backdrop. Keep the exact visual style and medium of the reference image: a drawing or anime illustration stays a drawing in the same style, a 3D render stays a 3D render, a photo stays a photo. Keep exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories. One person only, natural anatomy with complete hands.",
+    "7.seed=1002"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/yuki.png",
+      "ref_id": "3af12664-2380-4851-aeed-5b4a6958f036"
+    }
+  ],
+  "balance_before_cents": 7077.090747927,
+  "job_id": "447c78be-6feb-47ed-b51e-1421f6e411f3",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.89,
+    "submit_to_done": 10.251,
+    "queued_before_running_observed": 2.908
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1498906,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/yuki-studio-1/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1208,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/yuki-studio-1/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7076.3108783365005,
+  "balance_delta_cents": 0.7799
+}

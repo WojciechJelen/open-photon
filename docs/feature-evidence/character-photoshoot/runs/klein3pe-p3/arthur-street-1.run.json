@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p3-arthur-street-1",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=Full-body shot from across the street: the person from the reference image on a busy city street. The person is walking across a zebra crossing, glancing sideways past the camera; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: bright overcast daylight with soft shadows. Keep the exact visual style and medium of the reference image: a drawing or anime illustration stays a drawing in the same style, a 3D render stays a 3D render, a photo stays a photo. Keep exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories. One person only, natural anatomy with complete hands.",
+    "7.seed=1002"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/arthur.png",
+      "ref_id": "cad5f157-a0d2-4cb9-a84e-f18e8c980e19"
+    }
+  ],
+  "balance_before_cents": 7025.449275611,
+  "job_id": "4552b7dc-0bfe-41af-bedd-dbf0528df8d2",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.952,
+    "submit_to_done": 10.362,
+    "queued_before_running_observed": 2.951
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1810128,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/arthur-street-1/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1300,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p3/arthur-street-1/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7024.627947502,
+  "balance_delta_cents": 0.8213
+}

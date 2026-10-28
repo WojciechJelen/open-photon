@@ -1,0 +1,47 @@
+{
+  "owner": "character-photoshoot",
+  "label": "klein3pe-p2-yuki-editorial-3",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/flux3-klein-edit-pe.api.json",
+  "sets": [
+    "47.prompt=A full-body shot, symmetric composition photograph in a high-end fashion magazine editorial set in an elegant interior. The person is standing upright against a bold colour-block wall, arms relaxed at the sides, chin raised; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: even, graphic light with saturated colours. The person is the one in the reference image, keeping exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories, rendered in the same visual style as the reference. One person only, natural anatomy with complete hands.",
+    "7.seed=1004"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/yuki.png",
+      "ref_id": "3af12664-2380-4851-aeed-5b4a6958f036"
+    }
+  ],
+  "balance_before_cents": 7116.117966864,
+  "job_id": "f1266a49-5d56-4c69-841f-91cf43403951",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.033,
+    "submit_to_done": 10.336,
+    "queued_before_running_observed": 2.917
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1367297,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/yuki-editorial-3/9-0-image_edit_00001_.png"
+    },
+    {
+      "node": "53",
+      "index": 0,
+      "name": "image_edit_prompt_00001.txt",
+      "contentType": "",
+      "bytes": 1249,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/klein3pe-p2/yuki-editorial-3/53-0-image_edit_prompt_00001.txt"
+    }
+  ],
+  "balance_after_cents": 7115.3213555135,
+  "balance_delta_cents": 0.7966
+}

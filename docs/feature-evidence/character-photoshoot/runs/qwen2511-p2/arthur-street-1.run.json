@@ -1,0 +1,39 @@
+{
+  "owner": "character-photoshoot",
+  "label": "qwen2511-p2-arthur-street-1",
+  "target": "cloud",
+  "graph": "docs/feature-evidence/character-photoshoot/graphs/qwen-edit-2511.api.json",
+  "sets": [
+    "170:151.prompt=A full-body shot from across the street photograph on a busy city street. The person is walking across a zebra crossing, glancing sideways past the camera; the pose, camera angle and background are completely new, nothing of the reference's pose or backdrop remains. Lighting: bright overcast daylight with soft shadows. The person is the one in the reference image, keeping exactly the same face, hairstyle, skin tone, body build, outfit, shoes and accessories, rendered in the same visual style as the reference. One person only, natural anatomy with complete hands.",
+    "170:169.seed=1002"
+  ],
+  "images": [
+    {
+      "node": "41",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/src/features/characters/samples/characters/arthur.png",
+      "ref_id": "cad5f157-a0d2-4cb9-a84e-f18e8c980e19"
+    }
+  ],
+  "balance_before_cents": 7312.516901130501,
+  "job_id": "cfbfef73-5abe-441c-aa79-44b946392fe3",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.886,
+    "submit_to_done": 55.111,
+    "queued_before_running_observed": 2.954
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1281857,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-character-photoshoot/work/feature-evidence/character-photoshoot/qwen2511-p2/arthur-street-1/9-0-image_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7305.9999832755,
+  "balance_delta_cents": 6.5169
+}
