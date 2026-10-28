@@ -19,6 +19,7 @@ type ToolPath =
   | "/motionTransfer"
   | "/photoshoot"
   | "/presets"
+  | "/product-studio"
   | "/storyboards";
 
 /** A category of the main navigation that has shipped tools. */
@@ -65,6 +66,12 @@ const navigation: NavigationEntry[] = [
         icon: "createCharacter",
         label: "Storyboard",
         to: "/storyboards",
+      },
+      {
+        description: "Put a product photo in a packshot, lifestyle or ad scene.",
+        icon: "lookLighting",
+        label: "Product Studio",
+        to: "/product-studio",
       },
     ],
   },

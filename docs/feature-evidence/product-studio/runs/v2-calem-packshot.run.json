@@ -1,0 +1,55 @@
+{
+  "owner": "product-studio",
+  "label": "v2-calem-packshot",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/graphs/composite-v2.api.json",
+  "sets": [
+    "4.text=Professional e-commerce packshot of a green glass bottle of white port wine with a white and green paper label standing upright in the center. Seamless pure white studio background, soft even lighting, a soft natural contact shadow directly under the product, clean and minimal, photorealistic, high detail.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "10",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/calem.jpg",
+      "ref_id": "c1f1dce5-1c9a-418e-9775-b1c9e510ced3"
+    }
+  ],
+  "balance_before_cents": 7144.094912728,
+  "job_id": "5f1f7e09-43a3-44cd-81e2-91e1795f1c34",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 4.497,
+    "submit_to_done": 10.559,
+    "queued_before_running_observed": 2.996
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "product_composite_00001_.png",
+      "contentType": "image/png",
+      "bytes": 835737,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/v2-calem-packshot/9-0-product_composite_00001_.png"
+    },
+    {
+      "node": "60",
+      "index": 0,
+      "name": "debug_raw_00001_.png",
+      "contentType": "image/png",
+      "bytes": 877453,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/v2-calem-packshot/60-0-debug_raw_00001_.png"
+    },
+    {
+      "node": "62",
+      "index": 0,
+      "name": "debug_mask_00001_.png",
+      "contentType": "image/png",
+      "bytes": 21057,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/v2-calem-packshot/62-0-debug_mask_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7143.135678774001,
+  "balance_delta_cents": 0.9592
+}

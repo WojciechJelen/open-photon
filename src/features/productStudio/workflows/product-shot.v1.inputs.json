@@ -1,0 +1,78 @@
+{
+  "workflow": "product-shot.v1.json",
+  "inputs": {
+    "product_image": {
+      "node": "10",
+      "field": "image",
+      "class_type": "LoadImage"
+    },
+    "prompt": {
+      "node": "4",
+      "field": "text",
+      "class_type": "CLIPTextEncode"
+    },
+    "seed": {
+      "node": "7",
+      "field": "seed",
+      "class_type": "KSampler"
+    },
+    "width": [
+      {
+        "node": "22",
+        "field": "width",
+        "class_type": "EmptyImage"
+      },
+      {
+        "node": "23",
+        "field": "width",
+        "class_type": "SolidMask"
+      }
+    ],
+    "height": [
+      {
+        "node": "22",
+        "field": "height",
+        "class_type": "EmptyImage"
+      },
+      {
+        "node": "23",
+        "field": "height",
+        "class_type": "SolidMask"
+      }
+    ],
+    "box_width": {
+      "node": "20",
+      "field": "target_width",
+      "class_type": "ResizeAndPadImage"
+    },
+    "box_height": {
+      "node": "20",
+      "field": "target_height",
+      "class_type": "ResizeAndPadImage"
+    },
+    "box_x": [
+      {
+        "node": "24",
+        "field": "x",
+        "class_type": "MaskComposite"
+      },
+      {
+        "node": "21",
+        "field": "x",
+        "class_type": "ImageCompositeMasked"
+      }
+    ],
+    "box_y": [
+      {
+        "node": "24",
+        "field": "y",
+        "class_type": "MaskComposite"
+      },
+      {
+        "node": "21",
+        "field": "y",
+        "class_type": "ImageCompositeMasked"
+      }
+    ]
+  }
+}

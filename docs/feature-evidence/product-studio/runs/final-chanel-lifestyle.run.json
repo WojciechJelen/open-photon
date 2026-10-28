@@ -1,0 +1,49 @@
+{
+  "owner": "product-studio",
+  "label": "final-chanel-lifestyle",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/src/features/productStudio/workflows/product-shot.v1.json",
+  "sets": [
+    "20.target_height=736",
+    "20.target_width=608",
+    "24.x=208",
+    "21.x=208",
+    "24.y=160",
+    "21.y=160",
+    "22.height=1024",
+    "23.height=1024",
+    "22.width=1024",
+    "23.width=1024",
+    "4.text=Lifestyle product photograph of a clear square glass perfume bottle filled with golden perfume, with a glass stopper, placed in a real setting. Setting: a light oak table in a bright, airy interior, soft daylight from a window on the left, a ceramic vase and a linen cloth softly blurred in the background. Natural light, a natural soft shadow under the product, shallow depth of field, photorealistic.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "10",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/chanel.jpg",
+      "ref_id": "b539c997-b170-4c2b-9e50-1ccb03998c46"
+    }
+  ],
+  "balance_before_cents": 7043.877394453,
+  "job_id": "068f7e6a-772c-4078-b158-6ae86bf0d90d",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.803,
+    "submit_to_done": 42.255,
+    "queued_before_running_observed": 34.582
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "product_shot_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1192752,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/final-chanel-lifestyle/9-0-product_shot_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7043.008224641,
+  "balance_delta_cents": 0.8692
+}

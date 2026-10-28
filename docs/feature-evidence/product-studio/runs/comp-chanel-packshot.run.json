@@ -1,0 +1,55 @@
+{
+  "owner": "product-studio",
+  "label": "comp-chanel-packshot",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/graphs/composite-ref.api.json",
+  "sets": [
+    "4.text=Professional e-commerce packshot of a clear square glass perfume bottle filled with golden perfume, with a glass stopper standing upright in the center. Seamless pure white studio background, soft even lighting, a soft natural contact shadow directly under the product, clean and minimal, photorealistic, high detail.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "10",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/chanel.jpg",
+      "ref_id": "b539c997-b170-4c2b-9e50-1ccb03998c46"
+    }
+  ],
+  "balance_before_cents": 7305.9999832755,
+  "job_id": "447f4837-818b-48ec-b47a-8022b82bc72e",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 4.834,
+    "submit_to_done": 13.621,
+    "queued_before_running_observed": 3.186
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "product_composite_00001_.png",
+      "contentType": "image/png",
+      "bytes": 835715,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/comp-chanel-packshot/9-0-product_composite_00001_.png"
+    },
+    {
+      "node": "60",
+      "index": 0,
+      "name": "debug_raw_00001_.png",
+      "contentType": "image/png",
+      "bytes": 878253,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/comp-chanel-packshot/60-0-debug_raw_00001_.png"
+    },
+    {
+      "node": "62",
+      "index": 0,
+      "name": "debug_mask_00001_.png",
+      "contentType": "image/png",
+      "bytes": 20023,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/comp-chanel-packshot/62-0-debug_mask_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7304.673748393499,
+  "balance_delta_cents": 1.3262
+}

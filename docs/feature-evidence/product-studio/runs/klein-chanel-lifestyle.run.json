@@ -1,0 +1,39 @@
+{
+  "owner": "product-studio",
+  "label": "klein-chanel-lifestyle",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/flux3-klein-edit.api.json",
+  "sets": [
+    "4.text=Lifestyle product photograph of a clear square glass perfume bottle filled with golden perfume, with a glass stopper standing upright on a light oak table in a bright, airy interior, soft daylight from a window on the left, a ceramic vase and a linen cloth softly blurred in the background, a natural soft shadow under the product, shallow depth of field, photorealistic. Keep the product exactly as in the reference image: the same shape, proportions, colours, materials, logo and every word of the label text, unchanged and legible.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "11",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/chanel.jpg",
+      "ref_id": "b539c997-b170-4c2b-9e50-1ccb03998c46"
+    }
+  ],
+  "balance_before_cents": 7018.153705077,
+  "job_id": "08ee5ef9-2380-4190-8f79-97d38e874d36",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.532,
+    "submit_to_done": 8.562,
+    "queued_before_running_observed": 3.068
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1363287,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/klein-chanel-lifestyle/9-0-image_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7017.6341561275,
+  "balance_delta_cents": 0.5195
+}

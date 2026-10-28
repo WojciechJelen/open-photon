@@ -1,0 +1,49 @@
+{
+  "owner": "product-studio",
+  "label": "final-thermos-lifestyle",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/src/features/productStudio/workflows/product-shot.v1.json",
+  "sets": [
+    "20.target_height=736",
+    "20.target_width=608",
+    "24.x=208",
+    "21.x=208",
+    "24.y=160",
+    "21.y=160",
+    "22.height=1024",
+    "23.height=1024",
+    "22.width=1024",
+    "23.width=1024",
+    "4.text=Lifestyle product photograph of a polished chrome stainless steel water bottle with a black lid, placed in a real setting. Setting: a light oak table in a bright, airy interior, soft daylight from a window on the left, a ceramic vase and a linen cloth softly blurred in the background. Natural light, a natural soft shadow under the product, shallow depth of field, photorealistic.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "10",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/thermos.png",
+      "ref_id": "0665d7f9-a840-4888-9fe6-63c9ec49db45"
+    }
+  ],
+  "balance_before_cents": 7036.8737445025,
+  "job_id": "ef37ef06-03fc-45d6-b031-746add1a5322",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.891,
+    "submit_to_done": 44.232,
+    "queued_before_running_observed": 36.923
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "product_shot_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1187210,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/final-thermos-lifestyle/9-0-product_shot_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7036.055533328999,
+  "balance_delta_cents": 0.8182
+}

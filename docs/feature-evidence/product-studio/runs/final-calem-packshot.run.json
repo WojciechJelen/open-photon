@@ -1,0 +1,49 @@
+{
+  "owner": "product-studio",
+  "label": "final-calem-packshot",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/src/features/productStudio/workflows/product-shot.v1.json",
+  "sets": [
+    "20.target_height=736",
+    "20.target_width=608",
+    "24.x=208",
+    "21.x=208",
+    "24.y=160",
+    "21.y=160",
+    "22.height=1024",
+    "23.height=1024",
+    "22.width=1024",
+    "23.width=1024",
+    "4.text=Professional e-commerce packshot of a green glass bottle of white port wine with a white and green paper label, placed in the center. Background: a seamless pure white studio backdrop. Soft even studio lighting, a soft natural contact shadow directly under the product, clean and minimal, photorealistic, high detail.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "10",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/calem.jpg",
+      "ref_id": "c1f1dce5-1c9a-418e-9775-b1c9e510ced3"
+    }
+  ],
+  "balance_before_cents": 7074.200043488,
+  "job_id": "2be216d4-d9f9-43ad-b6b9-70731e06ac4e",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.59,
+    "submit_to_done": 12.712,
+    "queued_before_running_observed": 2.961
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "product_shot_00001_.png",
+      "contentType": "image/png",
+      "bytes": 846954,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/final-calem-packshot/9-0-product_shot_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7073.112745171,
+  "balance_delta_cents": 1.0873
+}

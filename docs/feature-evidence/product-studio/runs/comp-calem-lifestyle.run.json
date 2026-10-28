@@ -1,0 +1,55 @@
+{
+  "owner": "product-studio",
+  "label": "comp-calem-lifestyle",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/graphs/composite-ref.api.json",
+  "sets": [
+    "4.text=Lifestyle product photograph of a green glass bottle of white port wine with a white and green paper label standing upright on a light oak table in a bright, airy interior, soft daylight from a window on the left, a ceramic vase and a linen cloth softly blurred in the background, a natural soft shadow under the product, shallow depth of field, photorealistic.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "10",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/calem.jpg",
+      "ref_id": "c1f1dce5-1c9a-418e-9775-b1c9e510ced3"
+    }
+  ],
+  "balance_before_cents": 7333.9131128345,
+  "job_id": "26e992c8-c311-4b86-a943-08bf18dfbbfc",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.786,
+    "submit_to_done": 13.265,
+    "queued_before_running_observed": 3.382
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "product_composite_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1273987,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/comp-calem-lifestyle/9-0-product_composite_00001_.png"
+    },
+    {
+      "node": "60",
+      "index": 0,
+      "name": "debug_raw_00001_.png",
+      "contentType": "image/png",
+      "bytes": 1276107,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/comp-calem-lifestyle/60-0-debug_raw_00001_.png"
+    },
+    {
+      "node": "62",
+      "index": 0,
+      "name": "debug_mask_00001_.png",
+      "contentType": "image/png",
+      "bytes": 23286,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/comp-calem-lifestyle/62-0-debug_mask_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7332.699563802,
+  "balance_delta_cents": 1.2135
+}

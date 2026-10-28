@@ -1,0 +1,39 @@
+{
+  "owner": "product-studio",
+  "label": "qwen-thermos-lifestyle",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/qwen-edit-2511.api.json",
+  "sets": [
+    "170:151.prompt=Lifestyle product photograph of a polished chrome stainless steel water bottle with a black lid standing upright on a light oak table in a bright, airy interior, soft daylight from a window on the left, a ceramic vase and a linen cloth softly blurred in the background, a natural soft shadow under the product, shallow depth of field, photorealistic. Keep the product exactly as in the reference image: the same shape, proportions, colours, materials, logo and every word of the label text, unchanged and legible.",
+    "170:169.seed=42"
+  ],
+  "images": [
+    {
+      "node": "41",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/thermos.png",
+      "ref_id": "0665d7f9-a840-4888-9fe6-63c9ec49db45"
+    }
+  ],
+  "balance_before_cents": 7003.9544896725,
+  "job_id": "7d033352-a359-4f5f-8699-08ee486f1455",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.033,
+    "submit_to_done": 50.482,
+    "queued_before_running_observed": 3.131
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 864510,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/qwen-thermos-lifestyle/9-0-image_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 6997.533471359,
+  "balance_delta_cents": 6.421
+}

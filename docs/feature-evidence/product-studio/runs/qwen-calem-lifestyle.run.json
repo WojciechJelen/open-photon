@@ -1,0 +1,39 @@
+{
+  "owner": "product-studio",
+  "label": "qwen-calem-lifestyle",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feature-coord/graphs/qwen-edit-2511.api.json",
+  "sets": [
+    "170:151.prompt=Lifestyle product photograph of a green glass bottle of white port wine with a white and green paper label standing upright on a light oak table in a bright, airy interior, soft daylight from a window on the left, a ceramic vase and a linen cloth softly blurred in the background, a natural soft shadow under the product, shallow depth of field, photorealistic. Keep the product exactly as in the reference image: the same shape, proportions, colours, materials, logo and every word of the label text, unchanged and legible.",
+    "170:169.seed=42"
+  ],
+  "images": [
+    {
+      "node": "41",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/calem.jpg",
+      "ref_id": "c1f1dce5-1c9a-418e-9775-b1c9e510ced3"
+    }
+  ],
+  "balance_before_cents": 7011.9570048505,
+  "job_id": "e24aca79-6cdd-44d6-9eae-fb0aa803bbbc",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 3.141,
+    "submit_to_done": 41.831,
+    "queued_before_running_observed": 3.018
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "image_edit_00001_.png",
+      "contentType": "image/png",
+      "bytes": 853186,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/qwen-calem-lifestyle/9-0-image_edit_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7007.0273234295,
+  "balance_delta_cents": 4.9297
+}
