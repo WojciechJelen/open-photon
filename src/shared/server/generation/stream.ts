@@ -106,6 +106,17 @@ async function* generationUpdates(
       throw error;
     }
 
+    const settled = current(id);
+
+    // Another settle of the same row (the dispatcher's, or this server's other module instance in
+    // `vite dev`) can finish it while this one fails on the row it no longer holds ("is not
+    // finalizing"): a finished row is the answer, not an unreachable Comfy.
+    if (["done", "failed", "unknown", "cancelled"].includes(settled.status)) {
+      yield { generation: settled, kind: "snapshot" };
+
+      return;
+    }
+
     console.error(
       JSON.stringify({
         event: "sse.provider-unavailable",
@@ -114,7 +125,7 @@ async function* generationUpdates(
       }),
     );
 
-    yield { generation: current(id), kind: "provider_unavailable" };
+    yield { generation: settled, kind: "provider_unavailable" };
   }
 }
 

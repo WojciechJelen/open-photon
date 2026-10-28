@@ -152,7 +152,7 @@ function LiveTake({
         <>
           <GeneratedOutputs outputs={files} />
           <div className="flex flex-wrap items-center gap-3">
-            <PublishLink generationId={generation.id} slug={generation.share_slug} />
+            <PublishLink generationId={generation.id} media="video" slug={generation.share_slug} />
             <Button asChild variant="ghost">
               <Link params={{ generationId: generation.id }} to="/g/$generationId">
                 Result page

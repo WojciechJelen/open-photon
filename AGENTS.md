@@ -13,7 +13,11 @@ npx shadcn@latest add button
   server functions. Features: `motionTransfer` (the wizard, `/motionTransfer`), `characters`
   (workspace character library, sample characters), `characterBuilder` (character images:
   caption, generation and save contracts, `POST /api/character-generations`), `studio` (home page `/`),
-  `presets` (curated Motion Transfer presets, `/presets`) and
+  `presets` (curated Motion Transfer presets, `/presets`), `imageEdit` (the shared FLUX 3 Klein
+  reference-image edit other features submit through: `imageEditDefinitionFor`), `photoshoot`
+  (`/photoshoot`), `angles` (Shots & Angles, `/angles`), `storyboard` (`/storyboards`),
+  `productStudio` (`/product-studio`), `animateImage` (`/animate`; `animateImageHref` hands a
+  still to it) and
   `motion-score` (a Python/ComfyUI PoC: nothing imports it and no workflow of it is a runtime
   workflow, but both images package its `workflows/` and the app image its `samples/`).
 - A feature's public surface is `api.ts` (server code of other features) and `index.ts`
@@ -24,6 +28,8 @@ npx shadcn@latest add button
   Nitro plugin that seeds, recovers after a restart (`recoverAfterRestart`) and starts the
   dispatcher (migrations already ran when `db.server.ts` opened the database).
   `composer-slots.ts`: which component fills each Motion Transfer composer slot.
+  `result-actions.tsx`: cross-feature actions on a finished image (`AnimateAction`), which the
+  routes pass to a feature's actions seam (photoshoot shots, angle views, storyboard cards).
 - `src/shared/`: code no single feature owns: `components/`, `contracts.ts` (client-safe
   generation/asset contracts), `server/` (access, database, migrations, asset store, uploads,
   media serving, Comfy plumbing) and client helpers.
