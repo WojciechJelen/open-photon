@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "file": "flux3-image-klein-int8-convrot.safetensors",
+      "directory": "diffusion_models",
+      "url": "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/resolve/feef60b0aaf63a4773ace96636ebbcf43b881312/diffusion_models/flux3-image-klein-int8-convrot.safetensors",
+      "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2",
+      "license": "FLUX-Kommunity-1.0"
+    },
+    {
+      "file": "qwen3vl_4b_int8_convrot.safetensors",
+      "directory": "text_encoders",
+      "url": "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/resolve/feef60b0aaf63a4773ace96636ebbcf43b881312/text_encoders/qwen3vl_4b_int8_convrot.safetensors",
+      "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
+      "license": "Apache-2.0"
+    },
+    {
+      "file": "flux2-vae.safetensors",
+      "directory": "vae",
+      "url": "https://huggingface.co/Comfy-Org/Flux-2-Klein-4B/resolve/533c4cbc3d3b89af1743d9466c434e89810391c0/split_files/vae/flux2-vae.safetensors",
+      "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3",
+      "license": "Apache-2.0"
+    },
+    {
+      "file": "birefnet.safetensors",
+      "directory": "background_removal",
+      "url": "https://huggingface.co/Comfy-Org/BiRefNet/resolve/25511f8787e51912e1480706b4e47b8f467fbf72/background_removal/birefnet.safetensors",
+      "sha256": "9ab37426bf4de0567af6b5d21b16151357149139362e6e8992021b8ce356a154",
+      "license": "MIT"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "owner": "product-studio",
+  "label": "final-chanel-packshot",
+  "target": "cloud",
+  "graph": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/src/features/productStudio/workflows/product-shot.v1.json",
+  "sets": [
+    "20.target_height=736",
+    "20.target_width=608",
+    "24.x=208",
+    "21.x=208",
+    "24.y=160",
+    "21.y=160",
+    "22.height=1024",
+    "23.height=1024",
+    "22.width=1024",
+    "23.width=1024",
+    "4.text=Professional e-commerce packshot of a clear square glass perfume bottle filled with golden perfume, with a glass stopper, placed in the center. Background: a seamless pure white studio backdrop. Soft even studio lighting, a soft natural contact shadow directly under the product, clean and minimal, photorealistic, high detail.",
+    "7.seed=42"
+  ],
+  "images": [
+    {
+      "node": "10",
+      "field": "image",
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/inputs/chanel.jpg",
+      "ref_id": "b539c997-b170-4c2b-9e50-1ccb03998c46"
+    }
+  ],
+  "balance_before_cents": 7047.592469733,
+  "job_id": "7e6da963-1d95-4d35-b449-1cc5cec6ae0b",
+  "status": "succeeded",
+  "error": null,
+  "timings_s": {
+    "upload": 2.734,
+    "submit_to_done": 12.651,
+    "queued_before_running_observed": 2.914
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "index": 0,
+      "name": "product_shot_00001_.png",
+      "contentType": "image/png",
+      "bytes": 847639,
+      "file": "/Users/wojciechjelen/workspace/comfy-challenge/open-photon-wt/feat-product-studio/work/feature-evidence/product-studio/runs/final-chanel-packshot/9-0-product_shot_00001_.png"
+    }
+  ],
+  "balance_after_cents": 7046.402181102,
+  "balance_delta_cents": 1.1903
+}

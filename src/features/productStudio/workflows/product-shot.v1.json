@@ -1,0 +1,258 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux3-image-klein-int8-convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "flux3",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": ["2", 0]
+    },
+    "_meta": {
+      "title": "Scene prompt"
+    }
+  },
+  "5": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": ["4", 0]
+    },
+    "_meta": {
+      "title": "Zero negative"
+    }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "product.png"
+    },
+    "_meta": {
+      "title": "Product photo"
+    }
+  },
+  "20": {
+    "class_type": "ResizeAndPadImage",
+    "inputs": {
+      "image": ["10", 0],
+      "target_width": 608,
+      "target_height": 736,
+      "padding_color": "white",
+      "interpolation": "lanczos"
+    },
+    "_meta": {
+      "title": "Fit product into its box"
+    }
+  },
+  "30": {
+    "class_type": "LoadBackgroundRemovalModel",
+    "inputs": {
+      "bg_removal_name": "birefnet.safetensors"
+    },
+    "_meta": {
+      "title": "Load background removal model"
+    }
+  },
+  "31": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["30", 0],
+      "image": ["20", 0]
+    },
+    "_meta": {
+      "title": "Product matte"
+    }
+  },
+  "22": {
+    "class_type": "EmptyImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1,
+      "color": 8421504
+    },
+    "_meta": {
+      "title": "Canvas"
+    }
+  },
+  "23": {
+    "class_type": "SolidMask",
+    "inputs": {
+      "value": 0,
+      "width": 1024,
+      "height": 1024
+    },
+    "_meta": {
+      "title": "Empty canvas mask"
+    }
+  },
+  "24": {
+    "class_type": "MaskComposite",
+    "inputs": {
+      "destination": ["23", 0],
+      "source": ["31", 0],
+      "x": 208,
+      "y": 160,
+      "operation": "add"
+    },
+    "_meta": {
+      "title": "Product mask on canvas"
+    }
+  },
+  "21": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": ["22", 0],
+      "source": ["20", 0],
+      "x": 208,
+      "y": 160,
+      "resize_source": false,
+      "mask": ["31", 0]
+    },
+    "_meta": {
+      "title": "Product on canvas"
+    }
+  },
+  "32": {
+    "class_type": "GrowMask",
+    "inputs": {
+      "mask": ["24", 0],
+      "expand": -6,
+      "tapered_corners": true
+    },
+    "_meta": {
+      "title": "Shrink product mask (regenerate edge)"
+    }
+  },
+  "33": {
+    "class_type": "InvertMask",
+    "inputs": {
+      "mask": ["32", 0]
+    },
+    "_meta": {
+      "title": "Scene mask"
+    }
+  },
+  "34": {
+    "class_type": "GrowMask",
+    "inputs": {
+      "mask": ["24", 0],
+      "expand": -2,
+      "tapered_corners": true
+    },
+    "_meta": {
+      "title": "Shrink product mask (paste)"
+    }
+  },
+  "40": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": ["21", 0],
+      "vae": ["3", 0]
+    },
+    "_meta": {
+      "title": "Encode canvas"
+    }
+  },
+  "41": {
+    "class_type": "SetLatentNoiseMask",
+    "inputs": {
+      "samples": ["40", 0],
+      "mask": ["33", 0]
+    },
+    "_meta": {
+      "title": "Regenerate only the scene"
+    }
+  },
+  "17": {
+    "class_type": "ReferenceMultiLatent",
+    "inputs": {
+      "resolution": "keep resolution",
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "images.image0": ["21", 0]
+    },
+    "_meta": {
+      "title": "Product as reference"
+    }
+  },
+  "7": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 1,
+      "steps": 16,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": ["1", 0],
+      "positive": ["17", 0],
+      "negative": ["17", 1],
+      "latent_image": ["41", 0]
+    },
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["7", 0],
+      "vae": ["3", 0]
+    },
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "50": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": ["8", 0],
+      "source": ["21", 0],
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "mask": ["34", 0]
+    },
+    "_meta": {
+      "title": "Paste original product pixels"
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "product_shot",
+      "images": ["50", 0]
+    },
+    "_meta": {
+      "title": "Save Image"
+    }
+  }
+}

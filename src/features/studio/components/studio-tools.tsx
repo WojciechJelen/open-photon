@@ -6,6 +6,7 @@ import {
   CpuIcon,
   FileCodeIcon,
   LibraryIcon,
+  PackageIcon,
   LockOpenIcon,
   PanelsTopLeftIcon,
   Rotate3dIcon,
@@ -99,9 +100,9 @@ function Filmstrip({
   );
 }
 
-// The character tools beside Motion Transfer, live: the builder, the photoshoot, the library, Shots &
-// Angles, storyboards, and Animate Image, which brings a character (or any still) to life from a
-// description.
+// The image and character tools beside Motion Transfer, live: the builder, the photoshoot, the
+// library, Shots & Angles, storyboards, Animate Image, which brings a character (or any still) to
+// life from a description, and the product studio.
 const characterTools = [
   {
     icon: <UserIcon />,
@@ -144,6 +145,13 @@ const characterTools = [
     text: "Upload an image or pick a character, describe the action, and get a 5 s video of it. No motion clip needed.",
     title: "Animate an image",
     to: "/animate",
+  },
+  {
+    icon: <PackageIcon />,
+    model: "FLUX 3 Image Klein · BiRefNet",
+    text: "Upload a product photo and get a packshot, a lifestyle scene or an ad visual around the product's own pixels.",
+    title: "Product Studio",
+    to: "/product-studio",
   },
 ] as const;
 

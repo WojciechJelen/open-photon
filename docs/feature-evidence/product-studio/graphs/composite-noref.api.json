@@ -1,0 +1,172 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux3-image-klein-int8-convrot.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "flux3",
+      "device": "default"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": ["2", 0]
+    }
+  },
+  "5": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": ["4", 0]
+    }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "product.png"
+    }
+  },
+  "20": {
+    "class_type": "ResizeAndPadImage",
+    "inputs": {
+      "image": ["10", 0],
+      "target_width": 640,
+      "target_height": 704,
+      "padding_color": "white",
+      "interpolation": "lanczos"
+    }
+  },
+  "21": {
+    "class_type": "ImagePadForOutpaint",
+    "inputs": {
+      "image": ["20", 0],
+      "left": 192,
+      "top": 192,
+      "right": 192,
+      "bottom": 128,
+      "feathering": 0
+    }
+  },
+  "30": {
+    "class_type": "LoadBackgroundRemovalModel",
+    "inputs": {
+      "bg_removal_name": "birefnet.safetensors"
+    }
+  },
+  "31": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["30", 0],
+      "image": ["21", 0]
+    }
+  },
+  "32": {
+    "class_type": "GrowMask",
+    "inputs": {
+      "mask": ["31", 0],
+      "expand": -6,
+      "tapered_corners": true
+    }
+  },
+  "33": {
+    "class_type": "InvertMask",
+    "inputs": {
+      "mask": ["32", 0]
+    }
+  },
+  "34": {
+    "class_type": "GrowMask",
+    "inputs": {
+      "mask": ["31", 0],
+      "expand": -2,
+      "tapered_corners": true
+    }
+  },
+  "40": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": ["21", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "41": {
+    "class_type": "SetLatentNoiseMask",
+    "inputs": {
+      "samples": ["40", 0],
+      "mask": ["33", 0]
+    }
+  },
+  "7": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 1,
+      "steps": 16,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": ["1", 0],
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "latent_image": ["41", 0]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["7", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "50": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": ["8", 0],
+      "source": ["21", 0],
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "mask": ["34", 0]
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "product_composite",
+      "images": ["50", 0]
+    }
+  },
+  "60": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "debug_raw",
+      "images": ["8", 0]
+    }
+  },
+  "61": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": ["31", 0]
+    }
+  },
+  "62": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "debug_mask",
+      "images": ["61", 0]
+    }
+  }
+}
