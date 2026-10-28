@@ -12,6 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnimateRouteImport } from './routes/animate'
 import { Route as MotionTransferRouteImport } from './routes/motionTransfer'
+import { Route as AnglesIndexRouteImport } from './routes/angles.index'
+import { Route as AnglesAngleSetIdRouteImport } from './routes/angles.$angleSetId'
+import { Route as ApiAngleSetsRouteImport } from './routes/api.angle-sets'
 import { Route as ApiAnimationsRouteImport } from './routes/api.animations'
 import { Route as ApiBatchesRouteImport } from './routes/api.batches'
 import { Route as ApiCharacterCaptionsRouteImport } from './routes/api.character-captions'
@@ -32,6 +35,7 @@ import { Route as MediaFilenameRouteImport } from './routes/media.$filename'
 import { Route as PresetsIndexRouteImport } from './routes/presets.index'
 import { Route as PresetsPresetIdRouteImport } from './routes/presets.$presetId'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
+import { Route as ApiAngleSetsAngleSetIdRouteImport } from './routes/api.angle-sets.$angleSetId'
 import { Route as ApiBatchesBatchIdRouteImport } from './routes/api.batches.$batchId'
 import { Route as ApiCharactersCharacterIdRouteImport } from './routes/api.characters.$characterId'
 import { Route as ApiDebugHeartbeatRouteImport } from './routes/api.debug.heartbeat'
@@ -45,6 +49,7 @@ import { Route as ApiGenerationsGenerationIdRecipeDotjsonRouteImport } from './r
 import { Route as ApiGenerationsGenerationIdRerunRouteImport } from './routes/api.generations.$generationId.rerun'
 import { Route as ApiGenerationsGenerationIdRetryRouteImport } from './routes/api.generations.$generationId.retry'
 import { Route as ApiPresetsPresetIdGenerationsRouteImport } from './routes/api.presets.$presetId.generations'
+import { Route as ApiAngleSetsAngleSetIdItemsPositionCharacterRouteImport } from './routes/api.angle-sets.$angleSetId.items.$position.character'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,6 +64,21 @@ const AnimateRoute = AnimateRouteImport.update({
 const MotionTransferRoute = MotionTransferRouteImport.update({
   id: '/motionTransfer',
   path: '/motionTransfer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnglesIndexRoute = AnglesIndexRouteImport.update({
+  id: '/angles/',
+  path: '/angles/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnglesAngleSetIdRoute = AnglesAngleSetIdRouteImport.update({
+  id: '/angles/$angleSetId',
+  path: '/angles/$angleSetId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAngleSetsRoute = ApiAngleSetsRouteImport.update({
+  id: '/api/angle-sets',
+  path: '/api/angle-sets',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAnimationsRoute = ApiAnimationsRouteImport.update({
@@ -161,6 +181,11 @@ const RSlugRoute = RSlugRouteImport.update({
   path: '/r/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAngleSetsAngleSetIdRoute = ApiAngleSetsAngleSetIdRouteImport.update({
+  id: '/$angleSetId',
+  path: '/$angleSetId',
+  getParentRoute: () => ApiAngleSetsRoute,
+} as any)
 const ApiBatchesBatchIdRoute = ApiBatchesBatchIdRouteImport.update({
   id: '/$batchId',
   path: '/$batchId',
@@ -235,11 +260,19 @@ const ApiPresetsPresetIdGenerationsRoute =
     path: '/api/presets/$presetId/generations',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAngleSetsAngleSetIdItemsPositionCharacterRoute =
+  ApiAngleSetsAngleSetIdItemsPositionCharacterRouteImport.update({
+    id: '/items/$position/character',
+    path: '/items/$position/character',
+    getParentRoute: () => ApiAngleSetsAngleSetIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/animate': typeof AnimateRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/angles/$angleSetId': typeof AnglesAngleSetIdRoute
+  '/api/angle-sets': typeof ApiAngleSetsRouteWithChildren
   '/api/animations': typeof ApiAnimationsRoute
   '/api/batches': typeof ApiBatchesRouteWithChildren
   '/api/character-captions': typeof ApiCharacterCaptionsRoute
@@ -256,10 +289,12 @@ export interface FileRoutesByFullPath {
   '/media/$filename': typeof MediaFilenameRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
+  '/angles/': typeof AnglesIndexRoute
   '/batches/': typeof BatchesIndexRoute
   '/characters/': typeof CharactersIndexRoute
   '/explore/': typeof ExploreIndexRoute
   '/presets/': typeof PresetsIndexRoute
+  '/api/angle-sets/$angleSetId': typeof ApiAngleSetsAngleSetIdRouteWithChildren
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
@@ -273,11 +308,14 @@ export interface FileRoutesByFullPath {
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
   '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
+  '/api/angle-sets/$angleSetId/items/$position/character': typeof ApiAngleSetsAngleSetIdItemsPositionCharacterRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/animate': typeof AnimateRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/angles/$angleSetId': typeof AnglesAngleSetIdRoute
+  '/api/angle-sets': typeof ApiAngleSetsRouteWithChildren
   '/api/animations': typeof ApiAnimationsRoute
   '/api/batches': typeof ApiBatchesRouteWithChildren
   '/api/character-captions': typeof ApiCharacterCaptionsRoute
@@ -294,10 +332,12 @@ export interface FileRoutesByTo {
   '/media/$filename': typeof MediaFilenameRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
+  '/angles': typeof AnglesIndexRoute
   '/batches': typeof BatchesIndexRoute
   '/characters': typeof CharactersIndexRoute
   '/explore': typeof ExploreIndexRoute
   '/presets': typeof PresetsIndexRoute
+  '/api/angle-sets/$angleSetId': typeof ApiAngleSetsAngleSetIdRouteWithChildren
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
@@ -311,12 +351,15 @@ export interface FileRoutesByTo {
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
   '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
+  '/api/angle-sets/$angleSetId/items/$position/character': typeof ApiAngleSetsAngleSetIdItemsPositionCharacterRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/animate': typeof AnimateRoute
   '/motionTransfer': typeof MotionTransferRoute
+  '/angles/$angleSetId': typeof AnglesAngleSetIdRoute
+  '/api/angle-sets': typeof ApiAngleSetsRouteWithChildren
   '/api/animations': typeof ApiAnimationsRoute
   '/api/batches': typeof ApiBatchesRouteWithChildren
   '/api/character-captions': typeof ApiCharacterCaptionsRoute
@@ -333,10 +376,12 @@ export interface FileRoutesById {
   '/media/$filename': typeof MediaFilenameRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
+  '/angles/': typeof AnglesIndexRoute
   '/batches/': typeof BatchesIndexRoute
   '/characters/': typeof CharactersIndexRoute
   '/explore/': typeof ExploreIndexRoute
   '/presets/': typeof PresetsIndexRoute
+  '/api/angle-sets/$angleSetId': typeof ApiAngleSetsAngleSetIdRouteWithChildren
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
   '/api/characters/$characterId': typeof ApiCharactersCharacterIdRoute
   '/api/debug/heartbeat': typeof ApiDebugHeartbeatRoute
@@ -350,6 +395,7 @@ export interface FileRoutesById {
   '/api/generations/$generationId/rerun': typeof ApiGenerationsGenerationIdRerunRoute
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
   '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
+  '/api/angle-sets/$angleSetId/items/$position/character': typeof ApiAngleSetsAngleSetIdItemsPositionCharacterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -357,6 +403,8 @@ export interface FileRouteTypes {
     | '/'
     | '/animate'
     | '/motionTransfer'
+    | '/angles/$angleSetId'
+    | '/api/angle-sets'
     | '/api/animations'
     | '/api/batches'
     | '/api/character-captions'
@@ -373,10 +421,12 @@ export interface FileRouteTypes {
     | '/media/$filename'
     | '/presets/$presetId'
     | '/r/$slug'
+    | '/angles/'
     | '/batches/'
     | '/characters/'
     | '/explore/'
     | '/presets/'
+    | '/api/angle-sets/$angleSetId'
     | '/api/batches/$batchId'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
@@ -390,11 +440,14 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
     | '/api/presets/$presetId/generations'
+    | '/api/angle-sets/$angleSetId/items/$position/character'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/animate'
     | '/motionTransfer'
+    | '/angles/$angleSetId'
+    | '/api/angle-sets'
     | '/api/animations'
     | '/api/batches'
     | '/api/character-captions'
@@ -411,10 +464,12 @@ export interface FileRouteTypes {
     | '/media/$filename'
     | '/presets/$presetId'
     | '/r/$slug'
+    | '/angles'
     | '/batches'
     | '/characters'
     | '/explore'
     | '/presets'
+    | '/api/angle-sets/$angleSetId'
     | '/api/batches/$batchId'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
@@ -428,11 +483,14 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
     | '/api/presets/$presetId/generations'
+    | '/api/angle-sets/$angleSetId/items/$position/character'
   id:
     | '__root__'
     | '/'
     | '/animate'
     | '/motionTransfer'
+    | '/angles/$angleSetId'
+    | '/api/angle-sets'
     | '/api/animations'
     | '/api/batches'
     | '/api/character-captions'
@@ -449,10 +507,12 @@ export interface FileRouteTypes {
     | '/media/$filename'
     | '/presets/$presetId'
     | '/r/$slug'
+    | '/angles/'
     | '/batches/'
     | '/characters/'
     | '/explore/'
     | '/presets/'
+    | '/api/angle-sets/$angleSetId'
     | '/api/batches/$batchId'
     | '/api/characters/$characterId'
     | '/api/debug/heartbeat'
@@ -466,12 +526,15 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/rerun'
     | '/api/generations/$generationId/retry'
     | '/api/presets/$presetId/generations'
+    | '/api/angle-sets/$angleSetId/items/$position/character'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnimateRoute: typeof AnimateRoute
   MotionTransferRoute: typeof MotionTransferRoute
+  AnglesAngleSetIdRoute: typeof AnglesAngleSetIdRoute
+  ApiAngleSetsRoute: typeof ApiAngleSetsRouteWithChildren
   ApiAnimationsRoute: typeof ApiAnimationsRoute
   ApiBatchesRoute: typeof ApiBatchesRouteWithChildren
   ApiCharacterCaptionsRoute: typeof ApiCharacterCaptionsRoute
@@ -488,6 +551,7 @@ export interface RootRouteChildren {
   MediaFilenameRoute: typeof MediaFilenameRoute
   PresetsPresetIdRoute: typeof PresetsPresetIdRoute
   RSlugRoute: typeof RSlugRoute
+  AnglesIndexRoute: typeof AnglesIndexRoute
   BatchesIndexRoute: typeof BatchesIndexRoute
   CharactersIndexRoute: typeof CharactersIndexRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
@@ -520,6 +584,27 @@ declare module '@tanstack/react-router' {
       path: '/motionTransfer'
       fullPath: '/motionTransfer'
       preLoaderRoute: typeof MotionTransferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/angles/': {
+      id: '/angles/'
+      path: '/angles'
+      fullPath: '/angles/'
+      preLoaderRoute: typeof AnglesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/angles/$angleSetId': {
+      id: '/angles/$angleSetId'
+      path: '/angles/$angleSetId'
+      fullPath: '/angles/$angleSetId'
+      preLoaderRoute: typeof AnglesAngleSetIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/angle-sets': {
+      id: '/api/angle-sets'
+      path: '/api/angle-sets'
+      fullPath: '/api/angle-sets'
+      preLoaderRoute: typeof ApiAngleSetsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/animations': {
@@ -662,6 +747,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/angle-sets/$angleSetId': {
+      id: '/api/angle-sets/$angleSetId'
+      path: '/$angleSetId'
+      fullPath: '/api/angle-sets/$angleSetId'
+      preLoaderRoute: typeof ApiAngleSetsAngleSetIdRouteImport
+      parentRoute: typeof ApiAngleSetsRoute
+    }
     '/api/batches/$batchId': {
       id: '/api/batches/$batchId'
       path: '/$batchId'
@@ -753,8 +845,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPresetsPresetIdGenerationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/angle-sets/$angleSetId/items/$position/character': {
+      id: '/api/angle-sets/$angleSetId/items/$position/character'
+      path: '/items/$position/character'
+      fullPath: '/api/angle-sets/$angleSetId/items/$position/character'
+      preLoaderRoute: typeof ApiAngleSetsAngleSetIdItemsPositionCharacterRouteImport
+      parentRoute: typeof ApiAngleSetsAngleSetIdRoute
+    }
   }
 }
+
+interface ApiAngleSetsAngleSetIdRouteChildren {
+  ApiAngleSetsAngleSetIdItemsPositionCharacterRoute: typeof ApiAngleSetsAngleSetIdItemsPositionCharacterRoute
+}
+
+const ApiAngleSetsAngleSetIdRouteChildren: ApiAngleSetsAngleSetIdRouteChildren =
+  {
+    ApiAngleSetsAngleSetIdItemsPositionCharacterRoute:
+      ApiAngleSetsAngleSetIdItemsPositionCharacterRoute,
+  }
+
+const ApiAngleSetsAngleSetIdRouteWithChildren =
+  ApiAngleSetsAngleSetIdRoute._addFileChildren(
+    ApiAngleSetsAngleSetIdRouteChildren,
+  )
+
+interface ApiAngleSetsRouteChildren {
+  ApiAngleSetsAngleSetIdRoute: typeof ApiAngleSetsAngleSetIdRouteWithChildren
+}
+
+const ApiAngleSetsRouteChildren: ApiAngleSetsRouteChildren = {
+  ApiAngleSetsAngleSetIdRoute: ApiAngleSetsAngleSetIdRouteWithChildren,
+}
+
+const ApiAngleSetsRouteWithChildren = ApiAngleSetsRoute._addFileChildren(
+  ApiAngleSetsRouteChildren,
+)
 
 interface ApiBatchesRouteChildren {
   ApiBatchesBatchIdRoute: typeof ApiBatchesBatchIdRoute
@@ -824,6 +950,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnimateRoute: AnimateRoute,
   MotionTransferRoute: MotionTransferRoute,
+  AnglesAngleSetIdRoute: AnglesAngleSetIdRoute,
+  ApiAngleSetsRoute: ApiAngleSetsRouteWithChildren,
   ApiAnimationsRoute: ApiAnimationsRoute,
   ApiBatchesRoute: ApiBatchesRouteWithChildren,
   ApiCharacterCaptionsRoute: ApiCharacterCaptionsRoute,
@@ -840,6 +968,7 @@ const rootRouteChildren: RootRouteChildren = {
   MediaFilenameRoute: MediaFilenameRoute,
   PresetsPresetIdRoute: PresetsPresetIdRoute,
   RSlugRoute: RSlugRoute,
+  AnglesIndexRoute: AnglesIndexRoute,
   BatchesIndexRoute: BatchesIndexRoute,
   CharactersIndexRoute: CharactersIndexRoute,
   ExploreIndexRoute: ExploreIndexRoute,

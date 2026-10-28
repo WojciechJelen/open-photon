@@ -6,6 +6,7 @@ import {
   FileCodeIcon,
   LibraryIcon,
   LockOpenIcon,
+  Rotate3dIcon,
   SparklesIcon,
   UserIcon,
 } from "lucide-react";
@@ -96,8 +97,8 @@ function Filmstrip({
   );
 }
 
-// The character tools beside Motion Transfer, live: the builder, the library, and Animate Image,
-// which brings a character (or any still) to life from a description.
+// The character tools beside Motion Transfer, live: the builder, the library, Shots & Angles, and
+// Animate Image, which brings a character (or any still) to life from a description.
 const characterTools = [
   {
     icon: <UserIcon />,
@@ -112,6 +113,13 @@ const characterTools = [
     text: "Find, favorite and rename the workspace's characters, uploaded or generated, and animate any of them.",
     title: "Character library",
     to: "/characters",
+  },
+  {
+    icon: <Rotate3dIcon />,
+    model: "Qwen-Image-Edit-2511 · Multiple-Angles LoRA",
+    text: "See a character from the front, three-quarter, profile and close up, each view rendered anew, and save the one you like to the library.",
+    title: "Shots & Angles",
+    to: "/angles",
   },
   {
     icon: <ClapperboardIcon />,

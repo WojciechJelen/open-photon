@@ -11,7 +11,13 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { NavigationIcon, type NavigationIconName } from "#/shared/components/navigation-icons";
 
-type ToolPath = "/animate" | "/characters" | "/characters/new" | "/motionTransfer" | "/presets";
+type ToolPath =
+  | "/angles"
+  | "/animate"
+  | "/characters"
+  | "/characters/new"
+  | "/motionTransfer"
+  | "/presets";
 
 /** A category of the main navigation that has shipped tools. */
 export type NavigationCategory = "Image" | "Library" | "Video";
@@ -39,6 +45,12 @@ const navigation: NavigationEntry[] = [
         icon: "createCharacter",
         label: "Create character",
         to: "/characters/new",
+      },
+      {
+        description: "See a character from other camera angles.",
+        icon: "createCharacter",
+        label: "Shots & Angles",
+        to: "/angles",
       },
     ],
   },
