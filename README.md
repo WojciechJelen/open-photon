@@ -2,18 +2,38 @@
 
 [![CI](https://github.com/WojciechJelen/open-photon/actions/workflows/ci.yml/badge.svg)](https://github.com/WojciechJelen/open-photon/actions/workflows/ci.yml)
 
-Turn a short motion clip and a character image into a video of that character doing
-the same motion. Open Photon runs the open-weights Wan Animate 2 workflow on Comfy
-Cloud or your own GPU, with side-by-side playback, two downloads per take (the result,
-and a vertical 9:16 side-by-side of the source clip and the result with its audio,
-stitched with FFmpeg when the take finishes, for TikTok, Reels and X), share pages and
-reproducible recipes. Characters come from a workspace library: describe
-one and render it with the open-weights FLUX 3 Image Klein (`/characters/new`), or
-upload a photo with the person's consent, then find and animate it from
-`/characters`. Motion presets (`/presets`) start a take from a ready-made motion, look and
-seed, each shown by a real example render: add a character and generate. Explore (`/explore`)
-shows the finished sample takes with their source, result and recipe, and remakes any of them
-with your own character.
+Open Photon is an open-weights image and video studio: every tool runs a ComfyUI workflow of
+open-weights models on Comfy Cloud or your own GPU, keeps a reproducible recipe and can publish a
+share page. Its headline tool turns a short motion clip and a character image into a video of
+that character doing the same motion with Wan Animate 2, with side-by-side playback and two
+downloads per take (the result, and a vertical 9:16 side-by-side of the source clip and the result
+with its audio, stitched with FFmpeg when the take finishes, for TikTok, Reels and X). Characters
+come from a workspace library: describe one and render it with FLUX 3 Image Klein, or upload a
+photo with the person's consent; then photograph, turn, storyboard or animate it.
+
+- **Motion Transfer** (`/motionTransfer`): a motion clip and a character image into a video of
+  the character doing that motion; Wan Animate 2.
+- **Motion presets** (`/presets`): start a take from a ready-made motion, look and seed, each shown
+  by a real example render: add a character and generate; Wan Animate 2.
+- **Explore** (`/explore`): the finished sample takes with their source, result and recipe; remake
+  any of them with your own character.
+- **Batch variations** (`/batches`): one Motion Transfer shot with two or four seeds, or on two to
+  six characters, rendered at once and compared side by side; Wan Animate 2.
+- **Animate Image** (`/animate`): an uploaded image or a library character and a described action
+  into a 5 s video, no motion clip needed; Wan 2.2 14B image-to-video.
+- **Character builder** (`/characters/new`): describe a character, refine the caption the prompt
+  upsampler writes, and render a full-body image; FLUX 3 Image Klein.
+- **Character library** (`/characters`): find, favorite and rename the workspace's characters,
+  generated or uploaded, and animate any of them.
+- **Character Photoshoot** (`/photoshoot`): a library character in a studio, street, editorial or
+  outdoor setting, four poses and lights, same face and outfit; FLUX 3 Image Klein reference edit.
+- **Shots & Angles** (`/angles`): a character from the front, three-quarter, profile and close up,
+  each view rendered anew; Qwen-Image-Edit-2511 with the Multiple-Angles and Lightning LoRAs.
+- **Storyboard** (`/storyboards`): a character and a short sequence into four editable scene
+  cards; Qwen3.5-4B writes the scenes, FLUX 3 Image Klein edits the character into each.
+- **Product Studio** (`/product-studio`): a product photo into a packshot, a lifestyle scene or an
+  ad visual around the product's own pixels; BiRefNet mattes it, FLUX 3 Image Klein renders the
+  scene.
 
 **Try it:** [open-photon-staging.up.railway.app](https://open-photon-staging.up.railway.app/). The
 home page, the samples and every share page open without a code. Judges: use the link in the
@@ -39,7 +59,7 @@ With Docker installed, put one backend in `.env` ([Comfy Cloud or Runpod](#choos
 
 ```sh
 docker run -d --name open-photon --init --env-file .env -p 127.0.0.1:3030:3000 \
-  -v open-photon-data:/app/data ghcr.io/wojciechjelen/open-photon:0.2.1
+  -v open-photon-data:/app/data ghcr.io/wojciechjelen/open-photon:0.3.0
 # Open http://localhost:3030 once, then print an access code:
 docker exec open-photon node scripts/mint-code.mjs me 100
 ```
@@ -87,20 +107,28 @@ COMFY_API_KEY=your-cloud-key
 ```
 
 **Runpod:** deploy the [Open Photon template](https://console.runpod.io/deploy?template=iqcvzqgt1q)
-on an NVIDIA GPU with a **CUDA 13-compatible driver**. **48 GB VRAM is recommended** (peaks per
-workflow in [Numbers](#numbers)); 32 GB passed with little headroom.
+on an NVIDIA GPU with a **CUDA 13-compatible driver**. **48 GB VRAM is recommended** for Motion
+Transfer (peaks per workflow in [Numbers](#numbers)); 32 GB passed with little headroom.
 Set `PROXY_TOKEN` to a long random secret, and `HF_TOKEN` to a Hugging Face token of an account
 that accepted the FLUX Kommunity License on
 [black-forest-labs/flux-3-image-klein-comfy](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy)
 (character generation's weights are gated there; without it the first boot stops). The template
-supplies the GPU image, port `8189` and an 80 GB persistent volume at `/workspace`. Wait for
-`Serving the Comfy API v2` in the logs; the first boot downloads 43.4 GB (40.4 GiB) of models to
-that volume: 25.6 GB for Motion Transfer and 17.7 GB for character generation (FLUX 3 Image Klein
-distilled int8, its Qwen3-VL text encoder, its prompt upsampler and the FLUX 2 VAE), which leaves
-about 36 GB for ComfyUI's inputs and outputs (on the A40 test, the download took 5 minutes and
-the API served 9 minutes after the pod was created; a restart downloads nothing but re-checks
-every file, about 4 minutes). A volume of your own needs at least 50 GB. The GPU
-runs one job at a time, so it must fit the largest workflow, Motion Transfer. Then save:
+supplies the GPU image, port `8189` and a 170 GB persistent volume at `/workspace`. Wait for
+`Serving the Comfy API v2` in the logs; the first boot downloads every feature's lock, 136.1 GB
+(126.8 GiB, 21 files) of models, to that volume, each shared file once: 25.6 GB for Motion
+Transfer; 17.7 GB for FLUX 3 Image Klein (distilled int8, its Qwen3-VL text encoder, its prompt
+upsampler and the FLUX 2 VAE), shared by character generation, Photoshoot, Storyboard cards and
+Product Studio; 9.3 GB for Storyboard's Qwen3.5-4B scene writer; 51.6 GB for Shots & Angles
+(Qwen-Image-Edit-2511 bf16 alone is 40.9 GB); 31.3 GB for Animate Image (its UMT5-XXL text encoder
+is Motion Transfer's); and 0.4 GB for Product Studio's BiRefNet. That leaves about 34 GB for
+ComfyUI's inputs and outputs. On the A40 test of `0.2.0`, the then 43.4 GB of Motion Transfer and
+character generation took 5 minutes to download and the API served 9 minutes after the pod was
+created; a restart downloaded nothing but re-checked those nine files in about 4 minutes. The
+download and re-check of the other 92.7 GB are unmeasured. A volume of your own needs at least
+140 GB. The GPU runs one job at a time, so it must fit the largest workflow: measured peaks exist
+for Motion Transfer and FLUX 3 only ([Numbers](#numbers)); Shots & Angles, Animate Image,
+Storyboard's scene split and Product Studio have not run on a self-hosted GPU, so their peaks are
+unmeasured. Then save:
 
 ```dotenv
 COMFY_BASE_URL=https://POD_ID-8189.proxy.runpod.net
@@ -159,23 +187,65 @@ it marks is listed in Explore at once, with its recipe and "Make this with my ch
 
 ## Every model and tool
 
-Models (pinned by file, revision and SHA-256 in the two locks below):
+Models, by workflow (each pinned by file, revision and SHA-256 in its feature's lock,
+[below](#open-weights); a file two workflows share is listed once):
+
+Motion Transfer, Motion presets, Explore remakes and Batch variations:
 
 - **Wan Animate 2** (int8, `wan_animate_2_int8_convrot`): the video model; moves the character
   image the way the person in the driving clip moves.
 - **lightx2v distillation LoRA** (`lightx2v_I2V_14B_480p_cfg_step_distill_rank64`): lets Wan
   Animate 2 render in 6 steps at CFG 1 instead of a full sampling schedule.
-- **UMT5-XXL** (fp8): Wan's text encoder; encodes the take's prompt.
+- **UMT5-XXL** (fp8): Wan's text encoder; encodes the take's prompt, and Animate Image's action.
 - **CLIP-ViT-H** (`clip_vision_h`): encodes the character image so the take keeps its identity.
-- **Wan 2.1 VAE**: encodes the clip and character into Wan's latent space and decodes the result
-  to frames.
-- **FLUX 3 Image Klein** (distilled, int8): the image model; renders a caption into the character
-  image, 16 steps.
+- **Wan 2.1 VAE** (`Wan2_1_VAE_bf16`): encodes the clip and character into Wan's latent space and
+  decodes the result to frames.
+
+Animate Image:
+
+- **Wan 2.2 I2V 14B high-noise expert** (fp8 scaled, `wan2.2_i2v_high_noise_14B_fp8_scaled`): the
+  video model's first expert; adds the noise and denoises the first 2 of 4 steps from the still and
+  the action prompt.
+- **Wan 2.2 I2V 14B low-noise expert** (fp8 scaled, `wan2.2_i2v_low_noise_14B_fp8_scaled`): the
+  second expert; continues from step 2 without new noise to the finished latent.
+- **Wan 2.2 lightx2v 4-step LoRAs** (`wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise` and
+  `…_low_noise`): one per expert; let the pair render in 4 steps at CFG 1.
+- **Wan 2.1 VAE** (`wan_2.1_vae`, the Wan 2.2 repository's copy): encodes the still and decodes
+  the 81 frames.
+
+Character builder, Photoshoot, Storyboard cards and Product Studio:
+
+- **FLUX 3 Image Klein** (distilled, int8): the image model, 16 steps; renders a caption into the
+  character image, edits library characters from their image (Photoshoot, Storyboard cards) and
+  renders the scene around a matted product (Product Studio).
 - **Qwen3-VL-4B** (int8): FLUX 3's text encoder; turns the caption into the conditioning the
   image model reads.
 - **Qwen3.5-9B FLUX 3 prompt upsampler** (w4a8): expands a short description into the full
-  caption the user reviews and may edit.
-- **FLUX 2 VAE**: decodes FLUX 3's latents to the PNG.
+  caption the user reviews and may edit, and rewrites a Photoshoot prompt from the prompt and its
+  reference image.
+- **FLUX 2 VAE**: encodes reference images for FLUX 3 and decodes its latents to the PNG.
+
+Storyboard:
+
+- **Qwen3.5-4B** (bf16, `qwen3.5_4b_bf16`): through core `TextGenerate`, splits the user's
+  sequence into the four scenes the cards render.
+
+Shots & Angles:
+
+- **Qwen-Image-Edit-2511** (bf16, `qwen_image_edit_2511_bf16`): the image-edit model; re-renders
+  the reference character from the camera view the prompt names.
+- **Multiple-Angles LoRA** (fal, `qwen-image-edit-2511-multiple-angles-lora`): teaches the edit
+  model the camera-view vocabulary the prompts use (`<sks> front-right quarter view …`).
+- **Qwen-Image-Edit-2511 Lightning LoRA** (lightx2v, 4 steps, bf16): lets it render in 4 steps at
+  CFG 1.
+- **Qwen2.5-VL-7B** (fp8 scaled): Qwen-Image-Edit's text encoder; encodes the view prompt
+  together with the reference image.
+- **Qwen image VAE**: encodes the reference into the latent and decodes the new view.
+
+Product Studio:
+
+- **BiRefNet** (`birefnet`): removes the product photo's background, so FLUX 3 regenerates only
+  the scene and the product's own pixels are pasted back.
 
 Tools:
 
@@ -195,28 +265,44 @@ Tools:
 
 The Open Weights Only claim rests on two things: no partner nodes and no closed APIs. Every graph
 uses ComfyUI core nodes, and every file it loads is pinned to an immutable Hugging Face revision
-URL and SHA-256 in one of two locks:
-[`motionTransfer/workflows/models.lock`](src/features/motionTransfer/workflows/models.lock) (five
-files, Apache-2.0) and
-[`characterBuilder/workflows/models.lock`](src/features/characterBuilder/workflows/models.lock)
-(four files). `npm run check:models` fails when a workflow loads a file no lock pins, or a pin has
-a mutable URL or a bad hash; `npm run check:open-weights` scans every feature's workflows,
+URL and SHA-256 in its feature's lock, seven locks and 21 distinct files in all:
+[`motionTransfer`](src/features/motionTransfer/workflows/models.lock) (five files),
+[`characterBuilder`](src/features/characterBuilder/workflows/models.lock) (four),
+[`imageEdit`](src/features/imageEdit/workflows/models.lock) (the character builder's four, byte for
+byte; Photoshoot and Storyboard cards),
+[`productStudio`](src/features/productStudio/workflows/models.lock) (three of those and BiRefNet),
+[`storyboard`](src/features/storyboard/workflows/models.lock) (one),
+[`angles`](src/features/angles/workflows/models.lock) (five) and
+[`animateImage`](src/features/animateImage/workflows/models.lock) (six, its UMT5-XXL pinned
+exactly as Motion Transfer's). `npm run check:models` fails when a workflow loads a file no lock
+pins, a pin has a mutable or unapproved URL or a bad hash, or two features pin one file
+differently; `npm run check:open-weights` scans every feature's workflows,
 subgraphs included, for partner and API nodes ([`scripts/forbidden-nodes.json`](scripts/forbidden-nodes.json)).
 CI runs both on every pull request and push to `main`, and its server tests plant a partner node
 ([`tests/fixtures/partner-node.json`](tests/fixtures/partner-node.json)) that the check must
-reject by name ([`tests/open-weights.test.ts`](tests/open-weights.test.ts)). The same graphs and
-weights run on your own GPU: [`docs/selfhost-proof-2026-10-23/`](docs/selfhost-proof-2026-10-23/README.md)
-holds the A40 run's boot log, GPU memory samples, recipes, outputs and `verify-selfhost.mjs`
-report. Open does not mean OSI here: the FLUX 3 Image Klein transformer is open weights under the
-FLUX Kommunity License, not an OSI licence; every other file is Apache-2.0.
+reject by name ([`tests/open-weights.test.ts`](tests/open-weights.test.ts)). Motion Transfer and
+the FLUX 3 character workflows have run on your own GPU:
+[`docs/selfhost-proof-2026-10-23/`](docs/selfhost-proof-2026-10-23/README.md) holds the A40 run's
+boot log, GPU memory samples, recipes, outputs and `verify-selfhost.mjs` report, and Motion
+Transfer also rendered on an RTX 5090 ([CHECKLIST 8.3](CHECKLIST.md#phase-8-open-weights-proof)).
+Shots & Angles, Animate Image, the Photoshoot and Storyboard edits, Storyboard's scene split and
+Product Studio have run only on Comfy Cloud so far; their node classes exist at the self-host
+image's ComfyUI 0.42.0, but they have not run on a self-hosted GPU and their VRAM is unmeasured.
+Open does not mean OSI here: the FLUX 3 Image Klein transformer is open weights under the FLUX
+Kommunity License, not an OSI licence; BiRefNet is MIT and every other file is Apache-2.0.
 
 ## Models and licences
 
 | Feature | Model | Licence |
 | --- | --- | --- |
 | Motion Transfer | Wan Animate 2 and its encoders | Apache-2.0 |
-| Character generation | FLUX 3 Image Klein distilled (int8) | [FLUX Kommunity License v1.0](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/blob/main/LICENSE.md) |
-| Character generation | Qwen3-VL-4B text encoder, FLUX 3 prompt upsampler, FLUX 2 VAE | Apache-2.0 |
+| Animate Image | Wan 2.2 I2V 14B high- and low-noise experts, their lightx2v 4-step LoRAs, Wan 2.1 VAE (UMT5-XXL as Motion Transfer) | Apache-2.0 |
+| Character generation, Photoshoot, Storyboard cards, Product Studio | FLUX 3 Image Klein distilled (int8) | [FLUX Kommunity License v1.0](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/blob/main/LICENSE.md) |
+| Character generation, Photoshoot, Storyboard cards, Product Studio | Qwen3-VL-4B text encoder, FLUX 3 prompt upsampler, FLUX 2 VAE | Apache-2.0 |
+| Storyboard | Qwen3.5-4B scene writer | Apache-2.0 |
+| Shots & Angles | Qwen-Image-Edit-2511 (bf16), Qwen2.5-VL-7B text encoder, Qwen image VAE | Apache-2.0 |
+| Shots & Angles | Multiple-Angles LoRA (fal), Qwen-Image-Edit-2511 Lightning LoRA (lightx2v) | Apache-2.0 |
+| Product Studio | BiRefNet | MIT |
 
 FLUX 3 Image Klein's weights are open but not under an OSI licence. The FLUX Kommunity License
 grants non-commercial use (§2.a(i)); running it in production to generate outputs for commercial

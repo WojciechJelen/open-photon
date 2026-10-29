@@ -25,7 +25,6 @@ import {
   seedLabel,
 } from "#/features/batches/batch-client";
 import {
-  type Allowance,
   type BatchVariation,
   MAX_CHARACTERS,
   MIN_CHARACTERS,
@@ -41,6 +40,7 @@ import { planItems } from "#/features/batches/variations";
 import type { CharacterSummary } from "#/features/characters";
 import type { DraftSnapshot } from "#/features/motionTransfer/api";
 import { Hud } from "#/shared/components/brand";
+import type { Allowance } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 import type { Refusal } from "#/shared/requests";
 

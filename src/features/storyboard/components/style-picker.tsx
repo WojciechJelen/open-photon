@@ -18,29 +18,32 @@ export function StylePicker({
   value: StoryboardStyle | null;
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2">
       <span className="text-sm font-medium" id="storyboard-style">
         Style
       </span>
-      <ToggleGroup
-        aria-labelledby="storyboard-style"
-        onValueChange={(next) => {
-          const style = storyboardStyles.find((item) => item === next);
+      {/* Wider than a phone: the joined group scrolls sideways; the padding keeps focus rings unclipped. */}
+      <div className="-m-1 overflow-x-auto p-1">
+        <ToggleGroup
+          aria-labelledby="storyboard-style"
+          onValueChange={(next) => {
+            const style = storyboardStyles.find((item) => item === next);
 
-          if (style) {
-            onChange(style);
-          }
-        }}
-        type="single"
-        value={value ?? ""}
-        variant="outline"
-      >
-        {storyboardStyles.map((style) => (
-          <ToggleGroupItem key={style} value={style}>
-            {labels[style]}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
+            if (style) {
+              onChange(style);
+            }
+          }}
+          type="single"
+          value={value ?? ""}
+          variant="outline"
+        >
+          {storyboardStyles.map((style) => (
+            <ToggleGroupItem key={style} value={style}>
+              {labels[style]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
       <p className="text-xs text-muted-foreground">
         Naming the style keeps all four cards in one look; “Like the character” can drift.
       </p>

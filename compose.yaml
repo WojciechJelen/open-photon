@@ -2,7 +2,7 @@
 # (default: this directory's name), so each worktree gets its own; the host port is `PORT`.
 services:
   app:
-    image: ghcr.io/wojciechjelen/open-photon:0.2.1
+    image: ghcr.io/wojciechjelen/open-photon:0.3.0
     # The optional settings in `.env` (see `.env.example`) reach the app too.
     env_file:
       - path: .env

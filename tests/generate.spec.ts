@@ -123,7 +123,8 @@ test("with Comfy at a dead port, Generate opens a failed generation with the rea
   expect(count(`generations WHERE id = '${parent}' AND error_message IS NOT NULL`)).toBe(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Comfy couldn't be reached");
   await expect(page.getByRole("alert")).toContainText("provider_unreachable");
-  await expect(page.getByText(/remaining|left|ETA/i)).toHaveCount(0);
+  // No time estimate for a render that never ran; the header's "N left" is the allowance.
+  await expect(page.getByRole("main").getByText(/remaining|left|ETA/i)).toHaveCount(0);
 
   await page.getByRole("button", { name: "Retry with a new seed" }).click();
   await expect(page).not.toHaveURL(new RegExp(parent));

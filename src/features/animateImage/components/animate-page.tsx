@@ -207,10 +207,11 @@ export function AnimatePage({ search }: { search: AnimateSearch }) {
               Say who moves and how, and whether the camera moves. One clear action works best.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          {/* A phone stacks the chips full width so each sentence wraps inside its chip. */}
+          <div className="grid gap-2 sm:flex sm:flex-wrap">
             {examples.map((example) => (
               <Button key={example} onClick={() => setPrompt(example)} size="sm" variant="chip">
-                {example}
+                <span className="text-center whitespace-normal">{example}</span>
               </Button>
             ))}
           </div>

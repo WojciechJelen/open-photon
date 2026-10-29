@@ -106,6 +106,37 @@ test("POST /api/session exchanges a code for an HttpOnly cookie; anything else i
   assert.ok(!local?.headers.get("Set-Cookie")?.includes("Secure"));
 });
 
+test("GET /api/session answers what the session's code still allows; without a session a 401", async () => {
+  const code = mintCode(5);
+  const cookie = await sessionCookie(code);
+  const guard = createAccessGuard({ production: true });
+
+  database
+    .prepare("UPDATE access_codes SET used = 2 WHERE code_hash = ?")
+    .run(createHash("sha256").update(code).digest("hex"));
+
+  const read = (headers?: HeadersInit) =>
+    guard(new Request(`${origin}/api/session`, { headers, method: "GET" }));
+
+  const response = await read({ Cookie: cookie });
+
+  assert.equal(response?.status, 200);
+  assert.equal(response?.headers.get("Content-Type"), "application/json");
+  assert.deepEqual(await response?.json(), { allowance: { max: 5, remaining: 3, used: 2 } });
+
+  for (const headers of [undefined, { Cookie: `${cookie}0` }]) {
+    const refused = await read(headers);
+
+    assert.equal(refused?.status, 401);
+    assert.equal((await refused?.json())?.reason, "access_required");
+  }
+
+  assert.equal(
+    (await guard(new Request(`${origin}/api/session`, { method: "DELETE" })))?.headers.get("Allow"),
+    "GET, POST",
+  );
+});
+
 test("a session is bound to its code: it survives a restart, not tampering, expiry or revocation", async () => {
   const code = mintCode(5);
   const cookie = await sessionCookie(code);

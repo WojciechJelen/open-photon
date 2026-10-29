@@ -24,6 +24,18 @@ export const assetSchema = z.object({
 
 export type Asset = z.infer<typeof assetSchema>;
 
+/** What a session's access code still allows: generations in all, used, and left. */
+export const allowanceSchema = z.object({
+  max: z.int().nonnegative(),
+  remaining: z.int().nonnegative(),
+  used: z.int().nonnegative(),
+});
+
+export type Allowance = z.output<typeof allowanceSchema>;
+
+/** `GET /api/session` (a session is needed): what the session's access code still allows. */
+export const sessionStatusSchema = z.object({ allowance: allowanceSchema });
+
 // Generations, whatever workflow made them (`src/shared/server/generation/`). There is one
 // workspace per installation: who may start, read or share a generation is decided on the server
 // from the request's access-code session, never from anything a client sends.

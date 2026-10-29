@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { z } from "zod";
 
+import type { Allowance } from "../contracts.ts";
 import { database } from "./db.server.ts";
 
 const accessCodeSchema = z
@@ -30,4 +31,13 @@ export function findAccessCodeById(id: string) {
   return accessCodeSchema.parse(
     database.prepare("SELECT * FROM access_codes WHERE id = ? AND revoked_at IS NULL").get(id),
   );
+}
+
+/** What `code` still allows: its generations in all, those used, and those left. */
+export function allowanceOf(code: { max_generations: number; used: number }): Allowance {
+  return {
+    max: code.max_generations,
+    remaining: Math.max(0, code.max_generations - code.used),
+    used: code.used,
+  };
 }

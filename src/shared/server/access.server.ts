@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
 import { isPublicRequest, isPublicServerFn } from "../../app/server.ts";
-import { findAccessCode, findAccessCodeById } from "./access-codes.ts";
+import { allowanceOf, findAccessCode, findAccessCodeById } from "./access-codes.ts";
 import { accessPage, accessUrl } from "./access-page.server.ts";
 import { requesterKeys, returnToken, takeToken } from "./limits.ts";
 
@@ -204,10 +204,12 @@ export function serverFnRefusal(request: Request, meta: { filename: string; name
  * The access guard, the global request middleware (`src/start.ts`). `/access` (the code form, for
  * a page opened without a session, and `GET /access?code=<code>&next=<path>`, a link that signs
  * in on opening) and `POST /api/session` (`{ code }` → 204, for the app's own inline form)
- * exchange a code for the session cookie; all three pay into the same login limits. A request
- * with a session goes on. One without a session goes on only if `isPublicRequest` lets it (an
- * allowlist: a URL it does not know, an alias of a public one included, needs the code);
- * otherwise a page asked for redirects to `/access?next=<it>` and anything else is a 401.
+ * exchange a code for the session cookie; all three pay into the same login limits.
+ * `GET /api/session` answers what the session's code still allows (`sessionStatusSchema`), or a
+ * 401 `access_required` without a session. A request with a session goes on. One without a
+ * session goes on only if `isPublicRequest` lets it (an allowlist: a URL it does not know, an
+ * alias of a public one included, needs the code); otherwise a page asked for redirects to
+ * `/access?next=<it>` and anything else is a 401.
  */
 export function createAccessGuard(
   config: {
@@ -316,8 +318,19 @@ export function createAccessGuard(
     }
 
     if (url.pathname === "/api/session") {
+      if (request.method === "GET") {
+        const session = readSession(request, now);
+        const code = session && findAccessCodeById(session.codeId);
+
+        return code
+          ? respond(JSON.stringify({ allowance: allowanceOf(code) }), 200, {
+              "Content-Type": "application/json",
+            })
+          : refusal(401, "Enter an access code to do this.", "access_required");
+      }
+
       if (request.method !== "POST") {
-        return respond("Method not allowed", 405, { Allow: "POST" });
+        return respond("Method not allowed", 405, { Allow: "GET, POST" });
       }
 
       const result = await login(request, "json");
