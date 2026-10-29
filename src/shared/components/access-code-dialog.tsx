@@ -16,6 +16,7 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { StatusDot } from "#/shared/components/brand";
 import { callApi } from "#/shared/requests";
+import { useAllowance } from "#/shared/use-allowance";
 
 /** What waits for the code: the dialog names it, and carries it on once the code works. */
 export type HeldAction = "generate" | "rerun" | "retry" | "unlock" | "upload";
@@ -170,9 +171,11 @@ export function AccessCodeDialog({
 }
 
 /**
- * The access status a page shows up front, in its header: "Code active" with a session, else
- * an "Access code" button that opens the dialog (`onOpen`). `compact` is the icon-only button of
- * the mobile header.
+ * The access status a page shows up front, in its header: "Code active · N left" with a session
+ * (N: the generations its code still allows, `useAllowance`; plain "Code active" until that is
+ * read; below `sm` only "N left" shows, the rest is for screen readers), else an "Access code"
+ * button that opens the dialog (`onOpen`). `compact` is the icon-only version of the mobile
+ * header.
  */
 export function AccessStatus({
   compact = false,
@@ -183,11 +186,22 @@ export function AccessStatus({
   onOpen: () => void;
   signedIn: boolean;
 }) {
+  const allowance = useAllowance(signedIn);
+
   if (signedIn) {
     return (
       <span className="inline-flex min-h-11 items-center gap-2 rounded-full border border-input px-3.5 text-sm font-medium text-soft-foreground">
         <StatusDot tone="ok" />
-        <span className={compact ? "sr-only" : undefined}>Code active</span>
+        <span className={compact ? "sr-only" : "tabular-nums"}>
+          {allowance ? (
+            <>
+              <span className="sr-only sm:not-sr-only">Code active · </span>
+              {allowance.remaining} left
+            </>
+          ) : (
+            "Code active"
+          )}
+        </span>
       </span>
     );
   }

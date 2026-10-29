@@ -1,6 +1,7 @@
 import { createRootRoute, HeadContent, Link, Scripts } from "@tanstack/react-router";
 import { useEffect } from "react";
 
+import favicon from "#/shared/assets/favicon.svg?url";
 import { Problem } from "#/shared/components/problem";
 
 import appCss from "../styles.css?url";
@@ -27,6 +28,11 @@ export const Route = createRootRoute({
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      {
+        rel: "icon",
+        type: "image/svg+xml",
+        href: favicon,
       },
     ],
   }),

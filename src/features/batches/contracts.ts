@@ -4,7 +4,11 @@
 // imports), so `npm run test:server` exercises them.
 import { z } from "zod";
 
-import { generationSchema, generationStatusSchema } from "../../shared/contracts.ts";
+import {
+  allowanceSchema,
+  generationSchema,
+  generationStatusSchema,
+} from "../../shared/contracts.ts";
 import { characterSummarySchema } from "../characters/index.ts";
 import { type DraftSnapshot, parseDraft, snapshotDraft } from "../motionTransfer/api.ts";
 
@@ -141,15 +145,6 @@ export const batchSchema = z.object({
 });
 
 export type Batch = z.output<typeof batchSchema>;
-
-/** What a session's access code still allows: generations in all, used, and left. */
-export const allowanceSchema = z.object({
-  max: z.int().nonnegative(),
-  remaining: z.int().nonnegative(),
-  used: z.int().nonnegative(),
-});
-
-export type Allowance = z.output<typeof allowanceSchema>;
 
 /**
  * `GET /api/batches` (a session is needed): the workspace's batches, most recent first, each

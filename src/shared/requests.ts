@@ -30,9 +30,24 @@ export function refusal(status: number, body: Body): Refusal {
     : { message: `The request failed (${status}). Try again.` };
 }
 
+const writeListeners = new Set<() => void>();
+
+/**
+ * Runs `listener` after every write `callApi` makes that the server accepts (any method but
+ * `GET`, answered 2xx): a new render, retry or rerun spends the access code's generations, so the
+ * header reads what is left again. The answer is the unsubscribe.
+ */
+export function onApiWrite(listener: () => void) {
+  writeListeners.add(listener);
+
+  return () => {
+    writeListeners.delete(listener);
+  };
+}
+
 /**
  * A `fetch` to the app's API: the JSON body of a 2xx answer parsed with `schema`, or the refusal
- * of any other answer (or of no answer at all).
+ * of any other answer (or of no answer at all). An accepted write tells `onApiWrite`'s listeners.
  */
 export async function callApi<T extends z.ZodType>(
   schema: T,
@@ -47,5 +62,15 @@ export async function callApi<T extends z.ZodType>(
 
   const body = bodySchema.parse(await response.json().catch(() => null));
 
-  return response.ok ? { data: schema.parse(body) } : { refusal: refusal(response.status, body) };
+  if (!response.ok) {
+    return { refusal: refusal(response.status, body) };
+  }
+
+  if ((init.method ?? "GET").toUpperCase() !== "GET") {
+    for (const listener of writeListeners) {
+      listener();
+    }
+  }
+
+  return { data: schema.parse(body) };
 }

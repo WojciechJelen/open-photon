@@ -2,7 +2,7 @@
 // validated, quota checked and stored `waiting` at once, or nothing); the dispatcher renders the
 // items within `IN_FLIGHT_MAX` with no browser open. This module only records which generations
 // make up a batch, under the request key that admitted them.
-import { findAccessCodeById } from "../../../shared/server/access-codes.ts";
+import { allowanceOf, findAccessCodeById } from "../../../shared/server/access-codes.ts";
 import type { Session } from "../../../shared/server/access.server.ts";
 import type { Provider } from "../../../shared/server/comfy-provider.ts";
 import { database } from "../../../shared/server/db.server.ts";
@@ -211,11 +211,7 @@ export function listWorkspaceBatches(session: Session) {
   }
 
   return {
-    allowance: {
-      max: code.max_generations,
-      remaining: Math.max(0, code.max_generations - code.used),
-      used: code.used,
-    },
+    allowance: allowanceOf(code),
     batches: listBatches(LISTED).map((batch) => ({
       created_at: batch.created_at,
       id: batch.id,

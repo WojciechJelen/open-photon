@@ -203,7 +203,7 @@ function NewStoryboard({
         />
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="storyboard-title">Title (optional)</Label>
           <Input
