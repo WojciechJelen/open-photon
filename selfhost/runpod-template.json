@@ -1,13 +1,13 @@
 {
-  "name": "Open Photon 0.2.1",
-  "image": "ghcr.io/wojciechjelen/open-photon-comfy:0.2.1",
+  "name": "Open Photon 0.3.0",
+  "image": "ghcr.io/wojciechjelen/open-photon-comfy:0.3.0",
   "category": "NVIDIA",
   "serverless": false,
   "public": true,
   "startSsh": false,
   "startJupyter": false,
   "disk": 50,
-  "mounts": { "persistent": { "size": 80, "path": "/workspace" } },
+  "mounts": { "persistent": { "size": 170, "path": "/workspace" } },
   "ports": ["8189/http"],
   "env": { "PROXY_TOKEN": "", "HF_TOKEN": "" },
   "allowedCudaVersions": ["13.0", "13.1", "13.2", "13.4"]

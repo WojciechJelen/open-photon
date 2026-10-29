@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { accessCode, open, seededResult } from "./e2e/session.ts";
 
-test("the studio home features Motion Transfer and links its live character tools, and the navigation shows the planned ones disabled", async ({
+test("the studio home features Motion Transfer and links its live character tools, and the navigation links every shipped tool", async ({
   page,
 }) => {
   await open(page, "/");
@@ -19,25 +19,19 @@ test("the studio home features Motion Transfer and links its live character tool
   await expect(page.getByRole("list", { name: "Coming soon" })).toHaveCount(0);
   await expect(tools.getByText("Soon", { exact: true })).toHaveCount(0);
 
-  // The home has no Soon cards; the main navigation shows every planned category and tool, but
-  // disabled: a planned category is a disabled button, a planned tool a disabled menu item that
-  // links nowhere (the menus render outside the nav), and each shipped tool is a link. Explore is
-  // one page, so a plain link.
+  // Neither the home nor the main navigation lists anything as Soon: every category is a menu of
+  // shipped tools, each a link (the menus render outside the nav). Explore is one page, so a plain
+  // link.
   const navigation = page.getByRole("navigation", { name: "Main" });
 
-  await expect(navigation.getByRole("button")).toHaveText([
-    "Image",
-    "Video",
-    "Audio (coming soon)",
-    "Library",
-  ]);
-  await expect(navigation.getByRole("button", { name: "Audio" })).toBeDisabled();
+  await expect(navigation.getByRole("button")).toHaveText(["Image", "Video", "Library"]);
+  await expect(navigation).not.toContainText(/soon/i);
   await expect(navigation.getByRole("link", { exact: true, name: "Explore" })).toHaveAttribute(
     "href",
     "/explore",
   );
 
-  for (const [label, shipped, planned] of [
+  for (const [label, shipped] of [
     [
       "Image",
       [
@@ -47,7 +41,6 @@ test("the studio home features Motion Transfer and links its live character tool
         ["Storyboard", "/storyboards"],
         ["Product Studio", "/product-studio"],
       ],
-      [],
     ],
     [
       "Video",
@@ -55,34 +48,24 @@ test("the studio home features Motion Transfer and links its live character tool
         ["Motion Transfer", "/motionTransfer"],
         ["Motion presets", "/presets"],
         ["Animate image", "/animate"],
+        ["Batch variations", "/batches"],
       ],
-      ["Look & lighting", "Batch variations"],
     ],
-    ["Library", [["Characters", "/characters"]], []],
+    ["Library", [["Characters", "/characters"]]],
   ] as const) {
     await expect(navigation.getByRole("button", { name: label })).toBeEnabled();
     await navigation.getByRole("button", { name: label }).click();
 
     const menu = page.getByRole("menu");
 
-    await expect(menu.getByRole("menuitem")).toHaveCount(shipped.length + planned.length);
+    await expect(menu.getByRole("menuitem")).toHaveCount(shipped.length);
+    await expect(menu).not.toContainText(/soon/i);
 
     for (const [name, path] of shipped) {
       const item = menu.getByRole("menuitem", { name });
 
       await expect(item).toHaveAttribute("href", path);
       await expect(item).not.toHaveAttribute("aria-disabled");
-      await expect(item).not.toContainText("Soon");
-    }
-
-    for (const name of planned) {
-      const item = menu.getByRole("menuitem", { name });
-
-      await expect(item).toBeVisible();
-      await expect(item).toHaveAttribute("aria-disabled", "true");
-      await expect(item).not.toHaveAttribute("href");
-      await expect(item.locator("a")).toHaveCount(0);
-      await expect(item).toContainText("Soon");
     }
 
     await page.keyboard.press("Escape");

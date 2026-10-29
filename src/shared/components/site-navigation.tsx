@@ -14,6 +14,7 @@ import { NavigationIcon, type NavigationIconName } from "#/shared/components/nav
 type ToolPath =
   | "/angles"
   | "/animate"
+  | "/batches"
   | "/characters"
   | "/characters/new"
   | "/motionTransfer"
@@ -29,12 +30,11 @@ type Tool = {
   description: string;
   icon: NavigationIconName;
   label: string;
-} & ({ to: ToolPath } | { disabled: true });
+  to: ToolPath;
+};
 
-// Planned categories and tools are listed disabled, each under a comment naming its issue. A
-// category that is one page (Explore) is a link to it, current on it and the pages under it.
+// A category that is one page (Explore) is a link to it, current on it and the pages under it.
 type NavigationEntry =
-  | { disabled: true; label: string }
   | { label: string; page: "/explore" }
   | { label: NavigationCategory; tools: Tool[] };
 
@@ -96,24 +96,14 @@ const navigation: NavigationEntry[] = [
         label: "Animate image",
         to: "/animate",
       },
-      //TODO: https://linear.app/devs3/issue/DEV-291
       {
-        description: "Set the mood while directing your shot.",
-        disabled: true,
-        icon: "lookLighting",
-        label: "Look & lighting",
-      },
-      //TODO: https://linear.app/devs3/issue/DEV-292
-      {
-        description: "Generate several takes and compare them.",
-        disabled: true,
+        description: "Follow the workspace's variation batches and open their takes.",
         icon: "batchVariations",
         label: "Batch variations",
+        to: "/batches",
       },
     ],
   },
-  //TODO: https://linear.app/devs3/issue/DEV-288 — enable this category when an audio tool ships.
-  { disabled: true, label: "Audio" },
   {
     label: "Library",
     tools: [
@@ -132,10 +122,7 @@ function ToolDescription({ tool }: { tool: Tool }) {
     <span className="flex w-full items-start gap-3 py-1.5">
       <NavigationIcon name={tool.icon} />
       <span className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="flex items-center justify-between gap-2">
-          <span className="font-medium">{tool.label}</span>
-          {"disabled" in tool && <span className="text-xs text-muted-foreground">Soon</span>}
-        </span>
+        <span className="font-medium">{tool.label}</span>
         <span className="text-xs leading-relaxed text-muted-foreground">{tool.description}</span>
       </span>
     </span>
@@ -153,21 +140,6 @@ export function SiteNavigation({ category }: { category?: NavigationCategory }) 
   return (
     <nav aria-label="Main" className="flex flex-wrap items-center gap-0.5 sm:gap-1">
       {navigation.map((entry) => {
-        if ("disabled" in entry) {
-          return (
-            <Button
-              disabled
-              key={entry.label}
-              size="nav"
-              title={`${entry.label} · Coming soon`}
-              variant="ghost"
-            >
-              {entry.label}
-              <span className="sr-only"> (coming soon)</span>
-            </Button>
-          );
-        }
-
         if ("page" in entry) {
           const here = pathname === entry.page || pathname.startsWith(`${entry.page}/`);
 
@@ -187,8 +159,7 @@ export function SiteNavigation({ category }: { category?: NavigationCategory }) 
         }
 
         const current =
-          entry.label === category ||
-          entry.tools.some((tool) => "to" in tool && pathname === tool.to);
+          entry.label === category || entry.tools.some((tool) => pathname === tool.to);
 
         return (
           <DropdownMenu key={entry.label}>
@@ -205,19 +176,13 @@ export function SiteNavigation({ category }: { category?: NavigationCategory }) 
             <DropdownMenuContent align="start" collisionPadding={16} sideOffset={8}>
               <div className="w-68">
                 <DropdownMenuLabel>{entry.label}</DropdownMenuLabel>
-                {entry.tools.map((tool) =>
-                  "disabled" in tool ? (
-                    <DropdownMenuItem disabled key={tool.label}>
+                {entry.tools.map((tool) => (
+                  <DropdownMenuItem asChild key={tool.label}>
+                    <Link aria-current={pathname === tool.to ? "page" : undefined} to={tool.to}>
                       <ToolDescription tool={tool} />
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem asChild key={tool.label}>
-                      <Link aria-current={pathname === tool.to ? "page" : undefined} to={tool.to}>
-                        <ToolDescription tool={tool} />
-                      </Link>
-                    </DropdownMenuItem>
-                  ),
-                )}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
