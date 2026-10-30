@@ -19,6 +19,7 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import type { PickableCharacter } from "#/features/characters";
 import type { SampleMotion } from "#/features/motionTransfer/api";
+import { AgentSetup } from "#/features/studio/components/agent-setup";
 import type { SampleTake } from "#/features/studio/components/studio-hero";
 import { Hud, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
@@ -323,7 +324,7 @@ export function BuiltOpen() {
     },
     {
       icon: <CpuIcon />,
-      text: "Clone it and start it with Docker Compose. Renders go to Comfy Cloud on your own key, or to a ComfyUI server you point it at.",
+      text: "Run the published Docker app on your own host. Connect Comfy Cloud, or use our Runpod GPU image for every tool, including sprite sheets.",
       title: "Run it yourself",
     },
   ];
@@ -356,6 +357,7 @@ export function BuiltOpen() {
             </div>
           ))}
         </div>
+        <AgentSetup />
       </div>
     </section>
   );

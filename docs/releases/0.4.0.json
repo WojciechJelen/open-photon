@@ -1,0 +1,55 @@
+{
+  "version": "0.4.0",
+  "sourceCommit": "839088af0649c15687c3b7e68725cf3285335e85",
+  "anonymousPullVerified": true,
+  "images": [
+    {
+      "image": "ghcr.io/wojciechjelen/open-photon:0.4.0",
+      "digest": "sha256:e8498ee6ebb6d8e48d2caf430fc5b5b22a5db0d8166c8ff18eeb9021be4de7b3",
+      "platforms": [
+        {
+          "os": "linux",
+          "architecture": "amd64",
+          "digest": "sha256:c376a9c21742ad542e886ebac68d91f8c580f81208241248a99aa88c8cd06e57",
+          "revision": "839088af0649c15687c3b7e68725cf3285335e85"
+        },
+        {
+          "os": "linux",
+          "architecture": "arm64",
+          "digest": "sha256:67777b2e96433166a1ae8351e0221e50ad0bd4b91cf601ef0abf079660e893e3",
+          "revision": "839088af0649c15687c3b7e68725cf3285335e85"
+        }
+      ]
+    },
+    {
+      "image": "ghcr.io/wojciechjelen/open-photon-comfy:0.4.0",
+      "digest": "sha256:40ef295c3b4400aacd6a30b70b71b635cc2b4eb6b3b216e67f2c7de8c838a8ad",
+      "platforms": [
+        {
+          "os": "linux",
+          "architecture": "amd64",
+          "digest": "sha256:898f54c0178666f5a211e4b5a859a2a34ea59cd04866ddb8961325330e498eac",
+          "revision": "839088af0649c15687c3b7e68725cf3285335e85",
+          "nodePackFilesVerified": ["__init__.py", "nodes.py", "sprite_math.py", "atlas.py"]
+        }
+      ]
+    }
+  ],
+  "releaseUrl": "https://github.com/WojciechJelen/open-photon/releases/tag/v0.4.0",
+  "verificationUrl": "https://github.com/WojciechJelen/open-photon/actions/runs/41065020759",
+  "appContainerChecks": {
+    "platform": "linux/arm64",
+    "health": "200 ok",
+    "accessCodeLogin": "passed",
+    "spriteForgePage": "passed",
+    "packaged": {
+      "view": true,
+      "sheet": true,
+      "pins": true
+    },
+    "persistentAccessAfterRestart": "passed",
+    "paidRenders": 0
+  },
+  "gpuInferenceEvidence": "../selfhost-proof-2026-10-30-sprite-forge/README.md",
+  "newPaidRenders": 0
+}
