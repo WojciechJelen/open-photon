@@ -1,6 +1,6 @@
 {
-  "name": "Open Photon 0.3.0",
-  "image": "ghcr.io/wojciechjelen/open-photon-comfy:0.3.0",
+  "name": "Open Photon 0.4.0",
+  "image": "ghcr.io/wojciechjelen/open-photon-comfy:0.4.0",
   "category": "NVIDIA",
   "serverless": false,
   "public": true,

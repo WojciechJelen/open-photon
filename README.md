@@ -64,7 +64,7 @@ With Docker installed, put one backend in `.env` ([Comfy Cloud or Runpod](#choos
 
 ```sh
 docker run -d --name open-photon --init --env-file .env -p 127.0.0.1:3030:3000 \
-  -v open-photon-data:/app/data ghcr.io/wojciechjelen/open-photon:0.3.0
+  -v open-photon-data:/app/data ghcr.io/wojciechjelen/open-photon:0.4.0
 # Open http://localhost:3030 once, then print an access code:
 docker exec open-photon node scripts/mint-code.mjs me 100
 ```
