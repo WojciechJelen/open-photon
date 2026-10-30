@@ -5,29 +5,28 @@ import { nitro } from "nitro/vite";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 
 /**
- * In dev, Nitro hands what a browser fetches for `<video>` and `<img>` (`Sec-Fetch-Dest: video`,
- * `image`, …) to Vite's static files, so `/media/*` never reached the app's route. Marking those
- * requests as documents keeps them on the app. Production has no Vite in front of the app.
+ * In dev, Nitro can hand media requests and the root setup.md to Vite's static files before
+ * their app handlers. Mark them as documents so their headers and access policy match production.
  */
-const mediaThroughApp: Plugin = {
+const filesThroughApp: Plugin = {
   apply: "serve",
   configureServer(server) {
     server.middlewares.use((request, _response, next) => {
-      if (request.url?.startsWith("/media/")) {
+      if (request.url?.startsWith("/media/") || request.url?.split("?")[0] === "/setup.md") {
         request.headers["sec-fetch-dest"] = "document";
       }
 
       next();
     });
   },
-  name: "open-photon:media-through-app",
+  name: "open-photon:files-through-app",
 };
 
 // The dev server's port: `PORT` from the environment or `.env` (default 3030), so worktrees run
 // side by side. The built server reads `PORT` itself at runtime.
 const config = defineConfig(({ mode }) => ({
   plugins: [
-    mediaThroughApp,
+    filesThroughApp,
     tailwindcss(),
     tanstackStart(),
     nitro({

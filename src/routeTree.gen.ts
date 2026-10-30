@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnimateRouteImport } from './routes/animate'
 import { Route as MotionTransferRouteImport } from './routes/motionTransfer'
 import { Route as ProductStudioRouteImport } from './routes/product-studio'
+import { Route as SetupDotmdRouteImport } from './routes/setup[.]md'
 import { Route as AnglesIndexRouteImport } from './routes/angles.index'
 import { Route as AnglesAngleSetIdRouteImport } from './routes/angles.$angleSetId'
 import { Route as ApiAngleSetsRouteImport } from './routes/api.angle-sets'
@@ -87,6 +88,11 @@ const MotionTransferRoute = MotionTransferRouteImport.update({
 const ProductStudioRoute = ProductStudioRouteImport.update({
   id: '/product-studio',
   path: '/product-studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupDotmdRoute = SetupDotmdRouteImport.update({
+  id: '/setup.md',
+  path: '/setup.md',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnglesIndexRoute = AnglesIndexRouteImport.update({
@@ -386,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/animate': typeof AnimateRoute
   '/motionTransfer': typeof MotionTransferRoute
   '/product-studio': typeof ProductStudioRoute
+  '/setup.md': typeof SetupDotmdRoute
   '/angles/$angleSetId': typeof AnglesAngleSetIdRoute
   '/api/angle-sets': typeof ApiAngleSetsRouteWithChildren
   '/api/animations': typeof ApiAnimationsRoute
@@ -447,6 +454,7 @@ export interface FileRoutesByTo {
   '/animate': typeof AnimateRoute
   '/motionTransfer': typeof MotionTransferRoute
   '/product-studio': typeof ProductStudioRoute
+  '/setup.md': typeof SetupDotmdRoute
   '/angles/$angleSetId': typeof AnglesAngleSetIdRoute
   '/api/angle-sets': typeof ApiAngleSetsRouteWithChildren
   '/api/animations': typeof ApiAnimationsRoute
@@ -509,6 +517,7 @@ export interface FileRoutesById {
   '/animate': typeof AnimateRoute
   '/motionTransfer': typeof MotionTransferRoute
   '/product-studio': typeof ProductStudioRoute
+  '/setup.md': typeof SetupDotmdRoute
   '/angles/$angleSetId': typeof AnglesAngleSetIdRoute
   '/api/angle-sets': typeof ApiAngleSetsRouteWithChildren
   '/api/animations': typeof ApiAnimationsRoute
@@ -572,6 +581,7 @@ export interface FileRouteTypes {
     | '/animate'
     | '/motionTransfer'
     | '/product-studio'
+    | '/setup.md'
     | '/angles/$angleSetId'
     | '/api/angle-sets'
     | '/api/animations'
@@ -633,6 +643,7 @@ export interface FileRouteTypes {
     | '/animate'
     | '/motionTransfer'
     | '/product-studio'
+    | '/setup.md'
     | '/angles/$angleSetId'
     | '/api/angle-sets'
     | '/api/animations'
@@ -694,6 +705,7 @@ export interface FileRouteTypes {
     | '/animate'
     | '/motionTransfer'
     | '/product-studio'
+    | '/setup.md'
     | '/angles/$angleSetId'
     | '/api/angle-sets'
     | '/api/animations'
@@ -756,6 +768,7 @@ export interface RootRouteChildren {
   AnimateRoute: typeof AnimateRoute
   MotionTransferRoute: typeof MotionTransferRoute
   ProductStudioRoute: typeof ProductStudioRoute
+  SetupDotmdRoute: typeof SetupDotmdRoute
   AnglesAngleSetIdRoute: typeof AnglesAngleSetIdRoute
   ApiAngleSetsRoute: typeof ApiAngleSetsRouteWithChildren
   ApiAnimationsRoute: typeof ApiAnimationsRoute
@@ -824,6 +837,13 @@ declare module '@tanstack/react-router' {
       path: '/product-studio'
       fullPath: '/product-studio'
       preLoaderRoute: typeof ProductStudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup.md': {
+      id: '/setup.md'
+      path: '/setup.md'
+      fullPath: '/setup.md'
+      preLoaderRoute: typeof SetupDotmdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/angles/': {
@@ -1402,6 +1422,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnimateRoute: AnimateRoute,
   MotionTransferRoute: MotionTransferRoute,
   ProductStudioRoute: ProductStudioRoute,
+  SetupDotmdRoute: SetupDotmdRoute,
   AnglesAngleSetIdRoute: AnglesAngleSetIdRoute,
   ApiAngleSetsRoute: ApiAngleSetsRouteWithChildren,
   ApiAnimationsRoute: ApiAnimationsRoute,

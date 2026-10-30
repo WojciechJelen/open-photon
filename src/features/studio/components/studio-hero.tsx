@@ -8,7 +8,7 @@ import { Button } from "#/components/ui/button";
 import type { PickableCharacter } from "#/features/characters";
 import type { loadStudio, SampleMotion } from "#/features/motionTransfer/api";
 import { ResultWall, type WallTake } from "#/features/studio/components/result-wall";
-import { Hud, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
+import { Hud, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { LoopingVideo } from "#/shared/components/looping-video";
 import { mediaUrl } from "#/shared/media";
 
@@ -150,7 +150,7 @@ export function StudioHero({
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <a href={`${REPOSITORY_URL}#run`}>Run it yourself</a>
+            <a href="#self-host">Run it yourself</a>
           </Button>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-2.5 pt-2">

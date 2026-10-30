@@ -13,7 +13,7 @@ on:
       version:
         description: Image version (must match package.json)
         type: string
-        default: "0.3.0"
+        default: "0.4.1"
 
 permissions:
   contents: read
@@ -151,13 +151,43 @@ jobs:
   publish:
     needs: [verify, images]
     runs-on: ubuntu-24.04
+    concurrency:
+      group: ghcr-release-${{ inputs.version }}
+      cancel-in-progress: false
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      - name: Refuse to overwrite an existing release
+        env:
+          OWNER: ${{ github.repository_owner }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from "node:assert/strict";
+          import { readFileSync } from "node:fs";
+          const version = process.env.VERSION;
+          assert.equal(version, JSON.parse(readFileSync("package.json")).version);
+          assert.match(version, /^\d+\.\d+\.\d+$/, "Publish a stable release version");
+          for (const image of ["open-photon", "open-photon-comfy"]) {
+            const repository = `${process.env.OWNER.toLowerCase()}/${image}`;
+            const query = new URLSearchParams({ service: "ghcr.io", scope: `repository:${repository}:pull` });
+            const auth = await fetch(`https://ghcr.io/token?${query}`);
+            assert.ok(auth.ok, `Cannot check registry access: HTTP ${auth.status}`);
+            const { token } = await auth.json();
+            const response = await fetch(`https://ghcr.io/v2/${repository}/manifests/${encodeURIComponent(version)}`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json",
+              },
+            });
+            assert.equal(response.status, 404,
+              `${repository}:${version} is already published or could not be checked. Use a new package version; existing releases are immutable.`);
+          }
+          JS
       - name: Publish matching version tags
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -172,3 +202,13 @@ jobs:
             "$repository:$build-amd64" "$repository:$build-arm64"
           docker buildx imagetools create --tag "$repository-comfy:$VERSION" \
             "$repository-comfy:$build-amd64"
+      - name: Verify public images and publish their manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          node scripts/verify-image-pair.mjs "$VERSION" "$GITHUB_SHA" "$OWNER" > image-pair.json
+          gh release create "v$VERSION" image-pair.json --target "$GITHUB_SHA" \
+            --title "Open Photon $VERSION" \
+            --notes "Includes the agent setup copy button and public guide: https://github.com/$GITHUB_REPOSITORY/blob/v$VERSION/SETUP.md. Compatible app (Linux AMD64/ARM64) and GPU (Linux AMD64) images. The attached image-pair.json records anonymous registry verification, immutable digests and the exact source commit."

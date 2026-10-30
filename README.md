@@ -58,13 +58,26 @@ Wan Animate 2 animating her. Both from a pre-rendered sample take;
 
 <a id="run"></a>
 
+### Deploy with your agent
+
+On the home page, choose **Run it yourself**, then **Copy agent setup instructions**. Paste
+the instructions into a coding agent with terminal access. The same [SETUP.md](SETUP.md) is
+available to read and copy directly. It guides the agent through accounts, cost approval,
+deployment, access codes, a real render and ongoing operation.
+
+The app uses a public Docker image on a compatible container host. Runpod is the supported
+GPU path for the complete tool set, including Sprite Forge sheets; Comfy Cloud is an optional
+path with that limitation. Pulling the images requires no GitHub or GHCR credentials.
+The [0.4.1 release](https://github.com/WojciechJelen/open-photon/releases/tag/v0.4.1) supplies
+the verified image manifest that the agent uses to pin both containers.
+
 ### Run the containerized app
 
 With Docker installed, put one backend in `.env` ([Comfy Cloud or Runpod](#choose-a-rendering-backend)), then:
 
 ```sh
 docker run -d --name open-photon --init --env-file .env -p 127.0.0.1:3030:3000 \
-  -v open-photon-data:/app/data ghcr.io/wojciechjelen/open-photon:0.3.0
+  -v open-photon-data:/app/data ghcr.io/wojciechjelen/open-photon:0.4.1
 # Open http://localhost:3030 once, then print an access code:
 docker exec open-photon node scripts/mint-code.mjs me 100
 ```
@@ -129,7 +142,8 @@ direction views but cannot forge the sheet: the button is disabled and the API a
 `selfhost_required`. Sheets run its node pack on the self-hosted backend
 ([Sprite Forge README](src/features/spriteForge/README.md#self-host)).
 
-**Runpod:** deploy the [Open Photon template](https://console.runpod.io/deploy?template=iqcvzqgt1q)
+**Runpod:** deploy `ghcr.io/wojciechjelen/open-photon-comfy:0.4.1` with the settings in
+[`selfhost/runpod-template.json`](selfhost/runpod-template.json)
 on an NVIDIA GPU with a **CUDA 13-compatible driver**. **48 GB VRAM is recommended** for Motion
 Transfer (peaks per workflow in [Numbers](#numbers)); 32 GB passed with little headroom.
 Set `PROXY_TOKEN` to a long random secret, and `HF_TOKEN` to a Hugging Face token of an account
