@@ -21,6 +21,7 @@ import { callApi } from "#/shared/requests";
 const librarySearchSchema = z.object({
   favorites: z.boolean().optional().catch(undefined),
   q: z.string().trim().max(200).optional().catch(undefined),
+  samples: z.boolean().optional().catch(undefined),
   selected: z.uuid().optional().catch(undefined),
 });
 
@@ -29,16 +30,17 @@ export type LibrarySearch = z.output<typeof librarySearchSchema> & {
 };
 
 /**
- * `/characters`' search: `q` (the search box), `favorites` (the favorites only), `selected` (the
- * character to focus, as the builder's save names it) and `draft`, the composer draft Motion
- * Transfer carries through the library (`carriedDraft`: its picks and direction, without step or
- * character), so a motion and direction picked before survive to "Animate". What does not
- * validate is dropped, like a mangled link's draft.
+ * `/characters`' search: `q` (the search box), `favorites` and `samples` (the filter: the favorites
+ * only, or the samples only), `selected` (the character to focus, as the builder's save names it)
+ * and `draft`, the composer draft Motion Transfer carries through the library (`carriedDraft`: its
+ * picks and direction, without step or character), so a motion and direction picked before survive
+ * to "Animate". What does not validate is dropped, like a mangled link's draft.
  */
 export function validateLibrarySearch(search: {
   draft?: unknown;
   favorites?: unknown;
   q?: unknown;
+  samples?: unknown;
   selected?: unknown;
 }): LibrarySearch {
   return { ...librarySearchSchema.parse(search), draft: carriedDraft(search.draft) };
@@ -133,15 +135,12 @@ export function characterName(character: CharacterIdentity) {
   return character.origin === "upload" ? "Untitled photo" : "Untitled character";
 }
 
-/** Where a character comes from, as its badge says. */
-export function originLabel(character: CharacterIdentity) {
-  if (character.is_sample) {
-    return "Sample";
-  }
-
-  // A generated character's image is a model's output: said so plainly (the FLUX licence asks
-  // for AI-generated outputs to be disclosed as such).
-  return character.origin === "upload" ? "Uploaded" : "AI-generated";
+/**
+ * Whether a character's image is tagged as a model's output: one saved from a generation (the FLUX
+ * licence asks for AI-generated outputs to be disclosed as such). A sample says so in its details.
+ */
+export function isTaggedGenerated({ is_sample, origin }: CharacterIdentity) {
+  return !is_sample && origin === "generated";
 }
 
 /**

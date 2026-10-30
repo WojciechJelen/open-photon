@@ -277,6 +277,9 @@ test("the batch endpoints need a session; GET answers the batch, the list and th
   });
 
   assert.ok(batch);
+  // The shot's clip, named by the sample motion it is.
+  assert.equal(batch.motion?.asset.id, motion);
+  assert.ok(batch.motion?.title);
 
   const read = (path: string, headers: Record<string, string> = {}) =>
     path === "/api/batches"
@@ -297,15 +300,23 @@ test("the batch endpoints need a session; GET answers the batch, the list and th
   assert.equal(read(`/api/batches/${randomUUID()}`, { Cookie: cookie }).status, 404);
   assert.equal(read("/api/batches/nope", { Cookie: cookie }).status, 400);
 
-  const list = batchListSchema.parse(await read("/api/batches", { Cookie: cookie }).json());
+  const listed = await read("/api/batches", { Cookie: cookie }).json();
+  const list = batchListSchema.parse(listed);
 
   assert.deepEqual(list.allowance, { max: 10, remaining: 8, used: 2 });
+  const image = batch.items[0]?.character?.image;
+
+  assert.ok(image);
   assert.deepEqual(list.batches[0], {
     created_at: batch.created_at,
     id: batch.id,
     kind: "seeds",
     statuses: ["waiting", "waiting"],
+    // Nothing rendered yet: each take shows its character.
+    thumbnails: Array(2).fill({ id: image.id, mime: image.mime }),
   });
+  // The answer itself, not the parsed list: a picture's URL, and nothing else of its file.
+  assert.deepEqual(listed.batches[0].thumbnails[0], { id: image.id, mime: image.mime });
 
   const unauthorized = await handleCreateBatch(
     new Request("http://localhost/api/batches", {

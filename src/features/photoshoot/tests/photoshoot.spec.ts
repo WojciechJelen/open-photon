@@ -23,7 +23,7 @@ test("a photo uploaded with consent becomes the photoshoot's character, and a sh
   await expect(
     page.getByRole("list", { name: "Characters" }).getByRole("button", { pressed: true }),
   ).toHaveCount(1);
-  await expect(page.getByText(/· Studio · 4 generations$/)).toBeVisible();
+  await expect(page.getByTestId("photoshoot-summary").getByText("Studio")).toBeVisible();
 
   const admitted = page.waitForResponse(
     (response) =>
@@ -51,4 +51,14 @@ test("the photoshoot API refuses a request without a request key and an unknown 
 
   expect(missingKey.status()).toBe(400);
   expect((await page.request.get(`/api/photoshoots/${crypto.randomUUID()}`)).status()).toBe(404);
+});
+
+test("a photoshoot that is not there is a page of its own, whatever its id looks like", async ({
+  page,
+}) => {
+  for (const id of ["not-an-id", crypto.randomUUID()]) {
+    await open(page, `/photoshoot/${id}`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Nothing here");
+    await expect(page.getByRole("link", { name: "New photoshoot" })).toBeVisible();
+  }
 });

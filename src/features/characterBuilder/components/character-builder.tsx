@@ -1,6 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { cn } from "cn";
-import { CheckIcon, RotateCcwIcon } from "lucide-react";
+import { RotateCcwIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "#/components/ui/button";
@@ -45,10 +44,10 @@ import {
 } from "#/features/characterBuilder/components/describe-step";
 import { ImageStep } from "#/features/characterBuilder/components/image-step";
 import { RefusalNotice } from "#/features/characterBuilder/components/refusal-notice";
-import type { CharacterSummary } from "#/features/characters";
-import { AccessCodeDialog, AccessStatus } from "#/shared/components/access-code-dialog";
-import { PageGlow } from "#/shared/components/brand";
-import { SiteHeader } from "#/shared/components/site";
+import type { CharacterSummary, PickableCharacter } from "#/features/characters";
+import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
+import { SitePage } from "#/shared/components/site";
+import { StepTracker } from "#/shared/components/step-tracker";
 import type { Refusal } from "#/shared/requests";
 import { useAccessCode } from "#/shared/use-access-code";
 import { useRequestSignal } from "#/shared/use-request-signal";
@@ -61,8 +60,10 @@ type Refused = { fresh?: () => void; refusal: Refusal; retry: () => void };
 
 type Answer<T> = { data: T } | { refusal: Refusal };
 
+const steps = ["describe", "caption", "image"] as const;
+
 const stepLabels: Record<BuilderStep, string> = {
-  caption: "Caption",
+  caption: "Refine",
   describe: "Describe",
   image: "Image",
 };
@@ -70,8 +71,9 @@ const stepLabels: Record<BuilderStep, string> = {
 const describeFields = new Set<PropertyKey>(["appearance", "description", "outfit"]);
 
 /**
- * `/characters/new`: describe a character, enhance the description into a caption, edit it,
- * render it with FLUX 3 Image Klein, then save it to the workspace library and animate it.
+ * `/characters/new`: describe a character, enhance the description into a prompt, edit it, render
+ * it with FLUX 3 Image Klein, then save it to the workspace library and animate it. Every step
+ * sits in one frame, so the steps row and the heading never move; `samples` show the styles.
  *
  * Nothing is ever paid for twice by accident:
  * - one action at a time: an action takes the page's lock before its first `await` and keeps
@@ -85,12 +87,11 @@ const describeFields = new Set<PropertyKey>(["appearance", "description", "outfi
  * for it and then carries on.
  */
 export function CharacterBuilder({
+  samples,
   search,
-  signedIn: hasSession,
 }: {
+  samples: PickableCharacter[];
   search: BuilderSearch;
-  /** Whether the visitor had an access session when the page loaded (`loadBuilderAccess`). */
-  signedIn: boolean;
 }) {
   const navigate = useNavigate({ from: "/characters/new" });
   const access = useAccessCode();
@@ -103,7 +104,6 @@ export function CharacterBuilder({
   const [captionErrors, setCaptionErrors] = useState<CaptionField[]>([]);
   const [pending, setPending] = useState<Pending | null>(null);
   const [refused, setRefused] = useState<Refused | null>(null);
-  const [signedIn, setSignedIn] = useState(hasSession);
   const [savedCharacter, setSavedCharacter] = useState<CharacterSummary | null>(null);
   const [persistent, setPersistent] = useState(true);
   const busy = useRef(false);
@@ -172,8 +172,9 @@ export function CharacterBuilder({
     }
   }, [step]);
 
-  function go(next: Partial<BuilderSearch>) {
-    void navigate({ search: (previous) => ({ ...previous, ...next }) });
+  /** A new screen or result opens at the top; `stay` keeps the page where the visitor is. */
+  function go(next: Partial<BuilderSearch>, stay = false) {
+    void navigate({ resetScroll: !stay, search: (previous) => ({ ...previous, ...next }) });
   }
 
   /**
@@ -228,7 +229,6 @@ export function CharacterBuilder({
    */
   function refuse(kind: Pending, refusal: Refusal, again: () => void, fresh?: () => void) {
     if (refusal.reason === "access_required") {
-      setSignedIn(false);
       access.hold(kind, kind === "save" ? "unlock" : "generate", again);
     } else {
       setRefused({ fresh, refusal, retry: again });
@@ -265,7 +265,8 @@ export function CharacterBuilder({
           (field): field is DescribeField => describeFields.has(field ?? ""),
         ),
       );
-      go({ step: "describe" });
+      // On that screen already, what is wrong shows beside the button just pressed.
+      go({ step: "describe" }, step === "describe");
 
       return;
     }
@@ -347,7 +348,7 @@ export function CharacterBuilder({
         if (parsed) {
           refuse(
             "again",
-            { message: "This caption can't be sent again. Edit the description." },
+            { message: "This prompt can't be sent again. Edit the description." },
             () => go({ step: "describe" }),
           );
         }
@@ -382,7 +383,7 @@ export function CharacterBuilder({
 
       if (!parsed?.success) {
         if (parsed) {
-          refuse("again", { message: "This image can't be made again. Edit the caption." }, () =>
+          refuse("again", { message: "This image can't be made again. Edit the prompt." }, () =>
             go({ step: "caption" }),
           );
         }
@@ -411,7 +412,7 @@ export function CharacterBuilder({
 
       if (character) {
         setSavedCharacter(character);
-        go({ saved: character.id });
+        go({ saved: character.id }, true);
       }
     });
   }
@@ -425,10 +426,7 @@ export function CharacterBuilder({
     />
   );
 
-  const unlockThen = (resume: () => void) => {
-    setSignedIn(false);
-    access.hold("load", "unlock", resume);
-  };
+  const unlockThen = (resume: () => void) => access.hold("load", "unlock", resume);
 
   const reached: Record<BuilderStep, boolean> = {
     caption: search.caption !== undefined || search.image !== undefined,
@@ -437,139 +435,90 @@ export function CharacterBuilder({
   };
 
   return (
-    <div className="relative isolate min-h-svh">
-      <PageGlow />
-      <SiteHeader>
-        <AccessStatus onOpen={access.unlock} signedIn={signedIn} />
-      </SiteHeader>
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pt-6 pb-18 sm:px-8 lg:pt-10">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <nav aria-label="Character builder steps">
-            <ol className="flex flex-wrap items-center gap-2 sm:gap-3">
-              {(["describe", "caption", "image"] as const).map((id, index) => {
-                const state =
-                  id === step
-                    ? "current"
-                    : index < ["describe", "caption", "image"].indexOf(step)
-                      ? "done"
-                      : "todo";
+    <SitePage className="max-w-206" gap={6} onAccess={access.unlock} top={6}>
+      <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <StepTracker
+          steps={steps.map((id, index) => ({
+            label: stepLabels[id],
+            link: reached[id]
+              ? { search: { ...search, step: id }, to: "/characters/new" }
+              : undefined,
+            state: id === step ? "current" : index < steps.indexOf(step) ? "done" : "todo",
+          }))}
+        />
+        <Button
+          disabled={pending !== null}
+          onClick={() => void startOver()}
+          size="inline"
+          type="button"
+          variant="ghost"
+        >
+          <RotateCcwIcon aria-hidden="true" className="size-3.5" />
+          Start over
+        </Button>
+      </div>
 
-                return (
-                  <li className="flex items-center gap-2 sm:gap-3" key={id}>
-                    {index > 0 && <span aria-hidden="true" className="h-px w-4 bg-border sm:w-8" />}
-                    <button
-                      aria-current={state === "current" ? "step" : undefined}
-                      className={cn(
-                        "inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-default",
-                        state === "todo" ? "text-muted-foreground" : "text-foreground",
-                      )}
-                      disabled={state === "current" || !reached[id]}
-                      onClick={() => go({ step: id })}
-                      type="button"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "grid size-7 place-items-center rounded-full border border-input font-mono text-xs",
-                          state === "done" && "border-brand/50 bg-brand/16 text-brand",
-                          state === "current" &&
-                            "border-transparent bg-linear-100 from-brand via-brand-mid to-brand-2 font-semibold text-primary-foreground",
-                        )}
-                      >
-                        {state === "done" ? (
-                          <CheckIcon className="size-3.5" strokeWidth={3} />
-                        ) : (
-                          index + 1
-                        )}
-                      </span>
-                      {/* Below `sm` only the current step is named; every step stays labelled. */}
-                      <span className={state === "current" ? undefined : "sr-only sm:not-sr-only"}>
-                        {stepLabels[id]}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
-          <Button
-            disabled={pending !== null}
-            onClick={() => void startOver()}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            <RotateCcwIcon aria-hidden="true" />
-            Start over
-          </Button>
-        </div>
+      {step === "describe" && (
+        <DescribeStep
+          errors={describeErrors}
+          form={form}
+          notice={notice}
+          onChange={setForm}
+          onEnhance={() => enhance()}
+          onWriteOwn={() => go({ caption: undefined, image: undefined, step: "caption" })}
+          pending={pending !== null}
+          samples={samples}
+        />
+      )}
+      {step === "caption" && (
+        <CaptionStep
+          captionId={search.caption}
+          errors={captionErrors}
+          form={form}
+          imageId={search.image}
+          notice={notice}
+          onBack={() => go({ step: "describe" })}
+          onChange={setForm}
+          onEnhance={() => enhance()}
+          onGenerate={(caption, source) => generate(caption, source)}
+          onOpenImage={() => go({ step: "image" })}
+          onTryAgain={(id) => captionAgain(id)}
+          onUnlock={unlockThen}
+          pending={pending}
+        />
+      )}
+      {step === "image" && search.image && (
+        <ImageStep
+          draft={search.draft}
+          imageId={search.image}
+          notice={notice}
+          onBack={() =>
+            go({ caption: undefined, image: undefined, saved: undefined, step: "describe" })
+          }
+          onEditCaption={() => go({ step: "caption" })}
+          onSave={save}
+          onTryAgain={(id) => imageAgain(id)}
+          onUnlock={unlockThen}
+          pending={pending}
+          saved={
+            search.saved
+              ? {
+                  character: savedCharacter?.id === search.saved ? savedCharacter : null,
+                  id: search.saved,
+                }
+              : null
+          }
+        />
+      )}
 
-        {!persistent && (
-          <p className="text-sm text-soft-foreground" role="note">
-            This browser does not let the page remember its requests across a reload. Clicking again
-            is safe; after a reload, check a request's result before sending it again.
-          </p>
-        )}
+      {!persistent && (
+        <p className="type-caption text-soft-foreground" role="note">
+          This browser does not let the page remember its requests across a reload. Clicking again
+          is safe; after a reload, check a request's result before sending it again.
+        </p>
+      )}
 
-        {step === "describe" && (
-          <DescribeStep
-            errors={describeErrors}
-            form={form}
-            notice={notice}
-            onChange={setForm}
-            onEnhance={() => enhance()}
-            onWriteOwn={() => go({ caption: undefined, image: undefined, step: "caption" })}
-            pending={pending !== null}
-          />
-        )}
-        {step === "caption" && (
-          <CaptionStep
-            captionId={search.caption}
-            errors={captionErrors}
-            form={form}
-            imageId={search.image}
-            notice={notice}
-            onBack={() => go({ step: "describe" })}
-            onChange={setForm}
-            onEnhance={() => enhance()}
-            onGenerate={(caption, source) => generate(caption, source)}
-            onOpenImage={() => go({ step: "image" })}
-            onTryAgain={(id) => captionAgain(id)}
-            onUnlock={unlockThen}
-            pending={pending}
-          />
-        )}
-        {step === "image" && search.image && (
-          <ImageStep
-            draft={search.draft}
-            imageId={search.image}
-            notice={notice}
-            onBack={() =>
-              go({ caption: undefined, image: undefined, saved: undefined, step: "describe" })
-            }
-            onEditCaption={() => go({ step: "caption" })}
-            onSave={save}
-            onTryAgain={(id) => imageAgain(id)}
-            onUnlock={unlockThen}
-            pending={pending}
-            saved={
-              search.saved
-                ? {
-                    character: savedCharacter?.id === search.saved ? savedCharacter : null,
-                    id: search.saved,
-                  }
-                : null
-            }
-          />
-        )}
-      </main>
-      <AccessCodeDialog
-        {...access.dialog}
-        onSignedIn={() => {
-          setSignedIn(true);
-          access.dialog.onSignedIn();
-        }}
-      />
-    </div>
+      <AccessCodeDialog {...access.dialog} />
+    </SitePage>
   );
 }

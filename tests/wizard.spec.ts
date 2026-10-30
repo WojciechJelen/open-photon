@@ -198,42 +198,47 @@ test.describe("without a session", () => {
     expect(sent[0]).toMatchObject({ prompt: expect.stringContaining("neon-lit") });
   });
 
-  test("the header's Access code opens the dialog, and the status turns active", async ({
+  test("the header's Enter access code opens the dialog, and the allowance replaces it", async ({
     page,
   }) => {
     await open(page, "/motionTransfer");
 
     const header = page.getByRole("banner").filter({ visible: true });
 
-    await header.getByRole("button", { name: "Access code" }).click();
+    await header.getByRole("button", { name: "Enter access code" }).click();
 
     const dialog = page.getByRole("dialog", { name: "Enter your access code" });
 
     await dialog.getByLabel("Access code").fill(accessCode());
     await dialog.getByRole("button", { name: "Unlock", exact: true }).click();
     await expect(dialog).toBeHidden();
-    await expect(header.getByText("Code active")).toBeVisible();
+    await expect(header.getByText(/\d+ renders?$/)).toBeVisible();
   });
 });
 
 test.describe("on a phone", () => {
   test.use({ viewport: { height: 844, width: 390 } });
 
-  test("a compact header counts the steps, and the bottom bar carries the pick and Continue", async ({
+  test("the stepper names only the current step, and the slate under the step carries the pick and Continue", async ({
     page,
   }) => {
     await open(page, "/motionTransfer");
-    await expect(page.getByRole("banner").getByText("Step 1 of 4")).toBeVisible();
-    await expect(slate(page)).toBeHidden();
+
+    const current = page
+      .getByRole("navigation", { name: "Steps" })
+      .locator('[aria-current="step"]');
+
+    await expect(current).toHaveText(/Motion/);
 
     await page.getByRole("button", { name: "Street dance" }).click();
+    await expect(slate(page)).toContainText("Street dance");
 
-    const continueButton = page.getByRole("button", { name: "Continue" });
+    const continueButton = slate(page).getByRole("button", { name: "Continue" });
 
     await expect(continueButton).toBeVisible();
     await expect(continueButton).toBeEnabled();
     await continueButton.click();
-    await expect(page.getByRole("banner").getByText("Step 2 of 4")).toBeVisible();
+    await expect(current).toHaveText(/Character/);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
     ).toBe(0);

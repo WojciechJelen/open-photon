@@ -1,12 +1,18 @@
-import { useNavigate } from "@tanstack/react-router";
-import { ClapperboardIcon } from "lucide-react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { cn } from "cn";
+import { ClapperboardIcon, TriangleAlertIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "#/components/ui/button";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import { requestAnimation } from "#/features/animateImage/animate-client";
-import { AnimationTake } from "#/features/animateImage/components/animation-take";
+import {
+  AnimationTake,
+  boxFit,
+  TAKE_BOX,
+  VIEWFINDER_CLEAR_OF_TAG,
+} from "#/features/animateImage/components/animation-take";
 import {
   type PickedSource,
   readPreselected,
@@ -20,19 +26,37 @@ import {
   VIDEO_SECONDS,
   videoSize,
 } from "#/features/animateImage/contracts";
-import { AccessCodeDialog, AccessStatus } from "#/shared/components/access-code-dialog";
-import { Hud, PageGlow } from "#/shared/components/brand";
-import { SiteHeader } from "#/shared/components/site";
+import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
+import { Viewfinder } from "#/shared/components/brand";
+import { PageHeading } from "#/shared/components/page-heading";
+import { Panel } from "#/shared/components/panel";
+import { ResultFigure } from "#/shared/components/result-figure";
+import { SitePage } from "#/shared/components/site";
+import { StableText } from "#/shared/components/stable-text";
+import { StateCard } from "#/shared/components/state-card";
+import { ToolColumns, ToolSection } from "#/shared/components/tool-layout";
 import { mediaUrl } from "#/shared/media";
 import type { Refusal } from "#/shared/requests";
 import { useAccessCode } from "#/shared/use-access-code";
 
 // Actions described the way Wan 2.2 follows them: who does what, and what the camera does.
 const examples = [
-  "Waves at the camera with one hand and smiles. Static camera.",
-  "Slowly turns around to look over the shoulder, then back at the camera.",
-  "The camera slowly orbits around the subject, which stays still.",
-  "Takes a step forward and nods. Static camera, full body in frame.",
+  {
+    label: "Wave and smile",
+    prompt: "Waves at the camera with one hand and smiles. Static camera.",
+  },
+  {
+    label: "Look over the shoulder",
+    prompt: "Slowly turns around to look over the shoulder, then back at the camera.",
+  },
+  {
+    label: "Slow camera orbit",
+    prompt: "The camera slowly orbits around the subject, which stays still.",
+  },
+  {
+    label: "Step forward and nod",
+    prompt: "Takes a step forward and nods. Static camera, full body in frame.",
+  },
 ];
 
 /**
@@ -44,10 +68,8 @@ const examples = [
  * share link are `AnimationTake`'s.
  */
 export function AnimatePage({ search }: { search: AnimateSearch }) {
-  const id = useId();
   const navigate = useNavigate({ from: "/animate" });
   const access = useAccessCode();
-  const [signedIn, setSignedIn] = useState(true);
   const [picked, setPicked] = useState<PickedSource | null>(null);
   const [sourceProblem, setSourceProblem] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
@@ -61,11 +83,7 @@ export function AnimatePage({ search }: { search: AnimateSearch }) {
   const onRefused = useCallback(
     (answer: Refusal, resume: () => void) => {
       if (answer.reason === "access_required") {
-        setSignedIn(false);
-        access.hold("animate", "unlock", () => {
-          setSignedIn(true);
-          resume();
-        });
+        access.hold("animate", "unlock", resume);
       }
     },
     [access.hold],
@@ -127,7 +145,10 @@ export function AnimatePage({ search }: { search: AnimateSearch }) {
 
     if ("data" in answer) {
       pendingKey.current = null;
-      void navigate({ search: (previous) => ({ ...previous, take: answer.data.id }) });
+      void navigate({
+        resetScroll: false,
+        search: (previous) => ({ ...previous, take: answer.data.id }),
+      });
     } else if (answer.refusal.reason === "access_required") {
       onRefused(answer.refusal, () => void generate());
     } else {
@@ -135,127 +156,153 @@ export function AnimatePage({ search }: { search: AnimateSearch }) {
     }
   }
 
+  const problem = refusal ?? (search.take ? sourceProblem : null);
+
+  const animate = (
+    <Button
+      disabled={!picked || !parsedPrompt.success || sending}
+      onClick={() => void generate()}
+      variant="photon"
+    >
+      <ClapperboardIcon aria-hidden="true" />
+      <StableText current={sending ? "Starting…" : "Animate"} labels={["Animate", "Starting…"]} />
+    </Button>
+  );
+
+  const note = problem ? (
+    <p className="type-caption wrap-anywhere text-destructive-foreground" role="alert">
+      {problem}
+    </p>
+  ) : (
+    <p className="type-caption wrap-anywhere text-muted-foreground">
+      {size && `${size.width}×${size.height}, `}
+      {VIDEO_SECONDS.toFixed(1)} s at 16 fps, MP4.
+    </p>
+  );
+
+  const preview = picked && (
+    <>
+      <img
+        alt={`Image to animate: ${picked.label}${picked.generated ? ", AI-generated" : ""}`}
+        className={cn("absolute inset-0 size-full", boxFit(picked.image))}
+        src={mediaUrl(picked.image)}
+      />
+      <Viewfinder className={VIEWFINDER_CLEAR_OF_TAG} />
+    </>
+  );
+
+  const idle = sourceProblem ? (
+    <div role="alert">
+      <StateCard
+        className={TAKE_BOX}
+        icon={TriangleAlertIcon}
+        text={sourceProblem}
+        title="This image can't be animated"
+        tone="warning"
+      />
+    </div>
+  ) : picked?.generated === "tagged" ? (
+    <ResultFigure aspect="aspect-9/16">{preview}</ResultFigure>
+  ) : picked ? (
+    <div className="relative aspect-9/16 overflow-hidden rounded-field bg-screen shadow-hairline">
+      {preview}
+    </div>
+  ) : (
+    <StateCard
+      className={cn(TAKE_BOX, "px-11")}
+      frame
+      text="Pick a still and say what happens."
+      title="Your clip appears here"
+    />
+  );
+
   return (
-    <div className="relative isolate min-h-svh">
-      <PageGlow />
-      <SiteHeader category="Video">
-        <AccessStatus onOpen={access.unlock} signedIn={signedIn} />
-      </SiteHeader>
-      <main className="mx-auto flex w-full max-w-250 flex-col gap-10 px-4 py-8 sm:px-8 sm:py-12">
-        <div className="flex flex-col gap-3">
-          <Hud>Video · Wan 2.2 14B image-to-video</Hud>
-          <h1 className="font-display text-4xl leading-none font-bold tracking-display sm:text-5xl">
-            Animate an image
-          </h1>
-          <p className="max-w-150 text-soft-foreground">
-            Pick a still, describe what happens, and get a {VIDEO_SECONDS.toFixed(0)} second video
-            of it. No motion clip needed: the movement comes from your words.
-          </p>
-        </div>
-
-        <section aria-labelledby={`${id}-source`} className="flex flex-col gap-4">
-          <h2 className="text-lg font-medium" id={`${id}-source`}>
-            1. The image
-          </h2>
-          {sourceProblem && (
-            <p className="text-sm text-destructive-foreground" role="alert">
-              {sourceProblem}
-            </p>
-          )}
-          <div className="grid gap-6 md:grid-cols-3">
-            <figure className="flex flex-col gap-2">
-              <div className="relative flex aspect-3/4 items-center justify-center overflow-hidden rounded-2xl border bg-screen">
-                {picked ? (
-                  <img
-                    alt={`Image to animate: ${picked.label}`}
-                    className="absolute inset-0 size-full object-contain"
-                    src={mediaUrl(picked.image)}
-                  />
-                ) : (
-                  <span className="px-4 text-center text-sm text-muted-foreground">
-                    No image picked yet
-                  </span>
-                )}
-              </div>
-              {picked && (
-                <figcaption className="truncate text-sm text-soft-foreground">
-                  {picked.label}
-                </figcaption>
-              )}
-            </figure>
-            <div className="md:col-span-2">
-              <SourcePicker onPick={setPicked} onRefused={onRefused} picked={picked} />
+    <SitePage category="Video" gap={10} onAccess={access.unlock} top={10}>
+      <ToolColumns
+        asideClassName="sticky top-6"
+        aside={
+          <Panel
+            aria-label="Your animation"
+            className="gap-3.5 p-5"
+            label="Your animation"
+            role="region"
+          >
+            {/* Once the panel takes the page's width, the 9:16 box stops growing with it. */}
+            <div className="mx-auto flex w-full max-w-90 min-w-0 flex-col gap-3.5">
+              <AnimationTake
+                animate={animate}
+                id={search.take}
+                idle={idle}
+                key={search.take}
+                note={note}
+                onRefused={onRefused}
+                onRetried={(take) =>
+                  void navigate({
+                    resetScroll: false,
+                    search: (previous) => ({ ...previous, take }),
+                  })
+                }
+                still={picked ? mediaUrl(picked.image) : undefined}
+              />
             </div>
-          </div>
-        </section>
+          </Panel>
+        }
+      >
+        <PageHeading
+          subtitle="Pick a still, say what happens, get a five-second clip."
+          title="Animate image"
+        />
 
-        <section aria-labelledby={`${id}-action`} className="flex flex-col gap-4">
-          <h2 className="text-lg font-medium" id={`${id}-action`}>
-            2. The action
-          </h2>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={`${id}-prompt`}>What happens in the video</Label>
+        <ToolSection
+          end={
+            // The links keep 44 px targets; the row stays as low as its heading.
+            <div className="-my-2 flex max-w-full min-w-0 flex-wrap gap-x-4">
+              <Button asChild size="inline" variant="link">
+                <Link search={{ draft: undefined }} to="/characters">
+                  <span>Open library</span>
+                </Link>
+              </Button>
+              <Button asChild size="inline" variant="link">
+                <Link to="/characters/new">
+                  <span>Describe a new one</span>
+                </Link>
+              </Button>
+            </div>
+          }
+          number="01"
+          title="Image"
+        >
+          <SourcePicker onPick={setPicked} onRefused={onRefused} picked={picked} />
+        </ToolSection>
+
+        <ToolSection number="02" title="Action">
+          <div className="flex min-w-0 flex-col gap-2">
+            <Label htmlFor="animate-prompt">What happens</Label>
             <Textarea
-              id={`${id}-prompt`}
+              id="animate-prompt"
               maxLength={1000}
               onChange={(event) => setPrompt(event.currentTarget.value)}
-              placeholder="The woman raises her hand, waves at the camera and smiles. Static camera."
+              placeholder="Waves at the camera with one hand and smiles. Static camera."
               rows={3}
               value={prompt}
             />
-            <p className="text-sm text-muted-foreground">
-              Say who moves and how, and whether the camera moves. One clear action works best.
-            </p>
           </div>
-          {/* A phone stacks the chips full width so each sentence wraps inside its chip. */}
-          <div className="grid gap-2 sm:flex sm:flex-wrap">
+          <div className="flex flex-wrap gap-2">
             {examples.map((example) => (
-              <Button key={example} onClick={() => setPrompt(example)} size="sm" variant="chip">
-                <span className="text-center whitespace-normal">{example}</span>
+              <Button
+                key={example.label}
+                onClick={() => setPrompt(example.prompt)}
+                size="sm"
+                variant="chip"
+              >
+                <span className="type-caption font-medium">{example.label}</span>
               </Button>
             ))}
           </div>
-        </section>
+        </ToolSection>
+      </ToolColumns>
 
-        <div className="flex flex-col items-start gap-3">
-          <Button
-            disabled={!picked || !parsedPrompt.success || sending}
-            onClick={() => void generate()}
-            size="lg"
-          >
-            <ClapperboardIcon />
-            {sending ? "Starting…" : "Animate"}
-          </Button>
-          <p className="text-sm text-muted-foreground">
-            {size
-              ? `${size.width}×${size.height}, ${VIDEO_SECONDS.toFixed(1)} s at 16 fps, MP4.`
-              : "Pick an image and describe the action to animate it."}
-          </p>
-          {refusal && (
-            <p className="text-sm text-destructive-foreground" role="alert">
-              {refusal}
-            </p>
-          )}
-        </div>
-
-        {search.take && (
-          <section
-            aria-labelledby={`${id}-take`}
-            className="flex flex-col gap-4 rounded-2xl border p-5"
-          >
-            <h2 className="text-lg font-medium" id={`${id}-take`}>
-              Your animation
-            </h2>
-            <AnimationTake
-              id={search.take}
-              key={search.take}
-              onRefused={onRefused}
-              onRetried={(take) => void navigate({ search: (previous) => ({ ...previous, take }) })}
-            />
-          </section>
-        )}
-      </main>
       <AccessCodeDialog {...access.dialog} />
-    </div>
+    </SitePage>
   );
 }

@@ -13,6 +13,7 @@ import { type Preset, presetSchema, presets } from "../catalog.ts";
 import { presetGenerateInputSchema } from "../contracts.ts";
 import {
   directionSearch,
+  lookSummary,
   presetDirection,
   presetDraft,
   presetRequest,
@@ -193,4 +194,37 @@ test("a preset becomes a valid Motion Transfer draft with its motion and resolve
   });
   assert.equal(draftHref(picked), `/motionTransfer${defaultStringifySearch(picked)}`);
   assert.match(draftHref(picked), /^\/motionTransfer\?/);
+});
+
+test("the look row says what the look comes to, and whether it is still the preset's", () => {
+  const withBackground = presetSchema.parse({
+    ...shipped,
+    defaults: { prompt: "Someone. Background: a neon-lit street at night. Soft.", seed: 7 },
+  });
+
+  assert.deepEqual(lookSummary(withBackground, withBackground.defaults.prompt), {
+    caption: "Background from this preset",
+    own: false,
+    title: "A neon-lit street at night",
+  });
+  assert.deepEqual(lookSummary(shipped, shipped.defaults.prompt), {
+    caption: "Look from this preset",
+    own: false,
+    title: "As in your photo",
+  });
+  assert.deepEqual(lookSummary(withBackground, "Background: a beach, at dawn"), {
+    caption: "Your look",
+    own: true,
+    title: "A beach, at dawn",
+  });
+  assert.deepEqual(lookSummary(withBackground, "  "), {
+    caption: "Your look",
+    own: true,
+    title: "As in your photo",
+  });
+  assert.deepEqual(lookSummary(withBackground, "A dancer on a rooftop."), {
+    caption: "Your look",
+    own: true,
+    title: "A dancer on a rooftop.",
+  });
 });

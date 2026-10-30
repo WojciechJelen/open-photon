@@ -19,7 +19,8 @@ function SpriteForge() {
 
   // The picked character is kept in the URL, replacing the entry so Back leaves the page.
   const onPick = useCallback(
-    (character: string | undefined) => void navigate({ replace: true, search: { character } }),
+    (character: string | undefined) =>
+      void navigate({ replace: true, resetScroll: false, search: { character } }),
     [navigate],
   );
 

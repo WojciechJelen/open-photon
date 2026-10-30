@@ -17,7 +17,11 @@ function Storyboard() {
     <StoryboardPage
       cardActions={(card) =>
         card.generation && (
-          <AnimateAction generationId={card.generation.id} output={IMAGE_EDIT_OUTPUT} />
+          <AnimateAction
+            generationId={card.generation.id}
+            output={IMAGE_EDIT_OUTPUT}
+            variant="outline"
+          />
         )
       }
       key={storyboardId}

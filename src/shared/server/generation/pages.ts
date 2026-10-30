@@ -9,9 +9,10 @@ import { settleAbandoned } from "./service.ts";
  * What `/g/:id` shows of a generation whatever its workflow, for a page that renders it by the
  * media of its outputs: the generation as stored (a `preparing` row a stopped server left is
  * settled first; a `waiting` one with its place in line), its named outputs once done, whether it
- * is a pre-rendered sample (whose page is public), its recipe, its workflow and when that
- * workflow publishes (`publish`: `"on-request"` when its owner may publish it from the page);
- * `null` for a malformed or unknown id. It never asks Comfy: the page's event stream finalizes a
+ * is a pre-rendered sample (whose page is public), its recipe, its workflow, what that workflow
+ * makes (`media`, for a page with no outputs to go by yet) and when it publishes (`publish`:
+ * `"on-request"` when its owner may publish it from the page); `null` for a malformed or unknown
+ * id. It never asks Comfy: the page's event stream finalizes a
  * row Comfy has finished.
  */
 export function readGenerationResult(id: string) {
@@ -23,12 +24,21 @@ export function readGenerationResult(id: string) {
   }
 
   const row = settleAbandoned(stored);
+  const definition = workflows.find(row);
+  const declared = definition?.outputs.map(({ media }) => media) ?? [];
+
+  const media: "image" | "video" | null = declared.includes("video")
+    ? "video"
+    : declared.includes("image")
+      ? "image"
+      : null;
 
   return {
     generation: snapshot(row),
+    media,
     outputs: row.status === "done" ? readOutputs(row.id) : [],
     prerendered: row.is_prerendered,
-    publish: workflows.find(row)?.publish ?? "on-done",
+    publish: definition?.publish ?? "on-done",
     recipe: row.recipe,
     workflow: { id: row.workflow_id, version: row.workflow_version },
   };

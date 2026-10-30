@@ -108,7 +108,8 @@ export type CreateStoryboardBody = z.input<typeof createStoryboardInputSchema>;
 
 /**
  * `PUT /api/storyboards/:id` JSON body: the title, the style and every card's description, saved
- * as given. A card's generations keep what they rendered; the next one renders the saved text.
+ * as given (a card left blank before the split gave its scenes stays unsaved, so they fill it). A
+ * card's generations keep what they rendered; the next one renders the saved text.
  */
 export const saveStoryboardInputSchema = z.object({
   descriptions: sceneDescriptionsSchema,
@@ -194,13 +195,17 @@ export const storyboardSchema = z.object({
 
 export type Storyboard = z.output<typeof storyboardSchema>;
 
-/** `GET /api/storyboards`: the workspace's latest storyboards, each with its cards' statuses. */
+/**
+ * `GET /api/storyboards`: the workspace's latest storyboards, each with its cards' statuses and
+ * their finished images (`null` for a card without one).
+ */
 export const storyboardListSchema = z.object({
   storyboards: z.array(
     z.object({
       character: storyboardSchema.shape.character,
       created_at: z.iso.datetime(),
       id: z.uuid(),
+      images: z.array(assetSchema.nullable()).length(CARD_COUNT),
       statuses: z.array(generationStatusSchema.nullable()).length(CARD_COUNT),
       title: z.string().nullable(),
       updated_at: z.iso.datetime(),

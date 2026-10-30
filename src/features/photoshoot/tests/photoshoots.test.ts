@@ -7,6 +7,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { z } from "zod";
 
 import { mintCode } from "../../../../tests/temp-database.ts";
+import { mediaUrl } from "../../../shared/media.ts";
 import { findAccessCode } from "../../../shared/server/access-codes.ts";
 import { createAccessGuard } from "../../../shared/server/access.server.ts";
 import { comfyProvider, type Provider } from "../../../shared/server/comfy-provider.ts";
@@ -151,6 +152,18 @@ test("a photoshoot admits four waiting shots of the setting, renders each into o
   assert.equal(admitted.character?.id, maya);
   assert.equal(used(), 4);
 
+  const waiting = photoshootListSchema.parse(
+    await handleListPhotoshoots(request("/api/photoshoots", cookie)).json(),
+  );
+
+  // No shot is done: no image yet, one place for each.
+  assert.deepEqual(waiting.photoshoots.find(({ id }) => id === admitted.id)?.stills, [
+    null,
+    null,
+    null,
+    null,
+  ]);
+
   const dispatcher = startDispatcher({ intervalMs: 20, provider });
 
   try {
@@ -187,12 +200,16 @@ test("a photoshoot admits four waiting shots of the setting, renders each into o
       await handleListPhotoshoots(request("/api/photoshoots", cookie)).json(),
     );
 
-    assert.deepEqual(list.photoshoots.find(({ id }) => id === done.id)?.statuses, [
-      "done",
-      "done",
-      "done",
-      "done",
-    ]);
+    const listed = list.photoshoots.find(({ id }) => id === done.id);
+
+    assert.deepEqual(listed?.statuses, ["done", "done", "done", "done"]);
+    // Each shot's image, for the row's thumbnails.
+    assert.deepEqual(
+      listed?.stills.map((still) => still?.id),
+      done.items.flatMap(({ generation }) =>
+        generation.outputs.flatMap((output) => ("asset" in output ? [output.asset.id] : [])),
+      ),
+    );
   } finally {
     await dispatcher.stop();
   }
@@ -222,6 +239,19 @@ test("a shot the provider fails leaves the others done, and the shared retry ren
     );
     assert.equal(settled.items[1]?.generation.error_code, "provider_failed");
 
+    const stillsOf = async () => {
+      const list = photoshootListSchema.parse(
+        await handleListPhotoshoots(request("/api/photoshoots", cookie)).json(),
+      );
+
+      return list.photoshoots
+        .find(({ id }) => id === admitted.id)
+        ?.stills.map((still) => still !== null);
+    };
+
+    // The failed shot's place stays empty, in its position.
+    assert.deepEqual(await stillsOf(), [true, false, true, true]);
+
     // The retry goes through a provider that no longer fails.
     const failed = settled.items[1]?.generation.id ?? "";
     const retried = await retry(failed, session, comfyProvider);
@@ -233,6 +263,9 @@ test("a shot the provider fails leaves the others done, and the shared retry ren
       after.items.map((item) => item.generation.status),
       ["done", "done", "done", "done"],
     );
+
+    // The list follows the shot to its retry.
+    assert.deepEqual(await stillsOf(), [true, true, true, true]);
   } finally {
     await dispatcher.stop();
   }
@@ -325,6 +358,60 @@ test("refusals store nothing: no session, no request key, an unknown character, 
     401,
   );
   assert.equal(handleReadPhotoshoot(request(`/api/photoshoots/${id}`, cookie), id).status, 404);
+});
+
+test("the list, a photoshoot and their images need a session; a malformed id is not_found behind it", async () => {
+  const { cookie } = await signedIn();
+
+  const { body } = await create(cookie, {
+    character_id: maya,
+    request_key: randomUUID(),
+    setting: "editorial",
+  });
+
+  const admitted = photoshootSchema.parse(body);
+  const dispatcher = startDispatcher({ intervalMs: 20 });
+
+  try {
+    await settle(admitted.id);
+
+    const list = photoshootListSchema.parse(
+      await handleListPhotoshoots(request("/api/photoshoots", cookie)).json(),
+    );
+
+    const still = list.photoshoots.find(({ id }) => id === admitted.id)?.stills[0];
+
+    assert.ok(still);
+
+    // Nothing here is public: the guard stops a request without a session before any handler.
+    for (const path of ["/api/photoshoots", `/api/photoshoots/${admitted.id}`, mediaUrl(still)]) {
+      assert.equal((await guard(request(path, null)))?.status, 401, path);
+      assert.equal(await guard(request(path, cookie)), undefined, path);
+    }
+  } finally {
+    await dispatcher.stop();
+  }
+
+  const read = (session: string | null) =>
+    handleReadPhotoshoot(request("/api/photoshoots/not-an-id", session), "not-an-id");
+
+  const save = (session: string | null) =>
+    handleSaveShot(
+      request("/api/photoshoots/not-an-id/character", session, { generation_id: randomUUID() }),
+      "not-an-id",
+    );
+
+  // With a session it is a photoshoot that is not there (the page says so, `reason`); without one
+  // the id's shape tells nothing.
+  for (const answer of [read(cookie), await save(cookie)]) {
+    assert.equal(answer.status, 400);
+    assert.equal((await answer.json()).reason, "not_found");
+  }
+
+  for (const answer of [read(null), await save(null)]) {
+    assert.equal(answer.status, 401);
+    assert.equal((await answer.json()).reason, "access_required");
+  }
 });
 
 test("saving a done shot adds it to the library once; a generation of no shot is refused", async () => {

@@ -1,122 +1,31 @@
-import { ImageIcon, LockIcon, ShieldCheckIcon, UserIcon } from "lucide-react";
+import { ImageIcon, ShieldCheckIcon, UserRoundIcon } from "lucide-react";
 import type { ComponentType } from "react";
 
-import { CharacterUpload } from "#/features/motionTransfer/components/character-upload";
-import { PickTile, tileMedia } from "#/features/motionTransfer/components/pick-tile";
-import { StepIntro, TipsPanel } from "#/features/motionTransfer/components/step-intro";
-import type { MotionTransferDraft } from "#/features/motionTransfer/draft";
+import { StepTips } from "#/features/motionTransfer/components/step-intro";
 import type { CharacterPickerProps } from "#/features/motionTransfer/slots";
-import { Hud } from "#/shared/components/brand";
-import { mediaUrl } from "#/shared/media";
 
 /**
- * The character picker slot's default: the photo upload tile first, then the photo of your own
- * the URL names (shown once the visitor may see it), then the sample characters, framed like
- * casting cards. A tile toggles the pick (`onPick` with `undefined` unpicks).
- */
-export function DefaultCharacterPicker({
-  character,
-  characterId,
-  characters,
-  hold,
-  onPick,
-  release,
-  signedIn,
-}: CharacterPickerProps) {
-  const ownPhoto = characterId !== undefined && !characters.some(({ id }) => id === characterId);
-
-  return (
-    <ul
-      aria-label="Characters"
-      className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4"
-    >
-      <CharacterUpload
-        onReady={onPick}
-        hold={hold}
-        release={release}
-        selectedId={characterId}
-        signedIn={signedIn}
-      />
-      {ownPhoto && (
-        <li>
-          <PickTile
-            media={
-              character ? (
-                <img alt="" className={tileMedia} src={mediaUrl(character.image)} />
-              ) : (
-                <span className="absolute inset-0 grid place-items-center text-muted-foreground">
-                  <LockIcon aria-hidden="true" className="size-7" />
-                </span>
-              )
-            }
-            meta={character ? undefined : <Hud tone="soft">Needs the code</Hud>}
-            onToggle={() => onPick(undefined)}
-            picked
-            tag="Your photo"
-            title={character ? "Your photo" : "Your photo, locked"}
-          />
-        </li>
-      )}
-      {characters.map((sample) => (
-        <li key={sample.id}>
-          <PickTile
-            media={
-              <img alt="AI-generated image" className={tileMedia} src={mediaUrl(sample.image)} />
-            }
-            onToggle={() => onPick(sample.id === characterId ? undefined : sample.id)}
-            picked={sample.id === characterId}
-            tag="Sample"
-            title={sample.title ?? "Sample character"}
-          />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/**
- * Step 2, the character: its intro, the character picker slot (`picker`, composed in
- * `src/app/composer-slots.ts`; `DefaultCharacterPicker` by default) and the photo tips.
+ * Step 2, the character: the character picker slot (`picker`, composed in
+ * `src/app/composer-slots.ts`) and the photo tips.
  */
 export function CharacterStep({
-  back,
   picker: Picker,
   ...picker
 }: CharacterPickerProps & {
-  back: MotionTransferDraft;
   picker: ComponentType<CharacterPickerProps>;
 }) {
   return (
     <>
-      <StepIntro
-        back={{ label: "Motion", search: back }}
-        label="Step 2 of 4"
-        title="Who performs it?"
-      >
-        Pick a sample character or upload a photo. They take on the move, the timing and the framing
-        of your clip.
-      </StepIntro>
       <Picker {...picker} />
-      <TipsPanel
-        label="What makes a good photo"
-        tips={[
-          {
-            icon: <UserIcon />,
-            text: "A sharp face and outfit give the most faithful result.",
-            title: "One person, clearly lit",
-          },
-          {
-            icon: <ImageIcon />,
-            text: "By default the background comes from the photo. You can change it in the next step.",
-            title: "The photo sets the scene",
-          },
-          {
-            icon: <ShieldCheckIcon />,
-            text: "Upload yourself, or someone who agreed to it. You confirm this once per photo.",
-            title: "Only with consent",
-          },
-        ]}
-      />
+      <section aria-label="What makes a good photo">
+        <StepTips
+          tips={[
+            { icon: UserRoundIcon, text: "One person, clearly lit" },
+            { icon: ImageIcon, text: "The photo sets the scene" },
+            { icon: ShieldCheckIcon, text: "Only with their consent" },
+          ]}
+        />
+      </section>
     </>
   );
 }

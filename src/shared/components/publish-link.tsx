@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "#/components/ui/button";
 import { CopyField } from "#/shared/components/copy-field";
+import { StableText } from "#/shared/components/stable-text";
 import { generationPublicationSchema, shareOriginSchema } from "#/shared/contracts";
 import { callApi, type Refusal } from "#/shared/requests";
 
@@ -130,12 +131,14 @@ export function PublishLink({
           data-share-slug={shareSlug}
           role="status"
         >
-          <GlobeIcon aria-hidden="true" className="size-4 text-success" />
-          {published?.copy === "copied"
-            ? "Published. Link copied to the clipboard."
-            : published?.copy === "failed"
-              ? "Published. Copying is not allowed here; copy the link below."
-              : "Published"}
+          <GlobeIcon aria-hidden="true" className="size-4 shrink-0 text-success" />
+          <span className="min-w-0">
+            {published?.copy === "copied"
+              ? "Published. Link copied to the clipboard."
+              : published?.copy === "failed"
+                ? "Published. Copying is not allowed here; copy the link below."
+                : "Published"}
+          </span>
         </p>
         {url && (
           <CopyField
@@ -150,7 +153,7 @@ export function PublishLink({
           <p className="text-sm text-muted-foreground">
             {!compact && `Anyone with the link sees this AI-generated ${media}. `}
             <Link
-              className="text-soft-foreground underline decoration-edge-strong underline-offset-3 hover:text-foreground hover:decoration-brand"
+              className="py-3.5 text-soft-foreground underline decoration-edge-strong underline-offset-3 hover:text-foreground hover:decoration-brand"
               params={{ slug: shareSlug }}
               to="/r/$slug"
             >
@@ -176,7 +179,10 @@ export function PublishLink({
           variant="outline"
         >
           <GlobeIcon aria-hidden="true" />
-          {pending ? "Publishing…" : "Publish & copy link"}
+          <StableText
+            current={pending ? "Publishing…" : "Publish & copy link"}
+            labels={["Publish & copy link", "Publishing…"]}
+          />
         </Button>
       </div>
       {refusal && (

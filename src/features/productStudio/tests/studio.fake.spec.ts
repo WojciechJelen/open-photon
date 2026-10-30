@@ -39,7 +39,7 @@ test("upload a product, generate a packshot and an ad visual, download one and o
     await expect(shot.getByRole("img", { name: /AI-generated image/ })).toBeVisible({
       timeout: 30_000,
     });
-    await expect(shot.getByText("AI-generated image", { exact: true })).toBeVisible();
+    await expect(shot.getByText("AI-generated", { exact: true })).toBeVisible();
   }
 
   const [download] = await Promise.all([
@@ -68,7 +68,7 @@ test("a shot Comfy fails says so and offers a retry with a new seed", async ({ p
 
   const shot = page.getByRole("listitem", { name: "Lifestyle shot" });
 
-  await expect(shot.getByText("This shot failed.")).toBeVisible({ timeout: 30_000 });
+  await expect(shot.getByText("This shot didn't finish")).toBeVisible({ timeout: 30_000 });
   await shot.getByRole("button", { name: "Try again with a new seed" }).click();
   // The marker stays in the prompt, so the retry fails too, as the shot's second attempt.
   await expect(shot.getByText("Attempt 2")).toBeVisible({ timeout: 30_000 });

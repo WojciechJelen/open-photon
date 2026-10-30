@@ -16,6 +16,7 @@ import {
   composeLook,
   editDescription,
   type Look,
+  lookName,
   pickOption,
   readLook,
   removeGroup,
@@ -314,4 +315,22 @@ test("a picked background replaces the background the description states (a pres
   assert.deepEqual(pasted.replaced, ["Background: a rooftop at golden hour."]);
   assert.deepEqual(pasted.look, { description: "", selection: { background: neon.id } });
   assert.equal(composeLook(pasted.look), `${characterBase} ${neon.fragment}`);
+});
+
+test("a look's name: the photo's own when blank, its picks by name, then the visitor's words", () => {
+  const blank: Look = { description: "", selection: {} };
+
+  assert.equal(lookName(""), "From the photo");
+  assert.equal(lookName("  "), "From the photo");
+  assert.equal(lookName(composeLook(pick(blank, neon.id))), neon.label);
+  assert.equal(lookName(composeLook(pick(blank, golden.id))), golden.label);
+  assert.equal(
+    lookName(composeLook(pick(blank, beach.id, golden.id))),
+    `${beach.label} · ${golden.label}`,
+  );
+  assert.equal(lookName("A dancer in a red coat."), "A dancer in a red coat.");
+  assert.equal(
+    lookName(composeLook(pick({ description: "A dancer.", selection: {} }, beach.id))),
+    `${beach.label} · A dancer.`,
+  );
 });

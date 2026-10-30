@@ -51,21 +51,23 @@ function announcement(state: UploadState) {
 }
 
 /**
- * The first tile of the motion grid: upload your own driving clip, by drop or by browsing. It
- * walks through its states in place: idle, waiting for the access code, uploading %, checking
- * (the server probes it), rejected with the reason, or over 8 s, which opens the trim dialog. A
- * 3–8 s clip is ready as uploaded and `onReady` picks it. Without an access session (`signedIn`,
- * or a 401 when it has expired) the file waits in the tile and is held for the code (`hold`): it
- * uploads as soon as the visitor signs in, by this dialog or any other way. Cancelling it, or
- * leaving the step, lets it go (`release`).
+ * The last tile of the motion row: upload your own driving clip, by drop or by browsing. It walks
+ * through its states in place, in the box of the idle tile: idle (with `children`, the advice on a
+ * good clip), waiting for the access code, uploading %, checking (the server probes it), rejected
+ * with the reason, or over 8 s, which opens the trim dialog. A 3–8 s clip is ready as uploaded and
+ * `onReady` picks it. Without an access session (`signedIn`, or a 401 when it has expired) the file
+ * waits in the tile and is held for the code (`hold`): it uploads as soon as the visitor signs in,
+ * by this dialog or any other way. Cancelling it, or leaving the step, lets it go (`release`).
  */
 export function MotionUpload({
+  children,
   hold,
   onReady,
   release,
   selectedAssetId,
   signedIn,
 }: {
+  children: React.ReactNode;
   hold: HoldForCode;
   onReady: (assetId: string) => void;
   release: (key: string) => void;
@@ -148,6 +150,7 @@ export function MotionUpload({
   return (
     <div
       className={cn(
+        "h-full min-h-95",
         uploadTileClass(
           shown.kind === "idle"
             ? "idle"
@@ -199,26 +202,29 @@ export function MotionUpload({
       </span>
 
       {shown.kind === "idle" && (
-        <IdleUpload htmlFor={id} signedIn={signedIn} title="Upload a clip">
-          <span aria-hidden="true" className="text-sm text-muted-foreground sm:hidden">
-            3–8 s · one person
-          </span>
-          <span aria-hidden="true" className="hidden text-sm text-muted-foreground sm:block">
-            Drop it here or browse
-            <br />
-            MP4, MOV or WebM · up to 128 MB
-          </span>
+        <IdleUpload
+          choose="Choose a clip"
+          hint="MP4, MOV or WebM, up to 128 MB"
+          htmlFor={id}
+          signedIn={signedIn}
+          title="Drop your own clip"
+        >
+          {children}
         </IdleUpload>
       )}
 
       {shown.kind === "needs-code" && (
         <>
           <StateIcon tone="warning">
-            <LockIcon className="size-5" />
+            <LockIcon className="size-5" strokeWidth={1.75} />
           </StateIcon>
-          <span className="font-semibold break-all">{shown.file.name} is waiting</span>
-          <span className="text-sm text-soft-foreground">
-            Enter the access code and it uploads right away.
+          <span className="flex w-full min-w-0 flex-col gap-0.5">
+            <span className="truncate text-base font-semibold" title={shown.file.name}>
+              {shown.file.name} is waiting
+            </span>
+            <span className="type-caption text-soft-foreground">
+              Enter the access code and it uploads right away.
+            </span>
           </span>
           <div className="flex flex-wrap justify-center gap-1">
             {/* Signed in meanwhile, it uploads; otherwise it asks for the code again. */}
@@ -234,13 +240,15 @@ export function MotionUpload({
 
       {shown.kind === "uploading" && (
         <>
-          <span aria-hidden="true" className="font-mono text-3xl font-medium">
+          <span aria-hidden="true" className="font-mono text-3xl font-medium tabular-nums">
             {shown.percent}%
           </span>
-          <div className="w-full">
+          <div className="w-full max-w-60">
             <Progress aria-label="Upload progress" value={shown.percent} />
           </div>
-          <span className="text-sm break-all text-soft-foreground">Uploading {shown.name}</span>
+          <span className="w-full truncate type-caption text-soft-foreground" title={shown.name}>
+            Uploading {shown.name}
+          </span>
           <Button onClick={cancel} size="sm" variant="ghost">
             Cancel
           </Button>

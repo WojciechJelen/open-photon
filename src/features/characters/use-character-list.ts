@@ -5,12 +5,16 @@ import { fetchLibrary } from "#/features/characters/library";
 import type { Refusal } from "#/shared/requests";
 import { useRequestSignal } from "#/shared/use-request-signal";
 
-/** The workspace library as a page holds it: loading, read, refused for want of a code, failed. */
+/**
+ * The workspace library as a page holds it: loading, read (with the `favorites` and `q` it was read
+ * for, which may be older than the page's own while the next read runs), refused for want of a
+ * code, failed.
+ */
 export type CharacterListState =
   | { kind: "loading" }
   | { kind: "access" }
   | { kind: "error"; refusal: Refusal }
-  | { characters: CharacterSummary[]; kind: "ready" };
+  | { characters: CharacterSummary[]; favorites?: boolean; kind: "ready"; q?: string };
 
 /**
  * The list `GET /api/characters` answers for `favorites` and `q`, read again whenever they change
@@ -45,7 +49,7 @@ export function useCharacterList({
       }
 
       if ("data" in result) {
-        setState({ characters: result.data.characters, kind: "ready" });
+        setState({ characters: result.data.characters, favorites, kind: "ready", q });
       } else if (result.refusal.reason === "access_required") {
         setState({ kind: "access" });
       } else {

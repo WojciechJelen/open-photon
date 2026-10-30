@@ -1,15 +1,22 @@
-import { ChevronDownIcon, FileCodeIcon } from "lucide-react";
+import { ChevronDownIcon, FileBracesIcon } from "lucide-react";
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import type { Recipe } from "#/features/motionTransfer/server/recipe";
 
-/** One row of the recipe: a label and its value, monospaced when it is an identifier. */
+/**
+ * One row of the recipe: a label and its value, monospaced when it is an identifier. It goes by the
+ * panel's width, not the screen's: the panel is narrow in the result's aside on any screen.
+ */
 function Entry({ code, label, value }: { code?: boolean; label: string; value: string }) {
   return (
-    <div className="grid gap-1 sm:grid-cols-3 sm:gap-4">
-      <dt className="text-muted-foreground">{label}</dt>
+    <div className="grid gap-1 @lg:grid-cols-3 @lg:gap-4">
+      <dt className="wrap-anywhere text-muted-foreground">{label}</dt>
       <dd
-        className={code ? "font-mono text-xs break-all sm:col-span-2" : "break-words sm:col-span-2"}
+        className={
+          code
+            ? "font-mono text-xs wrap-anywhere @lg:col-span-2"
+            : "wrap-anywhere whitespace-pre-wrap @lg:col-span-2"
+        }
       >
         {value}
       </dd>
@@ -22,12 +29,12 @@ function Entry({ code, label, value }: { code?: boolean; label: string; value: s
  * opened: the workflow file and its SHA-256, the models, every parameter, the SHA-256 of both
  * input files and the target. Everything that decides the render, and so its `recipe_hash`; a
  * take made with a retired reshoot-angle preset also hashes its `angle`, which only the JSON
- * shows (its phrasing is in the prompt shown here). `children` are its actions (Re-run, the
- * JSON), shown inside.
+ * shows (its phrasing is in the prompt shown here). `children` add to it, inside (the share
+ * page's model files).
  */
 export function RecipePanel({ children, recipe }: { children?: React.ReactNode; recipe: Recipe }) {
   return (
-    <div className="rounded-2xl border bg-linear-to-b from-foreground/4 to-foreground/1">
+    <div className="rounded-2xl border bg-card/72">
       <Collapsible>
         <CollapsibleTrigger asChild>
           <button
@@ -35,11 +42,18 @@ export function RecipePanel({ children, recipe }: { children?: React.ReactNode; 
             type="button"
           >
             <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="inline-flex items-center gap-2 text-sm font-semibold">
-                <FileCodeIcon aria-hidden="true" className="size-4 text-brand" />
-                Recipe
+              <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+                <FileBracesIcon
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-brand"
+                  strokeWidth={1.75}
+                />
+                <span className="min-w-0 truncate">Recipe</span>
               </span>
-              <span className="truncate font-mono text-xs text-muted-foreground">
+              <span
+                className="truncate font-mono text-xs text-muted-foreground"
+                title={`${recipe.workflow.id} v${recipe.workflow.version} · seed ${recipe.params.seed}`}
+              >
                 {recipe.workflow.id} v{recipe.workflow.version} · seed {recipe.params.seed}
               </span>
             </span>
@@ -51,21 +65,27 @@ export function RecipePanel({ children, recipe }: { children?: React.ReactNode; 
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="flex flex-col gap-4 px-5 pb-5">
-            <dl aria-label="Recipe" className="flex flex-col gap-2.5 text-sm">
+            <dl aria-label="Recipe" className="@container flex flex-col gap-2.5 type-caption">
               <Entry
                 code
                 label="Workflow"
                 value={`${recipe.workflow.id} v${recipe.workflow.version}`}
               />
               <Entry code label="Workflow SHA-256" value={recipe.workflow.sha256} />
-              <div className="grid gap-1 sm:grid-cols-3 sm:gap-4">
-                <dt className="text-muted-foreground">Models</dt>
-                <dd className="sm:col-span-2">
+              <div className="grid gap-1 @lg:grid-cols-3 @lg:gap-4">
+                <dt className="wrap-anywhere text-muted-foreground">Models</dt>
+                <dd className="@lg:col-span-2">
                   {recipe.models.length > 0 ? (
                     <ul className="flex flex-col gap-1">
                       {recipe.models.map((model) => (
-                        <li className="font-mono text-xs break-all" key={model.file}>
-                          {model.file} · {model.license} · {model.sha256}
+                        <li
+                          className="flex flex-col font-mono text-xs wrap-anywhere"
+                          key={model.file}
+                        >
+                          <span>
+                            {model.file} · {model.license}
+                          </span>
+                          <span className="text-muted-foreground">{model.sha256}</span>
                         </li>
                       ))}
                     </ul>

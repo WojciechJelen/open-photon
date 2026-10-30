@@ -20,7 +20,7 @@ test("pick a character, choose views, see the grid of results and save one to th
   await expect(page).toHaveURL(/character=/);
 
   // Every view starts chosen; leave the front out.
-  await page.getByRole("checkbox", { name: "Front" }).click();
+  await page.getByRole("group", { name: "Views" }).getByRole("button", { name: "Front" }).click();
   await expect(page.getByRole("button", { name: "Generate 3 views" })).toBeVisible();
 
   const admitted = page.waitForResponse(

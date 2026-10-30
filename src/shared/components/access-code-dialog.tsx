@@ -1,5 +1,4 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { KeyRoundIcon } from "lucide-react";
 import { useId, useState } from "react";
 import { z } from "zod";
 
@@ -8,15 +7,13 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
-import { StatusDot } from "#/shared/components/brand";
+import { StableText } from "#/shared/components/stable-text";
 import { callApi } from "#/shared/requests";
-import { useAllowance } from "#/shared/use-allowance";
 
 /** What waits for the code: the dialog names it, and carries it on once the code works. */
 export type HeldAction = "generate" | "rerun" | "retry" | "unlock" | "upload";
@@ -39,7 +36,7 @@ const carriesOn: Record<HeldAction, string> = {
 
 /**
  * The access-code dialog: an action that needs a code (an upload, a new render, a retry) opens it,
- * and the header's "Access code" chip opens it on its own (`useAccessCode` holds the actions and
+ * and the header's "Enter access code" opens it on its own (`useAccessCode` holds the actions and
  * drives it). The code goes to `POST /api/session`, which sets the session cookie; then the
  * page's data is loaded again (it says whether the visitor has a session, and shows their
  * uploads) and `onSignedIn` carries on with what was held, on the same page with every choice as
@@ -101,22 +98,13 @@ export function AccessCodeDialog({
       }}
       open={open}
     >
-      <DialogContent>
-        <span
-          aria-hidden="true"
-          className="grid size-12 place-items-center rounded-full border border-brand/35 bg-brand/12 text-brand-foreground"
-        >
-          <KeyRoundIcon className="size-5.5" />
-        </span>
+      <DialogContent size="sm">
         <DialogHeader>
           <DialogTitle>Enter your access code</DialogTitle>
-          <DialogDescription>
-            Uploads and new renders spend the owner's Comfy credits, so they need a code. Ask the
-            owner for one.
-          </DialogDescription>
+          <DialogDescription>Upload your own clips and start rendering.</DialogDescription>
         </DialogHeader>
         <form
-          className="flex flex-col gap-5"
+          className="flex flex-col gap-6"
           onSubmit={(event) => {
             event.preventDefault();
             void submit();
@@ -134,23 +122,29 @@ export function AccessCodeDialog({
               type="password"
               value={code}
             />
-            <p className="text-sm text-muted-foreground" id={`${id}-hint`}>
-              {carriesOn[action]} Access lasts 12 hours.
+            <p className="type-hint text-muted-foreground" id={`${id}-hint`}>
+              {carriesOn[action]} Ask the owner for a code. Access lasts 12 hours.
             </p>
-            {error && (
-              <p className="text-sm text-destructive-foreground" role="alert">
-                {error}
-              </p>
-            )}
+            {/* Its line is kept empty, so a refusal moves nothing under it. */}
+            <div className="min-h-5">
+              {error && (
+                <p className="type-caption text-destructive-foreground" role="alert">
+                  {error}
+                </p>
+              )}
+            </div>
           </div>
-          <DialogFooter>
+          <div className="flex flex-col gap-1.5">
+            <Button disabled={pending || code.trim() === ""} type="submit">
+              <StableText
+                current={pending ? "Checking…" : unlockLabels[action]}
+                labels={[unlockLabels[action], "Checking…"]}
+              />
+            </Button>
             <Button onClick={() => onOpenChange(false)} type="button" variant="ghost">
               Not now
             </Button>
-            <Button disabled={pending || code.trim() === ""} size="lg" type="submit">
-              {pending ? "Checking…" : unlockLabels[action]}
-            </Button>
-          </DialogFooter>
+          </div>
         </form>
         {sampleTakeId && (
           <p className="border-t pt-4 text-center text-sm text-muted-foreground">
@@ -167,49 +161,5 @@ export function AccessCodeDialog({
         )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-/**
- * The access status a page shows up front, in its header: "Code active · N left" with a session
- * (N: the generations its code still allows, `useAllowance`; plain "Code active" until that is
- * read; below `sm` only "N left" shows, the rest is for screen readers), else an "Access code"
- * button that opens the dialog (`onOpen`). `compact` is the icon-only version of the mobile
- * header.
- */
-export function AccessStatus({
-  compact = false,
-  onOpen,
-  signedIn,
-}: {
-  compact?: boolean;
-  onOpen: () => void;
-  signedIn: boolean;
-}) {
-  const allowance = useAllowance(signedIn);
-
-  if (signedIn) {
-    return (
-      <span className="inline-flex min-h-11 items-center gap-2 rounded-full border border-input px-3.5 text-sm font-medium text-soft-foreground">
-        <StatusDot tone="ok" />
-        <span className={compact ? "sr-only" : "tabular-nums"}>
-          {allowance ? (
-            <>
-              <span className="sr-only sm:not-sr-only">Code active · </span>
-              {allowance.remaining} left
-            </>
-          ) : (
-            "Code active"
-          )}
-        </span>
-      </span>
-    );
-  }
-
-  return (
-    <Button onClick={onOpen} size={compact ? "icon" : "sm"} variant="chip">
-      <KeyRoundIcon />
-      <span className={compact ? "sr-only" : undefined}>Access code</span>
-    </Button>
   );
 }

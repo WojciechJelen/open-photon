@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
-import { CheckIcon, DicesIcon, KeyRoundIcon, LayersIcon, ShuffleIcon } from "lucide-react";
+import { KeyRoundIcon, LayersIcon, ShuffleIcon } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { Button } from "#/components/ui/button";
@@ -8,7 +8,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -36,19 +35,17 @@ import {
   rememberPending,
   variationKey,
 } from "#/features/batches/pending-request";
-import { planItems } from "#/features/batches/variations";
 import type { CharacterSummary } from "#/features/characters";
 import type { DraftSnapshot } from "#/features/motionTransfer/api";
 import { Hud } from "#/shared/components/brand";
+import { PictureTile } from "#/shared/components/picture-tile";
+import { StableText } from "#/shared/components/stable-text";
 import type { Allowance } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 import type { Refusal } from "#/shared/requests";
 
-/**
- * Where the action sits: the Direct step's panel (from `lg`) or its bottom bar, or a finished
- * take's recipe panel (`result`).
- */
-type Place = "bar" | "panel" | "result";
+/** Where the action sits: the Direct step's panel, or a finished take's row of text links. */
+type Place = "panel" | "result";
 
 /**
  * The composer's generation actions with batch variations beside them: `action` is the plain
@@ -74,15 +71,13 @@ export function BatchVariations({
   const trigger = (
     <DialogTrigger asChild>
       <Button
-        aria-label={place === "bar" ? "Batch variations" : undefined}
         disabled={!ready}
-        size={place === "bar" ? "icon" : place === "panel" ? "lg" : "sm"}
-        title={place === "bar" ? "Batch variations" : undefined}
+        size={place === "panel" ? "lg" : "inline"}
         type="button"
-        variant="outline"
+        variant={place === "panel" ? "outline" : "link"}
       >
-        <LayersIcon />
-        {place !== "bar" && "Variations"}
+        {place === "panel" && <LayersIcon />}
+        Variations
       </Button>
     </DialogTrigger>
   );
@@ -99,14 +94,9 @@ export function BatchVariations({
       open={open}
     >
       {place === "panel" ? (
-        <div className="grid gap-2.5">
+        <div className="grid gap-2">
           {action}
           {trigger}
-        </div>
-      ) : place === "bar" ? (
-        <div className="flex shrink-0 items-center gap-2">
-          {trigger}
-          {action}
         </div>
       ) : (
         <>
@@ -165,14 +155,26 @@ function useReads() {
   return reads;
 }
 
+// The label of Render at its widest, so the button keeps its width as the count changes.
+const WIDEST_RENDER = `Render ${MAX_CHARACTERS} takes`;
+
+// Character tiles: six to the row as on the board, three on a phone.
+const tiles = "grid grid-cols-3 gap-3 sm:grid-cols-6";
+
+// A tile out of reach once six are picked, in the disabled controls' terms: quiet, its caption
+// muted, and never a faded opacity.
+const takenTile =
+  "disabled:*:first:brightness-40 disabled:*:first:grayscale disabled:*:last:text-muted-foreground";
+
 /**
  * The batch dialog: what varies (two or four seeds, or two to six characters), what stays the
- * same, each item's effective inputs, the generations it needs against what the access code has
- * left, and Render, which admits the batch and opens its page (`/batches/:id`). The request key
- * belongs to the exact batch asked for: asking again for it (a lost answer, a second click)
- * returns the batch already admitted. A request this tab sent for the shot without getting its
- * batch (`recallPending`: the answer was lost, the dialog closed, the page reloaded) opens the
- * dialog on that request again, under its key, rather than on fresh seeds.
+ * same, each seed it will try, the renders it needs against what the access code has left, and
+ * Render, which admits the batch and opens its page (`/batches/:id`). On a short screen the
+ * dialog scrolls and its footer stays in view. The request key belongs to the exact batch asked
+ * for: asking again for it (a lost answer, a second click) returns the batch already admitted. A
+ * request this tab sent for the shot without getting its batch (`recallPending`: the answer was
+ * lost, the dialog closed, the page reloaded) opens the dialog on that request again, under its
+ * key, rather than on fresh seeds.
  */
 function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
   const navigate = useNavigate();
@@ -204,9 +206,10 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
   const byId = new Map(characters.map((character) => [character.id, character]));
   // Only characters the library lists can be varied (the shot's own may not be one of them).
   const chosen = picked.filter((id) => byId.has(id));
+  const takes = seeds.slice(0, count);
 
   const variation: BatchVariation =
-    kind === "seeds" ? { kind, seeds: seeds.slice(0, count) } : { characters: chosen, kind };
+    kind === "seeds" ? { kind, seeds: takes } : { characters: chosen, kind };
 
   const resending = sent !== undefined && variationKey(sent) === variationKey(variation);
 
@@ -215,14 +218,16 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
       ? draft.character !== undefined
       : chosen.length >= MIN_CHARACTERS && chosen.length <= MAX_CHARACTERS;
 
-  const items = valid ? planItems(draft, variation) : [];
   const size = kind === "seeds" ? count : chosen.length;
+  const noun = size === 1 ? "take" : "takes";
+  const renders = `${size} ${size === 1 ? "render" : "renders"}`;
   // What the code has left is shown, not enforced: only new takes are charged, and only the
   // server knows which takes are already rendered, so its atomic admission decides.
   const remaining = reads.kind === "ready" ? reads.allowance.remaining : null;
   const beyond = remaining !== null && remaining < size;
 
-  const togglePick = (id: string) =>
+  const togglePick = (id: string) => {
+    setRefusal(null);
     setPicked((current) =>
       current.includes(id)
         ? current.filter((each) => each !== id)
@@ -230,6 +235,7 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
           ? [...current, id]
           : current,
     );
+  };
 
   async function submit() {
     const identity = variationKey(variation);
@@ -256,226 +262,236 @@ function VariationsDialog({ draft }: { draft: DraftSnapshot }) {
     setRefusal(result.refusal);
   }
 
-  const characterLabel = (id: string | undefined) => {
-    const character = id ? byId.get(id) : undefined;
+  const shotCharacter = draft.character ? byId.get(draft.character) : undefined;
 
-    return character ? characterName(character) : "The picked character";
-  };
+  const kept =
+    kind === "characters"
+      ? seedLabel(draft)
+      : shotCharacter
+        ? characterName(shotCharacter)
+        : "The picked character";
 
   return (
-    <DialogContent size="lg">
+    <DialogContent size="md">
       <DialogHeader>
-        <Hud>Batch</Hud>
-        <DialogTitle>Render variations</DialogTitle>
-        <DialogDescription>
-          Several takes of this shot at once. They render in line on the server, so you can close
-          the page and come back to compare them.
-        </DialogDescription>
+        <DialogTitle>Variations</DialogTitle>
+        <DialogDescription>Render several takes of this shot and compare them.</DialogDescription>
       </DialogHeader>
 
-      {reads.kind === "loading" && (
-        <p className="text-sm text-muted-foreground" role="status">
-          Loading your allowance and characters…
-        </p>
-      )}
+      {/* One grid item: a sticky footer only travels inside the box around it. Its offset and
+          margins cancel the dialog's padding, which sticky offsets are measured from. */}
+      <div className="flex min-w-0 flex-col gap-5">
+        <ToggleGroup
+          aria-label="What to vary"
+          disabled={reads.kind !== "ready"}
+          onValueChange={(value) => {
+            if (value === "seeds" || value === "characters") {
+              setKind(value);
+              setRefusal(null);
+            }
+          }}
+          spacing={1}
+          type="single"
+          value={kind}
+          variant="segmented"
+        >
+          <ToggleGroupItem value="seeds">Seeds</ToggleGroupItem>
+          <ToggleGroupItem value="characters">Characters</ToggleGroupItem>
+        </ToggleGroup>
 
-      {reads.kind === "access" && (
-        <div className="flex flex-col items-start gap-3" role="alert">
-          <p className="text-sm text-soft-foreground">
-            Batches render new takes, which needs an access code.
-          </p>
-          <Button asChild size="sm" variant="outline">
-            <a
-              href={`/access?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`}
-            >
-              <KeyRoundIcon />
-              Enter access code
-            </a>
-          </Button>
-        </div>
-      )}
+        {/* The height of a row of characters, so changing what varies moves nothing. */}
+        <div className="flex min-w-0 flex-col sm:min-h-45.5">
+          {reads.kind === "loading" && (
+            <p className="sr-only" role="status">
+              Loading your allowance and characters…
+            </p>
+          )}
 
-      {reads.kind === "error" && (
-        <p className="text-sm text-destructive-foreground" role="alert">
-          {reads.refusal.message}
-        </p>
-      )}
+          {reads.kind === "loading" && kind === "characters" && (
+            <div aria-hidden="true" className={tiles}>
+              {Array.from({ length: MAX_CHARACTERS }, (_, index) => (
+                <div className="aspect-4/7 skeleton rounded-lg" key={index} />
+              ))}
+            </div>
+          )}
 
-      {reads.kind === "ready" && (
-        <div className="flex flex-col gap-5">
-          <fieldset className="flex flex-col gap-2.5">
-            <legend className="pb-2.5 text-sm font-medium">Vary</legend>
-            <ToggleGroup
-              aria-label="What to vary"
-              onValueChange={(value) => {
-                if (value === "seeds" || value === "characters") {
-                  setKind(value);
-                  setRefusal(null);
-                }
-              }}
-              spacing={1}
-              type="single"
-              value={kind}
-              variant="segmented"
-            >
-              <ToggleGroupItem value="seeds">
-                <DicesIcon aria-hidden="true" />
-                Seeds
-              </ToggleGroupItem>
-              <ToggleGroupItem value="characters">
-                <LayersIcon aria-hidden="true" />
-                Characters
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </fieldset>
-
-          {kind === "seeds" ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <ToggleGroup
-                aria-label="How many takes"
-                onValueChange={(value) => {
-                  if (value) {
-                    setCount(Number(value));
-                  }
-                }}
-                spacing={1}
-                type="single"
-                value={String(count)}
-                variant="segmented"
-              >
-                {SEED_COUNTS.map((each) => (
-                  <ToggleGroupItem key={each} value={String(each)}>
-                    {each} takes
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-              <Button
-                onClick={() => setSeeds(randomSeeds(seeds.length))}
-                size="sm"
-                type="button"
-                variant="ghost"
-              >
-                <ShuffleIcon />
-                New seeds
+          {reads.kind === "access" && (
+            <div className="flex flex-col items-start gap-3" role="alert">
+              <p className="text-sm text-soft-foreground">
+                Batches render new takes, which needs an access code.
+              </p>
+              <Button asChild size="sm" variant="outline">
+                <a
+                  href={`/access?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`}
+                >
+                  <KeyRoundIcon />
+                  Enter access code
+                </a>
               </Button>
             </div>
-          ) : (
-            <fieldset className="flex flex-col gap-2">
-              <legend className="pb-2 text-sm text-soft-foreground">
-                Pick {MIN_CHARACTERS} to {MAX_CHARACTERS} characters ({chosen.length} picked)
-              </legend>
-              <ul className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                {characters.map((character) => {
-                  const on = picked.includes(character.id);
-
-                  return (
-                    <li key={character.id}>
-                      <button
-                        aria-pressed={on}
-                        className={cn(
-                          "relative block aspect-3/4 w-full cursor-pointer overflow-hidden rounded-xl border-2 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40",
-                          on ? "border-brand" : "border-transparent",
-                        )}
-                        disabled={!on && chosen.length >= MAX_CHARACTERS}
-                        onClick={() => togglePick(character.id)}
-                        type="button"
-                      >
-                        <img
-                          alt={characterAlt(character)}
-                          className="absolute inset-0 size-full object-cover"
-                          src={mediaUrl(character.image)}
-                        />
-                        <span className="absolute inset-x-0 bottom-0 truncate bg-background/75 px-1.5 py-1 text-left text-xs">
-                          {characterName(character)}
-                        </span>
-                        {on && (
-                          <span className="absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-brand text-primary-foreground">
-                            <CheckIcon aria-hidden="true" className="size-3.5" />
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </fieldset>
           )}
 
-          <section
-            aria-labelledby="batch-inputs"
-            className="flex flex-col gap-2.5 rounded-2xl border p-4"
-          >
-            <h3 className="text-sm font-medium" id="batch-inputs">
-              {valid
-                ? `${size} takes, same motion and look`
-                : kind === "seeds"
-                  ? "Pick a character first"
-                  : `Pick at least ${MIN_CHARACTERS} characters`}
-            </h3>
-            <dl className="flex flex-col gap-1 text-sm">
-              <div className="flex gap-3">
-                <dt className="w-20 shrink-0 text-muted-foreground">Look</dt>
-                <dd className="line-clamp-2 min-w-0 text-soft-foreground">{lookLabel(draft)}</dd>
-              </div>
-              <div className="flex gap-3">
-                <dt className="w-20 shrink-0 text-muted-foreground">
-                  {kind === "seeds" ? "Character" : "Seed"}
-                </dt>
-                <dd className="min-w-0 text-soft-foreground">
-                  {kind === "seeds" ? characterLabel(draft.character) : seedLabel(draft)}
-                </dd>
-              </div>
-            </dl>
-            {items.length > 0 && (
-              <ol aria-label="Takes" className="flex flex-col gap-1 text-sm">
-                {items.map((item, index) => (
-                  <li className="flex gap-3" key={JSON.stringify(item.variation)}>
-                    <span className="w-20 shrink-0 text-muted-foreground">Take {index + 1}</span>
-                    <span className="min-w-0 truncate tabular-nums">
-                      {"seed" in item.variation
-                        ? `Seed ${item.variation.seed}`
-                        : characterLabel(item.variation.character_id)}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            )}
-            <p
-              className={cn("text-sm", beyond ? "text-warning-foreground" : "text-soft-foreground")}
-            >
-              {beyond
-                ? `Up to ${size} generations, and your access code has ${remaining} left. A take already rendered with the same recipe comes back free, so the batch starts if its new takes fit; otherwise nothing starts.`
-                : `Uses up to ${size} of the ${remaining} generations your access code has left. A take already rendered with the same recipe comes back free.`}
+          {reads.kind === "error" && (
+            <p className="text-sm wrap-anywhere text-destructive-foreground" role="alert">
+              {reads.refusal.message}
             </p>
-          </section>
+          )}
 
-          {refusal ? (
-            <p className="text-sm text-destructive-foreground" role="alert">
-              {refusal.message}
-            </p>
-          ) : (
-            resending && (
-              <p className="text-sm text-soft-foreground" role="status">
-                These are the takes you last asked for, and no batch of them has opened here yet.
-                Render asks again with the same request: a batch it already started opens instead of
-                starting twice.
-              </p>
-            )
+          {/* The seeds wait for neither read, so they are there from the first frame. */}
+          {(reads.kind === "ready" || reads.kind === "loading") && kind === "seeds" && (
+            <div className="flex min-w-0 flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <ToggleGroup
+                  aria-label="How many takes"
+                  onValueChange={(value) => {
+                    if (value) {
+                      setCount(Number(value));
+                      setRefusal(null);
+                    }
+                  }}
+                  spacing={1}
+                  type="single"
+                  value={String(count)}
+                  variant="segmented"
+                >
+                  {SEED_COUNTS.map((each) => (
+                    <ToggleGroupItem key={each} value={String(each)}>
+                      {`${each} takes`}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+                <Button
+                  onClick={() => {
+                    setSeeds(randomSeeds(seeds.length));
+                    setRefusal(null);
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <ShuffleIcon />
+                  New seeds
+                </Button>
+              </div>
+              {valid && (
+                <ol aria-label="Takes" className="grid gap-2 sm:grid-cols-2">
+                  {takes.map((seed, index) => (
+                    <li
+                      className="flex h-11 min-w-0 items-center justify-between gap-3 rounded-field border bg-card/72 px-3.5"
+                      key={seed}
+                    >
+                      <Hud>Take {index + 1}</Hud>
+                      <span className="min-w-0 truncate type-caption font-medium text-soft-foreground tabular-nums">
+                        Seed {seed}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          )}
+
+          {reads.kind === "ready" && kind === "characters" && (
+            <div aria-label="Characters" className={tiles} role="group">
+              {characters.map((character) => {
+                const on = picked.includes(character.id);
+
+                return (
+                  <PictureTile
+                    alt={characterAlt(character)}
+                    caption={characterName(character)}
+                    className={takenTile}
+                    disabled={!on && chosen.length >= MAX_CHARACTERS}
+                    key={character.id}
+                    onClick={() => togglePick(character.id)}
+                    pressed={on}
+                    src={mediaUrl(character.image)}
+                    tagged={character.origin === "generated" && !character.is_sample}
+                  />
+                );
+              })}
+            </div>
           )}
         </div>
-      )}
 
-      <DialogFooter>
-        <Button
-          disabled={reads.kind !== "ready" || !valid || submitting}
-          onClick={() => void submit()}
-          type="button"
-          variant="photon"
+        {/* Held while the reads are on their way: the character's name is one of them. */}
+        <dl
+          className={cn(
+            "flex min-w-0 flex-wrap gap-x-6 gap-y-1",
+            reads.kind !== "ready" && "invisible",
+          )}
         >
-          <LayersIcon />
-          {submitting ? "Starting…" : `Render ${size} ${size === 1 ? "take" : "takes"}`}
-        </Button>
-      </DialogFooter>
+          <KeptRow label="Look" value={lookLabel(draft)} />
+          <KeptRow label={kind === "seeds" ? "Character" : "Seed"} value={kept} />
+        </dl>
+
+        <div className="sticky -bottom-6 -mx-6 -mb-6 bg-popover px-6 pb-6 sm:-bottom-7 sm:-mx-7 sm:-mb-7 sm:px-7 sm:pb-7">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+            <div className="flex min-h-11 min-w-0 flex-1 basis-56 flex-col justify-center">
+              {refusal ? (
+                <p className="type-caption wrap-anywhere text-destructive-foreground" role="alert">
+                  {refusal.message}
+                </p>
+              ) : resending ? (
+                <p className="type-caption text-soft-foreground" role="status">
+                  These are the takes you last asked for. Render opens their batch if it has already
+                  started.
+                </p>
+              ) : (
+                <>
+                  <span className="truncate font-semibold">
+                    {valid
+                      ? `${size} ${noun}`
+                      : kind === "seeds"
+                        ? "Pick a character first"
+                        : `Pick at least ${MIN_CHARACTERS} characters`}
+                  </span>
+                  <span
+                    className={cn(
+                      "type-caption",
+                      beyond ? "text-warning-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    {kind === "characters" && !valid
+                      ? `Up to ${MAX_CHARACTERS} in one batch`
+                      : beyond
+                        ? `Uses up to ${renders}, your access code has ${remaining} left`
+                        : `Uses up to ${renders}`}
+                  </span>
+                </>
+              )}
+            </div>
+            <div className="flex grow flex-col sm:grow-0">
+              <Button
+                disabled={reads.kind !== "ready" || !valid || submitting}
+                onClick={() => void submit()}
+                type="button"
+                variant="photon"
+              >
+                <LayersIcon />
+                <StableText
+                  current={submitting ? "Starting…" : `Render ${size} ${noun}`}
+                  labels={[...new Set([`Render ${size} ${noun}`, WIDEST_RENDER, "Starting…"])]}
+                />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </DialogContent>
+  );
+}
+
+/** One thing every take keeps, on one line: `value` is cut short, with its whole text on hover. */
+function KeptRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 flex-1 basis-60 items-baseline gap-2 first:grow-999">
+      <dt className="shrink-0">
+        <Hud>{label}</Hud>
+      </dt>
+      <dd className="min-w-0 truncate type-caption text-soft-foreground" title={value}>
+        {value}
+      </dd>
+    </div>
   );
 }

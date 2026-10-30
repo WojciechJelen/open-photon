@@ -1,4 +1,4 @@
-// Short names for the looks of the examples shown, for the gallery's filter chips and cards.
+// Short names for the looks of the examples shown, for the gallery's filters and a take's recipe.
 // Client-safe and loadable by Node as is, so `npm run test:server` exercises it.
 
 /** How long a look's name may be, so a chip fits a phone. */
@@ -6,11 +6,29 @@ const MAX_LABEL = 44;
 
 const SEPARATOR = " · ";
 
+/**
+ * The workflow's default look (`motionTransfer/workflows/defaults.json`, what a blank look sends):
+ * the character and background as the photo has them. The app names it "From the photo".
+ */
+const PHOTO_LOOK =
+  "The character from the reference image, as it appears there. Background as in the reference image.";
+
 /** The sentences of a look, trimmed; text after the last full stop is one more. */
 function sentencesOf(text: string) {
   return (text.match(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g) ?? [])
     .map((sentence) => sentence.trim())
     .filter((sentence) => sentence !== "");
+}
+
+/**
+ * The sentences that can name a look: not those it has from `PHOTO_LOOK`, which the looks editor
+ * leads every composed look with and so tell nothing, unless it has no others.
+ */
+function namingSentences(text: string) {
+  const sentences = sentencesOf(text);
+  const shown = sentences.filter((sentence) => !sentencesOf(PHOTO_LOOK).includes(sentence));
+
+  return shown.length > 0 ? shown : sentences;
 }
 
 /** A sentence as a name: without a leading `Word: ` and its closing punctuation. */
@@ -44,21 +62,25 @@ function clip(text: string, max: number) {
 
 /**
  * A name for each look (by `key`) that tells it apart from the others. A look is a prompt whose
- * sentences are often shared: the looks editor leads every composed look with the same sentence
- * about the character, then adds one per pick. A look none of whose sentences any other look has
- * (the only one, say) is named by its first sentence; any other by the sentences no other look
- * has, else by those not every look has. Each sentence loses a leading `Background: ` (any
+ * sentences are often shared: past the ones it leads with (`namingSentences`), the looks editor
+ * adds one per pick. A look none of whose sentences any other look has (the only one, say) is
+ * named by its first sentence; any other by the sentences no other look has, else by those not
+ * every look has. Each sentence loses a leading `Background: ` (any
  * `Word: `) and its full stop; they share `MAX_LABEL` characters, cut at whole words, joined with
- * " · ".
+ * " · ". The workflow's default look is "From the photo", as it is everywhere else in the app.
  */
 export function lookLabels(looks: { key: string; text: string }[]) {
-  const split = looks.map(({ key, text }) => ({ key, sentences: sentencesOf(text) }));
+  const split = looks.map(({ key, text }) => ({ key, sentences: namingSentences(text), text }));
 
   const sharers = (key: string, sentence: string) =>
     split.filter((other) => other.key !== key && other.sentences.includes(sentence)).length;
 
   return new Map(
-    split.map(({ key, sentences }) => {
+    split.map(({ key, sentences, text }) => {
+      if (text === PHOTO_LOOK) {
+        return [key, "From the photo"];
+      }
+
       const own = sentences.filter((sentence) => sharers(key, sentence) === 0);
 
       const notEverywhere = sentences.filter(

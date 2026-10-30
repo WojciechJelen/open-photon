@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useCallback } from "react";
 
 import { composerSlots } from "#/app/composer-slots";
+import { Button } from "#/components/ui/button";
 import { loadSelection } from "#/features/motionTransfer/selection.functions";
 import { PresetPage } from "#/features/presets/components/preset-page";
 import { type PresetSearch, presetSearchSchema } from "#/features/presets/draft";
@@ -35,10 +36,10 @@ export const Route = createFileRoute("/presets/$presetId")({
   }),
   component: Preset,
   notFoundComponent: () => (
-    <Problem title="Preset not found">
-      <Link className="underline underline-offset-3" to="/presets">
-        See every preset
-      </Link>
+    <Problem text="This preset doesn't exist." title="Nothing here">
+      <Button asChild variant="outline">
+        <Link to="/presets">See every preset</Link>
+      </Button>
     </Problem>
   ),
 });
@@ -49,7 +50,11 @@ function Preset() {
 
   const onSearch = useCallback(
     (next: Partial<PresetSearch>) =>
-      void navigate({ replace: true, search: (current) => ({ ...current, ...next }) }),
+      void navigate({
+        replace: true,
+        resetScroll: false,
+        search: (current) => ({ ...current, ...next }),
+      }),
     [navigate],
   );
 

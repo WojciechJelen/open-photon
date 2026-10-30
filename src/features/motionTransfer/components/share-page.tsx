@@ -1,11 +1,19 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRightIcon, DownloadIcon, LockIcon } from "lucide-react";
+import { cn } from "cn";
+import {
+  ArrowRightIcon,
+  DownloadIcon,
+  LockIcon,
+  PauseIcon,
+  PlayIcon,
+  PlusIcon,
+} from "lucide-react";
+import { useState } from "react";
 
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { RecipePanel } from "#/features/motionTransfer/components/recipe-panel";
 import type { loadShare } from "#/features/motionTransfer/generate.functions";
-import { Hud, PageGlow, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
+import { Hud, REPOSITORY_URL, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
 import {
   GeneratedOutputs,
@@ -13,9 +21,9 @@ import {
   shownOutputs,
 } from "#/shared/components/generated-outputs";
 import { LoopingVideo } from "#/shared/components/looping-video";
-import { OpenWeightsBadge, SiteFooter, SiteHeader } from "#/shared/components/site";
+import { Panel } from "#/shared/components/panel";
+import { SitePage } from "#/shared/components/site";
 import { mediaUrl } from "#/shared/media";
-import { duration } from "#/shared/timecode";
 
 type Share = NonNullable<Awaited<ReturnType<typeof loadShare>>>;
 
@@ -40,58 +48,29 @@ export function outputsShareText(share: OutputsShare) {
   };
 }
 
-/** A SHA-256 shortened for reading: its first and last eight characters. */
-function shortHash(sha256: string) {
-  return `${sha256.slice(0, 8)}…${sha256.slice(-8)}`;
-}
-
-/** One input of the recipe: its thumbnail (when it is public), its name and its hash. */
-function InputRow({
-  name,
-  sha256,
-  thumb,
-}: {
-  name: string;
-  sha256: string;
-  thumb: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3.5">
-      <span className="relative grid h-17 w-13 shrink-0 place-items-center overflow-hidden rounded-lg border bg-muted text-muted-foreground">
-        {thumb}
-      </span>
-      <span className="flex min-w-0 flex-col gap-0.5">
-        <b className="text-sm">{name}</b>
-        <span className="font-mono text-xs break-all text-muted-foreground">
-          sha256 {shortHash(sha256)}
-        </span>
-      </span>
-    </div>
-  );
-}
-
 /**
  * The public share page of a done generation of a workflow other than Motion Transfer, by the
  * media of its outputs: each image and each video output with its poster (`GeneratedOutputs`),
- * labelled AI-generated, with Download.
+ * labelled AI-generated, with Download, beside what made it.
  */
 function OutputsSharePage({ share }: { share: OutputsShare }) {
-  const { category } = shownOutputs(share.outputs);
+  const { category, media } = shownOutputs(share.outputs);
 
   return (
-    <div className="relative isolate">
-      <PageGlow />
-      <SiteHeader category={category}>
-        <span className="hidden sm:inline-flex">
-          <OpenWeightsBadge />
-        </span>
-      </SiteHeader>
-      <main className="mx-auto flex w-full max-w-150 flex-col gap-6 px-4 pt-10 pb-24 sm:px-8">
-        <Hud>{outputsShareText(share).title}</Hud>
-        <GeneratedOutputs outputs={share.outputs} />
-      </main>
-      <SiteFooter tagline="Open Photon · MIT licensed · Built on ComfyUI" />
-    </div>
+    <SitePage category={category} className="gap-14" top={10}>
+      <div className="flex flex-wrap items-start gap-x-18 gap-y-10">
+        <div className="flex max-w-120 min-w-0 grow basis-120 flex-col gap-8">
+          <GeneratedOutputs outputs={share.outputs} />
+        </div>
+        <div className="flex min-w-0 grow-999 basis-110 flex-col gap-3.5">
+          <Hud>Made with Open Photon</Hud>
+          <h1 className="type-title wrap-anywhere">An AI-generated {media ?? "image"}</h1>
+          <p className="type-lead text-pretty text-soft-foreground">
+            On open-weights ComfyUI workflows. Run it yourself.
+          </p>
+        </div>
+      </div>
+    </SitePage>
   );
 }
 
@@ -107,13 +86,24 @@ export function SharePageView({ share }: { share: Share }) {
   );
 }
 
+/** A thumbnail of the recipe's row: `children` fill it. */
+function RecipeThumb({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="relative grid h-14 w-11 shrink-0 place-items-center overflow-hidden rounded-thumb bg-muted text-muted-foreground shadow-hairline">
+      {children}
+    </span>
+  );
+}
+
 /**
- * The public share page of a done Motion Transfer take: the result on a loop with the source
- * clip beside it, "Use this motion with my character" (the wizard with the motion kept, at the
- * character step), Download, Download side-by-side (9:16) when it was stitched (a file, not a
- * player: the result keeps its source inset), and how the shot was made: the inputs (a character
- * photo shows only when it is a sample, as an upload is private), the recipe, and the model files
- * the workflow loads, with a license only where the repository records one.
+ * The public share page of a done Motion Transfer take: the result on a loop, tagged AI-generated,
+ * with the source clip on it and a Pause for both, "Use this motion with my character" (the wizard with the motion
+ * kept, at the character step), Download, Download side by side when it was stitched (a file, not
+ * a player: the result keeps its source inset), the shot in one row (a character photo shows only
+ * when it is a sample, as an upload is private) with its recipe to download, the same closing
+ * offer, and, folded, the recipe, with the model files the workflow loads where a render from
+ * before model pinning recorded none. The recipe is what the page already shows: its download is
+ * built here, as `/api/generations/:id/recipe.json` needs a session.
  */
 function MotionTransferSharePage({ share }: { share: Extract<Share, { view: "motionTransfer" }> }) {
   const {
@@ -128,217 +118,202 @@ function MotionTransferSharePage({ share }: { share: Extract<Share, { view: "mot
     source,
   } = share;
 
+  const [paused, setPaused] = useState(false);
   const portrait = (final.height ?? 0) >= (final.width ?? 0);
+  const aspect = portrait ? "aspect-9/16" : "aspect-video";
   const useMotion = { motion: source.id, step: "character" as const };
-  const unpinned = models?.some(({ license }) => license === null) ?? false;
+  const motionName = motionTitle ?? "Your clip";
+  const recipeFile = `data:application/json,${encodeURIComponent(JSON.stringify(recipe, null, 2))}`;
 
   return (
-    <div className="relative isolate">
-      <PageGlow />
-      <SiteHeader category="Video">
-        <span className="hidden sm:inline-flex">
-          <OpenWeightsBadge />
-        </span>
-        <Button asChild size="sm" variant="outline">
-          <Link search={{}} to="/motionTransfer">
-            Make your own
-          </Link>
-        </Button>
-      </SiteHeader>
-
-      <main className="mx-auto flex w-full max-w-330 flex-col gap-18 px-4 pt-10 pb-24 sm:px-8 lg:pt-16">
-        <section className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          <div className="relative mx-auto w-full max-w-115 lg:mx-0">
-            <figure className="relative overflow-hidden rounded-3xl border bg-screen shadow-monitor">
+    <SitePage category="Video" className="gap-14" top={10}>
+      <section className="flex flex-wrap items-center gap-x-18 gap-y-10">
+        <div
+          className={cn("min-w-0 grow", portrait ? "max-w-107.5 basis-85" : "max-w-170 basis-150")}
+        >
+          <figure
+            className={cn(
+              "relative m-0 overflow-hidden rounded-2xl bg-screen shadow-monitor",
+              aspect,
+            )}
+          >
+            <LoopingVideo
+              className="absolute inset-0 aspect-auto size-full rounded-none object-cover"
+              label="Result"
+              paused={paused}
+              poster={poster ? mediaUrl(poster) : undefined}
+              src={mediaUrl(final)}
+            />
+            <Viewfinder />
+            <figcaption className="absolute top-6 left-6 rounded-tag bg-background/66 px-1.75 py-0.75 type-tag text-foreground">
+              AI-generated
+            </figcaption>
+            <div
+              className={cn(
+                "absolute bottom-6 left-6 overflow-hidden rounded-lg bg-screen ring-2 ring-background/80",
+                aspect,
+                portrait ? "w-29.5" : "w-40",
+              )}
+            >
               <LoopingVideo
-                className={
-                  portrait
-                    ? "aspect-9/16 rounded-none object-cover"
-                    : "aspect-video rounded-none object-cover"
-                }
-                label="Result"
-                poster={poster ? mediaUrl(poster) : undefined}
-                src={mediaUrl(final)}
+                className="absolute inset-0 aspect-auto size-full rounded-none object-cover"
+                label="Source motion"
+                paused={paused}
+                src={mediaUrl(source)}
               />
-              <figcaption className="absolute top-3.5 left-3.5">
-                <Badge variant="solid">
-                  <StatusDot tone="brand" />
-                  Result · loops
-                </Badge>
-              </figcaption>
-              <Viewfinder />
-            </figure>
-            <figure className="absolute bottom-10 left-3 flex w-28 flex-col gap-2 sm:w-33 lg:-left-7">
-              <div className="overflow-hidden rounded-xl border-2 border-background bg-screen shadow-modal">
-                <LoopingVideo
-                  className="aspect-9/16 rounded-none object-cover"
-                  label="Source motion"
-                  src={mediaUrl(source)}
-                />
-              </div>
-              <figcaption>
-                <Hud tone="foreground">Source motion</Hud>
-              </figcaption>
-            </figure>
-          </div>
+            </div>
+            <span className="absolute right-6 bottom-6">
+              <Button
+                aria-label={paused ? "Play" : "Pause"}
+                onClick={() => setPaused(!paused)}
+                size="icon"
+                variant="scrim"
+              >
+                {paused ? <PlayIcon aria-hidden="true" /> : <PauseIcon aria-hidden="true" />}
+              </Button>
+            </span>
+          </figure>
+        </div>
 
-          <div className="flex min-w-0 flex-col gap-6">
-            <Hud>Made with Open Photon · Motion Transfer</Hud>
-            <h1 className="font-display text-5xl leading-none font-bold tracking-display text-balance sm:text-6xl">
-              One motion,{" "}
-              <span className="bg-linear-100 from-brand via-brand-mid to-brand-2 bg-clip-text text-transparent">
-                another character.
-              </span>
+        <div className="flex min-w-0 grow-999 basis-110 flex-col gap-6">
+          <div className="flex flex-col gap-3.5">
+            <Hud>Made with Open Photon</Hud>
+            <h1 className="font-display text-4xl leading-none font-bold tracking-display wrap-anywhere lg:text-5xl xl:text-6xl">
+              One motion,
+              <br />
+              <span className="bg-render bg-clip-text text-transparent">another character.</span>
             </h1>
-            <p className="max-w-xl text-lg text-pretty text-soft-foreground">
-              {shareDescription}
+            <p className="max-w-120 type-section font-normal text-pretty wrap-anywhere text-soft-foreground">
+              {character?.title ?? "A character"} performing {motionTitle ?? "this motion"}.
               {characterGenerated && " The character is AI-generated."}
             </p>
-            <div className="flex flex-wrap gap-3">
-              <Button asChild size="lg" variant="photon">
-                <Link search={useMotion} to="/motionTransfer">
-                  Use this motion with my character
-                  <ArrowRightIcon />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <a download href={`${mediaUrl(final)}?download=1`}>
-                  <DownloadIcon />
-                  Download
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            <Button asChild>
+              <Link search={useMotion} to="/motionTransfer">
+                Use this motion with my character
+                <ArrowRightIcon aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <a download href={`${mediaUrl(final)}?download=1`}>
+                <DownloadIcon aria-hidden="true" />
+                Download
+              </a>
+            </Button>
+            {compare && (
+              <Button asChild variant="ghost">
+                <a download href={`${mediaUrl(compare)}?download=1`}>
+                  Download side by side
                 </a>
               </Button>
-              {compare && (
-                <Button asChild size="lg" variant="outline">
-                  <a download href={`${mediaUrl(compare)}?download=1`}>
-                    <DownloadIcon />
-                    Download side-by-side (9:16)
-                  </a>
-                </Button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-x-5 gap-y-2 pt-2">
-              <Hud>
-                {duration(final.duration_ms ?? 0)} · {final.width}×{final.height} ·{" "}
-                {final.has_audio ? "with sound" : "silent"}
-              </Hud>
-              <Hud>Seed {recipe.params.seed}</Hud>
-            </div>
+            )}
           </div>
-        </section>
-
-        <section aria-labelledby="made-heading" className="flex flex-col gap-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="flex flex-col gap-2.5">
-              <Hud>Open recipe</Hud>
-              <h2
-                className="font-display text-3xl leading-tight font-bold tracking-display sm:text-4xl"
-                id="made-heading"
-              >
-                How this shot was made
-              </h2>
+          <Panel className="max-w-140 flex-row flex-wrap items-center justify-between gap-x-6 gap-y-3 py-3 pr-4.5 pl-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <RecipeThumb>
+                <ClipStill label={motionName} src={mediaUrl(source)} />
+              </RecipeThumb>
+              <PlusIcon aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+              <RecipeThumb>
+                {character ? (
+                  <img
+                    alt={`${character.title ?? "The character"}, AI-generated image`}
+                    className="absolute inset-0 size-full object-cover"
+                    src={mediaUrl(character.image)}
+                  />
+                ) : (
+                  <LockIcon aria-hidden="true" className="size-4" />
+                )}
+              </RecipeThumb>
+              <div className="ml-1 flex min-w-0 flex-col">
+                <span
+                  className="truncate type-label"
+                  title={`${motionName}, ${character?.title ?? "private photo"}`}
+                >
+                  {motionName}, {character?.title ?? "private photo"}
+                </span>
+                <span className="truncate type-caption text-muted-foreground">
+                  {characterGenerated ? "AI-generated character" : "From the photo"}
+                </span>
+              </div>
             </div>
-            <Button asChild variant="ghost">
+            <Button asChild size="inline" variant="link">
+              <a download="open-photon-recipe.json" href={recipeFile}>
+                Download the recipe
+              </a>
+            </Button>
+          </Panel>
+        </div>
+      </section>
+
+      <Panel className="flex-row flex-wrap items-center justify-between gap-x-8 gap-y-5 px-8 py-7">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 className="font-display text-3xl font-bold tracking-display wrap-anywhere">
+            Your character, this move.
+          </h2>
+          <p className="wrap-anywhere text-soft-foreground">
+            The motion stays picked. Add a character and render your own take.
+          </p>
+        </div>
+        <div className="flex max-w-full min-w-0 flex-wrap items-center gap-x-5 gap-y-2">
+          <Button asChild size="inline" variant="link">
+            <Link search={{}} to="/motionTransfer">
+              Make your own
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link search={useMotion} to="/motionTransfer">
+              Use this motion
+              <ArrowRightIcon aria-hidden="true" />
+            </Link>
+          </Button>
+        </div>
+      </Panel>
+
+      <RecipePanel recipe={recipe}>
+        <div className="flex flex-col gap-3 border-t pt-3">
+          <div className="flex flex-wrap items-center gap-x-5">
+            <Button asChild size="inline" variant="link">
+              <a href={`${REPOSITORY_URL}/actions/workflows/ci.yml`}>
+                Open weights only · CI check
+              </a>
+            </Button>
+            <Button asChild size="inline" variant="link">
+              <a
+                href={`${REPOSITORY_URL}/blob/main/src/features/motionTransfer/workflows/models.lock`}
+              >
+                Model sources and hashes
+              </a>
+            </Button>
+            <Button asChild size="inline" variant="link">
               <a href={`${REPOSITORY_URL}#run`}>Run it yourself</a>
             </Button>
           </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="flex flex-col gap-5 rounded-2xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-6">
-              <Hud tone="foreground">Inputs</Hud>
-              <InputRow
-                name={motionTitle ?? "Motion clip"}
-                sha256={recipe.inputs.driving_video_sha256}
-                thumb={<ClipStill src={mediaUrl(source)} />}
-              />
-              <InputRow
-                name={character?.title ?? "Character photo (private)"}
-                sha256={recipe.inputs.reference_image_sha256}
-                thumb={
-                  character ? (
-                    <img
-                      alt=""
-                      className="absolute inset-0 size-full object-cover"
-                      src={mediaUrl(character.image)}
-                    />
-                  ) : (
-                    <LockIcon aria-hidden="true" className="size-4.5" />
-                  )
-                }
-              />
-              <dl className="grid grid-cols-2 gap-x-5 gap-y-2 border-t pt-4 text-sm sm:grid-cols-4">
-                <dt className="text-muted-foreground">Workflow</dt>
-                <dd className="font-mono text-xs leading-5">
-                  {recipe.workflow.id} v{recipe.workflow.version}
-                </dd>
-                <dt className="text-muted-foreground">Size</dt>
-                <dd className="font-mono text-xs leading-5">
-                  {recipe.params.width}×{recipe.params.height}
-                </dd>
-                <dt className="text-muted-foreground">Rendered on</dt>
-                <dd>{recipe.target === "cloud" ? "Comfy Cloud" : "Self-hosted ComfyUI"}</dd>
-              </dl>
-              <RecipePanel recipe={recipe} />
-            </div>
-            <div className="flex flex-col gap-3.5 rounded-2xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-6">
-              <h3>
-                <Hud tone="foreground">Model files</Hud>
-              </h3>
-              <div className="flex flex-wrap items-center gap-3 text-xs">
-                <Badge asChild variant="brand">
-                  <a href={`${REPOSITORY_URL}/actions/workflows/ci.yml`}>
-                    Open weights only · CI check
-                  </a>
-                </Badge>
-                <a
-                  className="underline underline-offset-4"
-                  href={`${REPOSITORY_URL}/blob/main/src/features/motionTransfer/workflows/models.lock`}
-                >
-                  Model sources and hashes
-                </a>
-              </div>
-              {models ? (
-                <ul aria-label="Model files" className="flex flex-col">
-                  {models.map(({ file, license }) => (
-                    <li
-                      className="flex items-center justify-between gap-4 border-t py-3"
-                      key={file}
-                    >
-                      <span className="min-w-0 font-mono text-xs break-all">{file}</span>
-                      {license && <Badge variant="brand">{license}</Badge>}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-soft-foreground">
-                  The workflow has changed since this video was made, so its model files are not
-                  listed.
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground">
-                No partner nodes and no closed APIs: these are the model files the workflow loads.
-                {unpinned &&
-                  " This render predates model pinning; its model hashes and licenses were not recorded."}
+          {recipe.models.length === 0 &&
+            (models ? (
+              <ul aria-label="Model files" className="flex flex-col">
+                {models.map(({ file }) => (
+                  <li
+                    className="border-t py-2.5 font-mono text-xs wrap-anywhere first:border-t-0"
+                    key={file}
+                  >
+                    {file}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="type-caption wrap-anywhere text-soft-foreground">
+                The workflow has changed since this video was made, so its model files are not
+                listed.
               </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="flex flex-wrap items-center justify-between gap-6 rounded-3xl border bg-linear-to-br from-brand/12 via-foreground/2 to-foreground/2 p-8 sm:p-10">
-          <div className="flex max-w-2xl flex-col gap-2.5">
-            <h2 className="font-display text-3xl leading-tight font-bold tracking-display">
-              Your character, this move.
-            </h2>
-            <p className="text-soft-foreground">
-              The motion stays picked. Add a photo or a sample character and render your own take.
-            </p>
-          </div>
-          <Button asChild size="lg">
-            <Link search={useMotion} to="/motionTransfer">
-              Use this motion
-            </Link>
-          </Button>
-        </section>
-      </main>
-      <SiteFooter tagline="Open Photon · MIT licensed · Built on ComfyUI" />
-    </div>
+            ))}
+          <p className="type-caption wrap-anywhere text-muted-foreground">
+            No partner nodes and no closed APIs
+            {models && ": these are the model files the workflow loads"}.
+          </p>
+        </div>
+      </RecipePanel>
+    </SitePage>
   );
 }

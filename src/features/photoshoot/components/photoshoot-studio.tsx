@@ -1,17 +1,28 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { cn } from "cn";
-import { ArrowRightIcon, CameraIcon, CheckIcon, ImageUpIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { CameraIcon, UserIcon } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
 
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "#/components/ui/dialog";
 import type { CharacterSummary } from "#/features/characters";
+import editorial from "#/features/photoshoot/assets/setting-editorial.webp";
+import outdoors from "#/features/photoshoot/assets/setting-outdoors.webp";
+import street from "#/features/photoshoot/assets/setting-street.webp";
+import studio from "#/features/photoshoot/assets/setting-studio.webp";
 import {
   PhotoshootShell,
   usePhotoshootRead,
 } from "#/features/photoshoot/components/photoshoot-shell";
 import type { PhotoshootList } from "#/features/photoshoot/contracts";
+import { characterLabel, photoshootTitle } from "#/features/photoshoot/labels";
 import {
   fetchLibrary,
   fetchPhotoshoots,
@@ -23,35 +34,71 @@ import {
   photoshootSetting,
   photoshootSettings,
 } from "#/features/photoshoot/settings";
-import { Hud } from "#/shared/components/brand";
+import { PageHeading } from "#/shared/components/page-heading";
+import { AddTile, PictureTile } from "#/shared/components/picture-tile";
+import { StableText } from "#/shared/components/stable-text";
+import { SummaryPanel, SummaryRow } from "#/shared/components/summary-panel";
+import { ToolColumns, ToolSection } from "#/shared/components/tool-layout";
 import { mediaUrl } from "#/shared/media";
 import type { Refusal } from "#/shared/requests";
+import { revealInRow, revealPressed } from "#/shared/reveal-in-row";
+import { dayAndTime } from "#/shared/when";
 
 type PageData = { characters: CharacterSummary[]; history: PhotoshootList["photoshoots"] };
 
-/** What the library calls a character: its title, or what it is. */
-export function characterLabel(character: Pick<CharacterSummary, "origin" | "title">) {
-  return (
-    character.title ?? (character.origin === "upload" ? "Untitled photo" : "Untitled character")
-  );
-}
+// Each setting as a real result of it: `docs/feature-evidence/character-photoshoot`'s sample Arthur.
+const settingImages: Record<PhotoshootSettingId, { position: string; src: string }> = {
+  editorial: { position: "object-top", src: editorial },
+  outdoors: { position: "object-[50%_20%]", src: outdoors },
+  street: { position: "object-top", src: street },
+  studio: { position: "object-top", src: studio },
+};
+
+// How many tiles hold the library's place until it is read.
+const LIBRARY_PLACEHOLDERS = 6;
+
+// A tile of the character row: a phone's row scrolls, with room for the ring and the focus outline
+// around a tile; wider screens fill a grid.
+const characterItem = "w-24 shrink-0 sm:w-auto";
 
 /**
- * A photo of a person into the library, the characters feature's convention: a PNG, JPEG or WebP
- * and the uploader's likeness consent, ticked before the upload is possible.
+ * "Add a photo": the file picker, then the dialog that asks for the uploader's likeness consent,
+ * the characters feature's convention: a PNG, JPEG or WebP of a person, and consent ticked before
+ * the upload is possible. It joins the library. Nothing leaves the browser until "Use photo", and
+ * from there the dialog stays until the server answers, so a refusal has somewhere to show.
  */
-function ReferenceUpload({ onUploaded }: { onUploaded: (character: CharacterSummary) => void }) {
+function AddPhoto({
+  disabled,
+  onUploaded,
+}: {
+  disabled: boolean;
+  onUploaded: (character: CharacterSummary) => void;
+}) {
   const id = useId();
-  const [file, setFile] = useState<File | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const [photo, setPhoto] = useState<{ file: File; preview: string } | null>(null);
+  const [open, setOpen] = useState(false);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function send(photo: File) {
+  const preview = photo?.preview;
+
+  // The preview URL lives as long as the photo is kept: through the dialog's way out.
+  useEffect(() => (preview ? () => URL.revokeObjectURL(preview) : undefined), [preview]);
+
+  function pick(file: File) {
+    setPhoto({ file, preview: URL.createObjectURL(file) });
+    setConsent(false);
+    setError(null);
+    setOpen(true);
+  }
+
+  async function send(file: File) {
     setBusy(true);
     setError(null);
 
-    const result = await uploadReference(photo);
+    const result = await uploadReference(file);
 
     setBusy(false);
 
@@ -61,106 +108,152 @@ function ReferenceUpload({ onUploaded }: { onUploaded: (character: CharacterSumm
       return;
     }
 
-    setFile(null);
-    setConsent(false);
+    setOpen(false);
     onUploaded(result.data);
   }
 
   return (
-    <div className="flex h-full flex-col gap-3 rounded-xl border border-dashed p-4">
-      <span className="flex items-center gap-2 font-medium">
-        <ImageUpIcon aria-hidden="true" className="size-4" />
-        Upload a reference photo
-      </span>
-      <p className="text-sm text-soft-foreground">
-        PNG, JPEG or WebP of one person, clearly lit, and only with their consent. It joins this
-        workspace's library.
-      </p>
+    <>
+      <AddTile caption="Add a photo" disabled={disabled} onClick={() => input.current?.click()} />
       <input
         accept="image/png,image/jpeg,image/webp"
         aria-label="Reference photo"
-        className="text-sm file:mr-3 file:rounded-full file:border file:bg-transparent file:px-3 file:py-1 file:text-foreground"
-        onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+
+          // The same file picked again fires `change` again.
+          event.target.value = "";
+
+          if (file) {
+            pick(file);
+          }
+        }}
+        ref={input}
         type="file"
       />
-      <div className="flex items-start gap-2">
-        <Checkbox
-          checked={consent}
-          id={`${id}-consent`}
-          onCheckedChange={(checked) => setConsent(checked === true)}
-        />
-        <label className="text-sm leading-snug" htmlFor={`${id}-consent`}>
-          I may use this person's likeness: it's me, or they agreed to it.
-        </label>
-      </div>
-      {error && (
-        <p className="text-sm text-destructive-foreground" role="alert">
-          {error}
-        </p>
-      )}
-      <div>
-        <Button
-          disabled={!file || !consent || busy}
-          onClick={() => file && void send(file)}
-          size="sm"
-        >
-          {busy ? "Uploading…" : "Use photo"}
-        </Button>
-      </div>
-    </div>
+      <Dialog onOpenChange={(next) => setOpen(next || busy)} open={open}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Add a photo</DialogTitle>
+            <DialogDescription>
+              PNG, JPEG or WebP of one person, clearly lit, and only with their consent. It joins
+              this workspace's library.
+            </DialogDescription>
+          </DialogHeader>
+          {photo && (
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="relative block h-14 w-11 shrink-0 overflow-hidden rounded-thumb bg-screen shadow-hairline">
+                {/* A file that only claims to be an image shows no broken-image mark. */}
+                <img
+                  alt=""
+                  className="absolute inset-0 size-full object-cover"
+                  key={photo.preview}
+                  onError={(event) => {
+                    event.currentTarget.hidden = true;
+                  }}
+                  src={photo.preview}
+                />
+              </span>
+              <span className="min-w-0 truncate type-label" title={photo.file.name}>
+                {photo.file.name}
+              </span>
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-start gap-2">
+              <Checkbox
+                checked={consent}
+                id={`${id}-consent`}
+                onCheckedChange={(checked) => setConsent(checked === true)}
+              />
+              <label className="text-sm leading-snug" htmlFor={`${id}-consent`}>
+                I may use this person's likeness: it's me, or they agreed to it.
+              </label>
+            </div>
+            <p
+              className="min-h-5 type-caption wrap-anywhere text-destructive-foreground"
+              role="alert"
+            >
+              {error}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={!photo || !consent || busy}
+              onClick={() => photo && void send(photo.file)}
+            >
+              <StableText
+                current={busy ? "Uploading…" : "Use photo"}
+                labels={["Use photo", "Uploading…"]}
+              />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
-/** A library character as a pick: the whole tile toggles it (`aria-pressed`). */
-function CharacterTile({
-  character,
-  onPick,
-  picked,
-}: {
-  character: CharacterSummary;
-  onPick: () => void;
-  picked: boolean;
-}) {
-  const name = characterLabel(character);
+/**
+ * An earlier photoshoot: its four shots, one tag for the strip (each is too small to hold its own),
+ * a shot still to come an empty box of the same size.
+ */
+function EarlierPhotoshoot({ entry }: { entry: PageData["history"][number] }) {
+  const title = photoshootTitle(entry.character, entry.setting);
+  const done = entry.statuses.filter((status) => status === "done").length;
+  const when = dayAndTime(entry.created_at);
+
+  const progress =
+    done < entry.statuses.length ? ` · ${done} of ${entry.statuses.length} done` : "";
 
   return (
-    <button
-      aria-pressed={picked}
-      className={cn(
-        "relative block aspect-3/4 w-full cursor-pointer overflow-hidden rounded-xl border bg-card text-left transition hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring",
-        picked && "border-transparent shadow-picked",
-      )}
-      onClick={onPick}
-      type="button"
-    >
-      <img
-        alt={character.origin === "generated" ? `${name}, AI-generated image` : name}
-        className="absolute inset-0 size-full object-cover"
-        src={mediaUrl(character.image)}
-      />
-      <span
-        aria-hidden="true"
-        className="absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-b from-transparent to-background/95"
-      />
-      {picked && (
-        <span
-          aria-hidden="true"
-          className="absolute top-3 right-3 grid size-7 place-items-center rounded-full bg-brand text-primary-foreground"
-        >
-          <CheckIcon className="size-4" strokeWidth={3} />
+    <li className="min-w-0">
+      <Link
+        className="flex min-w-0 items-center gap-3.5 rounded-xl border bg-card/72 py-2.5 pr-4 pl-2.5 transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        params={{ photoshootId: entry.id }}
+        to="/photoshoot/$photoshootId"
+      >
+        <span className="relative flex shrink-0 gap-0.75">
+          {entry.stills.map((still, position) => (
+            <span
+              className="relative block h-14 w-9.5 overflow-hidden rounded-sm bg-screen"
+              key={position}
+            >
+              {still && (
+                <img
+                  alt=""
+                  className="absolute inset-0 size-full object-cover"
+                  src={mediaUrl(still)}
+                />
+              )}
+            </span>
+          ))}
+          {done > 0 && (
+            <span className="absolute bottom-1 left-1 rounded-tag bg-background/66 px-1.75 py-0.75 type-tag text-foreground">
+              AI-generated
+            </span>
+          )}
         </span>
-      )}
-      <span className="absolute inset-x-3 bottom-2.5 line-clamp-2 text-sm font-semibold">
-        {name}
-      </span>
-    </button>
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate type-label text-foreground" title={title}>
+            {title}
+          </span>
+          <span className="truncate type-caption text-muted-foreground" title={when + progress}>
+            <time dateTime={entry.created_at}>{when}</time>
+            {progress}
+          </span>
+        </span>
+      </Link>
+    </li>
   );
 }
 
 /**
  * `/photoshoot`: pick a library character (or add a photo of a person, with consent), pick a
  * setting, and shoot four photos of them there, each a different pose and light; below, the
- * workspace's earlier photoshoots. Shooting opens the photoshoot's page.
+ * workspace's earlier photoshoots. Shooting opens the photoshoot's page. What needs no read is
+ * there from the start; the library's tiles hold their place until it is read.
  */
 export function PhotoshootStudio() {
   const [characterId, setCharacterId] = useState<string | undefined>();
@@ -206,153 +299,192 @@ export function PhotoshootStudio() {
     void navigate({ params: { photoshootId: result.data.id }, to: "/photoshoot/$photoshootId" });
   }
 
-  const picked =
-    loaded.kind === "ready" ? loaded.characters.find(({ id }) => id === characterId) : undefined;
-
+  const ready = loaded.kind === "ready" ? loaded : null;
+  const picked = ready?.characters.find(({ id }) => id === characterId);
   const chosen = photoshootSetting(setting);
+  const row = useRef<HTMLUListElement>(null);
+
+  // A pick stays in the row's view: a photo just added goes first, wherever the row was scrolled.
+  useEffect(() => revealPressed(row.current), [characterId, ready?.characters]);
+
+  const heading = (
+    <PageHeading
+      subtitle={
+        <>
+          Four new photos of one character
+          <span className="max-sm:hidden">, same face and outfit</span>.
+        </>
+      }
+      title="Photoshoot"
+    />
+  );
 
   return (
     <PhotoshootShell
       access={access}
       askForCode={askForCode}
+      gap={10}
       loaded={loaded}
       locked="Enter the access code to start a photoshoot."
+      top={10}
       waiting="Loading your library…"
     >
-      <div className="flex flex-col gap-4">
-        <Hud>Image · FLUX 3 Image Klein edit</Hud>
-        <h1 className="font-display text-4xl leading-none font-bold tracking-display sm:text-5xl">
-          Character photoshoot
-        </h1>
-        <p className="max-w-2xl text-soft-foreground">
-          Put a character in a new setting: four photos, each with its own pose and light, keeping
-          their face, outfit and accessories. Save the ones you like to the library.
-        </p>
-      </div>
+      {ready || loaded.kind === "loading" ? (
+        <ToolColumns
+          aside={
+            <div data-testid="photoshoot-summary">
+              <SummaryPanel
+                actions={
+                  <Button
+                    disabled={!picked || submitting}
+                    onClick={() => picked && void shoot(picked.id)}
+                    variant="photon"
+                  >
+                    <CameraIcon />
+                    <StableText
+                      current={submitting ? "Starting…" : "Shoot 4 photos"}
+                      labels={["Shoot 4 photos", "Starting…"]}
+                    />
+                  </Button>
+                }
+                label="Your shoot"
+                note={
+                  refusal && (
+                    <span className="text-destructive-foreground" role="alert">
+                      {refusal.message}
+                    </span>
+                  )
+                }
+              >
+                <SummaryRow
+                  icon={<UserIcon aria-hidden="true" className="size-4" strokeWidth={1.75} />}
+                  image={picked && mediaUrl(picked.image)}
+                  label="Character"
+                  placeholder="Pick a character"
+                  value={picked && characterLabel(picked)}
+                />
+                <SummaryRow
+                  image={settingImages[setting].src}
+                  label="Setting"
+                  value={chosen.title}
+                />
+              </SummaryPanel>
+            </div>
+          }
+        >
+          {heading}
 
-      {loaded.kind === "ready" && (
-        <>
-          <section aria-labelledby="character-heading" className="flex flex-col gap-4">
-            <h2 className="font-display text-2xl font-semibold" id="character-heading">
-              1. Character
-            </h2>
+          <ToolSection
+            end={
+              // The links keep 44 px targets; the row stays as low as its heading.
+              <div className="-my-2 flex max-w-full flex-wrap gap-x-4 max-sm:hidden">
+                <Button asChild size="inline" variant="link">
+                  <Link search={{ draft: undefined }} to="/characters">
+                    Open library
+                  </Link>
+                </Button>
+                <Button asChild size="inline" variant="link">
+                  <Link to="/characters/new">Describe a new one</Link>
+                </Button>
+              </div>
+            }
+            number="01"
+            title="Character"
+          >
             <ul
+              aria-busy={!ready}
               aria-label="Characters"
-              className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 xl:grid-cols-6"
+              className="-mr-4 -ml-1.5 flex gap-2.5 overflow-x-auto py-1.5 pr-4 pl-1.5 sm:mx-0 sm:grid sm:grid-fill-28 sm:gap-3 sm:overflow-visible sm:p-0"
+              onFocus={(event) => revealInRow(event.target, event.currentTarget)}
+              ref={row}
             >
-              <li className="col-span-2">
-                <ReferenceUpload
+              <li className={characterItem}>
+                <AddPhoto
+                  disabled={!ready}
                   onUploaded={(character) => {
-                    setLoaded({
-                      ...loaded,
-                      characters: [
-                        character,
-                        ...loaded.characters.filter(({ id }) => id !== character.id),
-                      ],
-                    });
+                    if (ready) {
+                      setLoaded({
+                        ...ready,
+                        characters: [
+                          character,
+                          ...ready.characters.filter(({ id }) => id !== character.id),
+                        ],
+                      });
+                    }
+
                     setCharacterId(character.id);
                   }}
                 />
               </li>
-              {loaded.characters.map((character) => (
-                <li key={character.id}>
-                  <CharacterTile
-                    character={character}
-                    onPick={() => setCharacterId(character.id)}
-                    picked={character.id === characterId}
-                  />
-                </li>
-              ))}
-            </ul>
-          </section>
+              {ready
+                ? ready.characters.map((character) => {
+                    const name = characterLabel(character);
 
-          <section aria-labelledby="setting-heading" className="flex flex-col gap-4">
-            <h2 className="font-display text-2xl font-semibold" id="setting-heading">
-              2. Setting
-            </h2>
+                    return (
+                      <li className={characterItem} key={character.id}>
+                        <PictureTile
+                          alt={character.origin === "generated" ? "AI-generated image" : ""}
+                          caption={name}
+                          onClick={() => setCharacterId(character.id)}
+                          pressed={character.id === characterId}
+                          src={mediaUrl(character.image)}
+                          tagged={character.origin === "generated" && !character.is_sample}
+                        />
+                      </li>
+                    );
+                  })
+                : Array.from({ length: LIBRARY_PLACEHOLDERS }, (_, position) => (
+                    <li aria-hidden="true" className={characterItem} key={position}>
+                      <span className="flex flex-col gap-2">
+                        <span className="block aspect-4/7 skeleton rounded-lg" />
+                        <span className="type-caption">&nbsp;</span>
+                      </span>
+                    </li>
+                  ))}
+            </ul>
+          </ToolSection>
+
+          <ToolSection number="02" title="Setting">
+            {/* Two by two on a phone, one row beside it: four settings never leave one alone. */}
             <div
-              aria-labelledby="setting-heading"
-              className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-              role="radiogroup"
+              aria-label="Settings"
+              className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-3.5"
+              role="group"
             >
               {photoshootSettings.map((entry) => (
-                <button
-                  aria-checked={entry.id === setting}
-                  className={cn(
-                    "flex flex-col gap-1.5 rounded-2xl border p-4 text-left transition hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                    entry.id === setting && "border-brand/60 bg-brand/8",
-                  )}
+                <PictureTile
+                  alt="AI-generated image"
+                  aspect="aspect-3/4"
+                  caption={entry.title}
                   key={entry.id}
                   onClick={() => setSetting(entry.id)}
-                  role="radio"
-                  type="button"
-                >
-                  <span className="font-semibold">{entry.title}</span>
-                  <span className="text-sm text-soft-foreground">{entry.summary}</span>
-                </button>
+                  position={settingImages[entry.id].position}
+                  pressed={entry.id === setting}
+                  ringOnly
+                  src={settingImages[entry.id].src}
+                  strong
+                  title={entry.summary}
+                />
               ))}
             </div>
-            <p className="text-sm text-soft-foreground">
-              Shots: {chosen.shots.map(({ label }) => label).join(" · ")}
-            </p>
-          </section>
+          </ToolSection>
+        </ToolColumns>
+      ) : (
+        heading
+      )}
 
-          <section className="flex flex-wrap items-center gap-4">
-            <Button
-              disabled={!picked || submitting}
-              onClick={() => picked && void shoot(picked.id)}
-              size="lg"
-              variant="photon"
-            >
-              <CameraIcon />
-              {submitting ? "Starting…" : "Shoot 4 photos"}
-            </Button>
-            <span className="text-sm text-soft-foreground">
-              {picked
-                ? `${characterLabel(picked)} · ${chosen.title} · 4 generations`
-                : "Pick a character first."}
-            </span>
-            {refusal && (
-              <p className="w-full text-sm text-destructive-foreground" role="alert">
-                {refusal.message}
-              </p>
-            )}
-          </section>
-
-          <section aria-labelledby="history-heading" className="flex flex-col gap-4">
-            <h2 className="font-display text-2xl font-semibold" id="history-heading">
-              Earlier photoshoots
-            </h2>
-            {loaded.history.length === 0 ? (
-              <p className="text-soft-foreground">None yet.</p>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {loaded.history.map((entry) => (
-                  <li key={entry.id}>
-                    <Link
-                      className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border p-4 hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                      params={{ photoshootId: entry.id }}
-                      to="/photoshoot/$photoshootId"
-                    >
-                      <span className="font-medium">
-                        {entry.character ? characterLabel(entry.character) : "A character"} ·{" "}
-                        {photoshootSetting(entry.setting).title}
-                      </span>
-                      <time className="text-sm text-muted-foreground" dateTime={entry.created_at}>
-                        {new Date(entry.created_at).toLocaleString()}
-                      </time>
-                      <Badge variant="brand">
-                        {entry.statuses.filter((status) => status === "done").length} of{" "}
-                        {entry.statuses.length} done
-                      </Badge>
-                      <ArrowRightIcon aria-hidden="true" className="ml-auto size-4" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </>
+      {ready && ready.history.length > 0 && (
+        // After the aside in the page's order, so a phone reaches Shoot first; beside it on a wide
+        // screen this stays in the form's column: 340 of aside + 40 of gap.
+        <div className="sm:-mt-1 lg:pr-95">
+          <ToolSection title="Earlier photoshoots">
+            <ul className="grid grid-fill-80 gap-2.5">
+              {ready.history.map((entry) => (
+                <EarlierPhotoshoot entry={entry} key={entry.id} />
+              ))}
+            </ul>
+          </ToolSection>
+        </div>
       )}
     </PhotoshootShell>
   );

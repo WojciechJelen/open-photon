@@ -30,7 +30,7 @@ process.env.COMFY_BASE_URL = "http://127.0.0.1:1";
 
 process.env.IN_FLIGHT_MAX = "1000";
 
-const { characters, motions } = readSelection({}, true);
+const { motions, samples: characters } = readSelection({}, true);
 const motion = motions[0]?.clip;
 const character = characters[0];
 const session = { codeId: findAccessCode(mintCode(100))?.id ?? "" };

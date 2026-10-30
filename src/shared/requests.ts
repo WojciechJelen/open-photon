@@ -45,9 +45,16 @@ export function onApiWrite(listener: () => void) {
   };
 }
 
+/** A request that failed on the way, or an answer that never finished arriving. */
+const noAnswer: Refusal = {
+  message: "The request did not reach the server. Check the connection.",
+};
+
 /**
  * A `fetch` to the app's API: the JSON body of a 2xx answer parsed with `schema`, or the refusal
- * of any other answer (or of no answer at all). An accepted write tells `onApiWrite`'s listeners.
+ * of any other answer (or of no answer at all, an aborted request's or read's too: the caller
+ * checks its signal). An accepted write tells `onApiWrite`'s listeners. A whole body `schema`
+ * rejects throws: that is a bug in the contract, never a bad connection.
  */
 export async function callApi<T extends z.ZodType>(
   schema: T,
@@ -57,10 +64,16 @@ export async function callApi<T extends z.ZodType>(
   const response = await fetch(url, init).catch(() => null);
 
   if (!response) {
-    return { refusal: { message: "The request did not reach the server. Check the connection." } };
+    return { refusal: noAnswer };
   }
 
-  const body = bodySchema.parse(await response.json().catch(() => null));
+  // No body or one that is not JSON is `null`. One cut off on its way (the read aborted, the
+  // connection dropped) rejects with anything else, and is no answer, like a failed `fetch`.
+  const sent = await response
+    .json()
+    .catch((error) => (error instanceof SyntaxError ? null : undefined));
+
+  const body = bodySchema.parse(sent);
 
   if (!response.ok) {
     return { refusal: refusal(response.status, body) };
@@ -72,5 +85,5 @@ export async function callApi<T extends z.ZodType>(
     }
   }
 
-  return { data: schema.parse(body) };
+  return sent === undefined ? { refusal: noAnswer } : { data: schema.parse(body) };
 }

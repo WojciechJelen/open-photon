@@ -33,6 +33,8 @@ test("the result drives its source on one clock, both served in byte ranges", as
     0,
   );
   await expect(result).toHaveAttribute("poster", /^\/media\/[0-9a-f-]{36}\.jpg$/);
+  // The take is disclosed on the picture, whatever the board leaves out.
+  await expect(page.getByRole("main").getByText("AI-generated", { exact: true })).toBeVisible();
   // Only the result is heard: the source is muted.
   expect(await read(source, "muted")).toBe(true);
   expect(await read(result, "muted")).toBe(false);

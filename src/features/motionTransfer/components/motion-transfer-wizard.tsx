@@ -1,16 +1,17 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowRightIcon, ImageIcon, LockIcon, UserIcon, VideoIcon } from "lucide-react";
+import { ArrowRightIcon, ImageIcon, LockIcon, UserRoundIcon, VideoIcon } from "lucide-react";
 import { type ComponentType, useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "#/components/ui/button";
 import { CharacterStep } from "#/features/motionTransfer/components/character-step";
-import { DirectStep } from "#/features/motionTransfer/components/direct-step";
+import { DirectStep, GenerateProblems } from "#/features/motionTransfer/components/direct-step";
 import { MotionStep } from "#/features/motionTransfer/components/motion-step";
 import {
   MotionTransferHeader,
   type HeaderStep,
 } from "#/features/motionTransfer/components/motion-transfer-header";
 import { ShotSlate, type SlateRow } from "#/features/motionTransfer/components/shot-slate";
+import { StepIntro } from "#/features/motionTransfer/components/step-intro";
 import {
   defaultDirection,
   type Direction,
@@ -25,15 +26,16 @@ import {
 import type { loadSelection } from "#/features/motionTransfer/selection.functions";
 import type {
   CharacterPickerProps,
+  ComposerSlots,
   DirectGenerationActionsProps,
   DirectionEditorProps,
 } from "#/features/motionTransfer/slots";
 import { generateHold, useGenerate } from "#/features/motionTransfer/use-generate";
 import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
-import { PageGlow } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
+import { SitePage } from "#/shared/components/site";
+import { ToolColumns } from "#/shared/components/tool-layout";
 import { mediaUrl } from "#/shared/media";
-import { duration } from "#/shared/timecode";
 import { useAccessCode } from "#/shared/use-access-code";
 
 type Selection = Awaited<ReturnType<typeof loadSelection>>;
@@ -47,6 +49,8 @@ type WizardProps = {
   directionEditor: ComponentType<DirectionEditorProps>;
   /** Fills the Direct step's generation actions slot, in the slate (`src/app/composer-slots.ts`). */
   generationActions: ComponentType<DirectGenerationActionsProps>;
+  /** Fills the slate's Look row (`src/app/composer-slots.ts`). */
+  lookName: ComposerSlots["lookName"];
   selection: Selection;
 };
 
@@ -54,6 +58,18 @@ const nextStep: Record<WizardStep, WizardStep> = {
   character: "direct",
   direct: "direct",
   motion: "character",
+};
+
+const intros: Record<WizardStep, { sentence: string; title: string }> = {
+  character: {
+    sentence: "They take on the move, the timing and the framing of your clip.",
+    title: "Who performs it?",
+  },
+  direct: {
+    sentence: "Restyle the character and the scene, or go straight to Generate.",
+    title: "Direct the shot",
+  },
+  motion: { sentence: "Your character performs this move.", title: "Pick a motion" },
 };
 
 /**
@@ -95,6 +111,7 @@ function Wizard({
   draft,
   directionEditor,
   generationActions: GenerationActions,
+  lookName,
   selection,
 }: WizardProps) {
   const navigate = useNavigate();
@@ -189,7 +206,11 @@ function Wizard({
   useEffect(() => {
     if (shownBefore.current !== step) {
       shownBefore.current = step;
-      main.current?.querySelector("h1")?.focus();
+
+      const heading = main.current?.querySelector("h1");
+
+      heading?.setAttribute("tabindex", "-1");
+      heading?.focus();
     }
   }, [step]);
 
@@ -215,40 +236,26 @@ function Wizard({
 
   const motionRow: SlateRow = {
     change: step !== "motion" ? at("motion") : undefined,
-    done: motionChoice !== undefined,
     empty: "Not picked yet",
-    icon: <VideoIcon />,
+    icon: VideoIcon,
     label: "Motion",
-    thumb: motion ? <ClipStill src={mediaUrl(motion)} /> : null,
-    value: motionChoice
-      ? `${sampleMotion?.title ?? "Your clip"}${motion ? ` · ${duration(motion.duration_ms ?? 0)}` : ""}`
-      : null,
+    media: motion ? <ClipStill src={mediaUrl(motion)} /> : undefined,
+    value: motionChoice ? (sampleMotion?.title ?? "Your clip") : null,
   };
 
   const characterRow: SlateRow = {
     change: step === "direct" ? at("character") : undefined,
-    done: characterChoice !== undefined,
     empty: step === "motion" ? "Next step" : "Not picked yet",
-    icon: <UserIcon />,
+    icon: UserRoundIcon,
+    image: character ? mediaUrl(character.image) : undefined,
     label: "Character",
-    thumb: character ? (
-      <img
-        alt=""
-        className="absolute inset-0 size-full object-cover"
-        src={mediaUrl(character.image)}
-      />
-    ) : null,
     value: characterChoice ? (character?.title ?? "Your photo") : null,
   };
 
   const lookRow: SlateRow = {
-    done: false,
-    empty: "From the photo",
-    icon: <ImageIcon />,
+    icon: ImageIcon,
     label: "Look",
-    short: true,
-    thumb: null,
-    value: direction.prompt.trim() || (step === "direct" ? "From the photo" : null),
+    value: lookName(direction.prompt),
   };
 
   const steps: HeaderStep[] = [
@@ -280,118 +287,112 @@ function Wizard({
     ...directionFields(direction),
   });
 
-  const action = (place: "bar" | "panel") =>
+  const action =
     step === "direct" ? (
       // Keyed apart from Continue: React would otherwise turn the clicked Continue into a
       // submit button before the click's default action runs, and submit the form.
-      <GenerationActions
-        draft={shot}
-        formId={formId}
-        key="generate"
-        pending={generate.pending}
-        place={place}
-      />
+      <GenerationActions draft={shot} formId={formId} key="generate" pending={generate.pending} />
     ) : (
       <Button
         disabled={!picked}
         key="continue"
         onClick={() => void navigate({ search: at(nextStep[step]), to: "/motionTransfer" })}
-        size={place === "panel" ? "lg" : "default"}
         type="button"
       >
-        {picked || place === "bar"
-          ? "Continue"
-          : `Pick a ${step === "motion" ? "motion" : "character"} to continue`}
-        {(picked || place === "bar") && <ArrowRightIcon />}
+        <span>{picked ? "Continue" : `Pick a ${step} to continue`}</span>
+        {picked && <ArrowRightIcon />}
       </Button>
     );
 
+  const accessNote = sampleTakeId
+    ? "Uploads and new renders need an access code. Sample pairs already rendered open without one."
+    : "Uploads and new renders need an access code.";
+
   const note =
-    step === "direct"
-      ? "Renders with Wan Animate 2 on open weights. You can leave while it runs."
-      : signedIn
-        ? "Your access code is active: uploads and renders are open."
-        : sampleTakeId
-          ? "Uploads and new renders need an access code. Sample pairs already rendered open without one."
-          : "Uploads and new renders need an access code.";
+    step === "direct" ? "You can leave while it renders." : signedIn ? undefined : accessNote;
 
   const locked = !signedIn && ((motionChoice && !motion) || (characterChoice && !character));
 
   return (
-    <div className="relative isolate min-h-svh">
-      <PageGlow />
-      <MotionTransferHeader onAccess={access.unlock} signedIn={signedIn} steps={steps} />
-      <main
-        className="mx-auto w-full max-w-330 px-4 pt-5 pb-36 sm:px-8 lg:pt-12 lg:pb-18"
-        ref={main}
-      >
-        <div className="flex items-start gap-8">
-          <div className="flex min-w-0 flex-1 flex-col gap-7">
-            {locked && (
-              <section
-                aria-label="Private choices"
-                className="flex flex-wrap items-center gap-3 rounded-2xl border border-warning/40 bg-warning/5 px-5 py-4"
-              >
-                <LockIcon aria-hidden="true" className="size-5 shrink-0 text-warning-foreground" />
-                <p className="min-w-0 flex-1 text-sm text-soft-foreground">
-                  This link names your own {motionChoice && !motion ? "clip" : "photo"}
-                  {motionChoice && !motion && characterChoice && !character ? " and photo" : ""}:
-                  enter the access code to see it here. Generate keeps it and asks for the code too.
-                </p>
-                <Button onClick={access.unlock} size="sm" variant="outline">
-                  Enter code
-                </Button>
-              </section>
-            )}
-            {step === "motion" && (
-              <MotionStep
-                hold={access.hold}
-                motion={motion}
-                motionId={motionChoice}
-                motions={motions}
-                onPick={(assetId) => void pickMotion(assetId)}
-                release={release}
-                signedIn={signedIn}
-              />
-            )}
-            {step === "character" && (
-              <CharacterStep
-                back={at("motion")}
-                character={character}
-                characterId={characterChoice}
-                characters={characters}
-                draft={snapshotDraft({ ...shot, character: undefined })}
-                hold={access.hold}
-                onPick={(id) => void pickCharacter(id)}
-                picker={characterPicker}
-                release={release}
-                signedIn={signedIn}
-              />
-            )}
-            {step === "direct" && (
-              <DirectStep
-                back={at("character")}
-                direction={direction}
-                directionEditor={directionEditor}
-                errors={generate.errors}
-                failure={generate.failure}
-                formId={formId}
-                onChange={changeDirection}
-                onSubmit={() =>
-                  generate.submit({ character: characterChoice, motion: motionChoice }, direction)
-                }
-              />
-            )}
-          </div>
+    <SitePage category="Video" gap={6} mainRef={main} onAccess={access.unlock} top={6}>
+      <MotionTransferHeader steps={steps} />
+      <ToolColumns
+        aside={
           <ShotSlate
             action={action}
-            barRow={step === "motion" ? motionRow : step === "character" ? characterRow : lookRow}
             note={note}
+            problems={
+              step === "direct" && (
+                <GenerateProblems errors={generate.errors} failure={generate.failure} />
+              )
+            }
             rows={[motionRow, characterRow, lookRow]}
           />
-        </div>
-      </main>
+        }
+        asideClassName="sticky top-6"
+        asideLabel="Your shot"
+      >
+        <StepIntro title={intros[step].title}>{intros[step].sentence}</StepIntro>
+        {locked && (
+          <section
+            aria-label="Private choices"
+            className="flex flex-wrap items-center gap-3 rounded-field border border-warning/40 bg-warning/5 px-5 py-4"
+          >
+            <LockIcon
+              aria-hidden="true"
+              className="size-5 shrink-0 text-warning-foreground"
+              strokeWidth={1.75}
+            />
+            <p className="min-w-0 flex-1 basis-60 type-caption text-soft-foreground">
+              This link names your own {motionChoice && !motion ? "clip" : "photo"}
+              {motionChoice && !motion && characterChoice && !character ? " and photo" : ""}: enter
+              the access code to see it here. Generate keeps it and asks for the code too.
+            </p>
+            <Button onClick={access.unlock} size="sm" variant="outline">
+              Enter code
+            </Button>
+          </section>
+        )}
+        {step === "motion" && (
+          <MotionStep
+            hold={access.hold}
+            motion={motion}
+            motionId={motionChoice}
+            motions={motions}
+            onPick={(assetId) => void pickMotion(assetId)}
+            release={release}
+            signedIn={signedIn}
+          />
+        )}
+        {step === "character" && (
+          <CharacterStep
+            character={character}
+            characterId={characterChoice}
+            characters={characters}
+            draft={snapshotDraft({ ...shot, character: undefined })}
+            hold={access.hold}
+            onPick={(id) => void pickCharacter(id)}
+            picker={characterPicker}
+            release={release}
+            signedIn={signedIn}
+          />
+        )}
+        {step === "direct" && (
+          <DirectStep
+            characterImage={character ? mediaUrl(character.image) : null}
+            characterImageAlt={character?.origin === "generated" ? "AI-generated image" : ""}
+            direction={direction}
+            directionEditor={directionEditor}
+            errors={generate.errors}
+            formId={formId}
+            onChange={changeDirection}
+            onSubmit={() =>
+              generate.submit({ character: characterChoice, motion: motionChoice }, direction)
+            }
+          />
+        )}
+      </ToolColumns>
       <AccessCodeDialog {...access.dialog} sampleTakeId={sampleTakeId} />
-    </div>
+    </SitePage>
   );
 }

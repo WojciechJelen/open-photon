@@ -1,7 +1,6 @@
 import { DownloadIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import type { Asset } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
@@ -29,20 +28,20 @@ export function GeneratedFigure({
   downloadLabel?: string;
 }) {
   return (
-    <figure className="flex flex-col gap-3">
+    <figure className="flex min-w-0 flex-col gap-3">
       <div className="relative">
         {children}
-        <span className="absolute top-3.5 left-3.5">
-          <Badge variant="solid">{badge}</Badge>
+        <span className="absolute top-2 left-2 rounded-tag bg-background/66 px-1.75 py-0.75 type-tag text-foreground">
+          {badge}
         </span>
       </div>
-      <figcaption className="text-sm text-soft-foreground">
+      <figcaption className="type-caption text-muted-foreground">
         AI-generated with open-weights models on Open Photon.
       </figcaption>
       {download && (
-        <Button asChild size="lg" variant="outline">
+        <Button asChild variant="outline">
           <a aria-label={downloadLabel} download href={`${mediaUrl(asset)}?download=1`}>
-            <DownloadIcon />
+            <DownloadIcon aria-hidden="true" />
             Download
           </a>
         </Button>
@@ -77,7 +76,7 @@ export function GeneratedImage({
     >
       <img
         alt={place ? `${GENERATED_IMAGE_ALT} (${place})` : GENERATED_IMAGE_ALT}
-        className="w-full rounded-3xl border bg-screen"
+        className="w-full rounded-xl bg-screen"
         height={asset.height ?? undefined}
         src={mediaUrl(asset)}
         width={asset.width ?? undefined}

@@ -4,6 +4,7 @@
 // make up a batch, under the request key that admitted them.
 import { allowanceOf, findAccessCodeById } from "../../../shared/server/access-codes.ts";
 import type { Session } from "../../../shared/server/access.server.ts";
+import { findAsset } from "../../../shared/server/assets.ts";
 import type { Provider } from "../../../shared/server/comfy-provider.ts";
 import { database } from "../../../shared/server/db.server.ts";
 import {
@@ -15,18 +16,21 @@ import { GenerateError } from "../../../shared/server/generation/errors.ts";
 import {
   findLatestAttempt,
   type Generation,
+  readOutputs,
   snapshot,
 } from "../../../shared/server/generation/generations.ts";
 import { type Admit, submitMany } from "../../../shared/server/generation/service.ts";
 import { transaction } from "../../../shared/server/migrate.ts";
 import { getCharacter } from "../../characters/api.ts";
-import type { DraftSnapshot } from "../../motionTransfer/api.ts";
-import { type Batch, batchSchema, type CreateBatchInput } from "../contracts.ts";
+import { type DraftSnapshot, parseDraft } from "../../motionTransfer/api.ts";
+import { type Batch, batchListSchema, batchSchema, type CreateBatchInput } from "../contracts.ts";
 import { planItems } from "../variations.ts";
 import {
+  type BatchRow,
   findBatch,
   findBatchByKey,
   findItems,
+  findMotionTitle,
   insertBatch,
   type ItemRow,
   listBatches,
@@ -86,6 +90,21 @@ function seedOf(row: Generation) {
   return definition && recipe?.success ? definition.seedOf(recipe.data) : null;
 }
 
+/** The clip a batch's takes share, and its title when it is a sample motion's. */
+function motionOf(shot: BatchRow["shot"]) {
+  const { motion } = parseDraft(shot);
+  const asset = motion ? findAsset(motion) : null;
+
+  return motion && asset ? { asset, title: findMotionTitle(motion) } : null;
+}
+
+/** A take's picture on the list of batches: its poster, or its character's until it has one. */
+function thumbnailOf(row: Generation) {
+  const poster = readOutputs(row.id).find(({ name }) => name === "poster")?.asset;
+
+  return poster ?? (row.character_id ? getCharacter(row.character_id) : null)?.image ?? null;
+}
+
 /**
  * A batch with every item's current generation (`batchSchema`); `null` for an id no batch has.
  * Batches need a session, which sees every character of the workspace.
@@ -123,6 +142,7 @@ export function readBatch(id: string): Batch | null {
     id: batch.id,
     items,
     kind: batch.kind,
+    motion: motionOf(batch.shot),
     shot: batch.shot,
   });
 }
@@ -200,8 +220,8 @@ export function createBatch<Input, Recipe extends WorkflowRecipe>(
 
 /**
  * `GET /api/batches`: the workspace's latest batches (one workspace per installation, so every
- * session sees the same ones), each with its items' current statuses, and what the session's
- * access code still allows.
+ * session sees the same ones), each with its items' current statuses and pictures, and what the
+ * session's access code still allows.
  */
 export function listWorkspaceBatches(session: Session) {
   const code = findAccessCodeById(session.codeId);
@@ -210,13 +230,18 @@ export function listWorkspaceBatches(session: Session) {
     throw new GenerateError(401, "Enter an access code to do this.", "access_required");
   }
 
-  return {
+  return batchListSchema.parse({
     allowance: allowanceOf(code),
-    batches: listBatches(LISTED).map((batch) => ({
-      created_at: batch.created_at,
-      id: batch.id,
-      kind: batch.kind,
-      statuses: findItems(batch.id).map((item) => currentGeneration(item).row.status),
-    })),
-  };
+    batches: listBatches(LISTED).map((batch) => {
+      const rows = findItems(batch.id).map((item) => currentGeneration(item).row);
+
+      return {
+        created_at: batch.created_at,
+        id: batch.id,
+        kind: batch.kind,
+        statuses: rows.map((row) => row.status),
+        thumbnails: rows.map(thumbnailOf),
+      };
+    }),
+  });
 }

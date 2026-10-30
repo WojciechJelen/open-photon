@@ -1,28 +1,41 @@
 import { Link } from "@tanstack/react-router";
+import { cn } from "cn";
 import {
-  CheckIcon,
+  CompassIcon,
   DownloadIcon,
-  ExternalLinkIcon,
-  LibraryIcon,
+  HourglassIcon,
+  LockIcon,
+  MaximizeIcon,
+  PlusIcon,
   RotateCwIcon,
   TriangleAlertIcon,
 } from "lucide-react";
-import { type ComponentType, useCallback, useEffect, useReducer, useState } from "react";
+import {
+  type ComponentType,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useReducer,
+  useState,
+} from "react";
 
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
 import { fetchAngleSet, retryView, saveViewToLibrary } from "#/features/angles/angles-client";
 import {
   type AngleSet,
   type AngleSetItem,
+  angleViews,
   VIEW_OUTPUT,
   viewLabels,
 } from "#/features/angles/contracts";
-import { AccessCodeDialog, AccessStatus } from "#/shared/components/access-code-dialog";
-import { Hud, PageGlow } from "#/shared/components/brand";
+import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
 import { GENERATED_IMAGE_ALT } from "#/shared/components/generated-image";
-import { SiteHeader } from "#/shared/components/site";
+import { PageHeading } from "#/shared/components/page-heading";
+import { ResultFigure, SaveToLibrary } from "#/shared/components/result-figure";
+import { SitePage } from "#/shared/components/site";
+import { StableText } from "#/shared/components/stable-text";
+import { StateCard } from "#/shared/components/state-card";
 import { mediaUrl } from "#/shared/media";
 import type { Refusal } from "#/shared/requests";
 import { useAccessCode } from "#/shared/use-access-code";
@@ -77,7 +90,7 @@ function useAngleSet(id: string) {
   return { reload, state };
 }
 
-/** A view's state in words, for its badge and while it has no image. */
+/** A view's state in words, for its name in the list and its card while it has no image. */
 function statusLabel({ position, progress, status }: AngleSetItem["generation"]) {
   switch (status) {
     case "waiting":
@@ -98,15 +111,75 @@ function statusLabel({ position, progress, status }: AngleSetItem["generation"])
   }
 }
 
+/** The card of a view on its way: what it is doing, and that nobody has to stay for it. */
+function pendingCopy(generation: AngleSetItem["generation"]) {
+  if (generation.status !== "waiting") {
+    return { text: "It keeps going, so you can leave.", title: statusLabel(generation) };
+  }
+
+  const ahead = generation.position === null ? 0 : generation.position - 1;
+  const line = ahead > 0 ? `${ahead} ${ahead === 1 ? "take is" : "takes are"} ahead of it. ` : "";
+
+  return { text: `${line}It starts by itself, so you can leave.`, title: "In line" };
+}
+
+const viewGrid = "grid grid-fill-60 gap-4";
+const viewAspect = "aspect-9/14";
+
+/**
+ * A view with no image yet: `ResultFigure`'s box and caption line, without its AI-generated tag,
+ * so the card keeps its size and the picture lands exactly here.
+ */
+function ViewFrame({
+  caption,
+  children,
+  className,
+  meta,
+}: {
+  caption: string;
+  children?: ReactNode;
+  className?: string;
+  meta?: ReactNode;
+}) {
+  return (
+    <figure className="m-0 flex min-w-0 flex-col gap-2.5">
+      <div
+        className={cn(
+          "relative overflow-hidden rounded-field border bg-screen",
+          viewAspect,
+          className,
+        )}
+      >
+        {children}
+      </div>
+      <figcaption className="flex min-w-0 items-baseline justify-between gap-2">
+        <span className="min-w-0 truncate type-label" title={caption}>
+          {caption}
+        </span>
+        {meta && (
+          <span className="max-w-1/2 shrink-0 truncate type-caption text-muted-foreground">
+            {meta}
+          </span>
+        )}
+      </figcaption>
+    </figure>
+  );
+}
+
+// `StateCard` filling a `ViewFrame`: the frame already draws the box.
+const frameCard = "absolute inset-0 min-h-0 rounded-none border-0 bg-transparent p-5";
+
 /** One view of the set: its state, its image once done, and what can be done with it. */
 function ViewCard({
   actions: Actions,
+  backdrop,
   item,
   onAccess,
   onChange,
   setId,
 }: {
   actions?: ComponentType<ViewActionsProps>;
+  backdrop: string | undefined;
   item: AngleSetItem;
   onAccess: (resume: () => void) => void;
   onChange: () => void;
@@ -114,11 +187,13 @@ function ViewCard({
 }) {
   const { generation } = useLiveGeneration(item.generation);
   const label = viewLabels[item.view];
-  const image = generation.outputs.find((output) => output.name === VIEW_OUTPUT);
+  const output = generation.outputs.find((each) => each.name === VIEW_OUTPUT);
+  const image = output?.media === "image" ? output : null;
   const [busy, setBusy] = useState<"retry" | "save" | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [savedId, setSavedId] = useState(item.saved_character_id);
   const saved = savedId ?? item.saved_character_id;
+  const failed = generation.status === "failed" || generation.status === "cancelled";
 
   async function run(kind: "retry" | "save") {
     setBusy(kind);
@@ -142,131 +217,164 @@ function ViewCard({
     }
   }
 
+  const note = saved
+    ? "Saved"
+    : item.attempt > 0
+      ? `Attempt ${item.attempt + 1}`
+      : item.reused && generation.status === "done"
+        ? "Reused, free"
+        : undefined;
+
+  const pending = pendingCopy(generation);
+  const failure = problem ?? generation.error_message ?? "This view failed.";
+
   return (
-    <li
-      aria-label={`${label}: ${statusLabel(generation)}`}
-      className="flex min-w-0 flex-col gap-3 rounded-2xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-3"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="font-medium">{label}</h3>
-        <Badge variant={generation.status === "done" ? "brand" : "default"}>
-          {statusLabel(generation)}
-        </Badge>
-      </div>
-
-      <div className="relative aspect-3/5 overflow-hidden rounded-xl bg-foreground/5">
-        {image && image.media === "image" ? (
-          <>
-            <img
-              alt={`${label} view, ${GENERATED_IMAGE_ALT}`}
-              className="absolute inset-0 size-full object-contain"
-              src={mediaUrl(image.asset)}
-            />
-            <span className="absolute top-2.5 left-2.5">
-              <Badge variant="solid">AI-generated image</Badge>
-            </span>
-          </>
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center text-sm text-soft-foreground">
-            {generation.status === "failed" || generation.status === "cancelled" ? (
-              <>
-                <TriangleAlertIcon
-                  aria-hidden="true"
-                  className="size-5 text-destructive-foreground"
-                />
-                <span className="line-clamp-6">
-                  {generation.error_message ?? "This view failed."}
-                </span>
-              </>
-            ) : generation.status === "unknown" ? (
-              <span className="line-clamp-8">
-                Comfy may have accepted this view before its job was saved, so it is never sent
-                again on its own.
-              </span>
-            ) : (
-              <>
-                <span>{statusLabel(generation)}</span>
-                <div className="w-3/4">
-                  <Progress aria-label={`${label} progress`} value={generation.progress ?? 0} />
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
-      {item.reused && generation.status === "done" && (
-        <p className="text-xs text-muted-foreground">Already rendered: came back free.</p>
-      )}
-      {item.attempt > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Attempt {item.attempt + 1}, after a failure.
-        </p>
-      )}
-
-      {image && image.media === "image" && (
-        <div aria-label={`${label} actions`} className="mt-auto flex flex-col gap-2" role="group">
-          {saved ? (
-            <Button asChild size="sm" variant="outline">
-              <a href={`/characters?selected=${saved}`}>
-                <CheckIcon />
-                Saved to library
-              </a>
-            </Button>
-          ) : (
-            <Button
-              disabled={busy === "save"}
-              onClick={() => void run("save")}
-              size="sm"
-              variant="photon"
+    <li aria-label={`${label}: ${statusLabel(generation)}`} className="min-w-0">
+      {image ? (
+        <ResultFigure
+          actions={
+            <div aria-label={`${label} actions`} className="contents" role="group">
+              <Button aria-label="Download" asChild size="icon" title="Download" variant="scrim">
+                <a download href={`${mediaUrl(image.asset)}?download=1`}>
+                  <DownloadIcon aria-hidden="true" strokeWidth={1.75} />
+                </a>
+              </Button>
+              <SaveToLibrary
+                disabled={busy === "save"}
+                onSave={() => void run("save")}
+                saved={saved}
+                saving={busy === "save"}
+              />
+              {Actions && <Actions generationId={generation.id} output={VIEW_OUTPUT} />}
+              <Button aria-label="Open" asChild size="icon" title="Open" variant="scrim">
+                <Link params={{ generationId: generation.id }} to="/g/$generationId">
+                  <MaximizeIcon aria-hidden="true" strokeWidth={1.75} />
+                </Link>
+              </Button>
+            </div>
+          }
+          aspect={viewAspect}
+          caption={label}
+          meta={note}
+          revealActions
+        >
+          <img
+            alt={`${label} view, ${GENERATED_IMAGE_ALT}`}
+            className="absolute inset-0 size-full object-cover object-top"
+            src={mediaUrl(image.asset)}
+          />
+          {problem && (
+            <p
+              className="absolute inset-x-2.5 top-10 line-clamp-3 rounded-md bg-background/85 px-2.5 py-1.5 type-caption wrap-anywhere text-destructive-foreground"
+              role="alert"
+              title={problem}
             >
-              <LibraryIcon />
-              {busy === "save" ? "Saving…" : "Save to library"}
-            </Button>
+              {problem}
+            </p>
           )}
-          {Actions && <Actions generationId={generation.id} output={VIEW_OUTPUT} />}
-          <div className="flex flex-wrap justify-center gap-1">
-            <Button asChild size="sm" variant="ghost">
-              <a download href={`${mediaUrl(image.asset)}?download=1`}>
-                <DownloadIcon />
-                Download
-              </a>
-            </Button>
-            <Button asChild size="sm" variant="ghost">
-              <Link params={{ generationId: generation.id }} to="/g/$generationId">
-                <ExternalLinkIcon />
-                Open
-              </Link>
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {(generation.status === "failed" || generation.status === "cancelled") && (
-        <div className="mt-auto grid">
-          <Button
-            aria-label={`Retry ${label}`}
-            disabled={busy === "retry"}
-            onClick={() => void run("retry")}
-            size="sm"
-            variant="outline"
-          >
-            <RotateCwIcon />
-            {busy === "retry" ? "Retrying…" : "Retry"}
-          </Button>
-        </div>
-      )}
-
-      {problem && (
-        <p className="text-xs text-destructive-foreground" role="alert">
-          {problem}
-        </p>
+        </ResultFigure>
+      ) : (
+        <ViewFrame caption={label} meta={note}>
+          {failed ? (
+            <StateCard
+              backdrop={backdrop}
+              className={frameCard}
+              heading="h3"
+              icon={TriangleAlertIcon}
+              text={
+                <span className="line-clamp-4" role={problem ? "alert" : undefined} title={failure}>
+                  {failure}
+                </span>
+              }
+              title="This view didn't finish"
+              tone="warning"
+            >
+              <Button
+                aria-label={`Try again: ${label}`}
+                disabled={busy === "retry"}
+                onClick={() => void run("retry")}
+              >
+                <RotateCwIcon aria-hidden="true" />
+                <StableText
+                  current={busy === "retry" ? "Retrying…" : "Try again"}
+                  labels={["Try again", "Retrying…"]}
+                />
+              </Button>
+            </StateCard>
+          ) : generation.status === "unknown" ? (
+            <StateCard
+              backdrop={backdrop}
+              className={frameCard}
+              heading="h3"
+              icon={TriangleAlertIcon}
+              text={
+                <span className="line-clamp-5">
+                  Comfy may have accepted this view before its job was saved, so it is never sent
+                  again on its own.
+                </span>
+              }
+              title="Status unknown"
+              tone="warning"
+            />
+          ) : (
+            <StateCard
+              backdrop={backdrop}
+              className={frameCard}
+              heading="h3"
+              icon={HourglassIcon}
+              text={<span className="block min-h-10">{pending.text}</span>}
+              title={pending.title}
+              tone={backdrop ? "quiet" : "brand"}
+            >
+              <span className="w-full max-w-50">
+                <Progress aria-label={`${label} progress`} value={generation.progress ?? 0} />
+              </span>
+            </StateCard>
+          )}
+        </ViewFrame>
       )}
     </li>
   );
 }
 
-/** The page while it has no set to show: loading, the code needed, no such set, or a failed read. */
+/** The way to a new set, carrying the character when the set still has it. */
+function NewSetLink({ character }: { character?: string }) {
+  return (
+    <Button asChild variant="outline">
+      <Link search={{ character }} to="/angles">
+        <PlusIcon aria-hidden="true" />
+        <span>New set</span>
+      </Link>
+    </Button>
+  );
+}
+
+const subtitle = "Save a view to use it as a character.";
+
+/** The page before the set's first read: its shape, so the views land where they will stay. */
+function SetSkeleton() {
+  return (
+    <>
+      <p className="sr-only" role="status">
+        Loading the angle set…
+      </p>
+      <PageHeading
+        actions={<NewSetLink />}
+        subtitle={subtitle}
+        title={<span className="invisible">Angle set</span>}
+      />
+      <ul aria-hidden="true" className={viewGrid}>
+        {angleViews.map((view) => (
+          <li className="min-w-0" key={view}>
+            <ViewFrame caption={" "} className="motion-safe:animate-pulse" />
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/** The page while it has no set to show: the code needed, no such set, or a failed read. */
 function SetNotice({
   onAccess,
   onRetry,
@@ -274,54 +382,62 @@ function SetNotice({
 }: {
   onAccess: () => void;
   onRetry: () => void;
-  state: Exclude<SetState, { kind: "ready" }>;
+  state: Exclude<SetState, { kind: "loading" | "ready" }>;
 }) {
-  if (state.kind === "loading") {
+  if (state.kind === "missing") {
     return (
-      <p className="text-muted-foreground" role="status">
-        Loading the angle set…
-      </p>
+      <StateCard
+        className="min-h-120"
+        heading="h1"
+        icon={CompassIcon}
+        text="This angle set doesn't exist."
+        title="Nothing here"
+      >
+        <Button asChild variant="outline">
+          <Link to="/angles">Shots & Angles</Link>
+        </Button>
+      </StateCard>
     );
   }
 
-  const notices = {
-    access: { action: "Enter code", onClick: onAccess, text: "Enter the access code to see it." },
-    error: {
-      action: "Try again",
-      onClick: onRetry,
-      text: state.kind === "error" ? state.refusal.message : "",
-    },
-    missing: { action: null, onClick: onRetry, text: "No angle set has this link." },
-  };
-
-  const notice = notices[state.kind];
+  if (state.kind === "access") {
+    return (
+      <StateCard
+        className="min-h-120"
+        heading="h1"
+        icon={LockIcon}
+        text="Enter the access code to see this angle set."
+        title="This needs an access code"
+      >
+        <Button onClick={onAccess} variant="outline">
+          Enter code
+        </Button>
+      </StateCard>
+    );
+  }
 
   return (
-    <section
-      className="flex flex-col items-start gap-4"
-      role={state.kind === "error" ? "alert" : undefined}
-    >
-      <h1 className="font-display text-4xl font-bold tracking-display">
-        {state.kind === "missing" ? "Angle set not found" : "Angle set"}
-      </h1>
-      <p className="text-soft-foreground">{notice.text}</p>
-      {notice.action ? (
-        <Button onClick={notice.onClick} variant="outline">
-          {notice.action}
+    <div role="alert">
+      <StateCard
+        className="min-h-120"
+        heading="h1"
+        icon={TriangleAlertIcon}
+        text={state.refusal.message}
+        title="This angle set didn't load"
+        tone="warning"
+      >
+        <Button onClick={onRetry} variant="outline">
+          Try again
         </Button>
-      ) : (
-        <Link className="underline underline-offset-3" to="/angles">
-          Shots & Angles
-        </Link>
-      )}
-    </section>
+      </StateCard>
+    </div>
   );
 }
 
 /**
- * An angle set at `/angles/:id`: the character it started from and its views side by side, each
- * with its own state, image, Download, Save to library (`createFromGeneration`, once per
- * generation) and `viewActions` from the composition. The views render on the server whether or
+ * An angle set at `/angles/:id`: its views side by side, each keeping one box from waiting to done,
+ * with its own state, image, Save to library (`createFromGeneration`, once per generation),
+ * Download, Open and `viewActions` from the composition. The views render on the server whether or
  * not this page is open. A failed view offers the shared retry (a new seed); an unknown one is
  * never retried: Comfy may still be rendering it.
  */
@@ -341,62 +457,37 @@ export function AngleSetPage({
   );
 
   return (
-    <div className="relative isolate min-h-svh">
-      <PageGlow />
-      <SiteHeader category="Image">
-        {state.kind !== "loading" && (
-          <AccessStatus onOpen={() => onAccess(reload)} signedIn={state.kind !== "access"} />
-        )}
-      </SiteHeader>
-      <main className="mx-auto flex w-full max-w-330 flex-col gap-8 px-4 py-8 sm:px-8 sm:py-12">
-        {state.kind !== "ready" && (
-          <SetNotice onAccess={() => onAccess(reload)} onRetry={reload} state={state} />
-        )}
-        {state.kind === "ready" && (
-          <>
-            <div className="flex flex-wrap items-end justify-between gap-6">
-              <div className="flex items-center gap-4">
-                {state.set.character && (
-                  <img
-                    alt={state.set.character.title ?? "The set's character"}
-                    className="h-24 w-16 rounded-lg border object-cover"
-                    src={mediaUrl(state.set.character.image)}
-                  />
-                )}
-                <div className="flex flex-col gap-2">
-                  <Hud>Shots & Angles · seed {state.set.seed}</Hud>
-                  <h1 className="font-display text-4xl leading-none font-bold tracking-display">
-                    {state.set.character?.title ?? "Your character"}, {state.set.items.length}{" "}
-                    {state.set.items.length === 1 ? "view" : "views"}
-                  </h1>
-                </div>
-              </div>
-              <Button asChild size="sm" variant="outline">
-                <Link search={{ character: state.set.character?.id }} to="/angles">
-                  New angle set
-                </Link>
-              </Button>
-            </div>
-            <ul aria-label="Views" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {state.set.items.map((item) => (
-                <ViewCard
-                  actions={viewActions}
-                  item={item}
-                  key={item.generation.id}
-                  onAccess={onAccess}
-                  onChange={reload}
-                  setId={state.set.id}
-                />
-              ))}
-            </ul>
-            <p className="text-sm text-muted-foreground">
-              Views render one at a time on the server; you can leave this page and come back. A
-              saved view becomes a library character you can animate or use again here.
-            </p>
-          </>
-        )}
-      </main>
+    <SitePage category="Image" gap={7} onAccess={() => onAccess(reload)} top={10}>
+      {state.kind === "loading" && <SetSkeleton />}
+      {state.kind !== "loading" && state.kind !== "ready" && (
+        <SetNotice onAccess={() => onAccess(reload)} onRetry={reload} state={state} />
+      )}
+      {state.kind === "ready" && (
+        <>
+          <PageHeading
+            actions={<NewSetLink character={state.set.character?.id} />}
+            subtitle={subtitle}
+            title={`${state.set.character?.title ?? "Your character"}, ${state.set.items.length} ${
+              state.set.items.length === 1 ? "view" : "views"
+            }`}
+          />
+          <ul aria-label="Views" className={viewGrid}>
+            {state.set.items.map((item) => (
+              <ViewCard
+                actions={viewActions}
+                backdrop={state.set.character ? mediaUrl(state.set.character.image) : undefined}
+                item={item}
+                key={item.generation.id}
+                onAccess={onAccess}
+                onChange={reload}
+                setId={state.set.id}
+              />
+            ))}
+          </ul>
+        </>
+      )}
+
       <AccessCodeDialog {...access.dialog} />
-    </div>
+    </SitePage>
   );
 }

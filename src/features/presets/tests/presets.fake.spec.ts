@@ -79,6 +79,7 @@ test("a look edited in the looks editor renders as the Effective direction says 
   await open(page, "/presets/golden-hour-rooftop");
   await page.getByRole("button", { name: "Theo" }).click();
   await expect(page).toHaveURL(/character=/);
+  await page.getByRole("button", { name: "Adjust" }).click();
   await page.getByRole("textbox", { name: /Look/ }).fill("A dancer on a rooftop.");
   await page.getByRole("button", { exact: true, name: "Low-key" }).click();
   await page.getByRole("textbox", { name: "Seed" }).fill("99");
@@ -115,6 +116,7 @@ test("a background picked on a preset takes the place of the preset's in the tak
   await open(page, "/presets/neon-night");
   await page.getByRole("button", { name: "Kenji" }).click();
   await expect(page).toHaveURL(/character=/);
+  await page.getByRole("button", { name: "Adjust" }).click();
   await page.getByRole("button", { exact: true, name: "Neon street" }).click();
   await expect(page.getByLabel("Prompt sent")).toHaveText(effective);
   await page.getByRole("button", { exact: true, name: "Generate" }).click();

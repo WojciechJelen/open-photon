@@ -25,6 +25,7 @@ function MotionTransfer() {
       directionEditor={composerSlots.directionEditor}
       draft={Route.useSearch()}
       generationActions={composerSlots.directGenerationActions}
+      lookName={composerSlots.lookName}
       selection={Route.useLoaderData()}
     />
   );

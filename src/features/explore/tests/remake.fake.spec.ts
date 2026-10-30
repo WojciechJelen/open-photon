@@ -73,7 +73,7 @@ test("Explore → Make this with my character → upload a photo → Generate en
 
   await open(page, "/explore");
   await page
-    .getByRole("list", { name: "Examples" })
+    .getByRole("list", { name: "Takes" })
     .getByRole("link", { name: new RegExp(`^${example.title} performs`) })
     .click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
@@ -101,15 +101,16 @@ test("Explore → Make this with my character → upload a photo → Generate en
     await expect(page.getByLabel("Prompt sent")).toHaveText(look);
     await expect(page.getByLabel("Look")).toHaveValue(words);
 
-    for (const pick of ["Sunny beach", "Golden hour"]) {
-      await expect(page.getByRole("button", { exact: true, name: pick })).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
-    }
+    await expect(page.getByRole("button", { exact: true, name: "Sunny beach" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
 
-    // The seed shows on the folded Advanced section's button.
-    await expect(page.getByRole("button", { name: /^Advanced/ })).toContainText(`Seed: ${seed}`);
+    // The lighting pick and the seed show on the folded Advanced section's button.
+    const advanced = page.getByRole("button", { name: /^Advanced/ });
+
+    await expect(advanced).toContainText("Golden hour");
+    await expect(advanced).toContainText(`Seed: ${seed}`);
   };
 
   await direct();
@@ -165,6 +166,9 @@ test("remaking a sample rendered with the workflow's defaults shows its look and
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     `${sample.title} performs Street dance`,
   );
+  await expect(page.getByRole("complementary", { name: "The recipe" })).toContainText(
+    "From the photo",
+  );
   await page.getByRole("link", { exact: true, name: "Make this with my character" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who performs it?");
   await page.locator("html[data-hydrated]").waitFor();
@@ -175,13 +179,13 @@ test("remaking a sample rendered with the workflow's defaults shows its look and
   // it (no picks) and sent as it is spelled.
   await expect(page.getByLabel("Look")).toHaveValue(defaults.prompt);
   await expect(page.getByLabel("Prompt sent")).toHaveText(defaults.prompt);
-  await expect(page.getByRole("list", { name: "Your picks" })).toHaveCount(0);
 
   // The seed is the number, on the folded Advanced section's button and in its field.
   const advanced = page.getByRole("button", { name: /^Advanced/ });
 
   await expect(advanced).toContainText(`Seed: ${defaults.seed}`);
   await advanced.click();
+  await expect(page.getByRole("list", { name: "Your picks" })).toHaveCount(0);
   await expect(page.getByLabel("Seed", { exact: true })).toHaveValue(String(defaults.seed));
   expect(count("generations", database)).toBe(generations);
 

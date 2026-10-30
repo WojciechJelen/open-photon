@@ -1,12 +1,18 @@
 import { createRootRoute, HeadContent, Link, Scripts } from "@tanstack/react-router";
 import { useEffect } from "react";
 
+import { Button } from "#/components/ui/button";
 import favicon from "#/shared/assets/favicon.svg?url";
 import { Problem } from "#/shared/components/problem";
+import { loadSession } from "#/shared/session.functions";
 
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
+  // The header knows the session from the first paint. A page's sign-in reads it again
+  // (`router.invalidate()`); from then on `useSession` keeps it current, without a loader per route.
+  loader: () => loadSession().catch(() => null),
+  staleTime: Number.POSITIVE_INFINITY,
   head: () => ({
     meta: [
       {
@@ -40,14 +46,16 @@ export const Route = createRootRoute({
   // A page that failed to load (a loader or render error) and a path no route has; each reloads
   // the studio, a fresh start.
   errorComponent: () => (
-    <Problem title="Something went wrong">
-      <p>This page could not be shown. Please try again.</p>
+    <Problem
+      text="This page could not be shown. Please try again."
+      title="Something went wrong"
+      tone="warning"
+    >
       <BackHome />
     </Problem>
   ),
   notFoundComponent: () => (
-    <Problem title="Page not found">
-      <p>There is nothing at this address.</p>
+    <Problem title="Nothing here">
       <BackHome />
     </Problem>
   ),
@@ -75,8 +83,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 function BackHome() {
   return (
-    <Link className="self-start text-foreground underline underline-offset-3" reloadDocument to="/">
-      Back to Open Photon
-    </Link>
+    <Button asChild variant="outline">
+      <Link reloadDocument to="/">
+        Back to Open Photon
+      </Link>
+    </Button>
   );
 }

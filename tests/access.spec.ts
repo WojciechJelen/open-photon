@@ -81,7 +81,7 @@ test.describe("without a session", () => {
         url.searchParams.get("character") === characterId &&
         /^[0-9a-f-]{36}$/.test(url.searchParams.get("motion") ?? ""),
     );
-    await expect(page.getByText("Code active").filter({ visible: true })).toBeVisible();
+    await expect(page.getByRole("banner").getByText(/\d+ renders?$/)).toBeVisible();
   });
 
   test("a clip left waiting for the code uploads once the visitor signs in another way", async ({
@@ -204,7 +204,11 @@ test.describe("without a session", () => {
         (url) => url.pathname === "/characters/new" && url.search === "",
       );
       await expect(page.getByRole("heading", { name: "Describe your character" })).toBeVisible();
-      await expect(page.getByText("Code active")).toBeVisible();
+      // On a phone the session is in the menu.
+      await page.getByRole("button", { name: "Open the menu" }).click();
+      await expect(
+        page.getByRole("dialog", { name: "Menu" }).getByText(/\d+ renders?$/),
+      ).toBeVisible();
     };
 
     await open(page, link);

@@ -1,3 +1,4 @@
+import { DatabaseSync } from "node:sqlite";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { expect, type Page, test } from "@playwright/test";
@@ -8,7 +9,7 @@ import { addPrerenderedTakes, count, open, seededResult } from "../../../../test
 // may submit a job.
 test.use({ storageState: { cookies: [], origins: [] } });
 
-const examples = (page: Page) => page.getByRole("list", { name: "Examples" });
+const examples = (page: Page) => page.getByRole("list", { name: "Takes" });
 
 /** Whether the page scrolls sideways. */
 const scrollsSideways = (page: Page) =>
@@ -43,18 +44,31 @@ test("on an installation that has pre-rendered nothing, the gallery says why it 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Finished takes, ready to remake",
     );
-    await expect(page.getByRole("heading", { name: "No examples yet" })).toBeVisible();
-    await expect(page.getByText("there are none here yet")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "No takes yet" })).toBeVisible();
+    await expect(page.getByText("Sample takes show up here")).toBeVisible();
     await expect(page.getByText("scripts/prerender-samples.mjs")).toBeVisible();
-    await expect(page.getByRole("list", { name: "Examples" })).toHaveCount(0);
+    await expect(examples(page)).toHaveCount(0);
     expect(await scrollsSideways(page)).toBe(false);
+
+    // On a phone the navigation is in the menu.
+    const menu = page.getByRole("button", { name: "Open the menu" });
+    const phone = await menu.isVisible();
+
+    if (phone) {
+      await menu.click();
+    }
+
     await expect(
       page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Explore" }),
     ).toHaveAttribute("aria-current", "page");
+
+    if (phone) {
+      await page.getByRole("button", { name: "Close the menu" }).click();
+    }
   }
 
   // The next step works: it opens the wizard on motion selection.
-  await page.getByRole("link", { name: "Start a shot in Motion Transfer" }).click();
+  await page.getByRole("link", { name: "Start a shot" }).click();
   await expect(page).toHaveURL(/\/motionTransfer(\?step=motion)?$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pick a motion");
 });
@@ -64,6 +78,19 @@ test.describe("with the pre-rendered sample takes", () => {
 
   test.beforeAll(() => {
     prerendered = addPrerenderedTakes();
+
+    // A second look, so the gallery has a look to filter by: the last take's.
+    const writable = new DatabaseSync(process.env.E2E_DATABASE_PATH ?? "");
+
+    try {
+      writable
+        .prepare(
+          "UPDATE generations SET recipe = json_set(recipe, '$.params.prompt', ?) WHERE id = ?",
+        )
+        .run("A plain studio look.", prerendered.takes.at(-1)?.id ?? "");
+    } finally {
+      writable.close();
+    }
   });
 
   test.afterAll(() => prerendered.remove());
@@ -79,7 +106,7 @@ test.describe("with the pre-rendered sample takes", () => {
 
     // Every pre-rendered take, and not the seeded take, which is published but not curated.
     await expect(examples(page).getByRole("listitem")).toHaveCount(prerendered.takes.length);
-    await expect(page.getByRole("status")).toHaveText(`${prerendered.takes.length} examples`);
+    await expect(page.getByRole("status")).toHaveText(`${prerendered.takes.length} takes`);
     await expect(examples(page).locator(`a[href="/explore/${seededSlug}"]`)).toHaveCount(0);
 
     for (const take of prerendered.takes) {
@@ -90,34 +117,37 @@ test.describe("with the pre-rendered sample takes", () => {
       ).toHaveAttribute("href", `/explore/${take.shareSlug}`);
     }
 
-    // Filters: one motion and one look, each a toggle that keeps the URL.
-    const motions = page.getByRole("group", { name: "Filter by motion" });
+    // Every take shown says it is generated.
+    await expect(examples(page).getByText("AI-generated", { exact: true })).toHaveCount(
+      prerendered.takes.length,
+    );
 
-    await motions.getByRole("button", { name: "Street dance" }).click();
+    // Filters: one motion and one look, each a toggle that keeps the URL.
+    const motions = page.getByRole("radiogroup", { name: "Filter by motion" });
+
+    await motions.getByRole("radio", { name: "Street dance" }).click();
     await expect(page).toHaveURL(/\/explore\?motion=street-dance$/);
-    await expect(motions.getByRole("button", { name: "Street dance" })).toHaveAttribute(
-      "aria-pressed",
+    await expect(motions.getByRole("radio", { name: "Street dance" })).toHaveAttribute(
+      "aria-checked",
       "true",
     );
     await expect(examples(page).getByRole("listitem")).toHaveCount(prerendered.takes.length);
 
     await page
-      .getByRole("group", { name: "Filter by look" })
-      .getByRole("button", { name: "e2e seeded result" })
+      .getByRole("radiogroup", { name: "Filter by look" })
+      .getByRole("radio", { name: "e2e seeded result" })
       .click();
     await expect(page).toHaveURL(/look=[0-9a-f]{12}/);
-    await expect(examples(page).getByRole("listitem")).toHaveCount(prerendered.takes.length);
+    await expect(examples(page).getByRole("listitem")).toHaveCount(prerendered.takes.length - 1);
 
     // A filter nothing matches has its own empty state.
     await open(page, "/explore?motion=moonwalk");
-    await expect(
-      page.getByRole("heading", { name: "No example matches these filters" }),
-    ).toBeVisible();
-    await expect(page.getByRole("status")).toHaveText(`0 of ${prerendered.takes.length} examples`);
+    await expect(page.getByRole("heading", { name: "No takes match" })).toBeVisible();
+    await expect(page.getByRole("status")).toHaveText(`0 of ${prerendered.takes.length} takes`);
     await page.getByRole("button", { name: "Clear filters" }).click();
     await expect(examples(page).getByRole("listitem")).toHaveCount(prerendered.takes.length);
 
-    // An example's page: the sample clip beside the result, and the recipe in words.
+    // An example's page: the sample clip beside the result, the recipe, and the rest of it folded.
     const [first] = prerendered.takes;
 
     if (!first) {
@@ -137,14 +167,25 @@ test.describe("with the pre-rendered sample takes", () => {
 
     await expect(source).toHaveAttribute("src", `/media/${sourceAssetId}.mp4`);
     await expect(
-      comparison.locator(`video[aria-label="Result: ${first.title} performs Street dance"]`),
+      comparison.locator(
+        `video[aria-label="AI-generated result: ${first.title} performs Street dance"]`,
+      ),
     ).toHaveAttribute("src", /\/media\/[0-9a-f-]{36}\.mp4$/);
+
+    // The take is tagged as generated; the source clip is not generated, so it is not.
+    await expect(comparison.getByText("AI-generated", { exact: true })).toHaveCount(1);
+
+    const panel = page.getByRole("complementary", { name: "The recipe" });
+
+    await expect(panel).toContainText("Street dance");
+    await expect(panel).toContainText(first.title);
+    await expect(panel).toContainText("e2e seeded result");
+
+    await panel.getByRole("button", { name: "Full recipe" }).click();
 
     const recipe = page.getByRole("definition");
 
     await expect(page.getByRole("term")).toHaveText([
-      "Motion",
-      "Character",
       "Look",
       "Seed",
       "Size",
@@ -152,8 +193,8 @@ test.describe("with the pre-rendered sample takes", () => {
       "Models",
       "Rendered on",
     ]);
-    await expect(recipe.nth(2)).toHaveText("e2e seeded result");
-    await expect(recipe.nth(3)).toHaveText("1");
+    await expect(recipe.nth(0)).toHaveText("e2e seeded result");
+    await expect(recipe.nth(1)).toHaveText("1");
     await expect(page.getByRole("link", { name: "Share page" })).toHaveAttribute(
       "href",
       new URL(`/r/${first.shareSlug}`, page.url()).href,
@@ -173,7 +214,7 @@ test.describe("with the pre-rendered sample takes", () => {
     // The seeded take is published but not curated: no Explore page for it.
     await open(page, `/explore/${seededSlug}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "This example is no longer in Explore",
+      "This take is no longer in Explore",
     );
     await page.getByRole("link", { name: "Browse Explore" }).click();
     await expect(examples(page).getByRole("listitem")).toHaveCount(prerendered.takes.length);
@@ -196,14 +237,14 @@ test.describe("with the pre-rendered sample takes", () => {
     await open(page, "/explore");
 
     const streetDance = page
-      .getByRole("group", { name: "Filter by motion" })
-      .getByRole("button", { name: "Street dance" });
+      .getByRole("radiogroup", { name: "Filter by motion" })
+      .getByRole("radio", { name: "Street dance" });
 
     await streetDance.focus();
     await page.keyboard.press("Enter");
-    await expect(streetDance).toHaveAttribute("aria-pressed", "true");
+    await expect(streetDance).toHaveAttribute("aria-checked", "true");
 
-    // Tab on from the filters to the first example, then to its remake action.
+    // Tab on from the filters to the first take.
     const card = examples(page).getByRole("link", { name: new RegExp(`^${first.title} performs`) });
 
     for (
@@ -275,11 +316,6 @@ test.describe("with the pre-rendered sample takes", () => {
 
     expect(overflowing).toBe(0);
 
-    // Each card shows its seed on a line of its own, whatever the length of its look.
-    for (const card of await examples(page).getByRole("listitem").all()) {
-      await expect(card.getByText(/^Seed \d+$/)).toBeVisible();
-    }
-
     await open(page, `/explore/${first.shareSlug}`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     expect(await scrollsSideways(page)).toBe(false);
@@ -318,8 +354,8 @@ test.describe("with the pre-rendered sample takes", () => {
     await examples(page)
       .getByRole("link", { name: new RegExp(`^${first.title} performs`) })
       .click();
-    await expect(page.getByRole("status")).toHaveText("Loading the example…");
-    await expect(page.getByRole("alert")).toContainText("This example could not be loaded");
+    await expect(page.getByRole("status")).toHaveText("Loading the take…");
+    await expect(page.getByRole("alert")).toContainText("This take didn't load");
 
     failing = false;
     await page.getByRole("button", { name: "Try again" }).click();
@@ -360,13 +396,13 @@ test.describe("with the pre-rendered sample takes", () => {
       await context.setOffline(true);
       await card.click();
       await expect(page.getByRole("alert"), `${visit} visit`).toContainText(
-        "This example could not be loaded",
+        "This take didn't load",
       );
       expect(page.url()).toBe(new URL(`/explore/${first.shareSlug}`, page.url()).href);
 
       // Still offline, Try again says the same; online, it loads the example in place.
       await page.getByRole("button", { name: "Try again" }).click();
-      await expect(page.getByRole("alert")).toContainText("This example could not be loaded");
+      await expect(page.getByRole("alert")).toContainText("This take didn't load");
       await context.setOffline(false);
       await page.getByRole("button", { name: "Try again" }).click();
       await expect(heading).toHaveText(`${first.title} performs Street dance`);

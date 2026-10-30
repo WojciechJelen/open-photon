@@ -45,7 +45,7 @@ test("a sample motion plays as a muted loop, and picking it names its clip in th
     "true",
   );
   await expect(page.getByRole("complementary", { name: "Your shot" })).toContainText(
-    "Street dance · 5.0 s",
+    "Street dance",
   );
 });
 

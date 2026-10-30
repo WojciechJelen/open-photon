@@ -1,70 +1,96 @@
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { CompassIcon, KeyRoundIcon, TriangleAlertIcon } from "lucide-react";
+import {
+  type ComponentProps,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { Button } from "#/components/ui/button";
-import { AccessCodeDialog, AccessStatus } from "#/shared/components/access-code-dialog";
-import { PageGlow } from "#/shared/components/brand";
-import { SiteHeader } from "#/shared/components/site";
+import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
+import { SitePage } from "#/shared/components/site";
+import { StateCard } from "#/shared/components/state-card";
 import type { Refusal } from "#/shared/requests";
 import { useAccessCode } from "#/shared/use-access-code";
 import { useRequestSignal } from "#/shared/use-request-signal";
 
-/** What a photoshoot page has read: nothing yet, a refusal for the code, another refusal, or `T`. */
+/**
+ * What a photoshoot page has read: nothing yet, a refusal for the code, a record that is not there,
+ * another refusal, or `T`.
+ */
 export type Loaded<T> =
   | { kind: "loading" }
   | { kind: "access" }
+  | { kind: "missing" }
   | { kind: "error"; refusal: Refusal }
   | ({ kind: "ready" } & T);
 
 /**
- * The frame of both photoshoot pages: the header with the access status, the loading, access and
- * error states of what the page reads, and the page's access-code dialog; `children` once ready.
+ * The frame of both photoshoot pages: the header with the access status, the access, missing and
+ * error states of what the page reads, and the page's access-code dialog. `children` draw the rest,
+ * loading included (their own boxes, empty); `SitePage`'s `top` and `gap` follow each page's board.
  */
 export function PhotoshootShell({
   access,
   askForCode,
   children,
+  gap,
   locked,
   loaded,
+  top,
   waiting,
 }: {
   access: ReturnType<typeof useAccessCode>;
   askForCode: () => void;
   children: ReactNode;
+  gap: ComponentProps<typeof SitePage>["gap"];
   locked: string;
   loaded: Loaded<object>;
+  top: ComponentProps<typeof SitePage>["top"];
   waiting: string;
 }) {
   return (
-    <div className="relative isolate min-h-svh">
-      <PageGlow />
-      <SiteHeader category="Image">
-        {loaded.kind !== "loading" && (
-          <AccessStatus onOpen={askForCode} signedIn={loaded.kind !== "access"} />
-        )}
-      </SiteHeader>
-      <main className="mx-auto flex w-full max-w-330 flex-col gap-8 px-4 py-8 sm:px-8 sm:py-12">
-        {children}
-        {loaded.kind === "loading" && (
-          <p className="text-muted-foreground" role="status">
-            {waiting}
-          </p>
-        )}
-        {loaded.kind === "access" && (
-          <div className="flex flex-col items-start gap-3">
-            <p className="text-soft-foreground">{locked}</p>
-            <Button onClick={askForCode} variant="outline">
-              Enter code
-            </Button>
-          </div>
-        )}
-        {loaded.kind === "error" && (
-          <p className="text-destructive-foreground" role="alert">
-            {loaded.refusal.message}
-          </p>
-        )}
-      </main>
+    <SitePage category="Image" gap={gap} onAccess={askForCode} top={top}>
+      {children}
+      {loaded.kind === "loading" && (
+        <p className="sr-only" role="status">
+          {waiting}
+        </p>
+      )}
+      {loaded.kind === "access" && (
+        <StateCard icon={KeyRoundIcon} text={locked} title="This needs an access code">
+          <Button onClick={askForCode} variant="outline">
+            Enter code
+          </Button>
+        </StateCard>
+      )}
+      {loaded.kind === "missing" && (
+        <StateCard
+          className="min-h-120"
+          heading="h1"
+          icon={CompassIcon}
+          text="This photoshoot doesn't exist."
+          title="Nothing here"
+        >
+          <Button asChild variant="outline">
+            <Link to="/photoshoot">New photoshoot</Link>
+          </Button>
+        </StateCard>
+      )}
+      {loaded.kind === "error" && (
+        <StateCard
+          icon={TriangleAlertIcon}
+          text={<span role="alert">{loaded.refusal.message}</span>}
+          title="This didn't load"
+          tone="warning"
+        />
+      )}
+
       <AccessCodeDialog {...access.dialog} />
-    </div>
+    </SitePage>
   );
 }
 
@@ -103,9 +129,11 @@ export function usePhotoshootRead<T extends object>(
       }
 
       if ("refusal" in result) {
+        const { reason } = result.refusal;
+
         setLoaded(
-          result.refusal.reason === "access_required"
-            ? { kind: "access" }
+          reason === "access_required" || reason === "not_found"
+            ? { kind: reason === "not_found" ? "missing" : "access" }
             : { kind: "error", refusal: result.refusal },
         );
 

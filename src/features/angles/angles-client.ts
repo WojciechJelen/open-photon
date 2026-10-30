@@ -1,11 +1,6 @@
 // Shots & Angles' client calls: its own endpoints and the shared retry of a view's generation.
 // Client-safe.
-import {
-  type AngleView,
-  angleSetListSchema,
-  angleSetSchema,
-  type AngleSetItem,
-} from "#/features/angles/contracts";
+import { type AngleView, angleSetSchema, type AngleSetItem } from "#/features/angles/contracts";
 import { characterSummarySchema } from "#/features/characters";
 import { generationReceiptSchema } from "#/shared/contracts";
 import { callApi } from "#/shared/requests";
@@ -27,11 +22,6 @@ export function postAngleSet(characterId: string, views: AngleView[], requestKey
 /** `GET /api/angle-sets/:id`. */
 export function fetchAngleSet(id: string, signal?: AbortSignal) {
   return callApi(angleSetSchema, `/api/angle-sets/${id}`, { headers: json, signal });
-}
-
-/** `GET /api/angle-sets`: the workspace's latest sets. */
-export function fetchAngleSets(signal?: AbortSignal) {
-  return callApi(angleSetListSchema, "/api/angle-sets", { headers: json, signal });
 }
 
 /** Saves view `position` of set `setId` to the library (`{}`: no title); idempotent. */

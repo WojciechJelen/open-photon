@@ -70,7 +70,7 @@ async function storeFixture(
 
 // One `done` generation for `/g/:id`: the sample motion as its source, a 5 s H.264 + AAC result
 // (`tests/fixtures/result-5s.mp4`) and its poster. No provider was involved.
-const { characters, motions } = readSelection({}, true);
+const { motions, samples: characters } = readSelection({}, true);
 const clip = motions[0]?.clip;
 const character = characters[0];
 

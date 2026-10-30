@@ -30,14 +30,20 @@ type GenerateState =
   | { kind: "refused"; refusal: Refusal };
 
 /**
- * Generate from a preset's page. The choices are checked against `presetGenerateInputSchema` in
- * the browser first: an invalid form says which fields are wrong (`errors`) without calling the
- * server. Otherwise `POST /api/presets/:presetId/generations` starts (or reuses) the take, which
- * opens at `/g/:id`, Motion Transfer's result page. The server's refusal is `failure` (a stale or
- * unavailable preset says so in its `reason`); one that needs the access code is held for it
- * (`hold`) and sent again with the same `request_key` once the code works, so it starts once.
+ * Generate from a preset's page, for the choices as they stand. They are checked against
+ * `presetGenerateInputSchema` in the browser first: `submit` on an invalid form returns the fields
+ * that are wrong, and `errors` lists them until each is fixed, without calling the server.
+ * Otherwise `POST /api/presets/:presetId/generations` starts (or reuses) the take, which opens at
+ * `/g/:id`, Motion Transfer's result page. The server's refusal is `failure` (a stale or unavailable
+ * preset says so in its `reason`); one that needs the access code is held for it (`hold`) and sent
+ * again with the same `request_key` once the code works, so it starts once.
  */
-export function usePresetGenerate(preset: Preset, hold: HoldForCode) {
+export function usePresetGenerate(
+  preset: Preset,
+  character: string | undefined,
+  direction: Direction,
+  hold: HoldForCode,
+) {
   const navigate = useNavigate();
   const [state, setState] = useState<GenerateState>({ kind: "idle" });
   const nextSignal = useRequestSignal();
@@ -77,28 +83,26 @@ export function usePresetGenerate(preset: Preset, hold: HoldForCode) {
     }
   };
 
-  const submit = (character: string | undefined, direction: Direction) => {
-    const checked = presetGenerateInputSchema.safeParse(
-      presetRequest(preset, character, direction),
-    );
+  const checked = presetGenerateInputSchema.safeParse(presetRequest(preset, character, direction));
 
+  const invalid = (checked.error?.issues ?? []).flatMap(({ path }) => {
+    const field = presetFieldSchema.safeParse(path[0]);
+
+    return field.success ? [field.data] : [];
+  });
+
+  const submit = () => {
     if (checked.success) {
       void post(checked.data, crypto.randomUUID());
-
-      return;
+    } else {
+      setState({ errors: [...new Set(invalid)], kind: "invalid" });
     }
 
-    const fields = checked.error.issues.flatMap(({ path }) => {
-      const field = presetFieldSchema.safeParse(path[0]);
-
-      return field.success ? [field.data] : [];
-    });
-
-    setState({ errors: [...new Set(fields)], kind: "invalid" });
+    return invalid;
   };
 
   return {
-    errors: state.kind === "invalid" ? state.errors : [],
+    errors: state.kind === "invalid" ? state.errors.filter((field) => invalid.includes(field)) : [],
     failure: state.kind === "refused" ? state.refusal : null,
     pending: state.kind === "pending",
     submit,

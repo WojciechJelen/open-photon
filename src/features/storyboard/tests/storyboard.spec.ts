@@ -15,7 +15,9 @@ test("a scene split that cannot reach Comfy is reported; the four cards stay edi
   await open(page, "/storyboards");
   await page.getByRole("button", { name: "Kenji" }).click();
   await page.getByRole("radio", { name: "Photo" }).click();
-  await page.getByLabel("Sequence").fill(`Kenji walks his dog through a park at dawn, run ${run}.`);
+  await page
+    .getByLabel("What happens")
+    .fill(`Kenji walks his dog through a park at dawn, run ${run}.`);
   await page.getByRole("button", { name: "Create storyboard" }).click();
 
   await expect(page).toHaveURL(/\/storyboards\/[0-9a-f-]{36}$/);
@@ -29,7 +31,16 @@ test("a scene split that cannot reach Comfy is reported; the four cards stay edi
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("button", { name: "Saved" })).toBeDisabled();
 
+  // Rename turns the title into a field; the new title is saved the same way.
+  await page.getByRole("button", { name: "Rename" }).click();
+  await page.getByRole("textbox", { exact: true, name: "Title" }).fill(`Dawn walk ${run}`);
+  await page.getByRole("textbox", { exact: true, name: "Title" }).press("Enter");
+  await expect(page.getByRole("heading", { level: 1, name: `Dawn walk ${run}` })).toBeVisible();
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("button", { name: "Saved" })).toBeDisabled();
+
   await page.reload();
+  await expect(page.getByRole("heading", { level: 1, name: `Dawn walk ${run}` })).toBeVisible();
   await expect(page.getByLabel("Scene 1 description")).toHaveValue(
     `Wide shot of a park at dawn, run ${run}.`,
   );

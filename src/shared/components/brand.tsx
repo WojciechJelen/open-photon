@@ -24,10 +24,10 @@ export function BrandLogo({ className }: { className?: string }) {
 export function BrandMark() {
   return (
     <Link
-      className="inline-flex min-h-11 items-center gap-2.5 rounded-md font-display text-lg font-bold tracking-tight text-foreground focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring"
+      className="inline-flex h-11 shrink-0 items-center gap-2 rounded-md type-brand whitespace-nowrap text-foreground focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring nav:gap-2.5"
       to="/"
     >
-      <BrandLogo />
+      <BrandLogo className="size-5.5 nav:size-6" />
       Open Photon
     </Link>
   );
@@ -105,18 +105,5 @@ export function Viewfinder({
       <span className={cn(corner, "bottom-0 left-0 border-b-2 border-l-2")} />
       <span className={cn(corner, "right-0 bottom-0 border-r-2 border-b-2")} />
     </span>
-  );
-}
-
-/** The soft violet and magenta light that falls on the top of every page. */
-export function PageGlow() {
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-200 overflow-hidden"
-    >
-      <div className="absolute -top-96 right-0 size-240 translate-x-1/4 rounded-full bg-brand/14 blur-3xl" />
-      <div className="absolute -top-64 -left-48 size-160 rounded-full bg-brand-2/6 blur-3xl" />
-    </div>
   );
 }

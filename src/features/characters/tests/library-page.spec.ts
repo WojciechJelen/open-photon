@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
-import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
+import { type APIRequestContext, expect, type Locator, type Page, test } from "@playwright/test";
 
 import {
   accessCode,
@@ -56,6 +56,12 @@ const cardNames = (page: Page) =>
 /** A name no other test uses. */
 const unique = (prefix: string) => `${prefix} ${randomBytes(3).toString("hex")}`;
 
+/** Chooses `item` in a card's menu. */
+async function choose(page: Page, article: Locator, item: "Details" | "Rename") {
+  await article.getByRole("button", { name: /^More for / }).click();
+  await page.getByRole("menuitem", { name: item }).click();
+}
+
 test("a photo uploaded with consent joins the library, newest first, and stays after a reload and in a new session", async ({
   browser,
   page,
@@ -63,7 +69,7 @@ test("a photo uploaded with consent joins the library, newest first, and stays a
   const uploads = count("characters WHERE origin = 'upload'");
 
   await open(page, "/characters");
-  await expect(page.getByText("Shared workspace")).toBeVisible();
+  await expect(page.getByText("Shared with everyone in this workspace.")).toBeVisible();
   // The composition links the builder: no draft to carry from here.
   await expect(page.getByRole("link", { name: "Describe a character" })).toHaveAttribute(
     "href",
@@ -71,9 +77,9 @@ test("a photo uploaded with consent joins the library, newest first, and stays a
   );
   await expect(grid(page)).toBeVisible();
 
-  const upload = page.getByRole("region", { name: "Add a photo" });
+  const upload = page.getByRole("dialog", { name: "Add a photo" });
 
-  await upload.getByLabel("Upload a photo").setInputFiles(uniquePng());
+  await page.getByLabel("Upload a photo").setInputFiles(uniquePng());
   await expect(upload.getByRole("img", { name: "The photo you picked" })).toBeVisible();
 
   const submit = upload.getByRole("button", { name: "Add to library" });
@@ -90,8 +96,9 @@ test("a photo uploaded with consent joins the library, newest first, and stays a
 
   await expect(added).toHaveAttribute("aria-current", "true");
   await expect(added).toBeFocused();
-  await expect(added.getByText("Uploaded", { exact: true })).toBeVisible();
-  await expect(added.getByText(/^Uploaded \w/)).toBeVisible();
+  await choose(page, added, "Details");
+  await expect(page.getByRole("dialog").getByText(/^Uploaded \w/)).toBeVisible();
+  await page.keyboard.press("Escape");
   expect(count("characters WHERE origin = 'upload'")).toBe(uploads + 1);
   expect(
     count(`characters WHERE id = '${id}' AND origin = 'upload' AND consent_at IS NOT NULL`),
@@ -129,10 +136,10 @@ test("an upload without consent, or of a file that is not an image, is refused a
 
   await open(page, "/characters");
 
-  const upload = page.getByRole("region", { name: "Add a photo" });
+  const upload = page.getByRole("dialog", { name: "Add a photo" });
 
   // A text file named like a PNG: the server checks the content.
-  await upload.getByLabel("Upload a photo").setInputFiles({
+  await page.getByLabel("Upload a photo").setInputFiles({
     buffer: Buffer.from("not a picture"),
     mimeType: "image/png",
     name: "notes.png",
@@ -144,7 +151,7 @@ test("an upload without consent, or of a file that is not an image, is refused a
   expect(count("characters")).toBe(characters);
 
   // Choose another: a real photo goes through.
-  await upload.getByLabel("Upload a photo").setInputFiles(uniquePng());
+  await page.getByLabel("Upload a photo").setInputFiles(uniquePng());
   await expect(upload.getByRole("alert")).toHaveCount(0);
   await expect(upload.getByRole("button", { name: "Add to library" })).toBeDisabled();
   await upload.getByRole("checkbox", { name: /likeness/ }).check();
@@ -173,7 +180,7 @@ test("untitled characters' cards and controls have names that tell them apart", 
   for (const label of labels) {
     expect(label).toMatch(/^Untitled photo, uploaded \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC/);
 
-    for (const control of [`Rename ${label}`, `Animate ${label}`, `Add ${label} to favorites`]) {
+    for (const control of [`More for ${label}`, `Animate ${label}`, `Add ${label} to favorites`]) {
       await expect(
         page.getByRole(control.startsWith("Animate") ? "link" : "button", {
           exact: true,
@@ -200,7 +207,10 @@ test("a character is renamed in a dialog, 1–80 characters, and keeps its name 
     "aria-label",
     /^Untitled photo, uploaded \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC( \(\d+\))?$/,
   );
-  await added.getByRole("button", { name: /^Rename Untitled photo, uploaded / }).click();
+  await expect(
+    added.getByRole("button", { name: /^More for Untitled photo, uploaded / }),
+  ).toBeVisible();
+  await choose(page, added, "Rename");
 
   const dialog = page.getByRole("dialog", { name: "Rename character" });
   const field = dialog.getByLabel("Name");
@@ -221,7 +231,9 @@ test("a character is renamed in a dialog, 1–80 characters, and keeps its name 
   await expect(card(page, name).getByRole("heading")).toHaveText(name);
 
   // A sample keeps its title: no Rename.
-  await expect(card(page, "Arthur").getByRole("button", { name: /Rename/ })).toHaveCount(0);
+  await card(page, "Arthur").getByRole("button", { name: "More for Arthur" }).click();
+  await expect(page.getByRole("menuitem", { name: "Details" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Rename" })).toHaveCount(0);
 });
 
 test("a favorite is marked with its star, the favorites filter shows only favorites, and both survive a reload", async ({
@@ -242,10 +254,10 @@ test("a favorite is marked with its star, the favorites filter shows only favori
     card(page, name).getByRole("button", { name: `Remove ${name} from favorites` }),
   ).toHaveAttribute("aria-pressed", "true");
 
-  const filter = page.getByRole("button", { name: "Favorites only" });
+  const filter = page.getByRole("radio", { name: "Favorites" });
 
   await filter.click();
-  await expect(filter).toHaveAttribute("aria-pressed", "true");
+  await expect(filter).toBeChecked();
   await expect(page).toHaveURL(/favorites=true/);
   await expect(card(page, name)).toBeVisible();
   await expect(card(page, other)).toHaveCount(0);
@@ -261,9 +273,30 @@ test("a favorite is marked with its star, the favorites filter shows only favori
     .click();
   await expect(card(page, name)).toHaveCount(0);
 
-  await filter.click();
+  await page.getByRole("radio", { name: "All" }).click();
   await expect(card(page, name)).toBeVisible();
   await expect(card(page, other)).toBeVisible();
+});
+
+test("the Samples filter shows only the samples, and the URL keeps it", async ({
+  page,
+  request,
+}) => {
+  const name = unique("Not a sample");
+
+  await uploadThroughApi(request, name);
+  await open(page, "/characters");
+  await expect(card(page, name)).toBeVisible();
+
+  await page.getByRole("radio", { name: "Samples" }).click();
+  await expect(page).toHaveURL(/samples=true/);
+  await expect(card(page, name)).toHaveCount(0);
+  await expect(card(page, "Arthur")).toBeVisible();
+
+  await page.reload();
+  await page.locator("html[data-hydrated]").waitFor();
+  await expect(page.getByRole("radio", { name: "Samples" })).toBeChecked();
+  await expect(card(page, name)).toHaveCount(0);
 });
 
 test("the search finds a part of a title in any letter case, and the URL keeps it", async ({
@@ -297,10 +330,10 @@ test("the search finds a part of a title in any letter case, and the URL keeps i
   await expect(card(page, first)).toBeVisible();
 
   await search.fill("nobody-is-called-this");
-  await expect(page.getByText("No characters found")).toBeVisible();
+  await expect(page.getByText("No characters match")).toBeVisible();
 });
 
-test("a workspace with only the samples says so and still offers the samples", async ({ page }) => {
+test("a workspace with only the samples still offers the samples", async ({ page }) => {
   // The run's shared database already has uploads from other tests: the page is shown the
   // server's own answer with every workspace character taken out, as a fresh install has it.
   await page.route("**/api/characters", async (route) => {
@@ -315,12 +348,8 @@ test("a workspace with only the samples says so and still offers the samples", a
     });
   });
   await open(page, "/characters");
-  await expect(page.locator('[data-empty="workspace"]')).toContainText(
-    "No characters of your own yet",
-  );
   await expect(card(page, "Arthur")).toBeVisible();
-  await expect(card(page, "Arthur").getByText("Sample", { exact: true })).toBeVisible();
-  await expect(page.getByText("6 characters")).toBeVisible();
+  await expect(page.getByText("6 characters")).toBeAttached();
 });
 
 test("without a session the library lists nothing, explains the access code, and opens once it is entered", async ({
@@ -407,15 +436,20 @@ test("the library fits a phone and a desktop without scrolling sideways, and wor
   }
 
   const search = page.getByRole("searchbox", { name: "Search characters" });
-  const filter = page.getByRole("button", { name: "Favorites only" });
+  const all = page.getByRole("radio", { name: "All" });
+  const filter = page.getByRole("radio", { name: "Favorites" });
 
   await search.focus();
   await page.keyboard.press("Tab");
+  await expect(all).toBeFocused();
+  await page.keyboard.press("ArrowRight");
   await expect(filter).toBeFocused();
   await page.keyboard.press("Space");
-  await expect(filter).toHaveAttribute("aria-pressed", "true");
+  await expect(filter).toBeChecked();
+  await page.keyboard.press("ArrowLeft");
+  await expect(all).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(filter).toHaveAttribute("aria-pressed", "false");
+  await expect(all).toBeChecked();
 
   const sample = card(page, "Maya");
 
@@ -430,11 +464,14 @@ test("the library fits a phone and a desktop without scrolling sideways, and wor
     "aria-pressed",
     "false",
   );
-  // A sample shows what made it (FLUX 3 provenance) between its favorite toggle and Animate.
-  await page.keyboard.press("Tab");
-  await expect(sample.getByText("Made with", { exact: true })).toBeFocused();
+  // Animate and the menu show when the keyboard reaches them; the menu has what made a sample.
   await page.keyboard.press("Tab");
   await expect(sample.getByRole("link", { name: "Animate Maya" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(sample.getByRole("button", { name: "More for Maya" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Maya" })).toContainText("Sample character");
 });
 
 test("the composer's character step lists the workspace library and goes to it and back with the motion kept", async ({
@@ -455,14 +492,14 @@ test("the composer's character step lists the workspace library and goes to it a
 
   // The builder's link carries the draft too, its motion included.
   const builder = new URL(
-    (await page.getByRole("link", { name: "Describe a character" }).getAttribute("href")) ?? "",
+    (await page.getByRole("link", { name: "Describe a new one" }).getAttribute("href")) ?? "",
     "http://localhost",
   );
 
   expect(builder.pathname).toBe("/characters/new");
   expect(JSON.parse(builder.searchParams.get("draft") ?? "{}")).toMatchObject({ motion });
 
-  await page.getByRole("link", { name: "Open the library" }).click();
+  await page.getByRole("link", { name: "Open library" }).click();
   await page.waitForURL((url) => url.pathname === "/characters");
   await page.locator("html[data-hydrated]").waitFor();
   await expect(page.getByText("Your motion and direction are kept")).toBeVisible();
@@ -498,7 +535,7 @@ test("a character whose image does not load shows a placeholder and can still be
     "href",
     `/motionTransfer?character=${character.id}`,
   );
-  await lost.getByRole("button", { name: `Rename ${name}` }).click();
+  await choose(page, lost, "Rename");
   await expect(page.getByRole("dialog", { name: "Rename character" })).toBeVisible();
 });
 
@@ -513,7 +550,7 @@ test("a library that could not be read says so and loads on Try again", async ({
   );
   await open(page, "/characters");
 
-  const alert = page.getByRole("alert").filter({ hasText: "could not be loaded" });
+  const alert = page.getByRole("alert").filter({ hasText: "The library didn't load" });
 
   await expect(alert).toContainText("The library is unavailable.");
   failing = false;
@@ -548,18 +585,14 @@ test("a rename answered after its dialog was dismissed keeps the name but leaves
   const dialog = page.getByRole("dialog", { name: "Rename character" });
   const renamed = unique("Renamed late");
 
-  await card(page, first)
-    .getByRole("button", { name: `Rename ${first}` })
-    .click();
+  await choose(page, card(page, first), "Rename");
   await dialog.getByLabel("Name").fill(renamed);
   await dialog.getByRole("button", { name: "Save name" }).click();
   await expect(dialog.getByRole("button", { name: "Saving…" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
 
-  await card(page, second)
-    .getByRole("button", { name: `Rename ${second}` })
-    .click();
+  await choose(page, card(page, second), "Rename");
   await dialog.getByLabel("Name").fill("Not saved yet");
   release();
 
@@ -574,7 +607,7 @@ test("a rename answered after its dialog was dismissed keeps the name but leaves
   await expect(page.locator(`[data-character-id="${b.id}"]`)).toHaveAttribute("aria-label", second);
 });
 
-test("closing the rename dialog returns the focus to its Rename button, or to the heading once a rename leaves the search", async ({
+test("closing the rename dialog returns the focus to the card's menu button, or to the heading once a rename leaves the search", async ({
   page,
   request,
 }) => {
@@ -586,39 +619,48 @@ test("closing the rename dialog returns the focus to its Rename button, or to th
   await expect(card(page, name)).toBeVisible();
 
   const dialog = page.getByRole("dialog", { name: "Rename character" });
-  const rename = card(page, name).getByRole("button", { name: `Rename ${name}` });
+  const more = card(page, name).getByRole("button", { name: `More for ${name}` });
 
-  // Escape and Cancel give the focus back to the button that opened the dialog.
-  await rename.focus();
-  await page.keyboard.press("Enter");
-  await expect(dialog.getByLabel("Name")).toBeFocused();
+  /** The menu's first item, Rename, from the keyboard. */
+  const rename = async () => {
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("menuitem", { name: "Rename" })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByLabel("Name")).toBeFocused();
+  };
+
+  // Escape and Cancel give the focus back to the menu's button.
+  await more.focus();
+  await rename();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
-  await expect(rename).toBeFocused();
+  await expect(more).toBeFocused();
 
-  await page.keyboard.press("Enter");
+  await rename();
   await dialog.getByRole("button", { name: "Cancel" }).click();
-  await expect(rename).toBeFocused();
+  await expect(more).toBeFocused();
 
   // A save that still matches the search: the same button.
   const still = `Alice-${tag} on stage`;
 
-  await page.keyboard.press("Enter");
+  await rename();
   await dialog.getByLabel("Name").fill(still);
   await page.keyboard.press("Enter");
   await expect(dialog).toBeHidden();
-  await expect(card(page, still).getByRole("button", { name: `Rename ${still}` })).toBeFocused();
+  await expect(card(page, still).getByRole("button", { name: `More for ${still}` })).toBeFocused();
 
   // A save the search no longer matches: the card leaves, the empty result shows, and the
   // focus goes to the page's heading.
-  await page.keyboard.press("Enter");
+  await rename();
   await dialog.getByLabel("Name").fill(`Bob ${tag}`);
   await dialog.getByRole("button", { name: "Save name" }).click();
   await expect(dialog).toBeHidden();
   await expect(card(page, still)).toHaveCount(0);
-  await expect(page.getByText("No characters found")).toBeVisible();
+  await expect(page.getByText("No characters match")).toBeVisible();
   await expect(page.getByText(`0 characters matching “Alice-${tag}”`)).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1, name: "Characters" })).toBeFocused();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Characters" }).locator("span"),
+  ).toBeFocused();
 });
 
 test("a rename answered after the search changed keeps the character in the list the page now shows", async ({
@@ -644,9 +686,7 @@ test("a rename answered after the search changed keeps the character in the list
   const dialog = page.getByRole("dialog", { name: "Rename character" });
   const renamed = `Bob-${tag}`;
 
-  await card(page, name)
-    .getByRole("button", { name: `Rename ${name}` })
-    .click();
+  await choose(page, card(page, name), "Rename");
   await dialog.getByLabel("Name").fill(renamed);
   await dialog.getByRole("button", { name: "Save name" }).click();
   await page.keyboard.press("Escape");
@@ -705,9 +745,12 @@ test("a character saved from a generation says it is AI-generated, with what mad
   const generated = card(page, name);
 
   await expect(generated.getByText("AI-generated", { exact: true })).toBeVisible();
-  await expect(generated.getByText(/^AI image, generated /)).toBeVisible();
-  await expect(generated).toContainText("A street dancer in a red hoodie, full body");
-  await generated.getByText("Made with").click();
-  await expect(generated).toContainText("character-generation v1");
-  await expect(generated).toContainText("flux3-image-klein-int8-convrot");
+  await choose(page, generated, "Details");
+
+  const details = page.getByRole("dialog", { name });
+
+  await expect(details.getByText(/^AI image, generated /)).toBeVisible();
+  await expect(details).toContainText("A street dancer in a red hoodie, full body");
+  await expect(details).toContainText("character-generation v1");
+  await expect(details).toContainText("flux3-image-klein-int8-convrot");
 });

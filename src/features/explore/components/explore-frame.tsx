@@ -1,63 +1,137 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { RotateCwIcon } from "lucide-react";
+import { cn } from "cn";
+import { ArrowLeftIcon, RotateCwIcon, TriangleAlertIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Button } from "#/components/ui/button";
-import { Hud, PageGlow } from "#/shared/components/brand";
-import { OpenWeightsBadge, SiteFooter, SiteHeader } from "#/shared/components/site";
+import { PageHeading } from "#/shared/components/page-heading";
+import { Panel } from "#/shared/components/panel";
+import { SitePage } from "#/shared/components/site";
+import { StateCard } from "#/shared/components/state-card";
+
+/** The gallery's tiles: as many columns as fit, the same width however few tiles a filter leaves. */
+export const tileGrid = "grid tiles-fill-43 gap-3";
+
+/** One of a take's two figures, the source and the take: side by side, even on a phone. */
+export const takeFigure = "m-0 flex max-w-82.5 min-w-0 grow basis-32 flex-col gap-2.5";
 
 /** Explore's page shell: the site header (Explore marks itself current), the page, the footer. */
-export function ExploreFrame({ children }: { children: React.ReactNode }) {
+export function ExploreFrame({ children }: { children: ReactNode }) {
+  return <SitePage gap={7}>{children}</SitePage>;
+}
+
+/** A take's page shell: closer to the header, and tighter, than the gallery's. */
+export function TakeFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="relative isolate">
-      <PageGlow />
-      <SiteHeader>
-        <span className="hidden sm:inline-flex">
-          <OpenWeightsBadge />
-        </span>
-      </SiteHeader>
-      <main className="mx-auto flex w-full max-w-330 flex-col gap-8 px-4 py-8 sm:px-8 sm:py-12">
-        {children}
-      </main>
-      <SiteFooter tagline="Open Photon · MIT licensed · Made for #OpenSourceHiggsfield" />
-    </div>
+    <SitePage className="gap-4" gap={6} top={6}>
+      {children}
+    </SitePage>
   );
 }
 
 /** The gallery's heading: what Explore is. */
 export function ExploreHeading() {
   return (
-    <div className="flex flex-col gap-3">
-      <Hud>Explore</Hud>
-      <h1 className="font-display text-4xl leading-none font-bold tracking-display sm:text-5xl">
-        Finished takes, ready to remake
-      </h1>
-      <p className="max-w-prose text-soft-foreground">
-        Sample characters performing sample motions, rendered with open weights. Open one for the
-        source beside the result and its recipe, or make it with your own character.
-      </p>
+    <PageHeading
+      subtitle="Open one, or make it with your own character."
+      title="Finished takes, ready to remake"
+    />
+  );
+}
+
+/** Back to the gallery: 32 px in the page's rhythm, a 44 px target. */
+export function AllTakesLink() {
+  return (
+    <Link
+      className="-my-1.5 inline-flex h-11 w-fit max-w-full items-center gap-1.5 rounded-sm type-caption font-medium text-soft-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring"
+      to="/explore"
+    >
+      <ArrowLeftIcon aria-hidden="true" className="size-3.5 shrink-0" />
+      <span className="min-w-0 truncate">All takes</span>
+    </Link>
+  );
+}
+
+/** A take's two figures (`children`) and `aside`, which wraps under them when both no longer fit. */
+export function TakeColumns({ aside, children }: { aside: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-start gap-10">
+      <section
+        aria-label="Source and result"
+        className="flex min-w-0 grow-999 basis-140 flex-wrap gap-4"
+      >
+        {children}
+      </section>
+      <aside aria-label="The recipe" className="flex min-w-0 grow basis-85 flex-col gap-2">
+        {aside}
+      </aside>
     </div>
   );
 }
 
-/** While a page of Explore loads: placeholders where the examples will be. */
+/** A tile's footprint before it has anything to show: its picture and its caption line. */
+export function TileSkeleton({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex min-w-0 flex-col gap-2.5", className)}>
+      <div className="aspect-9/16 skeleton rounded-field" />
+      <span className="type-label">&nbsp;</span>
+    </div>
+  );
+}
+
+/** While the gallery loads: the page as it will be, placeholders where the takes will be. */
 export function ExploreLoading({ label }: { label: string }) {
   return (
     <ExploreFrame>
-      <p className="text-sm text-muted-foreground" role="status">
+      <ExploreHeading />
+      <p className="sr-only" role="status">
         {label}
       </p>
-      <ul
-        aria-hidden="true"
-        className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4"
-      >
-        {Array.from({ length: 4 }, (_, index) => (
-          <li
-            className="aspect-9/16 rounded-xl border bg-card motion-safe:animate-pulse"
-            key={index}
-          />
-        ))}
-      </ul>
+      <div aria-hidden="true" className="flex flex-col gap-6">
+        <div className="h-11 w-60 max-w-full skeleton rounded-full" />
+        <div className={tileGrid}>
+          {Array.from({ length: 6 }, (_, index) => (
+            <TileSkeleton key={index} />
+          ))}
+        </div>
+      </div>
     </ExploreFrame>
+  );
+}
+
+/** While a take's page loads: its two figures and its recipe, in their places. */
+export function TakeLoading({ label }: { label: string }) {
+  return (
+    <TakeFrame>
+      <AllTakesLink />
+      <p className="sr-only" role="status">
+        {label}
+      </p>
+      <div aria-hidden="true" className="contents">
+        <div className="w-full max-w-120 skeleton rounded-lg type-title">
+          &nbsp;
+          <br className="sm:hidden" />
+          &nbsp;
+        </div>
+        <TakeColumns
+          aside={
+            <>
+              <Panel className="min-h-102 motion-safe:animate-pulse" />
+              <div className="h-11" />
+            </>
+          }
+        >
+          {["source", "take"].map((figure) => (
+            <div className={takeFigure} key={figure}>
+              <div className="aspect-9/16 skeleton rounded-xl" />
+              <div>
+                <span className="hud">&nbsp;</span>
+              </div>
+            </div>
+          ))}
+        </TakeColumns>
+      </div>
+    </TakeFrame>
   );
 }
 
@@ -67,12 +141,15 @@ export function ExploreError({ title }: { title: string }) {
 
   return (
     <ExploreFrame>
-      <div className="flex flex-col items-start gap-4" role="alert">
-        <h1 className="font-display text-3xl leading-none font-bold tracking-display">{title}</h1>
-        <p className="text-soft-foreground">
-          Something went wrong on the way. Nothing was started; try again in a moment.
-        </p>
-        <div className="flex flex-wrap gap-2">
+      <div role="alert">
+        <StateCard
+          className="min-h-120"
+          heading="h1"
+          icon={TriangleAlertIcon}
+          text="Something went wrong on the way. Nothing was started; try again in a moment."
+          title={title}
+          tone="warning"
+        >
           <Button onClick={() => void router.invalidate()}>
             <RotateCwIcon aria-hidden="true" />
             Try again
@@ -80,7 +157,7 @@ export function ExploreError({ title }: { title: string }) {
           <Button asChild variant="outline">
             <Link to="/">Studio home</Link>
           </Button>
-        </div>
+        </StateCard>
       </div>
     </ExploreFrame>
   );

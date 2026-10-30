@@ -29,7 +29,13 @@ import {
   handleReadStoryboard,
   handleSaveStoryboard,
 } from "./http.ts";
-import { createStoryboard, generateCards, readStoryboard } from "./storyboards.ts";
+import {
+  createStoryboard,
+  generateCards,
+  listWorkspaceStoryboards,
+  readStoryboard,
+  saveStoryboardText,
+} from "./storyboards.ts";
 
 Object.assign(process.env, {
   COMFY_API_KEY: "",
@@ -263,6 +269,45 @@ test("a storyboard split by the text model: one storyboard-scenes generation who
   }
 });
 
+test("a save before the split has answered leaves its scenes to come; a card blanked after it stays blank", async () => {
+  const { provider } = scripted({ text: qwenScenes });
+
+  const { storyboard } = createStoryboard(
+    { character_id: character, sequence: "Maya on a rooftop.", style: "reference" },
+    { provider, requestKey: randomUUID(), session },
+  );
+
+  assert.equal(storyboard?.scenes.state, "writing");
+
+  const id = storyboard?.id ?? "";
+
+  saveStoryboardText(id, {
+    descriptions: ["", "Written while it worked.", "", ""],
+    style: "anime",
+    title: "Renamed",
+  });
+
+  const dispatcher = startDispatcher({ intervalMs: 20, provider });
+
+  try {
+    const done = await settle(id);
+
+    assert.equal(done.scenes.state, "ready");
+    assert.equal(done.title, "Renamed");
+    assert.equal(done.cards[1]?.description, "Written while it worked.");
+    assert.match(done.cards[0]?.description ?? "", /^Wide shot of an empty city rooftop/);
+    assert.ok(done.cards.every((card) => card.description !== ""));
+
+    const blanked = done.cards.map((card, position) => (position === 0 ? "" : card.description));
+
+    saveStoryboardText(id, { descriptions: blanked, style: "anime", title: "Renamed" });
+
+    assert.equal(readStoryboard(id)?.cards[0]?.description, "");
+  } finally {
+    await dispatcher.stop();
+  }
+});
+
 test("a split whose text is not four scenes is reported, the cards stay blank and editable", async () => {
   // The fake's own text: one caption, no Scene lines.
   const { provider } = scripted();
@@ -333,6 +378,16 @@ test("generate all four, then regenerate card 2 only: cards 1, 3 and 4 keep thei
       assert.deepEqual([recipe.width, recipe.height], [CARD_SIZE.width, CARD_SIZE.height]);
     }
 
+    // The list shows each card's finished image.
+    assert.deepEqual(
+      listWorkspaceStoryboards().storyboards.find((item) => item.id === first.id)?.images,
+      first.cards.map(({ generation }) => {
+        const image = generation?.outputs.find((output) => output.name === IMAGE_EDIT_OUTPUT);
+
+        return image?.media === "text" ? null : image?.asset;
+      }),
+    );
+
     const before = await outputsOf(first);
     const sent = graphs.length;
 
@@ -388,6 +443,15 @@ test("a card that fails leaves the others done and is retried alone, by the stor
       ["done", "done", "failed", "done"],
     );
 
+    // The list shows the images that finished: a failed card has its status and no image.
+    const listed = () => listWorkspaceStoryboards().storyboards.find(({ id }) => id === first.id);
+
+    assert.deepEqual(listed()?.statuses, ["done", "done", "failed", "done"]);
+    assert.deepEqual(
+      listed()?.images.map((image) => image !== null),
+      [true, true, false, true],
+    );
+
     const before = await outputsOf(first);
 
     // The shared retry (a new seed) of the failed card: followed through `parent_id`.
@@ -409,6 +473,10 @@ test("a card that fails leaves the others done and is retried alone, by the stor
       ["done", "done", "done", "done"],
     );
     assert.deepEqual([after[0], after[1], after[3]], [before[0], before[1], before[3]]);
+    assert.deepEqual(
+      listed()?.images.map((image) => image?.id ?? null),
+      after.map(({ asset }) => asset),
+    );
     // A failed render is tried again with the seed it had.
     assert.equal(fixed.cards[2]?.seed, retried.cards[2]?.seed);
   } finally {

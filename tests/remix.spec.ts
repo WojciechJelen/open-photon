@@ -12,7 +12,7 @@ test("Download saves the result's MP4 under a file name", async ({ page }) => {
 
   const [download] = await Promise.all([
     page.waitForEvent("download"),
-    page.getByRole("link", { name: "Download MP4" }).click(),
+    page.getByRole("link", { exact: true, name: "Download" }).click(),
   ]);
 
   expect(download.suggestedFilename()).toMatch(/^open-photon-[0-9a-f]{8}\.mp4$/);

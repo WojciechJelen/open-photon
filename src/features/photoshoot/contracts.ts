@@ -4,7 +4,7 @@
 // loadable by Node as is (relative `.ts` imports).
 import { z } from "zod";
 
-import { generationSchema, generationStatusSchema } from "../../shared/contracts.ts";
+import { assetSchema, generationSchema, generationStatusSchema } from "../../shared/contracts.ts";
 import { characterSummarySchema, characterTitleSchema } from "../characters/index.ts";
 import { photoshootSettingIds } from "./settings.ts";
 
@@ -61,7 +61,10 @@ export const photoshootSchema = z.object({
 
 export type Photoshoot = z.output<typeof photoshootSchema>;
 
-/** `GET /api/photoshoots`: the workspace's latest photoshoots, each item's current status. */
+/**
+ * `GET /api/photoshoots`: the workspace's latest photoshoots, each item's current status and, in
+ * `stills`, its finished image (`null` until that shot is done).
+ */
 export const photoshootListSchema = z.object({
   photoshoots: z.array(
     z.object({
@@ -70,6 +73,7 @@ export const photoshootListSchema = z.object({
       id: z.uuid(),
       setting: photoshootSettingSchema,
       statuses: z.array(generationStatusSchema).min(1),
+      stills: z.array(assetSchema.nullable()).min(1),
     }),
   ),
 });

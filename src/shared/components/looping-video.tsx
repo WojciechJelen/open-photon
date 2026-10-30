@@ -6,13 +6,14 @@ import { useEffect, useRef, useState } from "react";
  * otherwise. Without a `label` it is decoration (inside a labelled tile) and hidden from assistive
  * technology. `onTime` hears where it is, for a timecode readout. `lazy`: it shows its poster and
  * loads nothing until it is near the screen, then plays while it is, and pauses off it (without
- * `IntersectionObserver` it simply plays).
+ * `IntersectionObserver` it simply plays). `paused` holds it, for a page with its own Pause.
  */
 export function LoopingVideo({
   className,
   label,
   lazy = false,
   onTime,
+  paused = false,
   poster,
   src,
 }: {
@@ -20,6 +21,7 @@ export function LoopingVideo({
   label?: string;
   lazy?: boolean;
   onTime?: (seconds: number) => void;
+  paused?: boolean;
   poster?: string;
   src: string;
 }) {
@@ -65,7 +67,7 @@ export function LoopingVideo({
       return;
     }
 
-    if (!visible) {
+    if (!visible || paused) {
       element.pause();
 
       return;
@@ -77,7 +79,7 @@ export function LoopingVideo({
     element.play().catch(() => {
       // A browser that still refuses autoplay shows the poster or first frame; it is decorative.
     });
-  }, [seen, src, visible]);
+  }, [paused, seen, src, visible]);
 
   return (
     <video

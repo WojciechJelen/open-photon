@@ -2,23 +2,28 @@ import { cn } from "cn";
 import { VideoOffIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { Viewfinder } from "#/shared/components/brand";
 import { LoopingVideo } from "#/shared/components/looping-video";
 import type { Asset } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 
 /**
  * A take's result looping while it is on screen (`LoopingVideo` `lazy`), cover-cropped in its
- * frame. When the file cannot be loaded (removed, unreadable), its poster takes its place, or,
- * without one, a "Preview unavailable" panel: the page around it stays usable. `label` names the
- * video to assistive technology; without one it is decoration inside a labelled link.
+ * frame, with the "AI-generated" tag at its bottom, clear of a head, as on the home page's wall, or
+ * inside the corner of the viewfinder when `framed` draws one. When the file cannot be loaded (removed, unreadable), its
+ * poster takes its place, or, without one, a "Preview unavailable" panel: the page around it stays
+ * usable. `label` names the video to assistive technology; without one it is decoration inside a
+ * labelled link.
  */
 export function ExamplePreview({
   className,
+  framed = false,
   label,
   poster,
   video,
 }: {
   className?: string;
+  framed?: boolean;
   label?: string;
   poster: Asset | null;
   video: Asset;
@@ -59,13 +64,24 @@ export function ExamplePreview({
           src={mediaUrl(poster)}
         />
       ) : (
-        <div className="absolute inset-0 grid place-items-center p-4 text-center text-sm text-muted-foreground">
+        <div className="absolute inset-0 grid place-items-center p-4 text-center type-caption text-muted-foreground">
           <span className="flex flex-col items-center gap-2">
             <VideoOffIcon aria-hidden="true" className="size-6" />
             Preview unavailable
           </span>
         </div>
       )}
+      {(failed === null || (failed === "video" && poster)) && (
+        <span
+          className={cn(
+            "absolute rounded-tag bg-background/66 px-1.75 py-0.75 type-tag text-foreground",
+            framed ? "top-6 left-6" : "bottom-2 left-2",
+          )}
+        >
+          AI-generated
+        </span>
+      )}
+      {framed && <Viewfinder />}
     </div>
   );
 }

@@ -58,7 +58,6 @@ test("an uploaded photo asks for consent once, under its preview; with it the ch
   });
 
   await expect(picked).toHaveCount(1);
-  await expect(picked).toContainText("Uploaded");
   await expect(picked).toContainText("Untitled photo");
 
   const chosen = new URL(page.url()).searchParams.get("character");
@@ -69,7 +68,7 @@ test("an uploaded photo asks for consent once, under its preview; with it the ch
   expect(count("characters WHERE origin = 'upload'")).toBe(uploads + 1);
 });
 
-test("a file that is not an image is refused in its tile and creates nothing; picking a sample clears the refusal", async ({
+test("a file that is not an image is refused in the dialog and creates nothing; closing it clears the refusal", async ({
   page,
 }) => {
   const characters = count("characters");
@@ -86,9 +85,10 @@ test("a file that is not an image is refused in its tile and creates nothing; pi
   expect(count("characters")).toBe(characters);
   await expect(page).not.toHaveURL(/character=/);
 
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("alert")).toHaveCount(0);
   await page.getByRole("button", { name: "Arthur" }).click();
   await expect(page).toHaveURL(/character=/);
-  await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
 test("a character id that names no character falls back to none", async ({ page }) => {

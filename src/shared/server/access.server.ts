@@ -3,8 +3,9 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
 import { isPublicRequest, isPublicServerFn } from "../../app/server.ts";
+import type { SessionStatus } from "../contracts.ts";
 import { allowanceOf, findAccessCode, findAccessCodeById } from "./access-codes.ts";
-import { accessPage, accessUrl } from "./access-page.server.ts";
+import { type AccessArt, accessPage, accessUrl } from "./access-page.server.ts";
 import { requesterKeys, returnToken, takeToken } from "./limits.ts";
 
 const cookieName = "photon_access";
@@ -28,9 +29,21 @@ function respond(body: string | null, status: number, headers?: HeadersInit) {
   return response;
 }
 
-/** The code form; with `error`, the refusal of a wrong code in place of the usual intro. */
-function page(next: string, error?: string, status = 200) {
-  return respond(accessPage(next, error), status, { "Content-Type": "text/html; charset=utf-8" });
+/**
+ * The code form; with `error`, the refusal of a wrong code in place of the usual intro. It alone
+ * of what the guard answers loads anything: the app's stylesheet, its fonts and its pictures.
+ */
+function page(next: string, art: AccessArt | undefined, error?: string, status = 200) {
+  const response = respond(accessPage(next, art, error), status, {
+    "Content-Type": "text/html; charset=utf-8",
+  });
+
+  response.headers.set(
+    "Content-Security-Policy",
+    "default-src 'none'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+  );
+
+  return response;
 }
 
 /** A JSON refusal `{ error, reason, retry_after? }`; with `retryAfter` (seconds) also its header. */
@@ -174,6 +187,14 @@ export function readSession(request: Request, now = Date.now): Session | null {
     : null;
 }
 
+/** What the request's session still allows, `null` without one (or when its code is gone). */
+export function sessionStatus(request: Request, now = Date.now): SessionStatus | null {
+  const session = readSession(request, now);
+  const code = session && findAccessCodeById(session.codeId);
+
+  return code ? { allowance: allowanceOf(code) } : null;
+}
+
 /**
  * The upload limit (`takeToken`, `UPLOAD_RATE_LIMIT` a minute per client and per code): `undefined`
  * while the request's client and code have a token (it takes one), else a 429 `rate_limited`.
@@ -263,7 +284,7 @@ export function createAccessGuard(
     };
   }
 
-  return async (request: Request): Promise<Response | undefined> => {
+  return async (request: Request, art?: AccessArt): Promise<Response | undefined> => {
     const url = new URL(request.url);
 
     if (url.pathname === "/healthz" && ["GET", "HEAD"].includes(request.method)) {
@@ -276,7 +297,7 @@ export function createAccessGuard(
       const link = request.method === "GET";
 
       if (link && !url.searchParams.get("code")) {
-        return page(next);
+        return page(next, art);
       }
 
       if (!link && request.method !== "POST") {
@@ -311,7 +332,7 @@ export function createAccessGuard(
       }
 
       if (result.status === 401) {
-        return page(next, "Incorrect access code. Please try again.", link ? 200 : 401);
+        return page(next, art, "Incorrect access code. Please try again.", link ? 200 : 401);
       }
 
       return respond("", 303, { Location: next, "Set-Cookie": result.cookie });
@@ -319,13 +340,10 @@ export function createAccessGuard(
 
     if (url.pathname === "/api/session") {
       if (request.method === "GET") {
-        const session = readSession(request, now);
-        const code = session && findAccessCodeById(session.codeId);
+        const status = sessionStatus(request, now);
 
-        return code
-          ? respond(JSON.stringify({ allowance: allowanceOf(code) }), 200, {
-              "Content-Type": "application/json",
-            })
+        return status
+          ? respond(JSON.stringify(status), 200, { "Content-Type": "application/json" })
           : refusal(401, "Enter an access code to do this.", "access_required");
       }
 

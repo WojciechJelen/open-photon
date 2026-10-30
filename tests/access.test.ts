@@ -10,6 +10,7 @@ import {
   createAccessGuard,
   readSession,
   serverFnRefusal,
+  sessionStatus,
   uploadRefusal,
 } from "../src/shared/server/access.server.ts";
 import { hashFile, incomingPath, storeAsset } from "../src/shared/server/assets.ts";
@@ -123,12 +124,17 @@ test("GET /api/session answers what the session's code still allows; without a s
   assert.equal(response?.status, 200);
   assert.equal(response?.headers.get("Content-Type"), "application/json");
   assert.deepEqual(await response?.json(), { allowance: { max: 5, remaining: 3, used: 2 } });
+  // What the root route's loader reads for the header, the same answer.
+  assert.deepEqual(sessionStatus(new Request(origin, { headers: { Cookie: cookie } })), {
+    allowance: { max: 5, remaining: 3, used: 2 },
+  });
 
   for (const headers of [undefined, { Cookie: `${cookie}0` }]) {
     const refused = await read(headers);
 
     assert.equal(refused?.status, 401);
     assert.equal((await refused?.json())?.reason, "access_required");
+    assert.equal(sessionStatus(new Request(origin, { headers })), null);
   }
 
   assert.equal(
@@ -188,6 +194,30 @@ test("the /access form signs in and returns to the page asked for, on this site 
     const path = `/access?next=${encodeURIComponent(next)}`;
     assert.equal((await guard(login(code, path)))?.headers.get("Location"), "/");
   }
+});
+
+test("the /access form loads the app's stylesheet and its stills; nothing else the guard answers loads anything", async () => {
+  const guard = createAccessGuard({ production: true });
+  const still = "data:image/webp;base64,AAAA";
+  const art = { stills: [still], stylesheet: "/assets/styles.css" };
+  const page = await guard(new Request(`${origin}/access`), art);
+  const html = (await page?.text()) ?? "";
+  const policy = page?.headers.get("Content-Security-Policy") ?? "";
+
+  assert.ok(html.includes('<link rel="stylesheet" href="/assets/styles.css">'));
+  assert.ok(html.includes(`src="${still}"`));
+  assert.match(policy, /style-src 'self'/);
+  assert.match(policy, /font-src 'self'/);
+  // The stills are data URLs: a file the page names could not be loaded.
+  assert.match(policy, /img-src data:/);
+  assert.match(policy, /form-action 'self'/);
+
+  const refused = await guard(new Request(`${origin}/api/session`), art);
+
+  assert.equal(
+    refused?.headers.get("Content-Security-Policy"),
+    "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+  );
 });
 
 test("a link with ?code= signs in like the form and goes on to next; reopened, it only goes on", async () => {
@@ -436,6 +466,7 @@ test("server functions need a session unless they are on the public list", async
     ["src/features/motionTransfer/selection.functions.ts", "loadStudio"],
     ["src/features/motionTransfer/generate.functions.ts", "loadShare"],
     ["src/features/motionTransfer/generate.functions.ts", "loadResult"],
+    ["src/shared/session.functions.ts", "loadSession"],
   ] as const) {
     assert.equal(call(filename, name), undefined);
   }

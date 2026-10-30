@@ -32,26 +32,26 @@ export const presetDetails: Record<
     defaultScene:
       "a round pastel podium in front of a bold gradient backdrop in coral and deep violet",
     label: "Advertising",
-    summary: "A bold backdrop with dramatic light for a campaign visual.",
+    summary: "A bold campaign backdrop",
   },
   lifestyle: {
     defaultScene:
       "a light oak table in a bright, airy interior, soft daylight from a window on the left, a ceramic vase and a linen cloth softly blurred in the background",
     label: "Lifestyle",
-    summary: "The product in a real-looking setting with natural light.",
+    summary: "A real-looking setting",
   },
   packshot: {
     defaultScene: "a seamless pure white studio backdrop",
     label: "Packshot",
-    summary: "A clean e-commerce shot on white with a soft shadow.",
+    summary: "Clean, on white",
   },
 };
 
 /** What the studio says of each format. */
-export const formatDetails: Record<ProductShotFormat, { label: string; ratio: string }> = {
-  landscape: { label: "Landscape", ratio: "3:2" },
-  portrait: { label: "Portrait", ratio: "4:5" },
-  square: { label: "Square", ratio: "1:1" },
+export const formatDetails: Record<ProductShotFormat, { label: string }> = {
+  landscape: { label: "Landscape" },
+  portrait: { label: "Portrait" },
+  square: { label: "Square" },
 };
 
 /** What the product is, in a few words (`a green glass bottle of port wine`). */

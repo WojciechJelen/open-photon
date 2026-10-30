@@ -123,10 +123,10 @@ test("with Comfy at a dead port, Generate opens a failed generation with the rea
   expect(count(`generations WHERE id = '${parent}' AND error_message IS NOT NULL`)).toBe(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Comfy couldn't be reached");
   await expect(page.getByRole("alert")).toContainText("provider_unreachable");
-  // No time estimate for a render that never ran; the header's "N left" is the allowance.
+  // No time estimate for a render that never ran; the header's "N renders" is the allowance.
   await expect(page.getByRole("main").getByText(/remaining|left|ETA/i)).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Retry with a new seed" }).click();
+  await page.getByRole("button", { name: "Try again" }).click();
   await expect(page).not.toHaveURL(new RegExp(parent));
   await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}$/);
   await expect(status(page)).toHaveAttribute("data-status", "failed");
@@ -137,7 +137,7 @@ test("with Comfy at a dead port, Generate opens a failed generation with the rea
     "href",
     `/g/${parent}`,
   );
-  await page.getByRole("link", { name: "Change the shot" }).click();
+  await page.getByRole("link", { name: "Edit the shot" }).click();
   await expect(page).toHaveURL(
     (url) =>
       url.pathname === "/motionTransfer" &&
@@ -148,7 +148,7 @@ test("with Comfy at a dead port, Generate opens a failed generation with the rea
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Direct the shot");
 });
 
-test("Change the shot on a failed take opens Direct with its look and seed, to tweak and retry", async ({
+test("Edit the shot on a failed take opens Direct with its look and seed, to tweak and retry", async ({
   page,
 }) => {
   const look = "Red jacket.\n\nRain  on glass.";
@@ -166,7 +166,7 @@ test("Change the shot on a failed take opens Direct with its look and seed, to t
 
   const take = page.url().split("/g/")[1] ?? "";
 
-  await page.getByRole("link", { name: "Change the shot" }).click();
+  await page.getByRole("link", { name: "Edit the shot" }).click();
   await expect(page).toHaveURL(
     (url) => url.searchParams.get("from") === take && url.searchParams.get("step") === "direct",
   );
@@ -208,7 +208,8 @@ test("with every place in flight taken, Generate puts the take in line and its p
     await expect(status(page)).toContainText("In line · #1");
     await expect(
       page.getByRole("list", { name: "Render stages" }).locator('[aria-current="step"]'),
-    ).toContainText("Number 1 in line for a free rendering slot");
+    ).toContainText("Getting ready");
+    await expect(page.getByRole("region", { name: "In line" })).toContainText("Yours is next.");
     expect(count("generations")).toBe(rows + 1);
   } finally {
     // Out of line before the place is given back, so the server's dispatcher never sends it.
@@ -234,10 +235,11 @@ test("a running generation follows its event stream, and opens it again after a 
   await expect(notice).toBeVisible();
   await expect(status(page)).toHaveAttribute("data-status", "queued");
   // The named stages, the current one marked; and the page's own link, since leaving is safe.
+  await expect(status(page)).toContainText("Queued");
   await expect(
     page.getByRole("list", { name: "Render stages" }).locator('[aria-current="step"]'),
-  ).toContainText("Queued");
-  await expect(page.getByLabel("Link to this render")).toHaveValue(new RegExp(`/g/${id}$`));
+  ).toContainText("Getting ready");
+  await expect(page.getByLabel("Link to this take")).toHaveValue(new RegExp(`/g/${id}$`));
   expect(await streams()).toBe(1);
 
   // The stream as Comfy would drive it: the stored generation, running at `reported` percent.

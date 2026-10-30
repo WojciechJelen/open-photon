@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
+import { Button } from "#/components/ui/button";
 import {
   outputsShareText,
   SharePageView,
@@ -109,10 +110,12 @@ export const Route = createFileRoute("/r/$slug")({
   },
   component: SharePage,
   notFoundComponent: () => (
-    <Problem title="Share page not found">
-      <Link className="underline underline-offset-3" reloadDocument to="/motionTransfer">
-        Make your own
-      </Link>
+    <Problem text="This share page doesn't exist." title="Nothing here">
+      <Button asChild variant="outline">
+        <Link reloadDocument to="/motionTransfer">
+          Make your own
+        </Link>
+      </Button>
     </Problem>
   ),
 });

@@ -2,74 +2,72 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRightIcon, TriangleAlertIcon } from "lucide-react";
 
 import { Badge } from "#/components/ui/badge";
-import { Button } from "#/components/ui/button";
-import { Facts } from "#/features/presets/components/facts";
 import type { PresetView } from "#/features/presets/contracts";
 import { previewUrl } from "#/features/presets/previews";
-import { Hud, PageGlow, StatusDot } from "#/shared/components/brand";
-import { OpenWeightsBadge, SiteFooter, SiteHeader } from "#/shared/components/site";
+import { PageHeading } from "#/shared/components/page-heading";
+import { SitePage } from "#/shared/components/site";
 
 /**
- * One preset's card: the poster of its example take (a still; the page plays it), what it sets,
- * and "Use this preset", which opens its page at the version shown. Opening it never generates.
+ * One preset's card, a link as a whole: the poster of its example take (a still; the page plays it),
+ * tagged AI-generated like every output, its title and summary. It opens the preset's page at the
+ * version shown, and opening it never generates. A preset this server cannot render says so on its
+ * poster; its page says why.
  */
 function PresetCard({ view: { availability, preset } }: { view: PresetView }) {
   const headingId = `preset-${preset.id}`;
+  const ready = availability.status === "ready";
 
   return (
-    <article
-      aria-labelledby={headingId}
-      className="flex h-full flex-col overflow-hidden rounded-3xl border bg-linear-to-b from-foreground/4 to-foreground/1"
-    >
-      <div className="relative border-b">
-        <img
-          alt={`A frame of the ${preset.title} example take: ${preset.example.character.title}, a sample character, performing it.`}
-          className="aspect-3/4 w-full object-cover"
-          height={848}
-          loading="lazy"
-          src={previewUrl(preset.example.poster)}
-          width={480}
-        />
-        <span className="absolute top-3 left-3">
-          {availability.status === "ready" ? (
-            <Badge variant="solid">
-              <StatusDot tone="ok" />
-              Ready
-            </Badge>
-          ) : (
-            <Badge variant="solid">
-              <TriangleAlertIcon aria-hidden="true" />
-              Unavailable
-            </Badge>
+    <article aria-labelledby={headingId} className="h-full">
+      <Link
+        aria-label={`Use this preset: ${preset.title}${ready ? "" : " (unavailable)"}`}
+        className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-card/72 text-foreground transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring"
+        params={{ presetId: preset.id }}
+        search={{ version: preset.version }}
+        to="/presets/$presetId"
+      >
+        <div className="relative aspect-4/5 shrink-0 overflow-hidden bg-screen">
+          <img
+            alt={`An AI-generated frame of the ${preset.title} example take: ${preset.example.character.title}, a sample character, performing it.`}
+            className="absolute inset-0 size-full object-cover object-top"
+            height={848}
+            loading="lazy"
+            src={previewUrl(preset.example.poster)}
+            width={480}
+          />
+          <span className="absolute bottom-2 left-2 rounded-tag bg-background/66 px-1.75 py-0.75 type-tag text-foreground">
+            AI-generated
+          </span>
+          {!ready && (
+            <span className="absolute top-3 left-3">
+              <Badge variant="solid">
+                <TriangleAlertIcon aria-hidden="true" />
+                Unavailable
+              </Badge>
+            </span>
           )}
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col gap-3 p-6">
-        <h2 className="font-display text-2xl font-semibold" id={headingId}>
-          {preset.title}
-        </h2>
-        <p className="text-sm text-soft-foreground">{preset.summary}</p>
-        <Facts
-          items={[
-            ["Motion", preset.motion.title],
-            ["You add", "A character"],
-          ]}
-        />
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-3">
-          <Hud>v{preset.version}</Hud>
-          <Button asChild variant="default">
-            <Link
-              aria-label={`Use this preset: ${preset.title}`}
-              params={{ presetId: preset.id }}
-              search={{ version: preset.version }}
-              to="/presets/$presetId"
-            >
-              Use this preset
-              <ArrowRightIcon aria-hidden="true" />
-            </Link>
-          </Button>
         </div>
-      </div>
+        <div className="flex flex-1 items-center justify-between gap-4 px-5 py-4.5">
+          <div className="flex min-w-0 flex-col gap-1 self-start">
+            <h2
+              className="line-clamp-2 type-card-title wrap-anywhere"
+              id={headingId}
+              title={preset.title}
+            >
+              {preset.title}
+            </h2>
+            <p
+              className="line-clamp-2 text-sm leading-normal wrap-anywhere text-soft-foreground"
+              title={preset.summary}
+            >
+              {preset.summary}
+            </p>
+          </div>
+          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
+            <ArrowRightIcon aria-hidden="true" className="size-4" />
+          </span>
+        </div>
+      </Link>
     </article>
   );
 }
@@ -81,31 +79,18 @@ function PresetCard({ view: { availability, preset } }: { view: PresetView }) {
  */
 export function PresetGallery({ presets }: { presets: PresetView[] }) {
   return (
-    <div className="relative isolate">
-      <PageGlow />
-      <SiteHeader category="Video">
-        <OpenWeightsBadge />
-      </SiteHeader>
-      <main className="mx-auto flex w-full max-w-330 flex-col gap-10 px-4 pt-12 pb-24 sm:px-8">
-        <div className="flex max-w-2xl flex-col gap-4">
-          <Hud>Motion presets</Hud>
-          <h1 className="font-display text-4xl leading-tight font-bold tracking-display sm:text-5xl">
-            Start from a ready-made shot
-          </h1>
-          <p className="text-base text-soft-foreground">
-            Each preset is a motion, a look and a seed that rendered the example you see. Pick one,
-            add your character, and generate. You can still change the look and the seed.
-          </p>
-        </div>
-        <ul aria-label="Presets" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {presets.map((view) => (
-            <li key={view.preset.id}>
-              <PresetCard view={view} />
-            </li>
-          ))}
-        </ul>
-      </main>
-      <SiteFooter tagline="Open Photon · MIT licensed · Made for #OpenSourceHiggsfield" />
-    </div>
+    <SitePage category="Video" gap={7}>
+      <PageHeading
+        subtitle="Pick a preset, add your character and generate."
+        title="Start from a ready-made shot"
+      />
+      <ul aria-label="Presets" className="grid grid-fit-75 gap-4">
+        {presets.map((view) => (
+          <li className="min-w-0" key={view.preset.id}>
+            <PresetCard view={view} />
+          </li>
+        ))}
+      </ul>
+    </SitePage>
   );
 }

@@ -55,8 +55,13 @@ function DialogContent({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
-  /** `lg`: a wide dialog with media beside its controls, such as the trimmer. */
-  size?: "default" | "lg"
+  /**
+   * `sm`: a short form, such as the access code. `md`: a long form that scrolls inside itself,
+   * anchored to the top, so it holds still when its content changes, such as Variations. `lg`: a
+   * wide dialog with media beside its controls, such as the trimmer. `sheet`: all of a phone's screen, with no padding or
+   * frame of its own.
+   */
+  size?: "default" | "lg" | "md" | "sheet" | "sm"
 }) {
   return (
     <DialogPortal data-slot="dialog-portal">
@@ -65,7 +70,7 @@ function DialogContent({
         data-slot="dialog-content"
         data-size={size}
         className={cn(
-          "fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100svh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-5 overflow-y-auto rounded-3xl border border-input bg-popover p-6 text-popover-foreground shadow-modal duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:p-7 sm:data-[size=default]:max-w-lg sm:data-[size=lg]:max-w-220",
+          "fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100svh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-5 overflow-y-auto rounded-2xl border border-input bg-popover p-6 text-popover-foreground shadow-modal duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:p-7 sm:data-[size=default]:max-w-lg sm:data-[size=lg]:max-w-[min(55rem,calc(100%-2rem))] sm:data-[size=sm]:max-w-md data-[size=md]:top-4 data-[size=md]:translate-y-0 data-[size=md]:rounded-3xl sm:data-[size=md]:top-18 sm:data-[size=md]:max-h-[calc(100svh-5.5rem)] sm:data-[size=md]:max-w-[min(40rem,calc(100%-2rem))] data-[size=sheet]:top-0 data-[size=sheet]:left-0 data-[size=sheet]:flex data-[size=sheet]:h-svh data-[size=sheet]:max-h-none data-[size=sheet]:max-w-none data-[size=sheet]:translate-x-0 data-[size=sheet]:translate-y-0 data-[size=sheet]:flex-col data-[size=sheet]:gap-0 data-[size=sheet]:rounded-none data-[size=sheet]:border-0 data-[size=sheet]:p-0",
           className
         )}
         {...props}
@@ -74,9 +79,9 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="absolute top-5 right-5 grid size-11 cursor-pointer place-items-center rounded-full border border-input bg-foreground/4 text-foreground transition-colors hover:bg-foreground/9 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4.5"
+            className="absolute top-4 right-4 grid size-11 cursor-pointer place-items-center rounded-full border border-input bg-foreground/4 text-foreground transition-colors hover:border-edge-strong hover:bg-foreground/8 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0"
           >
-            <XIcon />
+            <XIcon className="size-4" strokeWidth={1.75} />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
@@ -89,7 +94,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2 pr-12 text-left", className)}
+      className={cn("flex flex-col gap-1.5 pr-12 text-left", className)}
       {...props}
     />
   )
@@ -129,7 +134,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("font-display text-2xl leading-tight font-bold tracking-display sm:text-3xl", className)}
+      className={cn("font-display text-[28px] leading-[1.08] font-bold tracking-display wrap-anywhere text-balance", className)}
       {...props}
     />
   )
@@ -142,7 +147,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-[15px] leading-relaxed text-soft-foreground", className)}
+      className={cn("type-body text-pretty text-soft-foreground", className)}
       {...props}
     />
   )

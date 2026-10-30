@@ -1,29 +1,37 @@
-import { cn } from "cn";
-import { CheckIcon, InfoIcon, RotateCcwIcon, XIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ImageIcon,
+  InfoIcon,
+  RotateCcwIcon,
+  SlidersHorizontalIcon,
+  XIcon,
+} from "lucide-react";
 import { Fragment, useId, useState } from "react";
 
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
+import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import {
-  type LookGroup,
   lookCatalog,
-  lookGroups,
+  type LookGroup,
   type LookOption,
   type ReliableLookOption,
 } from "#/features/looks/catalog";
 import { lookPreviews } from "#/features/looks/components/previews";
 import {
   composeLook,
-  type Look,
   editDescription,
+  type Look,
   pickedOptions,
   pickOption,
   readLook,
   removeGroup,
 } from "#/features/looks/compose";
 import type { DirectionEditorProps } from "#/features/motionTransfer/api";
-import { Viewfinder } from "#/shared/components/brand";
+import { PictureTile } from "#/shared/components/picture-tile";
+import { ToolSection } from "#/shared/components/tool-layout";
 
 /** The longest look `POST /api/generate` takes, once trimmed. */
 const MAX_LOOK = 500;
@@ -33,11 +41,11 @@ function isReliable(option: (typeof lookCatalog.options)[number]): option is Rel
   return option.evidence === "reliable";
 }
 
-const groupCopy: Record<LookGroup, { hint: string; title: string }> = {
-  background: { hint: "the scene behind the character", title: "Background" },
-  lighting: { hint: "one at a time", title: "Lighting" },
-  look: { hint: "one at a time", title: "Color & style" },
-};
+/** The groups past the background, none of which the benchmark backed up (`catalog.ts`). */
+const refinements: { group: LookGroup; title: string }[] = [
+  { group: "lighting", title: "Lighting" },
+  { group: "look", title: "Color & style" },
+];
 
 /**
  * The look as the editor holds it: the prompt it last saw or wrote, and that prompt read as a
@@ -52,13 +60,24 @@ type Held = { look: Look; prompt: string };
  * the visitor's own description and curated backgrounds, lighting and color/style looks from the
  * catalog (`catalog.ts`), composed into the one prompt the direction carries (`composeLook`). It
  * previews that prompt, and resets it to the workflow's default (a blank look). The picks live in
- * the prompt, which the wizard keeps in its URL, so a reload or a step change keeps them.
+ * the prompt, which the wizard keeps in its URL, so a reload or a step change keeps them. With a
+ * `seedField` the words and backgrounds show and the rest folds under an Advanced row, which names
+ * what is set inside it; without one, inside a page's own fold, it all shows. A closed fold stays
+ * mounted: the prompt it previews is still the page's to read.
  */
-export function LookEditor({ errors, onChange, value }: DirectionEditorProps) {
+export function LookEditor({
+  characterImage,
+  characterImageAlt = "",
+  errors,
+  onChange,
+  seedField,
+  value,
+}: DirectionEditorProps) {
   const id = useId();
-  const { prompt } = value;
+  const { prompt, seed } = value;
   const [held, setHeld] = useState<Held>(() => ({ look: readLook(prompt), prompt }));
   const [notice, setNotice] = useState("");
+  const [advanced, setAdvanced] = useState(false);
 
   let { look } = held;
 
@@ -77,6 +96,7 @@ export function LookEditor({ errors, onChange, value }: DirectionEditorProps) {
   };
 
   const picked = pickedOptions(look.selection);
+  const background = picked.find(({ group }) => group === "background");
 
   // A catalog fragment typed or pasted into the description becomes its pick; a background one
   // takes the place of the other background sentences of the text.
@@ -118,109 +138,81 @@ export function LookEditor({ errors, onChange, value }: DirectionEditorProps) {
     write(next, said.join(" "));
   };
 
-  const tooLong = prompt.trim().length > MAX_LOOK;
+  const count = prompt.trim().length;
 
-  return (
-    <div className="flex flex-col gap-7">
-      <div className="flex flex-col gap-3.5">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <label className="font-display text-xl font-semibold" htmlFor={`${id}-description`}>
-            Look{" "}
-            <span className="font-sans text-sm font-normal text-muted-foreground">
-              · your own words for the character and scene, optional
-            </span>
-          </label>
-          <span
-            className={tooLong ? "hud text-destructive-foreground" : "hud text-muted-foreground"}
-            id={`${id}-count`}
-          >
-            {prompt.trim().length} / {MAX_LOOK}
-          </span>
-        </div>
-        <Textarea
-          aria-describedby={`${id}-count`}
-          aria-invalid={errors.includes("prompt")}
-          id={`${id}-description`}
-          onChange={(event) => describe(event.target.value)}
-          placeholder="Keep the character and the background from the photo."
-          value={look.description}
-        />
+  const words = (
+    <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <Label htmlFor={`${id}-description`}>Your own words</Label>
+        <span
+          className={
+            count === 0
+              ? "invisible type-caption"
+              : count > MAX_LOOK
+                ? "type-caption text-destructive-foreground tabular-nums"
+                : "type-caption text-muted-foreground tabular-nums"
+          }
+          id={`${id}-count`}
+        >
+          {count} / {MAX_LOOK}
+        </span>
       </div>
+      <Textarea
+        aria-describedby={`${id}-count`}
+        aria-invalid={errors.includes("prompt")}
+        aria-label="Look, in your own words"
+        id={`${id}-description`}
+        onChange={(event) => describe(event.target.value)}
+        placeholder="Keep the character and the background from the photo."
+        rows={3}
+        value={look.description}
+      />
+    </div>
+  );
 
-      {lookGroups.map((group) => {
+  const details = (
+    <>
+      {refinements.map(({ group, title }) => {
         const options = lookCatalog.options.filter((option) => option.group === group);
-        const reliable = options.filter(isReliable);
-        const experimental = options.filter((option) => !isReliable(option));
-        const allExperimental = reliable.length === 0;
 
         return (
           <section aria-labelledby={`${id}-${group}`} className="flex flex-col gap-3" key={group}>
-            <div className="flex flex-col gap-1.5">
-              <h3
-                className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-semibold"
-                id={`${id}-${group}`}
-              >
-                {groupCopy[group].title}
-                <span className="text-sm font-normal text-muted-foreground">
-                  · {groupCopy[group].hint}
-                </span>
-                {allExperimental && <Badge variant="warning">Experimental</Badge>}
-              </h3>
-              {allExperimental && (
-                <p className="text-sm text-muted-foreground">
-                  In our benchmark these did not visibly change the take: Wan Animate 2 keeps the
-                  light and colors of the photo. In the same test, a background change brought its
-                  own light.
-                </p>
-              )}
-            </div>
-            <div aria-labelledby={`${id}-${group}`} className="flex flex-col gap-3" role="group">
-              {reliable.length > 0 && (
-                <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3">
-                  {reliable.map((option) => (
-                    <LookTile
-                      describedBy={`${id}-${option.id}`}
-                      key={option.id}
-                      onToggle={() => toggle(option)}
-                      option={option}
-                      picked={look.selection[group] === option.id}
-                      preview={lookPreviews[option.id]}
-                    />
-                  ))}
-                </div>
-              )}
-              {experimental.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {experimental.map((option) => (
-                    <Fragment key={option.id}>
-                      <Button
-                        aria-describedby={`${id}-${option.id}`}
-                        aria-pressed={look.selection[group] === option.id}
-                        onClick={() => toggle(option)}
-                        size="sm"
-                        type="button"
-                        variant="chip"
-                      >
-                        {option.label}
-                      </Button>
-                      <span className="sr-only" id={`${id}-${option.id}`}>
-                        {option.description} Experimental: no visible effect in our benchmark.
-                      </span>
-                    </Fragment>
-                  ))}
-                </div>
-              )}
+            <h3
+              className="flex min-w-0 flex-wrap items-center gap-2 type-label wrap-anywhere"
+              id={`${id}-${group}`}
+            >
+              {title}
+              <Badge variant="warning">Experimental</Badge>
+            </h3>
+            <div aria-labelledby={`${id}-${group}`} className="flex flex-wrap gap-2" role="group">
+              {options.map((option) => (
+                <Fragment key={option.id}>
+                  <Button
+                    aria-describedby={`${id}-${option.id}`}
+                    aria-pressed={look.selection[group] === option.id}
+                    onClick={() => toggle(option)}
+                    size="sm"
+                    title={option.description}
+                    type="button"
+                    variant="chip"
+                  >
+                    {option.label}
+                  </Button>
+                  <span className="sr-only" id={`${id}-${option.id}`}>
+                    {option.description} Experimental: no visible effect in our benchmark.
+                  </span>
+                </Fragment>
+              ))}
             </div>
           </section>
         );
       })}
 
-      <section
-        aria-labelledby={`${id}-effective`}
-        className="flex flex-col gap-3 rounded-2xl border bg-foreground/3 p-5"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-base font-semibold" id={`${id}-effective`}>
+      {seedField}
+
+      <section aria-labelledby={`${id}-effective`} className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <h3 className="min-w-0 type-label wrap-anywhere" id={`${id}-effective`}>
             Effective direction
           </h3>
           <Button
@@ -254,83 +246,133 @@ export function LookEditor({ errors, onChange, value }: DirectionEditorProps) {
         )}
         <p
           aria-label="Prompt sent"
-          className="text-sm wrap-break-word whitespace-pre-wrap text-soft-foreground"
+          className="type-caption wrap-anywhere whitespace-pre-wrap text-soft-foreground"
         >
           {prompt.trim() === ""
             ? "The workflow's default: the character and the background as in the photo."
             : prompt}
         </p>
-        <p className="flex gap-2 text-sm text-muted-foreground">
-          <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          <span>
+        <p className="flex gap-2 type-caption text-muted-foreground">
+          <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
+          <span className="min-w-0 wrap-anywhere">
             Looks are prompt guidance for Wan Animate 2. In our benchmark (one character, one clip),
             a background replaced the photo's; lighting and color did not visibly change the take.
             The camera, the framing and the pose follow your motion clip: no option changes the
             camera angle. The character keeps the photo's face and outfit.
           </span>
         </p>
-        <p aria-live="polite" className="sr-only" role="status">
-          {notice}
-        </p>
       </section>
-    </div>
+    </>
   );
-}
 
-/** One catalog option: a toggle tile with its benchmark still, label and description. */
-function LookTile({
-  describedBy,
-  onToggle,
-  option,
-  picked,
-  preview,
-}: {
-  describedBy: string;
-  onToggle: () => void;
-  option: LookOption;
-  picked: boolean;
-  preview: string;
-}) {
+  // What is set under the closed row: nothing in it should pass unseen.
+  const inside = [
+    ...picked.filter(({ group }) => group !== "background").map(({ label }) => label),
+    ...(seed.trim() === "" ? [] : [`Seed: ${seed.trim()}`]),
+  ].join(" · ");
+
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <button
-        aria-describedby={describedBy}
-        aria-pressed={picked}
-        className={cn(
-          "relative block aspect-4/5 w-full cursor-pointer overflow-hidden rounded-xl border bg-card text-left text-foreground transition hover:-translate-y-0.5 hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring",
-          picked && "border-transparent shadow-picked hover:border-transparent",
-        )}
-        onClick={onToggle}
-        type="button"
-      >
-        <img
-          alt=""
-          className="absolute inset-0 size-full object-cover"
-          loading="lazy"
-          src={preview}
-        />
-        <span
-          aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-b from-transparent to-background/95"
-        />
-        {picked && (
-          <>
-            <Viewfinder className="inset-2" tone="brand" />
-            <span
-              aria-hidden="true"
-              className="absolute top-2 right-2 grid size-6 place-items-center rounded-full bg-brand text-primary-foreground shadow-glow"
-            >
-              <CheckIcon className="size-3.5" strokeWidth={3} />
+    <>
+      {seedField ? (
+        <ToolSection
+          end={
+            <span className="max-w-full type-caption wrap-anywhere text-muted-foreground">
+              Optional
             </span>
-          </>
-        )}
-        <span className="absolute inset-x-2.5 bottom-2 text-sm leading-tight font-semibold">
-          {option.label}
-        </span>
-      </button>
-      <p className="text-xs text-muted-foreground" id={describedBy}>
-        {option.description}
+          }
+          title="Look"
+        >
+          {words}
+        </ToolSection>
+      ) : (
+        words
+      )}
+
+      <ToolSection title="Background">
+        <div aria-label="Background" className="grid tiles-fill-40 gap-3" role="group">
+          {characterImage !== undefined && (
+            <PictureTile
+              alt={characterImageAlt}
+              aria-label="From the photo"
+              aspect="aspect-4/5"
+              caption="From the photo"
+              onClick={() => background && toggle(background)}
+              position="object-top"
+              pressed={background === undefined}
+              ringOnly
+              src={characterImage ?? undefined}
+            >
+              {characterImage === null ? (
+                <span className="absolute inset-0 grid place-items-center text-muted-foreground">
+                  <ImageIcon aria-hidden="true" className="size-6" strokeWidth={1.75} />
+                </span>
+              ) : undefined}
+            </PictureTile>
+          )}
+          {lookCatalog.options
+            .filter((option) => option.group === "background")
+            .filter(isReliable)
+            .map((option) => (
+              <Fragment key={option.id}>
+                <PictureTile
+                  alt="AI-generated image"
+                  aria-describedby={`${id}-${option.id}`}
+                  aria-label={option.label}
+                  aspect="aspect-4/5"
+                  caption={option.label}
+                  onClick={() => toggle(option)}
+                  pressed={look.selection.background === option.id}
+                  ringOnly
+                  src={lookPreviews[option.id]}
+                  title={option.description}
+                />
+                <span className="sr-only" id={`${id}-${option.id}`}>
+                  {option.description} The preview is AI-generated.
+                </span>
+              </Fragment>
+            ))}
+        </div>
+      </ToolSection>
+
+      {seedField ? (
+        <div className="rounded-xl border bg-card/72">
+          <Collapsible onOpenChange={setAdvanced} open={advanced}>
+            <CollapsibleTrigger asChild>
+              <button
+                className="group flex h-13.5 w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-5 text-left type-label focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                type="button"
+              >
+                <span className="inline-flex max-w-1/2 min-w-0 shrink-0 items-center gap-2.5">
+                  <SlidersHorizontalIcon
+                    aria-hidden="true"
+                    className="size-4 shrink-0"
+                    strokeWidth={1.75}
+                  />
+                  <span className="truncate">Advanced</span>
+                </span>
+                <span className="inline-flex min-w-0 items-center gap-2 font-normal text-muted-foreground">
+                  <span className="truncate" title={inside || undefined}>
+                    {inside || "Lighting, color and seed"}
+                  </span>
+                  <ChevronDownIcon
+                    aria-hidden="true"
+                    className="size-3.5 shrink-0 transition-transform group-aria-expanded:rotate-180"
+                  />
+                </span>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent forceMount hidden={!advanced}>
+              <div className="flex flex-col gap-6 px-5 pt-2 pb-5">{details}</div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+      ) : (
+        details
+      )}
+
+      <p aria-live="polite" className="sr-only" role="status">
+        {notice}
       </p>
-    </div>
+    </>
   );
 }

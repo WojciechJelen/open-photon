@@ -32,7 +32,7 @@ function Slider({
       min={min}
       max={max}
       className={cn(
-        "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=horizontal]:min-h-11 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
+        "relative flex w-full touch-none items-center select-none data-[disabled]:cursor-not-allowed data-[orientation=horizontal]:min-h-11 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
         className
       )}
       {...props}
@@ -40,13 +40,13 @@ function Slider({
       <SliderPrimitive.Track
         data-slot="slider-track"
         className={cn(
-          "relative grow overflow-hidden rounded-full bg-foreground/14 data-[orientation=horizontal]:h-1 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1"
+          "relative grow overflow-hidden rounded-full bg-foreground/12 data-[orientation=horizontal]:h-1 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1"
         )}
       >
         <SliderPrimitive.Range
           data-slot="slider-range"
           className={cn(
-            "absolute bg-foreground data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
+            "absolute bg-foreground data-[disabled]:bg-foreground/24 data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
           )}
         />
       </SliderPrimitive.Track>
@@ -55,7 +55,7 @@ function Slider({
           aria-label={thumbLabels[index]}
           data-slot="slider-thumb"
           key={index}
-          className="block size-4 shrink-0 cursor-grab rounded-full bg-foreground shadow-sm ring-5 ring-foreground/14 transition-[color,box-shadow] hover:ring-6 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50"
+          className="relative block size-3.5 shrink-0 cursor-grab rounded-full bg-foreground ring-foreground/14 transition-[color,box-shadow] after:absolute after:-inset-3.75 hover:ring-5 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring disabled:pointer-events-none disabled:bg-muted-foreground"
         />
       ))}
     </SliderPrimitive.Root>

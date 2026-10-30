@@ -17,7 +17,11 @@ function Characters() {
     <CharacterLibrary
       createCharacterHref={createCharacterHref}
       onSearch={(next: Partial<LibrarySearch>) =>
-        void navigate({ replace: true, search: (current) => ({ ...current, ...next }) })
+        void navigate({
+          replace: true,
+          resetScroll: false,
+          search: (current) => ({ ...current, ...next }),
+        })
       }
       search={Route.useSearch()}
     />

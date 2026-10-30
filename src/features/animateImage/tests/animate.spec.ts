@@ -15,7 +15,7 @@ test("the main navigation's Video › Animate image opens the page", async ({ pa
   await navigation.getByRole("button", { exact: true, name: "Video" }).click();
   await page.getByRole("menuitem", { name: /Animate image/ }).click();
   await expect(page).toHaveURL(/\/animate$/);
-  await expect(page.getByRole("heading", { level: 1, name: "Animate an image" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Animate image" })).toBeVisible();
 });
 
 test("?character= preselects a library character, and malformed members are dropped", async ({
@@ -39,15 +39,15 @@ test("?character= preselects a library character, and malformed members are drop
   await expect(page.getByText("480×848, 5.1 s at 16 fps, MP4.")).toBeVisible();
 
   await open(page, "/animate?generation=not-a-uuid&output=Bad%20Name&take=nope");
-  await expect(page.getByText("No image picked yet")).toBeVisible();
+  await expect(page.getByText("Your clip appears here")).toBeVisible();
   await expect(page.getByRole("alert")).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Your animation" })).toHaveCount(0);
+  await expect(page.locator("[data-status]")).toHaveCount(0);
 });
 
 test("an upload that is not an image is refused and nothing is picked", async ({ page }) => {
   await open(page, "/animate");
   await page.getByLabel("Image to animate").setInputFiles("tests/fixtures/fake-output.txt");
   await expect(page.getByRole("alert")).toBeVisible();
-  await expect(page.getByText("No image picked yet")).toBeVisible();
+  await expect(page.getByText("Your clip appears here")).toBeVisible();
   await expect(page.getByRole("button", { name: "Animate", exact: true })).toBeDisabled();
 });

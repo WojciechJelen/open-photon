@@ -1,81 +1,66 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "cn";
+import { ArrowRightIcon } from "lucide-react";
 
-import { Badge } from "#/components/ui/badge";
+import { Button } from "#/components/ui/button";
 import type { loadStudio } from "#/features/motionTransfer/api";
-import { Hud, StatusDot } from "#/shared/components/brand";
+import { AiTag } from "#/features/studio/components/ai-tag";
+import { useReducedMotion } from "#/features/studio/reduced-motion";
 import { LoopingVideo } from "#/shared/components/looping-video";
 import { mediaUrl } from "#/shared/media";
 
 /** A done pre-rendered sample take, as the studio reads it (`listPrerenderedTakes`). */
 export type WallTake = Awaited<ReturnType<typeof loadStudio>>["wall"][number];
 
-const tile = "relative block aspect-9/16 overflow-hidden rounded-xl border bg-screen";
-
-const media = "absolute inset-0 size-full rounded-none object-cover";
-
-const label =
-  "absolute inset-x-0 bottom-0 bg-linear-to-t from-background/90 to-transparent px-3 pt-8 pb-2.5 text-sm font-semibold";
+// How many takes a phone shows: the wall is two columns there, and Explore has the rest.
+const PHONE_TAKES = 4;
 
 /**
- * The result wall: the pre-rendered sample takes (eight tiles at most, source clips included),
- * grouped by motion, each group led by its source clip. A take loops while it is on screen
- * (`LoopingVideo` `lazy`) and opens its public share page (the result beside the clip, and the
- * recipe).
+ * "Made here": the pre-rendered sample takes. A take loops while it is on screen (`LoopingVideo`
+ * `lazy`), or stays on its poster for a visitor who asked for less motion, and opens its public
+ * share page (the result beside the clip, and the recipe). On a phone the way to Explore moves
+ * under the takes, full width.
  */
 export function ResultWall({ takes }: { takes: WallTake[] }) {
-  // The first take of each motion, in the takes' order: where that motion's group starts.
-  const leads = takes.filter(
-    (take, index) => takes.findIndex(({ source }) => source.id === take.source.id) === index,
-  );
+  const still = useReducedMotion();
 
   return (
-    <section aria-label="Sample takes" className="flex min-w-0 flex-col gap-3">
-      <div aria-hidden="true" className="flex flex-wrap items-center justify-between gap-3">
-        <Hud>Sample takes · {takes.length} renders</Hud>
-        <Hud className="inline-flex items-center gap-2" tone="foreground">
-          <StatusDot tone="tally" />
-          Wan Animate 2
-        </Hud>
-      </div>
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {leads.flatMap((lead) => [
-          <li className={tile} key={lead.source.id}>
-            <LoopingVideo className={media} lazy src={mediaUrl(lead.source)} />
-            <span className="absolute top-2 left-2">
-              <Badge variant="solid">Source</Badge>
-            </span>
-            <span className={label}>{lead.motionTitle}</span>
-          </li>,
-          ...takes
-            .filter((take) => take.source.id === lead.source.id)
-            .map((take) => (
-              <li key={take.id}>
-                <Link
-                  aria-label={`${take.characterTitle} performs ${take.motionTitle}: open the take`}
-                  className={cn(
-                    tile,
-                    "transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring",
-                  )}
-                  params={{ slug: take.shareSlug }}
-                  to="/r/$slug"
-                >
-                  <LoopingVideo
-                    className={media}
-                    lazy
-                    poster={take.poster ? mediaUrl(take.poster) : undefined}
-                    src={mediaUrl(take.result)}
-                  />
-                  <span className={label}>{take.characterTitle}</span>
-                </Link>
-              </li>
-            )),
-        ])}
+    <section
+      aria-labelledby="made-here-heading"
+      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 sm:mt-14 sm:gap-y-4"
+    >
+      <h2 className="min-w-0 type-heading wrap-anywhere max-sm:w-full" id="made-here-heading">
+        Made here
+      </h2>
+      <span className="flex flex-col max-sm:order-1 max-sm:w-full">
+        <Button asChild variant="outline">
+          <Link to="/explore">
+            <span>Explore all takes</span>
+            <ArrowRightIcon />
+          </Link>
+        </Button>
+      </span>
+      <ul className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 lg:grid-cols-6">
+        {takes.map((take, index) => (
+          <li className={cn("min-w-0", index >= PHONE_TAKES && "max-sm:hidden")} key={take.id}>
+            <Link
+              aria-label={`${take.characterTitle} performs ${take.motionTitle}: open the take, AI-generated`}
+              className="relative block aspect-9/16 overflow-hidden rounded-lg border bg-screen transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring sm:rounded-field"
+              params={{ slug: take.shareSlug }}
+              to="/r/$slug"
+            >
+              <LoopingVideo
+                className="absolute inset-0 size-full rounded-none bg-screen object-cover"
+                lazy
+                paused={still}
+                poster={take.poster ? mediaUrl(take.poster) : undefined}
+                src={mediaUrl(take.result)}
+              />
+              <AiTag className="bottom-2 left-2" />
+            </Link>
+          </li>
+        ))}
       </ul>
-      <p className="text-sm text-muted-foreground">
-        Sample characters performing the sample motions, rendered at the defaults. Open one for its
-        side-by-side and recipe.
-      </p>
     </section>
   );
 }

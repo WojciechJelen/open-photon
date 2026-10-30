@@ -1,18 +1,32 @@
-import { BrandMark, Hud, PageGlow } from "#/shared/components/brand";
+import { CompassIcon, TriangleAlertIcon } from "lucide-react";
 
-/** A page that could not be shown: what happened, and `children`, the way back. */
-export function Problem({ children, title }: { children: React.ReactNode; title: string }) {
+import { SitePage } from "#/shared/components/site";
+import { StateCard } from "#/shared/components/state-card";
+
+/** A page that could not be shown, inside the site: what happened, and `children`, the way back. */
+export function Problem({
+  children,
+  text = "This page doesn't exist.",
+  title,
+  tone = "brand",
+}: {
+  children: React.ReactNode;
+  text?: string;
+  title: string;
+  tone?: "brand" | "warning";
+}) {
   return (
-    <div className="relative isolate min-h-svh">
-      <PageGlow />
-      <header className="flex min-h-16 items-center border-b px-4 sm:px-8">
-        <BrandMark />
-      </header>
-      <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-20 sm:px-8">
-        <Hud>Cut</Hud>
-        <h1 className="font-display text-4xl leading-none font-bold tracking-display">{title}</h1>
-        <div className="flex flex-col gap-3 text-soft-foreground">{children}</div>
-      </main>
-    </div>
+    <SitePage>
+      <StateCard
+        className="min-h-120"
+        heading="h1"
+        icon={tone === "warning" ? TriangleAlertIcon : CompassIcon}
+        text={text}
+        title={title}
+        tone={tone}
+      >
+        {children}
+      </StateCard>
+    </SitePage>
   );
 }

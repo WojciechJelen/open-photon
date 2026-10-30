@@ -1,172 +1,344 @@
 import { Link } from "@tanstack/react-router";
-import {
-  ArrowRightIcon,
-  CameraIcon,
-  ClapperboardIcon,
-  CpuIcon,
-  FileCodeIcon,
-  Gamepad2Icon,
-  LibraryIcon,
-  PackageIcon,
-  LockOpenIcon,
-  PanelsTopLeftIcon,
-  Rotate3dIcon,
-  SparklesIcon,
-  UserIcon,
-} from "lucide-react";
+import { cn } from "cn";
+import { ArrowRightIcon, EqualIcon, PlusIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import type { PickableCharacter } from "#/features/characters";
 import type { SampleMotion } from "#/features/motionTransfer/api";
-import type { SampleTake } from "#/features/studio/components/studio-hero";
-import { Hud, REPOSITORY_URL, StatusDot, Viewfinder } from "#/shared/components/brand";
+import anglesCloseUp from "#/features/studio/assets/angles-close-up.webp";
+import anglesFront from "#/features/studio/assets/angles-front.webp";
+import anglesProfile from "#/features/studio/assets/angles-profile.webp";
+import anglesThreeQuarter from "#/features/studio/assets/angles-three-quarter.webp";
+import animateStill from "#/features/studio/assets/animate-still.webp";
+import animateWave from "#/features/studio/assets/animate-wave.webp";
+import batchesMaya from "#/features/studio/assets/batches-maya.webp";
+import batchesSelfHost from "#/features/studio/assets/batches-self-host.webp";
+import batchesStylized from "#/features/studio/assets/batches-stylized.webp";
+import createMaya from "#/features/studio/assets/create-maya.webp";
+import createTheo from "#/features/studio/assets/create-theo.webp";
+import createYuki from "#/features/studio/assets/create-yuki.webp";
+import photoshootStairs from "#/features/studio/assets/photoshoot-stairs.webp";
+import photoshootStreet from "#/features/studio/assets/photoshoot-street.webp";
+import photoshootStudio from "#/features/studio/assets/photoshoot-studio.webp";
+import presetsRooftop from "#/features/studio/assets/presets-golden-hour-rooftop.webp";
+import presetsNeonNight from "#/features/studio/assets/presets-neon-night.webp";
+import presetsStreetDance from "#/features/studio/assets/presets-street-dance.webp";
+import productPlinth from "#/features/studio/assets/product-plinth.webp";
+import productTable from "#/features/studio/assets/product-table.webp";
+import spriteKenji from "#/features/studio/assets/sprite-kenji.webp";
+import spriteSheet from "#/features/studio/assets/sprite-sheet.webp";
+import storyboard1 from "#/features/studio/assets/storyboard-1.webp";
+import storyboard2 from "#/features/studio/assets/storyboard-2.webp";
+import storyboard3 from "#/features/studio/assets/storyboard-3.webp";
+import storyboard4 from "#/features/studio/assets/storyboard-4.webp";
+import { AiTag } from "#/features/studio/components/ai-tag";
+import { type SampleTake, STILL_AT } from "#/features/studio/components/studio-hero";
+import { Hud, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
 import { mediaUrl } from "#/shared/media";
-import { timecode } from "#/shared/timecode";
 
-// Where the filmstrip stops the clip, in seconds.
-const frameTimes = [1.5, 2.8, 4.2];
+const media = "absolute inset-0 size-full object-cover";
 
-/** A still of a clip at `seconds`, framed. */
-function Frame({ highlight, seconds, src }: { highlight?: boolean; seconds: number; src: string }) {
-  return (
-    <span
-      className={
-        highlight
-          ? "relative aspect-3/4 overflow-hidden rounded-xl border border-brand/35 bg-screen"
-          : "relative aspect-3/4 overflow-hidden rounded-xl border bg-screen"
-      }
-    >
-      <ClipStill at={seconds} src={src} />
-    </span>
-  );
-}
+const row =
+  "group flex min-w-0 items-center gap-3 rounded-xl border bg-card/72 py-2 pr-3 pl-2 transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring";
+
+const thumbnail = "relative h-18 w-15 shrink-0 overflow-hidden rounded-md bg-screen";
+
+const arrow = "size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground";
 
 /**
- * The filmstrip on the Motion Transfer card: the sample motion stopped at three moments and, below, the
- * pre-rendered sample take at the same moments, or (before one is rendered) the sample characters
- * that can perform it.
+ * The tools of the Image and Video groups. `short` and `thumb` are a phone's row, `text` and
+ * `pictures` the card from `md` up, laid out by `grid`; `fit` is how each picture sits in its box.
+ * `alt` is the text of either: these illustrate a tool, so that is where they say what they are.
  */
-function Filmstrip({
-  characters,
-  motion,
-  take,
-}: {
-  characters: PickableCharacter[];
-  motion: SampleMotion | undefined;
-  take: SampleTake | null;
-}) {
-  const source = take?.source ?? motion?.clip;
-
-  if (!source) {
-    return null;
-  }
-
-  return (
-    <div aria-hidden="true" className="flex flex-col gap-2.5">
-      <Hud>Motion</Hud>
-      <div className="grid grid-cols-3 gap-2.5">
-        {frameTimes.map((seconds) => (
-          <Frame key={seconds} seconds={seconds} src={mediaUrl(source)} />
-        ))}
-      </div>
-      <Hud tone="brand">{take ? "Result" : "Sample characters"}</Hud>
-      <div className="grid grid-cols-3 gap-2.5">
-        {take
-          ? frameTimes.map((seconds) => (
-              <Frame highlight key={seconds} seconds={seconds} src={mediaUrl(take.result)} />
-            ))
-          : characters.slice(0, 3).map((character) => (
-              <span
-                className="relative aspect-3/4 overflow-hidden rounded-xl border border-brand/35 bg-screen"
-                key={character.id}
-              >
-                <img
-                  alt={`${character.title ?? "Sample character"}, an AI-generated image`}
-                  className="absolute inset-0 size-full object-cover"
-                  src={mediaUrl(character.image)}
-                />
-              </span>
-            ))}
-      </div>
-      {take && (
-        <div className="grid grid-cols-3 gap-2.5 text-center">
-          {frameTimes.map((seconds) => (
-            <Hud key={seconds}>{timecode(seconds)}</Hud>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// The image and character tools beside Motion Transfer, live: the builder, the photoshoot, the
-// library, Shots & Angles, Sprite Forge, storyboards, Animate Image, which brings a character (or
-// any still) to life from a description, and the product studio.
-const characterTools = [
+const imageTools = [
   {
-    icon: <UserIcon />,
-    model: "FLUX 3 Image Klein",
-    text: "Describe a character, refine the caption, and render a full-body photo ready for Motion Transfer.",
-    title: "Describe a character",
+    alt: "Sample characters, AI-generated images",
+    fit: "object-top",
+    grid: "grid-cols-3",
+    pictures: [createMaya, createYuki, createTheo],
+    short: "From a description",
+    text: "Describe someone, get a full-body portrait.",
+    thumb: createYuki,
+    title: "Create character",
     to: "/characters/new",
   },
   {
-    icon: <CameraIcon />,
-    model: "FLUX 3 Image Klein edit",
-    text: "Photograph a library character in a studio, street, editorial or outdoor setting: four poses and lights, same face and outfit.",
-    title: "Character photoshoot",
+    alt: "Arthur photographed in new settings, AI-generated images",
+    fit: "object-top",
+    grid: "grid-cols-3",
+    pictures: [photoshootStudio, photoshootStreet, photoshootStairs],
+    short: "Four new photos",
+    text: "Four new photos of one character.",
+    thumb: photoshootStairs,
+    title: "Photoshoot",
     to: "/photoshoot",
   },
   {
-    icon: <LibraryIcon />,
-    model: "Workspace library",
-    text: "Find, favorite and rename the workspace's characters, uploaded or generated, and animate any of them.",
-    title: "Character library",
-    to: "/characters",
-  },
-  {
-    icon: <Rotate3dIcon />,
-    model: "Qwen-Image-Edit-2511 · Multiple-Angles LoRA",
-    text: "See a character from the front, three-quarter, profile and close up, each view rendered anew, and save the one you like to the library.",
+    alt: "Maya seen from different sides, AI-generated images",
+    fit: "object-top",
+    grid: "grid-cols-4",
+    pictures: [anglesFront, anglesThreeQuarter, anglesProfile, anglesCloseUp],
+    short: "Every side of a character",
+    text: "See a character from every side.",
+    thumb: anglesThreeQuarter,
     title: "Shots & Angles",
     to: "/angles",
   },
   {
-    icon: <Gamepad2Icon />,
-    model: "Qwen-Image-Edit-2511 · Wan 2.2 · Sprite Forge nodes",
-    text: "Draw a character from five directions and forge an 8-direction walk-cycle sprite sheet, in HD and pixel art, with its Aseprite JSON.",
-    title: "Sprite Forge",
-    to: "/sprites",
-  },
-  {
-    icon: <PanelsTopLeftIcon />,
-    model: "FLUX 3 Image Klein · Qwen3.5",
-    text: "Pick a character, describe a short sequence, and render it as four editable scene cards.",
+    alt: "Maya in scenes on a rooftop, AI-generated images",
+    fit: "object-center",
+    grid: "grid-cols-2 grid-rows-2",
+    pictures: [storyboard1, storyboard2, storyboard3, storyboard4],
+    short: "Four scenes",
+    text: "A short sequence in four scenes.",
+    thumb: storyboard2,
     title: "Storyboard",
     to: "/storyboards",
   },
   {
-    icon: <ClapperboardIcon />,
-    model: "Wan 2.2 14B image-to-video",
-    text: "Upload an image or pick a character, describe the action, and get a 5 s video of it. No motion clip needed.",
-    title: "Animate an image",
-    to: "/animate",
+    alt: "Kenji as a walk-cycle sprite, AI-generated images",
+    // Crisp only where the tile is as wide as the sheet: shrunk, nearest-neighbour drops pixels.
+    fit: "bg-card object-top xl:pixelated",
+    grid: "grid-cols-1",
+    pictures: [spriteSheet],
+    short: "Walk cycles for games",
+    text: "An 8-direction walk cycle for games.",
+    thumb: spriteKenji,
+    title: "Sprite Forge",
+    to: "/sprites",
   },
   {
-    icon: <PackageIcon />,
-    model: "FLUX 3 Image Klein · BiRefNet",
-    text: "Upload a product photo and get a packshot, a lifestyle scene or an ad visual around the product's own pixels.",
+    alt: "A steel bottle in two settings, AI-generated images",
+    fit: "object-center",
+    grid: "grid-cols-2",
+    pictures: [productTable, productPlinth],
+    short: "Packshots and ad scenes",
+    text: "Packshots, lifestyle and ad scenes.",
+    thumb: productTable,
     title: "Product Studio",
     to: "/product-studio",
   },
 ] as const;
 
+const videoTools = [
+  {
+    alt: "Sample takes of a dance, AI-generated video frames",
+    fit: "object-top",
+    grid: "grid-cols-3",
+    pictures: [presetsNeonNight, presetsStreetDance, presetsRooftop],
+    short: "Ready-made shots",
+    text: "Ready-made shots. Add your character.",
+    thumb: presetsNeonNight,
+    title: "Motion presets",
+    to: "/presets",
+  },
+  {
+    alt: "Maya waving, AI-generated video frames",
+    fit: "object-top",
+    grid: "grid-cols-2",
+    pictures: [animateStill, animateWave],
+    short: "Bring a still to life",
+    text: "Bring a still to life with a sentence.",
+    thumb: animateWave,
+    title: "Animate image",
+    to: "/animate",
+  },
+  {
+    alt: "Variations of a dance, AI-generated video frames",
+    fit: "object-top",
+    grid: "grid-cols-3",
+    pictures: [batchesMaya, batchesSelfHost, batchesStylized],
+    short: "Compare variations",
+    text: "Render variations and compare them.",
+    thumb: batchesMaya,
+    title: "Batches",
+    to: "/batches",
+  },
+] as const;
+
+/** A tool's name and its line, a short one on a phone. */
+function ToolName({ short, text, title }: { short: string; text?: string; title: string }) {
+  return (
+    <span className="flex min-w-0 flex-1 flex-col md:gap-0.5">
+      <span className="truncate font-semibold text-foreground md:text-base">{title}</span>
+      <span className="truncate type-caption text-muted-foreground md:hidden">{short}</span>
+      {text && (
+        <span className="line-clamp-2 text-sm wrap-anywhere text-muted-foreground max-md:hidden">
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
 /**
- * The tool grid: Motion Transfer, live and featured (the whole card opens it), the motion presets
- * that start it from a ready-made shot, then the character tools, each card a link to its page.
+ * A tool: on a phone a row beside one picture, from `md` up a card under its pictures. A last row
+ * alone takes the width while the rows are in two columns.
  */
+function ToolTile({ tool }: { tool: (typeof imageTools)[number] | (typeof videoTools)[number] }) {
+  return (
+    <li className="min-w-0 sm:max-md:last:odd:col-span-2">
+      <Link
+        className={cn(
+          row,
+          "h-full md:flex-col md:items-stretch md:gap-0 md:overflow-hidden md:rounded-2xl md:p-0",
+        )}
+        to={tool.to}
+      >
+        <span className={cn(thumbnail, "md:aspect-16/10 md:h-auto md:w-full md:rounded-none")}>
+          <img
+            alt={tool.alt}
+            className={cn(media, tool.fit, "md:hidden")}
+            loading="lazy"
+            src={tool.thumb}
+          />
+          <span
+            aria-label={tool.alt}
+            className={cn("absolute inset-0 grid gap-0.5 max-md:hidden", tool.grid)}
+            role="img"
+          >
+            {tool.pictures.map((picture) => (
+              <span className="relative overflow-hidden" key={picture}>
+                <img alt="" className={cn(media, tool.fit)} loading="lazy" src={picture} />
+              </span>
+            ))}
+          </span>
+        </span>
+        <span className="flex min-w-0 flex-1 items-center gap-3 md:flex-none md:px-4.5 md:py-4">
+          <ToolName short={tool.short} text={tool.text} title={tool.title} />
+          <ArrowRightIcon aria-hidden="true" className={arrow} strokeWidth={1.75} />
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+/** One group of tools under its HUD label, which a phone leaves out: there it is one list. */
+function ToolGroup({
+  label,
+  tools,
+}: {
+  label: string;
+  tools: typeof imageTools | typeof videoTools;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <Hud className="max-md:hidden" tone="soft">
+        {label}
+      </Hud>
+      <ul
+        aria-label={`${label} tools`}
+        className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3 md:gap-4"
+      >
+        {tools.map((tool) => (
+          <ToolTile key={tool.title} tool={tool} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** One term of the card's sum: a 9:16 picture over its HUD caption. */
+function CardTerm({ caption, children }: { caption: string; children: ReactNode }) {
+  return (
+    <figure className="flex min-w-0 flex-1 flex-col gap-2.5">
+      <div className="relative aspect-9/16 overflow-hidden rounded-field border bg-screen">
+        {children}
+      </div>
+      <figcaption>
+        <Hud>{caption}</Hud>
+      </figcaption>
+    </figure>
+  );
+}
+
+/**
+ * Motion Transfer, featured: the whole card opens it. The sum is the sample take's clip, character
+ * and result, or (before one is rendered) a sample motion, a sample character and an empty frame.
+ * A phone has a plain first row in the list instead.
+ */
+function MotionTransferCard({
+  character,
+  motion,
+  take,
+}: {
+  character: PickableCharacter | undefined;
+  motion: SampleMotion | undefined;
+  take: SampleTake | null;
+}) {
+  const source = take?.source ?? motion?.clip;
+  const still = take?.poster ?? character?.image;
+
+  return (
+    <>
+      <Link className={cn(row, "md:hidden")} to="/motionTransfer">
+        <span className={thumbnail}>
+          {still && (
+            <img
+              alt="A sample of Motion Transfer, an AI-generated image"
+              className={cn(media, "object-top")}
+              src={mediaUrl(still)}
+            />
+          )}
+        </span>
+        <ToolName short="Any character, any move" title="Motion Transfer" />
+        <ArrowRightIcon aria-hidden="true" className={arrow} strokeWidth={1.75} />
+      </Link>
+      <Link
+        className="group flex flex-wrap items-center gap-8 rounded-2xl border bg-card/72 p-7 transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring max-md:hidden"
+        to="/motionTransfer"
+      >
+        <div className="flex min-w-0 grow basis-100 items-center gap-3 xl:basis-140">
+          <CardTerm caption="A move">
+            {source && <ClipStill at={STILL_AT} src={mediaUrl(source)} />}
+          </CardTerm>
+          <PlusIcon aria-hidden="true" className="mb-6.5 size-4.5 shrink-0 text-muted-foreground" />
+          <CardTerm caption="A character">
+            {character && (
+              <img
+                alt={`${character.title ?? "Sample character"}, an AI-generated image`}
+                className={media}
+                src={mediaUrl(character.image)}
+              />
+            )}
+          </CardTerm>
+          <EqualIcon
+            aria-hidden="true"
+            className="mb-6.5 size-4.5 shrink-0 text-muted-foreground"
+          />
+          <CardTerm caption="Your take">
+            {take ? (
+              <>
+                <ClipStill at={STILL_AT} src={mediaUrl(take.result)} />
+                <AiTag className="bottom-2 left-2" />
+              </>
+            ) : (
+              <Viewfinder tone="dim" />
+            )}
+          </CardTerm>
+        </div>
+        <div className="flex min-w-0 grow basis-80 flex-col items-start gap-4 px-5">
+          <h3 className="max-w-full font-display text-4xl font-bold tracking-display wrap-anywhere">
+            Motion Transfer
+          </h3>
+          <p className="max-w-full text-base text-pretty wrap-anywhere text-soft-foreground">
+            Pick a move, add a character and watch them perform it.
+          </p>
+          <Button asChild>
+            <span>
+              <span>Open Motion Transfer</span>
+              <ArrowRightIcon />
+            </span>
+          </Button>
+        </div>
+      </Link>
+    </>
+  );
+}
+
+/** "Pick a tool": Motion Transfer, featured, then every other tool by what it makes. */
 export function StudioTools({
   characters,
   motions,
@@ -179,183 +351,20 @@ export function StudioTools({
   return (
     <section
       aria-labelledby="tools-heading"
-      className="mx-auto flex w-full max-w-330 scroll-mt-6 flex-col gap-8 px-4 pb-28 sm:px-8"
+      className="flex scroll-mt-6 flex-col gap-2.5 sm:mt-14 md:gap-6"
       id="tools"
     >
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-3">
-          <Hud>Tools</Hud>
-          <h2
-            className="font-display text-3xl leading-tight font-bold tracking-display sm:text-4xl"
-            id="tools-heading"
-          >
-            Pick a tool. Make a shot.
-          </h2>
-        </div>
-        <p className="max-w-sm text-sm text-soft-foreground">
-          New tools land here as they ship. Each one runs its own open workflow, and its recipe is
-          public.
-        </p>
-      </div>
-
-      <Link
-        className="group flex flex-col overflow-hidden rounded-3xl border bg-linear-to-b from-foreground/4 to-foreground/1 transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring lg:flex-row"
-        to="/motionTransfer"
-      >
-        <div className="relative p-6 sm:p-7 lg:w-3/5">
-          <Filmstrip characters={characters} motion={motions[0]} take={take} />
-        </div>
-        <div className="flex flex-col justify-center gap-5 border-t p-7 sm:p-10 lg:w-2/5 lg:border-t-0 lg:border-l">
-          <div className="flex flex-wrap gap-2">
-            <Badge>
-              <StatusDot tone="ok" />
-              Live
-            </Badge>
-            <Badge>Motion transfer</Badge>
-          </div>
-          <h3 className="font-display text-4xl leading-none font-bold tracking-display sm:text-5xl">
-            Motion Transfer
-          </h3>
-          <p className="text-base text-soft-foreground">
-            Pick a move, add a photo of a character, and watch them perform it. Restyle the look if
-            you like.
-          </p>
-          <ol className="flex flex-col gap-2.5">
-            {[
-              "Pick a motion",
-              "Add a character",
-              "Direct the shot: look and seed",
-              "Render, compare, share",
-            ].map((item, index) => (
-              <li className="flex items-center gap-3" key={item}>
-                <span className="grid size-7 shrink-0 place-items-center rounded-full border border-input font-mono text-xs text-soft-foreground">
-                  {index + 1}
-                </span>
-                {item}
-              </li>
-            ))}
-          </ol>
-          <div className="flex flex-wrap items-center gap-4 pt-2">
-            <Button asChild size="lg" variant="photon">
-              <span>
-                Open Motion Transfer
-                <ArrowRightIcon />
-              </span>
-            </Button>
-            <Hud>Wan Animate 2 · 3–8 s clips</Hud>
-          </div>
-        </div>
-      </Link>
-
-      <Link
-        className="group flex flex-col gap-4 rounded-3xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-6 transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring sm:flex-row sm:items-center sm:p-7"
-        to="/presets"
-      >
-        <span
-          aria-hidden="true"
-          className="grid size-14 shrink-0 place-items-center rounded-full border border-brand/35 bg-brand/12 text-brand-foreground *:size-6"
-        >
-          <SparklesIcon />
-        </span>
-        <span className="flex flex-1 flex-col gap-1.5">
-          <span className="flex items-center gap-3">
-            <span className="font-display text-xl font-semibold">Motion presets</span>
-            <Badge>
-              <StatusDot tone="ok" />
-              Live
-            </Badge>
-          </span>
-          <span className="text-sm text-soft-foreground">
-            Start from a ready-made motion, look and seed, each with a real example take. Add your
-            character and generate.
-          </span>
-        </span>
-        <ArrowRightIcon aria-hidden="true" className="hidden size-5 shrink-0 sm:block" />
-      </Link>
-
-      <ul aria-label="Character tools" className="grid gap-4 md:grid-cols-2">
-        {characterTools.map((tool) => (
-          <li key={tool.title}>
-            <Link
-              className="flex h-full flex-col overflow-hidden rounded-3xl border bg-linear-to-b from-foreground/4 to-foreground/1 transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring"
-              to={tool.to}
-            >
-              <div className="relative grid h-42 place-items-center border-b">
-                <span
-                  aria-hidden="true"
-                  className="grid size-16 place-items-center rounded-full border border-brand/35 bg-brand/12 text-brand-foreground *:size-7"
-                >
-                  {tool.icon}
-                </span>
-                <Viewfinder tone="dim" />
-              </div>
-              <div className="flex flex-col gap-2.5 p-6">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-display text-xl font-semibold">{tool.title}</h3>
-                  <Badge>
-                    <StatusDot tone="ok" />
-                    Live
-                  </Badge>
-                </div>
-                <p className="text-sm text-soft-foreground">{tool.text}</p>
-                <Hud className="pt-1.5">{tool.model}</Hud>
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-/** "Built open": what the open approach means, each claim one the repository backs. */
-export function BuiltOpen() {
-  const points = [
-    {
-      icon: <LockOpenIcon />,
-      text: "No partner nodes and no closed APIs. Every share page lists the model files its workflow loads.",
-      title: "Open weights, end to end",
-    },
-    {
-      icon: <FileCodeIcon />,
-      text: "Workflow, seed, prompt and input hashes travel with the video. Re-run a finished recipe and you get the same video back.",
-      title: "Every render keeps its recipe",
-    },
-    {
-      icon: <CpuIcon />,
-      text: "Clone it and start it with Docker Compose. Renders go to Comfy Cloud on your own key, or to a ComfyUI server you point it at.",
-      title: "Run it yourself",
-    },
-  ];
-
-  return (
-    <section aria-labelledby="open-heading" className="border-y bg-popover">
-      <div className="mx-auto flex w-full max-w-330 flex-col gap-10 px-4 py-20 sm:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="flex flex-col gap-3">
-            <Hud>Built open</Hud>
-            <h2
-              className="font-display text-3xl leading-tight font-bold tracking-display sm:text-4xl"
-              id="open-heading"
-            >
-              Nothing behind a curtain.
-            </h2>
-          </div>
-          <code className="max-w-full overflow-x-auto rounded-xl border border-input bg-background px-4 py-3 font-mono text-sm text-soft-foreground">
-            git clone {REPOSITORY_URL}
-          </code>
-        </div>
-        <div className="grid gap-10 md:grid-cols-3">
-          {points.map((point) => (
-            <div className="flex flex-col gap-3" key={point.title}>
-              <span aria-hidden="true" className="text-brand *:size-6">
-                {point.icon}
-              </span>
-              <h3 className="font-display text-xl font-semibold">{point.title}</h3>
-              <p className="text-sm text-soft-foreground">{point.text}</p>
-            </div>
-          ))}
-        </div>
+      <h2 className="mb-1.5 type-heading wrap-anywhere md:mb-0" id="tools-heading">
+        Pick a tool<span className="max-md:hidden">. Make a shot.</span>
+      </h2>
+      <MotionTransferCard
+        character={characters.find(({ title }) => title === take?.characterTitle) ?? characters[0]}
+        motion={motions[0]}
+        take={take}
+      />
+      <div className="flex flex-col gap-2.5 md:mt-4 md:gap-10">
+        <ToolGroup label="Image" tools={imageTools} />
+        <ToolGroup label="Video" tools={videoTools} />
       </div>
     </section>
   );

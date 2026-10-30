@@ -19,7 +19,7 @@ export type HoldForCode = (
 
 /**
  * One access-code dialog for a page, and the actions waiting for its code. `hold` opens the
- * dialog for an action and keeps it; `unlock` opens it on its own (the header's chip). Any
+ * dialog for an action and keeps it; `unlock` opens it on its own (the header's Enter access code). Any
  * successful sign-in, however the dialog was opened, runs every held action once. Closing it
  * without a code drops what nothing on the page shows as waiting; a waiting action stays until
  * `release` (cancelled, or its tile left) or a sign-in. `dialog` is the dialog's props.

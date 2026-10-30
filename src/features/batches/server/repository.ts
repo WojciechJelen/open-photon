@@ -113,6 +113,17 @@ export function insertBatch(batch: {
   return id;
 }
 
+/**
+ * The title of the sample motion whose clip this asset is; `null` for an upload or a cut. Motion
+ * Transfer's own `sampleMotionTitle` stays out of reach: its `api.ts` is client-safe, and this
+ * needs the database.
+ */
+export function findMotionTitle(assetId: string) {
+  const row = database.prepare("SELECT title FROM motions WHERE source_asset_id = ?").get(assetId);
+
+  return row ? z.object({ title: z.string() }).parse(row).title : null;
+}
+
 /** The workspace's batches, most recent first (at most `limit`). */
 export function listBatches(limit: number) {
   return z

@@ -73,7 +73,7 @@ export function handleListPhotoshoots(request: Request) {
 
 /**
  * The photoshoot id a path names, for a request with a session: else the refusal to answer with
- * (401 `access_required`, 400 for a malformed id).
+ * (401 `access_required`, 400 `not_found` for a malformed id: no photoshoot has it).
  */
 function photoshootIdOf(request: Request, value: string): string | Response {
   const id = z.uuid().safeParse(value);
@@ -82,10 +82,12 @@ function photoshootIdOf(request: Request, value: string): string | Response {
     return accessRequired();
   }
 
-  return id.success ? id.data : Response.json({ error: "Invalid photoshoot ID" }, { status: 400 });
+  return id.success
+    ? id.data
+    : refused({ message: "Invalid photoshoot ID", reason: "not_found", status: 400 });
 }
 
-/** `GET /api/photoshoots/:id`: `photoshootSchema`; 400 malformed id, 401, 404. */
+/** `GET /api/photoshoots/:id`: `photoshootSchema`; 400 `not_found` malformed id, 401, 404. */
 export function handleReadPhotoshoot(request: Request, value: string) {
   const id = photoshootIdOf(request, value);
 

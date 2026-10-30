@@ -38,16 +38,16 @@ test.describe("without the access code", () => {
     await open(page, "/");
     await page
       .locator("#tools")
-      .getByRole("link", { name: /Describe a character/ })
+      .getByRole("link", { name: /Create character/ })
       .click();
     await page.waitForURL((url) => url.pathname === "/characters/new");
     await expect(page.getByRole("heading", { name: "Describe your character" })).toBeVisible();
 
-    await expect(page.getByText("Code active")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Access code" })).toBeVisible();
+    await expect(page.getByRole("banner").getByText(/\d+ renders?$/)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Enter access code" })).toBeVisible();
 
     await page.getByLabel("Description", { exact: true }).fill("A lighthouse keeper");
-    await page.getByRole("button", { name: "Enhance caption" }).click();
+    await page.getByRole("button", { name: "Enhance description" }).click();
     await expect(page.getByRole("dialog", { name: "Enter your access code" })).toBeVisible();
     expect(count(captions)).toBe(before);
   });
@@ -59,8 +59,8 @@ test("Start over clears the description, controls and seed, here and after a rel
   const before = count(captions);
 
   await describe(page, "A keeper who starts over");
-  await page.getByLabel("Appearance (optional)").fill("Grey beard");
-  await page.getByRole("button", { name: "Enhance caption" }).click();
+  await page.getByLabel("Appearance").fill("Grey beard");
+  await page.getByRole("button", { name: "Enhance description" }).click();
   await expect(page).toHaveURL(/caption=[0-9a-f-]{36}/);
   expect(count(captions)).toBe(before + 1);
 
@@ -68,12 +68,12 @@ test("Start over clears the description, controls and seed, here and after a rel
   await expect(page).toHaveURL((url) => url.pathname === "/characters/new" && url.search === "");
   await expect(page.getByRole("heading", { name: "Describe your character" })).toBeVisible();
   await expect(page.getByLabel("Description", { exact: true })).toHaveValue("");
-  await expect(page.getByLabel("Appearance (optional)")).toHaveValue("");
+  await expect(page.getByLabel("Appearance")).toHaveValue("");
 
   await page.reload();
   await page.locator("html[data-hydrated]").waitFor();
   await expect(page.getByLabel("Description", { exact: true })).toHaveValue("");
-  await expect(page.getByLabel("Appearance (optional)")).toHaveValue("");
+  await expect(page.getByLabel("Appearance")).toHaveValue("");
 
   // The caption sent before is still stored; nothing was sent or deleted by starting over.
   expect(count(captions)).toBe(before + 1);
@@ -84,8 +84,8 @@ test("Start over drops a description still being restored from the caption's rec
   page,
 }) => {
   await describe(page, "A keeper restored too late");
-  await page.getByLabel("Appearance (optional)").fill("Red cap");
-  await page.getByRole("button", { name: "Enhance caption" }).click();
+  await page.getByLabel("Appearance").fill("Red cap");
+  await page.getByRole("button", { name: "Enhance description" }).click();
   await expect(page).toHaveURL(/caption=[0-9a-f-]{36}/);
 
   const captionUrl = page.url();
@@ -120,7 +120,7 @@ test("Start over drops a description still being restored from the caption's rec
   await delay(500);
 
   await expect(tab.getByLabel("Description", { exact: true })).toHaveValue("");
-  await expect(tab.getByLabel("Appearance (optional)")).toHaveValue("");
+  await expect(tab.getByLabel("Appearance")).toHaveValue("");
 
   await tab.reload();
   await tab.locator("html[data-hydrated]").waitFor();
@@ -134,7 +134,7 @@ test("Enhance checks the description in the browser and sends nothing invalid", 
   const before = count(captions);
 
   await open(page, "/characters/new");
-  await page.getByRole("button", { name: "Enhance caption" }).click();
+  await page.getByRole("button", { name: "Enhance description" }).click();
 
   await expect(page.getByRole("alert")).toContainText("Describe the character in 1 to 1000");
   await expect(page.getByLabel("Description", { exact: true })).toHaveAttribute(
@@ -148,18 +148,19 @@ test("a double click enhances once, and a reload follows the same caption", asyn
   const before = count(captions);
 
   await describe(page, "A double-clicked lighthouse keeper");
-  await page.getByRole("button", { name: "Enhance caption" }).dblclick();
+  await page.getByRole("button", { name: "Enhance description" }).dblclick();
   await expect(page).toHaveURL(/caption=[0-9a-f-]{36}/);
 
   const first = searchId(page, "caption");
 
-  await expect(page.getByRole("heading", { name: "Review the caption" })).toBeFocused();
+  await expect(page.locator("[data-step-heading]")).toHaveText("Refine the prompt");
+  await expect(page.locator("[data-step-heading]")).toBeFocused();
   expect(count(captions)).toBe(before + 1);
 
   await page.reload();
   await page.locator("html[data-hydrated]").waitFor();
   // Comfy is at a dead port: the enhancement failed, and the reload shows it, nothing new.
-  await expect(page.getByRole("alert")).toContainText("The caption couldn't be made");
+  await expect(page.getByRole("alert")).toContainText("The prompt couldn't be made");
   expect(searchId(page, "caption")).toBe(first);
   expect(count(captions)).toBe(before + 1);
 
@@ -168,8 +169,8 @@ test("a double click enhances once, and a reload follows the same caption", asyn
   await expect(page.getByLabel("Description", { exact: true })).toHaveValue(
     "A double-clicked lighthouse keeper",
   );
-  await page.getByRole("button", { name: "Enhance caption" }).click();
-  await expect(page.getByRole("heading", { name: "Review the caption" })).toBeVisible();
+  await page.getByRole("button", { name: "Enhance description" }).click();
+  await expect(page.getByRole("heading", { name: "Refine the prompt" })).toBeVisible();
   expect(searchId(page, "caption")).toBe(first);
   expect(count(captions)).toBe(before + 1);
 });
@@ -203,11 +204,11 @@ test("Try again on a failed enhancement is one new request, through a lost answe
   page,
 }) => {
   await describe(page, "A courier who never arrives");
-  await page.getByRole("button", { name: "Enhance caption" }).click();
+  await page.getByRole("button", { name: "Enhance description" }).click();
 
   const failure = page.getByRole("alert");
 
-  await expect(failure).toContainText("The caption couldn't be made");
+  await expect(failure).toContainText("The prompt couldn't be made");
   await expect(failure).toContainText("provider_unreachable");
 
   const first = searchId(page, "caption");
@@ -224,7 +225,7 @@ test("Try again on a failed enhancement is one new request, through a lost answe
   await page.locator("html[data-hydrated]").waitFor();
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(page).not.toHaveURL(new RegExp(`caption=${first}`));
-  await expect(page.getByRole("alert")).toContainText("The caption couldn't be made");
+  await expect(page.getByRole("alert")).toContainText("The prompt couldn't be made");
   expect(count(captions)).toBe(before + 1);
 });
 
@@ -236,9 +237,9 @@ test("a caption written by hand is sent byte for byte, and Try again on its fail
   const caption = "  A full-body portrait of a tall gardener in green overalls.\n\nPlain wall.  \n";
 
   await describe(page, "A tall gardener");
-  await page.getByRole("button", { name: "Write the caption myself" }).click();
+  await page.getByRole("button", { name: "Write the prompt myself" }).click();
 
-  const box = page.getByLabel("Your caption");
+  const box = page.getByLabel("Prompt", { exact: true });
 
   // It starts from the compiled request: the description with the full-body framing.
   await expect(box).toHaveValue(/A tall gardener/);
@@ -288,9 +289,9 @@ test("Edit the caption opens the image's own caption and seed, in a cold tab and
   const caption = "A full-body portrait of a beekeeper in a white suit.  \n";
 
   await describe(page, "A beekeeper");
-  await page.getByLabel("Appearance (optional)").fill("Tall, grey beard");
-  await page.getByRole("button", { name: "Write the caption myself" }).click();
-  await page.getByLabel("Your caption").fill(caption);
+  await page.getByLabel("Appearance").fill("Tall, grey beard");
+  await page.getByRole("button", { name: "Write the prompt myself" }).click();
+  await page.getByLabel("Prompt", { exact: true }).fill(caption);
   await page.getByRole("button", { name: "Generate character" }).click();
   await expect(page.getByRole("alert")).toContainText("The image couldn't be made");
 
@@ -323,15 +324,15 @@ test("Edit the caption opens the image's own caption and seed, in a cold tab and
     await open(other, path);
 
     if (!path.includes("step=caption")) {
-      await other.getByRole("button", { name: "Edit the caption" }).click();
+      await other.getByRole("button", { name: "Edit the prompt" }).click();
     }
 
-    await expect(other.getByLabel("Your caption")).toHaveValue(caption);
+    await expect(other.getByLabel("Prompt", { exact: true })).toHaveValue(caption);
     await other.getByRole("button", { name: /Advanced/ }).click();
     await expect(other.getByLabel("Seed")).toHaveValue(String(recipe.seed));
-    await other.getByRole("button", { name: "Edit the description" }).click();
+    await other.getByRole("button", { name: "Back", exact: true }).click();
     await expect(other.getByLabel("Description", { exact: true })).toHaveValue("A beekeeper");
-    await expect(other.getByLabel("Appearance (optional)")).toHaveValue("Tall, grey beard");
+    await expect(other.getByLabel("Appearance")).toHaveValue("Tall, grey beard");
   }
 
   await context.close();
@@ -341,18 +342,20 @@ test("a caption written by hand belongs to its description: a new one starts afr
   page,
 }) => {
   await describe(page, "A lighthouse keeper");
-  await page.getByRole("button", { name: "Write the caption myself" }).click();
-  await page.getByLabel("Your caption").fill("My own keeper caption");
+  await page.getByRole("button", { name: "Write the prompt myself" }).click();
+  await page.getByLabel("Prompt", { exact: true }).fill("My own keeper caption");
 
-  await page.getByRole("button", { name: "Edit the description" }).click();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
   await page.getByLabel("Description", { exact: true }).fill("A ferry captain");
-  await page.getByRole("button", { name: "Write the caption myself" }).click();
-  await expect(page.getByLabel("Your caption")).toHaveValue(/^A ferry captain\. Framing:/);
+  await page.getByRole("button", { name: "Write the prompt myself" }).click();
+  await expect(page.getByLabel("Prompt", { exact: true })).toHaveValue(
+    /^A ferry captain\. Framing:/,
+  );
 
-  await page.getByRole("button", { name: "Edit the description" }).click();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
   await page.getByLabel("Description", { exact: true }).fill("A lighthouse keeper");
-  await page.getByRole("button", { name: "Write the caption myself" }).click();
-  await expect(page.getByLabel("Your caption")).toHaveValue("My own keeper caption");
+  await page.getByRole("button", { name: "Write the prompt myself" }).click();
+  await expect(page.getByLabel("Prompt", { exact: true })).toHaveValue("My own keeper caption");
 });
 
 test.describe("where the tab's storage takes nothing", () => {
@@ -371,12 +374,12 @@ test.describe("where the tab's storage takes nothing", () => {
     await expect(page.getByRole("note")).toContainText("does not let the page remember");
 
     await loseAnswers(page, "/api/character-captions");
-    await page.getByRole("button", { name: "Enhance caption" }).click();
+    await page.getByRole("button", { name: "Enhance description" }).click();
     await expect(resend(page)).toBeVisible();
     expect(count(captions)).toBe(before + 1);
 
     // The page's own Enhance again, not the notice's: the same request all the same.
-    await page.getByRole("button", { name: "Enhance caption" }).click();
+    await page.getByRole("button", { name: "Enhance description" }).click();
     await expect(page).toHaveURL(/caption=[0-9a-f-]{36}/);
     expect(count(captions)).toBe(before + 1);
   });
@@ -387,7 +390,7 @@ test("an expired session asks for the code, then sends the same request", async 
 
   await describe(page, "A night-shift baker");
   await page.context().clearCookies();
-  await page.getByRole("button", { name: "Enhance caption" }).click();
+  await page.getByRole("button", { name: "Enhance description" }).click();
 
   const dialog = page.getByRole("dialog", { name: "Enter your access code" });
 
