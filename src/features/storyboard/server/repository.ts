@@ -124,14 +124,17 @@ export function findDescriptions(storyboardId: string) {
   );
 }
 
-/** Saves the title, the style and every card's description, and marks the storyboard changed. */
+/**
+ * Saves the title, the style and every card's description (`null`: not saved, as a new card), and
+ * marks the storyboard changed.
+ */
 export function saveStoryboard(
   storyboardId: string,
   {
     descriptions,
     style,
     title,
-  }: { descriptions: readonly string[]; style: StoryboardStyle; title: string | null },
+  }: { descriptions: readonly (string | null)[]; style: StoryboardStyle; title: string | null },
 ) {
   const update = database.prepare(
     "UPDATE storyboard_cards SET description = ? WHERE storyboard_id = ? AND position = ?",

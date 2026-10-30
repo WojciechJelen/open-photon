@@ -17,6 +17,14 @@ export const styleLabels: Record<CharacterStyle, string> = {
   "stylized-3d": "Stylized 3D",
 };
 
+/** The slug of the sample character that shows each style on its tile. */
+export const styleSamples: Record<CharacterStyle, string> = {
+  anime: "yuki",
+  illustration: "arthur",
+  realistic: "maya",
+  "stylized-3d": "theo",
+};
+
 /** The controls the form sets: a blank field is no control, a filled one is sent as typed. */
 export function controlsOf(form: BuilderForm): CharacterControls {
   const controls: CharacterControls = {};

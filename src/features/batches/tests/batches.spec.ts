@@ -70,7 +70,7 @@ test("Render is not held back by the allowance: the server admits a batch whose 
 
   await variations.click();
 
-  const dialog = page.getByRole("dialog", { name: "Render variations" });
+  const dialog = page.getByRole("dialog", { name: "Variations" });
 
   // Two new seeds need two generations: shown as information, and the server refuses it whole.
   await expect(dialog.getByText("your access code has 1 left", { exact: false })).toBeVisible();
@@ -227,11 +227,9 @@ test("Variations shows the takes, what stays the same and the allowance before a
   await variations.focus();
   await page.keyboard.press("Enter");
 
-  const dialog = page.getByRole("dialog", { name: "Render variations" });
+  const dialog = page.getByRole("dialog", { name: "Variations" });
 
-  await expect(
-    dialog.getByRole("heading", { name: "2 takes, same motion and look" }),
-  ).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Render 2 takes" })).toBeVisible();
   await expect(dialog.getByText("Background: a keyboard rehearsal.")).toBeVisible();
   await expect(dialog.getByText("Arthur")).toBeVisible();
 
@@ -239,12 +237,7 @@ test("Variations shows the takes, what stays the same and the allowance before a
 
   await expect(takes).toHaveCount(2);
   await expect(takes.first()).toHaveText(/Take 1\s*Seed \d+/);
-  await expect(
-    dialog.getByText(
-      `Uses up to 2 of the ${before.allowance.remaining} generations your access code has left.`,
-      { exact: false },
-    ),
-  ).toBeVisible();
+  await expect(dialog.getByText("Uses up to 2 renders")).toBeVisible();
 
   // Four takes, by keyboard: the count's radio, then New seeds draws four others.
   await dialog.getByRole("radio", { name: "4 takes" }).focus();
@@ -284,7 +277,7 @@ test("a Render whose answer is lost asks again for the same takes after the sess
   await direct(page, `Background: a lost answer ${randomUUID()}.`);
 
   const panel = page.getByRole("complementary", { name: "Your shot" });
-  const dialog = page.getByRole("dialog", { name: "Render variations" });
+  const dialog = page.getByRole("dialog", { name: "Variations" });
   const takes = dialog.getByRole("list", { name: "Takes" }).getByRole("listitem");
 
   await panel.getByRole("button", { name: "Variations" }).click();
@@ -329,14 +322,16 @@ test("a Render whose answer is lost asks again for the same takes after the sess
   await panel.getByRole("button", { name: "Variations" }).click();
   await expect(takes).toHaveCount(2);
   expect(await takes.allTextContents()).toEqual(seeds);
-  await expect(dialog.getByRole("status")).toContainText("These are the takes you last asked for");
+  await expect(
+    dialog.getByRole("status").filter({ hasText: "These are the takes you last asked for" }),
+  ).toBeVisible();
 
   // Asking again opens the batch the lost request admitted, and nothing else is stored. The URL
   // changes before the batch page has loaded; going back before it shows would only cancel that
   // navigation and leave the dialog open on the Direct step.
   await dialog.getByRole("button", { name: "Render 2 takes" }).click();
   await expect(page).toHaveURL(`/batches/${batchId}`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("2 seed variations");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("2 seeds, one shot");
 
   const after = batchListSchema.parse(await (await page.request.get("/api/batches")).json());
 
@@ -361,7 +356,7 @@ test("a take that fails keeps its place in the batch and offers the shared retry
     .getByRole("button", { name: "Variations" })
     .click();
 
-  const dialog = page.getByRole("dialog", { name: "Render variations" });
+  const dialog = page.getByRole("dialog", { name: "Variations" });
 
   const admitted = page.waitForResponse(
     (response) => response.url().endsWith("/api/batches") && response.request().method() === "POST",
@@ -372,7 +367,7 @@ test("a take that fails keeps its place in the batch and offers the shared retry
   const batch = batchSchema.parse(await (await admitted).json());
 
   await expect(page).toHaveURL(`/batches/${batch.id}`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("2 seed variations");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("2 seeds, one shot");
 
   // Comfy cannot be reached, so neither take renders; both stay in the batch, failed.
   await expect(page.getByRole("heading", { name: "2 of 2 finished" })).toBeVisible({
@@ -407,7 +402,7 @@ test("a take that fails keeps its place in the batch and offers the shared retry
   await expect(page.getByRole("button", { name: "Retry take 1" })).toHaveText("Retrying…");
   release();
   await page.unrouteAll({ behavior: "wait" });
-  await expect(page.getByText("Attempt 2: rendered again after a failure.")).toBeVisible();
+  await expect(page.getByText("Attempt 2")).toBeVisible();
   expect(
     database((connection) =>
       connection.prepare("SELECT count(*) AS n FROM generations WHERE parent_id = ?").get(first),
@@ -424,5 +419,5 @@ test("a take that fails keeps its place in the batch and offers the shared retry
 
   // The list of batches names it.
   await open(page, "/batches");
-  await expect(page.getByRole("link", { name: /2 seed variations/ }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /2 seeds, one shot/ }).first()).toBeVisible();
 });

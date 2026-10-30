@@ -233,11 +233,11 @@ test("a shoot admits one shot per preset and renders each into one stored image 
     assert.deepEqual([graph["24"]?.inputs.x, graph["21"]?.inputs.x], [160, 160]);
   }
 
-  assert.match(
-    z.string().parse(graphs[0]?.["4"]?.inputs.text),
-    /^Professional e-commerce packshot/,
-  );
-  assert.match(z.string().parse(graphs[1]?.["4"]?.inputs.text), /^Advertising key visual/);
+  // The shots render at once, so either graph may reach the provider first.
+  const prompts = graphs.map((graph) => z.string().parse(graph["4"]?.inputs.text));
+
+  assert.ok(prompts.some((prompt) => prompt.startsWith("Professional e-commerce packshot")));
+  assert.ok(prompts.some((prompt) => prompt.startsWith("Advertising key visual")));
 });
 
 test("a scene description replaces the preset's own scene in the prompt", async () => {

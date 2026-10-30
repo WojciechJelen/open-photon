@@ -1,7 +1,7 @@
 // The character builder end to end against the fake provider (the `fake` Playwright project):
-// describe → enhance → edit the caption → generate → preview → save → animate, a failed image
-// recovered by editing its caption, and publishing an image (the builder's and a library card's
-// "Publish & copy link"). The fake provider answers a caption with
+// describe → enhance → edit the prompt → generate → preview → save → animate, a failed image
+// recovered by editing its prompt, and publishing an image (the builder's and a library
+// character's "Publish & copy link"). The fake provider answers a caption with
 // `tests/fixtures/fake-output.txt` and an image with `tests/fixtures/fake-output.png`; a graph
 // carrying `[fake:provider_failed]` fails.
 import { readFileSync } from "node:fs";
@@ -37,14 +37,23 @@ function searchId(page: Page, name: "caption" | "image" | "saved") {
 async function generateImage(page: Page, caption: string) {
   await open(page, "/characters/new");
   await page.getByLabel("Description", { exact: true }).fill("A street performer");
-  await page.getByRole("button", { name: "Write the caption myself" }).click();
-  await page.getByLabel("Your caption").fill(caption);
+  await page.getByRole("button", { name: "Write the prompt myself" }).click();
+  await page.getByLabel("Prompt", { exact: true }).fill(caption);
   await page.getByRole("button", { name: "Generate character" }).click();
   await expect(page.getByRole("img", { name: /AI-generated character/ })).toBeVisible({
     timeout: 30_000,
   });
 
   return searchId(page, "image") ?? "";
+}
+
+/** Opens the details of the library's character `title`, where a saved image is published. */
+async function openDetails(page: Page, title: string) {
+  await page
+    .getByRole("article", { name: title })
+    .getByRole("button", { name: `More for ${title}` })
+    .click();
+  await page.getByRole("menuitem", { name: "Details" }).click();
 }
 
 /** A generation's share slug as stored; `null` while it is not published. */
@@ -63,7 +72,7 @@ test("describe, enhance, edit, generate, save and animate with the motion the vi
   await open(page, `/characters/new?draft=${encodeURIComponent(JSON.stringify({ motion }))}`);
 
   await page.getByLabel("Description", { exact: true }).fill("A retired lighthouse keeper");
-  await page.getByLabel("Outfit (optional)").fill("Yellow raincoat");
+  await page.getByLabel("Outfit").fill("Yellow raincoat");
   await page.getByRole("button", { name: "Anime" }).click();
   await expect(page.getByRole("button", { name: "Anime" })).toHaveAttribute("aria-pressed", "true");
 
@@ -71,25 +80,25 @@ test("describe, enhance, edit, generate, save and animate with the motion the vi
   await expect(page.getByLabel("Compiled request")).toContainText("A retired lighthouse keeper");
   await expect(page.getByLabel("Compiled request")).toContainText("Yellow raincoat");
 
-  await page.getByRole("button", { name: "Enhance caption" }).click();
+  await page.getByRole("button", { name: "Enhance description" }).click();
 
-  const box = page.getByLabel("Enhanced caption");
+  const box = page.getByLabel("Prompt", { exact: true });
 
   await expect(box).toHaveValue(fakeCaption, { timeout: 30_000 });
-  await expect(page.getByText("As enhanced")).toBeVisible();
 
   const captionId = searchId(page, "caption");
   // An edit kept exactly, trailing spaces and newline too.
   const edited = `${fakeCaption} Standing barefoot on wet sand.  \n`;
 
   await box.fill(edited);
-  await expect(page.getByText("Edited", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Back to the enhanced prompt" })).toBeVisible();
 
   await page.getByRole("button", { name: "Generate character" }).click();
 
   const image = page.getByRole("img", { name: /AI-generated character/ });
 
   await expect(image).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: /Made with/ }).click();
   await expect(page.getByTestId("image-caption")).toHaveText(edited, { useInnerText: false });
 
   const imageId = searchId(page, "image");
@@ -109,7 +118,7 @@ test("describe, enhance, edit, generate, save and animate with the motion the vi
     /^\/media\/[0-9a-f-]{36}\.png$/,
   );
   // FLUX Kommunity licence: the output says it is AI-generated, and so does its file name.
-  await expect(page.getByText("AI-generated image", { exact: true })).toBeVisible();
+  await expect(page.getByText("AI-generated", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Download image" })).toHaveAttribute(
     "download",
     /^ai-generated-character-/,
@@ -118,7 +127,7 @@ test("describe, enhance, edit, generate, save and animate with the motion the vi
   // Nothing is saved until the visitor chooses to.
   const before = countOf(characters);
 
-  await page.getByLabel("Name (optional)").fill("Keeper");
+  await page.getByLabel("Name", { exact: true }).fill("Keeper");
   await page.getByRole("button", { name: "Save to library" }).click();
 
   const saved = page.getByRole("status").filter({ hasText: "Saved to the library" });
@@ -173,7 +182,7 @@ test("describe, enhance, edit, generate, save and animate with the motion the vi
   await page.route("**/recipe.json", (route) =>
     route.fulfill({ json: { error: "The recipe store is down." }, status: 500 }),
   );
-  await page.getByRole("button", { name: "Another image, same caption" }).click();
+  await page.getByRole("button", { name: "Another image" }).click();
   await expect(page.getByRole("alert")).toContainText("The recipe store is down.");
   await page.unrouteAll();
 
@@ -184,7 +193,7 @@ test("describe, enhance, edit, generate, save and animate with the motion the vi
     await delay(1000);
     await route.fallback();
   });
-  await page.getByRole("button", { name: "Another image, same caption" }).dblclick();
+  await page.getByRole("button", { name: "Another image" }).dblclick();
   await expect(page).not.toHaveURL(new RegExp(`image=${imageId}`));
   await expect(image).toBeVisible({ timeout: 30_000 });
   expect(countOf(images)).toBe(beforeAnother + 1);
@@ -194,7 +203,7 @@ test("describe, enhance, edit, generate, save and animate with the motion the vi
   const shownImage = searchId(page, "image");
 
   await page.context().clearCookies();
-  await page.getByRole("button", { name: "Another image, same caption" }).click();
+  await page.getByRole("button", { name: "Another image" }).click();
 
   const dialog = page.getByRole("dialog", { name: "Enter your access code" });
 
@@ -213,8 +222,10 @@ test("a failed image says why; Try again is a new seed, and an edited caption re
 
   await open(page, "/characters/new");
   await page.getByLabel("Description", { exact: true }).fill("A stunt double");
-  await page.getByRole("button", { name: "Write the caption myself" }).click();
-  await page.getByLabel("Your caption").fill("A stunt double, full body. [fake:provider_failed]");
+  await page.getByRole("button", { name: "Write the prompt myself" }).click();
+  await page
+    .getByLabel("Prompt", { exact: true })
+    .fill("A stunt double, full body. [fake:provider_failed]");
   await page.getByRole("button", { name: "Generate character" }).click();
 
   await expect(page.getByRole("alert")).toContainText("The image couldn't be made", {
@@ -230,11 +241,11 @@ test("a failed image says why; Try again is a new seed, and an edited caption re
   });
   expect(countOf(images)).toBe(before + 2);
 
-  await page.getByRole("button", { name: "Edit the caption" }).click();
-  await expect(page.getByLabel("Your caption")).toHaveValue(
+  await page.getByRole("button", { name: "Edit the prompt" }).click();
+  await expect(page.getByLabel("Prompt", { exact: true })).toHaveValue(
     "A stunt double, full body. [fake:provider_failed]",
   );
-  await page.getByLabel("Your caption").fill("A stunt double, full body.");
+  await page.getByLabel("Prompt", { exact: true }).fill("A stunt double, full body.");
   await page.getByRole("button", { name: "Generate character" }).click();
   await expect(page.getByRole("img", { name: /AI-generated character/ })).toBeVisible({
     timeout: 30_000,
@@ -244,7 +255,7 @@ test("a failed image says why; Try again is a new seed, and an edited caption re
   // Another image of the same caption: a new generation with the caption and source unchanged.
   const first = searchId(page, "image");
 
-  await page.getByRole("button", { name: "Another image, same caption" }).click();
+  await page.getByRole("button", { name: "Another image" }).click();
   await expect(page).not.toHaveURL(new RegExp(`image=${first}`));
   await expect(page.getByRole("img", { name: /AI-generated character/ })).toBeVisible({
     timeout: 30_000,
@@ -269,8 +280,8 @@ test("a caption or image whose status is unknown is never sent again from the pa
 
   await open(page, "/characters/new");
   await page.getByLabel("Description", { exact: true }).fill(description);
-  await page.getByRole("button", { name: "Enhance caption" }).click();
-  await expect(page.getByRole("alert")).toContainText("The caption's status is unknown", {
+  await page.getByRole("button", { name: "Enhance description" }).click();
+  await expect(page.getByRole("alert")).toContainText("The prompt's status is unknown", {
     timeout: 30_000,
   });
   await expect(page.getByRole("button", { name: /Try again|Enhance/ })).toHaveCount(0);
@@ -280,8 +291,8 @@ test("a caption or image whose status is unknown is never sent again from the pa
   const unknownCaption = searchId(page, "caption");
 
   await page.getByRole("button", { name: "Edit the description" }).click();
-  await page.getByRole("button", { name: "Enhance caption" }).click();
-  await expect(page.getByRole("alert")).toContainText("The caption's status is unknown");
+  await page.getByRole("button", { name: "Enhance description" }).click();
+  await expect(page.getByRole("alert")).toContainText("The prompt's status is unknown");
   expect(searchId(page, "caption")).toBe(unknownCaption);
   expect(countOf(captions)).toBe(beforeCaptions + 1);
 
@@ -289,8 +300,8 @@ test("a caption or image whose status is unknown is never sent again from the pa
 
   await page.getByRole("button", { name: "Edit the description" }).click();
   await page.getByLabel("Description", { exact: true }).fill("A juggler");
-  await page.getByRole("button", { name: "Write the caption myself" }).click();
-  await page.getByLabel("Your caption").fill("A juggler, full body. [fake:ambiguous]");
+  await page.getByRole("button", { name: "Write the prompt myself" }).click();
+  await page.getByLabel("Prompt", { exact: true }).fill("A juggler, full body. [fake:ambiguous]");
   await page.getByRole("button", { name: "Generate character" }).click();
   await expect(page.getByRole("alert")).toContainText("The image's status is unknown", {
     timeout: 30_000,
@@ -301,8 +312,8 @@ test("a caption or image whose status is unknown is never sent again from the pa
   // Its own caption and seed, unchanged, are the request that made it: the image again, no job.
   const unknownImage = searchId(page, "image");
 
-  await page.getByRole("button", { name: "Edit the caption" }).click();
-  await expect(page.getByLabel("Your caption")).toHaveValue(
+  await page.getByRole("button", { name: "Edit the prompt" }).click();
+  await expect(page.getByLabel("Prompt", { exact: true })).toHaveValue(
     "A juggler, full body. [fake:ambiguous]",
   );
   await page.getByRole("button", { name: "Generate character" }).click();
@@ -323,6 +334,11 @@ test("an image stays private until Publish & copy link, then anyone opens its sh
   // Done, and private: no share page until its owner publishes it, which the page explains.
   expect(slugOf(imageId)).toBeNull();
   await expect(
+    page.getByText("Save it to animate it. Sharing makes this image public."),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Publish and copy a share link" }).click();
+  await expect(
     page.getByText(
       "Publishing makes this AI-generated image public at a share link; check it first.",
     ),
@@ -333,7 +349,13 @@ test("an image stays private until Publish & copy link, then anyone opens its sh
     "Published. Link copied to the clipboard.",
   );
 
-  const link = await page.getByLabel("Share link", { exact: true }).inputValue();
+  // The field shows the whole link only while it has the focus.
+  const field = page.getByLabel("Share link", { exact: true });
+
+  await field.focus();
+  await expect(field).toHaveValue(/^http:/);
+
+  const link = await field.inputValue();
 
   expect(link).toMatch(/^http:\/\/[^/]+\/r\/[0-9a-f]{16}$/);
   expect(link.endsWith(`/r/${slugOf(imageId)}`)).toBe(true);
@@ -351,36 +373,40 @@ test("an image stays private until Publish & copy link, then anyone opens its sh
 
   // Read again, it is published, with the same link.
   await page.reload();
+  await page.getByRole("button", { name: "Publish and copy a share link" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Published" })).toHaveText("Published", {
     timeout: 30_000,
   });
-  await expect(page.getByLabel("Share link", { exact: true })).toHaveValue(link);
+  await field.focus();
+  await expect(field).toHaveValue(link);
 
   // A saved character of an image nobody published: its library card publishes it.
   const title = `Juggler ${run}`;
   const otherId = await generateImage(page, `A second juggler ${run}, full body.`);
 
-  await page.getByLabel("Name (optional)").fill(title);
+  await page.getByLabel("Name", { exact: true }).fill(title);
   await page.getByRole("button", { name: "Save to library" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved to the library" })).toBeVisible();
   await open(page, `/characters?q=${run}`);
 
-  const card = page.getByRole("article", { name: title });
-  const published = card.getByRole("status").filter({ hasText: "Published" });
+  const details = page.getByRole("dialog", { name: title });
+  const published = details.getByRole("status").filter({ hasText: "Published" });
 
-  await card.getByRole("button", { name: `Publish & copy link: ${title}` }).click();
+  await openDetails(page, title);
+  await details.getByRole("button", { name: `Publish & copy link: ${title}` }).click();
   await expect(published).toBeVisible();
   expect(slugOf(otherId)).toMatch(/^[0-9a-f]{16}$/);
 
-  const cardLink = card.getByRole("textbox", { name: `Share link: ${title}` });
+  const cardLink = details.getByRole("textbox", { name: `Share link: ${title}` });
 
   await expect(cardLink).toHaveValue(new RegExp(`/r/${slugOf(otherId)}$`));
 
   // Read again: "Published" and its link, no publish button.
   await page.reload();
+  await openDetails(page, title);
   await expect(published).toHaveText("Published", { timeout: 30_000 });
   await expect(cardLink).toHaveValue(new RegExp(`/r/${slugOf(otherId)}$`));
-  await expect(card.getByRole("button", { name: /Publish & copy link/ })).toHaveCount(0);
+  await expect(details.getByRole("button", { name: /Publish & copy link/ })).toHaveCount(0);
 });
 
 test("publishing without a clipboard, or with copying refused, still publishes and leaves the link to copy; an earlier link starts with the server's share origin", async ({
@@ -396,6 +422,7 @@ test("publishing without a clipboard, or with copying refused, still publishes a
 
   const imageId = await generateImage(page, `A busker ${run}, full body, plain background.`);
 
+  await page.getByRole("button", { name: "Publish and copy a share link" }).click();
   await page.getByRole("button", { name: "Publish & copy link" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Published" })).toHaveText(
     "Published. Copying is not allowed here; copy the link below.",
@@ -415,16 +442,17 @@ test("publishing without a clipboard, or with copying refused, still publishes a
 
   const otherId = await generateImage(page, `A second busker ${run}, full body.`);
 
-  await page.getByLabel("Name (optional)").fill(title);
+  await page.getByLabel("Name", { exact: true }).fill(title);
   await page.getByRole("button", { name: "Save to library" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved to the library" })).toBeVisible();
   await open(page, `/characters?q=${run}`);
 
-  const card = page.getByRole("article", { name: title });
-  const cardLink = card.getByRole("textbox", { name: `Share link: ${title}` });
+  const details = page.getByRole("dialog", { name: title });
+  const cardLink = details.getByRole("textbox", { name: `Share link: ${title}` });
 
-  await card.getByRole("button", { name: `Publish & copy link: ${title}` }).click();
-  await expect(card.getByRole("status").filter({ hasText: "Published" })).toHaveText(
+  await openDetails(page, title);
+  await details.getByRole("button", { name: `Publish & copy link: ${title}` }).click();
+  await expect(details.getByRole("status").filter({ hasText: "Published" })).toHaveText(
     "Published. Copying is not allowed here; copy the link below.",
   );
   await expect(cardLink).toHaveValue(new RegExp(`/r/${slugOf(otherId)}$`));
@@ -434,12 +462,18 @@ test("publishing without a clipboard, or with copying refused, still publishes a
     route.fulfill({ json: { origin: "https://photon.example" } }),
   );
   await page.reload();
+  await openDetails(page, title);
+  await cardLink.focus();
   await expect(cardLink).toHaveValue(`https://photon.example/r/${slugOf(otherId)}`, {
     timeout: 30_000,
   });
   await open(page, `/characters/new?image=${imageId}`);
-  await expect(page.getByLabel("Share link", { exact: true })).toHaveValue(
-    `https://photon.example/r/${slugOf(imageId)}`,
-    { timeout: 30_000 },
-  );
+  await page.getByRole("button", { name: "Publish and copy a share link" }).click();
+
+  const published = page.getByLabel("Share link", { exact: true });
+
+  await published.focus();
+  await expect(published).toHaveValue(`https://photon.example/r/${slugOf(imageId)}`, {
+    timeout: 30_000,
+  });
 });

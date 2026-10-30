@@ -5,7 +5,7 @@ import { animateSearchSchema } from "#/features/animateImage/contracts";
 
 export const Route = createFileRoute("/animate")({
   validateSearch: animateSearchSchema,
-  head: () => ({ meta: [{ title: "Animate an image · Open Photon" }] }),
+  head: () => ({ meta: [{ title: "Animate image · Open Photon" }] }),
   component: AnimateRoute,
 });
 

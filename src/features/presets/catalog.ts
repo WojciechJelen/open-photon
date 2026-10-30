@@ -121,8 +121,7 @@ export const presets: readonly Preset[] = presetCatalogSchema.parse([
     id: "street-dance",
     version: 1,
     title: "Street dance",
-    summary:
-      "The street-dance clip as photographed: your character, outfit and background stay as the photo shows them.",
+    summary: "The clip as shot, with your character in it.",
     workflow: motionTransfer,
     motion: streetDance,
     defaults: {
@@ -144,8 +143,7 @@ export const presets: readonly Preset[] = presetCatalogSchema.parse([
     id: "neon-night",
     version: 1,
     title: "Neon night",
-    summary:
-      "The street-dance clip moved to a neon-lit city street at night; your character keeps the look of the photo.",
+    summary: "A neon-lit city street after dark.",
     workflow: motionTransfer,
     motion: streetDance,
     defaults: {
@@ -167,8 +165,7 @@ export const presets: readonly Preset[] = presetCatalogSchema.parse([
     id: "golden-hour-rooftop",
     version: 1,
     title: "Golden-hour rooftop",
-    summary:
-      "The street-dance clip on a rooftop in warm golden-hour light; your character keeps the look of the photo.",
+    summary: "A rooftop in warm evening light.",
     workflow: motionTransfer,
     motion: streetDance,
     defaults: {

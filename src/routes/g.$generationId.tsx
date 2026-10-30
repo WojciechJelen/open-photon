@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
 import { composerSlots } from "#/app/composer-slots";
+import { Button } from "#/components/ui/button";
 import {
   GenerationView,
   generationTitle,
@@ -23,10 +24,12 @@ export const Route = createFileRoute("/g/$generationId")({
   }),
   component: GenerationPage,
   notFoundComponent: () => (
-    <Problem title="Generation not found">
-      <Link className="underline underline-offset-3" search={{}} to="/motionTransfer">
-        Start a new generation
-      </Link>
+    <Problem text="This result doesn't exist." title="Nothing here">
+      <Button asChild variant="outline">
+        <Link search={{}} to="/motionTransfer">
+          Start a new generation
+        </Link>
+      </Button>
     </Problem>
   ),
 });

@@ -108,8 +108,14 @@ test("an anonymous visitor sees the result and the source, and the motion link s
       .toBeGreaterThan(0);
   }
 
-  // No code is asked for here, and no recipe JSON offered: that needs a session.
-  await expect(page.getByRole("link", { name: /Recipe JSON/ })).toHaveCount(0);
+  await expect(page.getByRole("figure").getByText("AI-generated", { exact: true })).toBeVisible();
+
+  // No code is asked for here: the recipe's download is the page's own copy, as the API needs a
+  // session.
+  await expect(page.getByRole("link", { name: "Download the recipe" })).toHaveAttribute(
+    "href",
+    /^data:application\/json,/,
+  );
   await page.getByRole("link", { name: "Use this motion with my character" }).click();
 
   // The wizard is open without the code: the character step with the shared clip picked.

@@ -1,25 +1,28 @@
-import { RotateCwIcon } from "lucide-react";
+import { RotateCwIcon, TriangleAlertIcon } from "lucide-react";
 import { type KeyboardEvent, useEffect, useId, useReducer, useRef, useState } from "react";
 
 import { Button } from "#/components/ui/button";
+import { FILLS_BOX, GeneratedTag } from "#/features/spriteForge/components/generation-state";
 import {
   type AtlasDescription,
   rowTag,
   type SheetRow,
   sheetRows,
 } from "#/features/spriteForge/contracts";
+import { StateCard } from "#/shared/components/state-card";
 
-const WIDTH = 960;
-const HEIGHT = 600;
-
-// The strip of eight walking directions takes at most this many canvas pixels of height.
-const STRIP_MAX_HEIGHT = 160;
+// The strip of eight walking directions: side by side in the middle, each in a slot this wide at
+// most, and at most this high.
+const STRIP_SLOT = 64;
+const STRIP_MAX_HEIGHT = 80;
 const STRIP_TOP = 12;
 const GAP = 8;
 
-// Canvas pixels per millisecond at zoom 1; a diagonal step is as long as a straight one.
+// How far above the canvas's lower edge the hero's feet stop.
+const FLOOR = 4;
+
+// CSS pixels per millisecond at zoom 1; a diagonal step is as long as a straight one.
 const SPEED = 0.06;
-const TILE = 48;
 
 /** The row a held step points to: `dx` and `dy` are -1, 0 or 1 (screen axes, y down). */
 const stepRows = {
@@ -117,19 +120,24 @@ function frameAt(atlas: Atlas, row: SheetRow, time: number, moving: boolean) {
   return from;
 }
 
-function drawGround(context: CanvasRenderingContext2D) {
-  context.fillStyle = "#3b4a3a";
-  context.fillRect(0, 0, WIDTH, HEIGHT);
-  context.fillStyle = "#435443";
+/**
+ * Where things go on a box of `width` by `height` CSS pixels: the strip takes the largest whole
+ * scale at which a cell fits its slot (a smaller one when even its own size does not), and the hero
+ * walks in the band below it, at a zoom that keeps it on the canvas.
+ */
+function stageOf(cell: Atlas["cell"], width: number, height: number) {
+  const slot = Math.min(STRIP_SLOT, width / sheetRows.length);
+  const fit = Math.min(slot / cell.w, STRIP_MAX_HEIGHT / cell.h);
+  const stripScale = fit < 1 ? fit : Math.floor(fit);
+  const stripLeft = (width - slot * sheetRows.length) / 2;
+  const stripBottom = STRIP_TOP + cell.h * stripScale;
+  const floor = height - FLOOR;
+  const maxZoom = Math.max(1, Math.floor((floor - stripBottom - GAP) / cell.h));
 
-  for (let y = 0; y < HEIGHT; y += TILE) {
-    for (let x = (y / TILE) % 2 ? 0 : TILE; x < WIDTH; x += TILE * 2) {
-      context.fillRect(x, y, TILE, TILE);
-    }
-  }
+  return { floor, maxZoom, slot, stripBottom, stripLeft, stripScale };
 }
 
-/** Draws frame `index` with its pivot at `at`, `scale` canvas pixels per atlas pixel. */
+/** Draws frame `index` with its pivot at `at`, `scale` CSS pixels per atlas pixel. */
 function drawFrame(
   context: CanvasRenderingContext2D,
   image: HTMLImageElement,
@@ -167,6 +175,9 @@ function drawFrame(
  * held keys are let go when the canvas, the window or the tab loses focus.
  * With reduced motion asked for, the strip stands still; the hero moves only when walked.
  * An atlas image that fails to load stops the loop and says so, with a button to load it again.
+ * It fills the nearest positioned box, which holds its size whatever the frames do and shows
+ * through the canvas; the canvas keeps one pixel for each device pixel of the box and draws in CSS
+ * pixels, so whole scales stay even and a shrunk strip stays sharp on a dense screen.
  */
 export function SpritePlayground({
   atlas: description,
@@ -204,9 +215,10 @@ export function SpritePlayground({
   }, []);
 
   useEffect(() => {
-    const context = canvasRef.current?.getContext("2d");
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
 
-    if (!context) {
+    if (!canvas || !context) {
       return;
     }
 
@@ -218,18 +230,8 @@ export function SpritePlayground({
     let frameRequest = 0;
     let last = performance.now();
 
-    // The strip takes the largest whole scale at which all eight cells fit the width and its
-    // height; the hero walks in the band below it, at a zoom that keeps it on the canvas.
-    const slot = WIDTH / sheetRows.length;
-
-    const stripScale = Math.max(
-      1,
-      Math.floor(Math.min((slot - GAP) / cell.w, STRIP_MAX_HEIGHT / cell.h)),
-    );
-
-    const stripBottom = STRIP_TOP + cell.h * stripScale;
-    const maxZoom = Math.max(1, Math.floor((HEIGHT - 4 - stripBottom - GAP) / cell.h));
-    const hero: Hero = { at: { x: WIDTH / 2, y: HEIGHT - 4 }, row: "s", time: 0 };
+    const hero: Hero = { at: { x: 0, y: 0 }, row: "s", time: 0 };
+    let stage = stageOf(cell, canvas.clientWidth, canvas.clientHeight);
 
     zoomRef.current = cell.h <= 80 ? 4 : 2;
 
@@ -237,10 +239,10 @@ export function SpritePlayground({
       loaded = true;
     };
 
-    // A failed image leaves nothing to animate: paint the ground once and stop the loop.
+    // A failed image leaves nothing to animate: clear the canvas and stop the loop.
     const onError = () => {
       cancelAnimationFrame(frameRequest);
-      drawGround(context);
+      context.clearRect(0, 0, canvas.width, canvas.height);
       setFailedUrl(imageUrl);
     };
 
@@ -249,13 +251,16 @@ export function SpritePlayground({
     image.src = imageUrl;
 
     // An arrow, not a hoisted declaration, so `context` stays narrowed to non-null inside it.
-    const tick = (now: number) => {
+    const paint = (now: number) => {
       const elapsed = Math.min(50, now - last);
+      const ratio = window.devicePixelRatio;
 
       last = now;
-      drawGround(context);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 
       if (loaded) {
+        const { floor, maxZoom, slot, stripBottom, stripLeft, stripScale } = stage;
         const zoom = Math.min(maxZoom, zoomRef.current);
         let dx = 0;
         let dy = 0;
@@ -280,22 +285,24 @@ export function SpritePlayground({
         }
 
         hero.at = {
-          x: Math.max(half, Math.min(WIDTH - half, hero.at.x + dx * step)),
-          y: Math.max(top, Math.min(HEIGHT - 4, hero.at.y + dy * step)),
+          x: Math.max(half, Math.min(canvas.clientWidth - half, hero.at.x + dx * step)),
+          y: Math.max(top, Math.min(floor, hero.at.y + dy * step)),
         };
         hero.time += walking ? elapsed : 0;
 
-        context.imageSmoothingEnabled = false;
+        // A strip at no whole number of device pixels is smoothed: dropped pixels would show.
+        context.imageSmoothingEnabled = !Number.isInteger(stripScale * ratio);
         sheetRows.forEach((row, index) => {
           drawFrame(
             context,
             image,
             atlas,
             frameAt(atlas, row, now, !motion.matches),
-            { x: slot * (index + 0.5), y: stripBottom },
+            { x: stripLeft + slot * (index + 0.5), y: stripBottom },
             stripScale,
           );
         });
+        context.imageSmoothingEnabled = false;
         drawFrame(
           context,
           image,
@@ -305,14 +312,49 @@ export function SpritePlayground({
           zoom,
         );
       }
+    };
 
+    const tick = (now: number) => {
+      paint(now);
       frameRequest = requestAnimationFrame(tick);
     };
 
+    // Until it is walked the hero stands in the middle of the band under the strip. A resized canvas
+    // is blank, and this runs after the frame's `tick`: it paints, or a resize would flicker.
+    const fit = () => {
+      const { clientHeight, clientWidth } = canvas;
+      const box = canvas.getBoundingClientRect();
+      const width = Math.round(box.width * window.devicePixelRatio);
+      const height = Math.round(box.height * window.devicePixelRatio);
+
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+
+      stage = stageOf(cell, clientWidth, clientHeight);
+
+      if (hero.time === 0) {
+        const heroHeight = cell.h * Math.min(stage.maxZoom, zoomRef.current);
+
+        hero.at = {
+          x: clientWidth / 2,
+          y: (stage.stripBottom + stage.floor + heroHeight) / 2,
+        };
+      }
+
+      paint(last);
+    };
+
+    const resized = new ResizeObserver(fit);
+
+    fit();
+    resized.observe(canvas);
     frameRequest = requestAnimationFrame(tick);
 
     return () => {
       cancelAnimationFrame(frameRequest);
+      resized.disconnect();
       image.removeEventListener("load", onLoad);
       image.removeEventListener("error", onError);
     };
@@ -340,26 +382,32 @@ export function SpritePlayground({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <>
       <canvas
         aria-describedby={hintId}
         aria-label="Sprite playground"
-        className="w-full rounded-xl border pixelated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        height={HEIGHT}
+        className="peer absolute inset-0 size-full rounded-lg pixelated focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
         onBlur={() => held.current.clear()}
         onClick={(event) => event.currentTarget.focus()}
         onKeyDown={press}
         onKeyUp={lift}
         ref={canvasRef}
         role="application"
-        tabIndex={0}
-        width={WIDTH}
+        tabIndex={failed ? -1 : 0}
       />
       {failed ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="text-sm text-destructive-foreground" id={hintId} role="alert">
-            The atlas image could not be loaded.
-          </p>
+        <StateCard
+          className={FILLS_BOX}
+          heading="h3"
+          icon={TriangleAlertIcon}
+          text={
+            <span id={hintId} role="alert">
+              The atlas image could not be loaded.
+            </span>
+          }
+          title="Nothing to play"
+          tone="warning"
+        >
           <Button
             onClick={() => {
               setFailedUrl(null);
@@ -368,15 +416,24 @@ export function SpritePlayground({
             size="sm"
             variant="outline"
           >
-            <RotateCwIcon />
+            <RotateCwIcon aria-hidden="true" />
             Reload the atlas image
           </Button>
-        </div>
+        </StateCard>
       ) : (
-        <p className="text-xs text-muted-foreground" id={hintId}>
-          Click the playground, then walk with WASD or the arrow keys; 1–4 change the zoom.
-        </p>
+        <>
+          <p className="sr-only" id={hintId}>
+            Click the playground, then walk with WASD or the arrow keys; 1–4 change the zoom.
+          </p>
+          <p
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-2 left-3 type-caption text-muted-foreground peer-focus:invisible pointer-coarse:hidden"
+          >
+            Click to walk
+          </p>
+          <GeneratedTag className="pointer-events-none absolute right-2 bottom-2" />
+        </>
       )}
-    </div>
+    </>
   );
 }

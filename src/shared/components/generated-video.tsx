@@ -33,7 +33,7 @@ export function GeneratedVideo({
     >
       <video
         aria-label={place ? `${GENERATED_VIDEO_LABEL} (${place})` : GENERATED_VIDEO_LABEL}
-        className="w-full rounded-3xl border bg-screen"
+        className="w-full rounded-xl bg-screen"
         controls
         height={asset.height ?? undefined}
         playsInline

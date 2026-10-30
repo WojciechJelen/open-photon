@@ -390,9 +390,9 @@ Slots (`src/features/motionTransfer/slots.ts`): `characterPicker` (`CharacterPic
 `directionEditor` (`DirectionEditorProps`: `value`, `onChange`; the wizard writes every edit to
 its URL's `prompt` and `seed`, replacing the history entry, so a reload keeps it),
 `directGenerationActions` (`DirectGenerationActionsProps`) and `resultGenerationActions`
-(`ResultGenerationActionsProps`), both receiving an immutable `DraftSnapshot`. Defaults:
-`DefaultCharacterPicker` (the upload tile, the visitor's own photo and the samples; the Character
-step keeps its intro and tips around the slot), `GenerateButton`, `RerunButton`. They are filled
+(`ResultGenerationActionsProps`), both receiving an immutable `DraftSnapshot`, and `lookName`, a
+function where the slot only answers: the name of a look's prompt. Defaults: `GenerateButton`,
+`RerunButton`. They are filled
 in one place, `src/app/composer-slots.ts`, which mounts the library's `LibraryCharacterPicker` in
 `characterPicker` and gives it and the library page (`/characters`) `createCharacterHref`: the
 builder, `/characters/new`, carrying the draft; and the looks feature's `LookEditor`

@@ -11,7 +11,7 @@ test("a photoshoot of a library character renders four results that download and
   page,
 }) => {
   await open(page, "/photoshoot");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Character photoshoot");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Photoshoot");
 
   const shoot = page.getByRole("button", { name: "Shoot 4 photos" });
 
@@ -20,8 +20,15 @@ test("a photoshoot of a library character renders four results that download and
     .getByRole("list", { name: "Characters" })
     .getByRole("button", { name: "Maya" })
     .click();
-  await page.getByRole("radio", { name: /^Street/ }).click();
-  await expect(page.getByText("Maya · Street · 4 generations")).toBeVisible();
+  await page
+    .getByRole("group", { name: "Settings" })
+    .getByRole("button", { name: "Street" })
+    .click();
+
+  const summary = page.getByTestId("photoshoot-summary");
+
+  await expect(summary.getByText("Maya")).toBeVisible();
+  await expect(summary.getByText("Street")).toBeVisible();
 
   const admitted = page.waitForResponse(
     (response) =>
@@ -36,7 +43,7 @@ test("a photoshoot of a library character renders four results that download and
   expect(response.status()).toBe(201);
   expect(photoshoot.setting).toBe("street");
   await expect(page).toHaveURL(`/photoshoot/${photoshoot.id}`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Maya · Street");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Maya, Street");
 
   const shots = page.getByTestId("photoshoot-shot");
 
@@ -81,5 +88,5 @@ test("a photoshoot of a library character renders four results that download and
 
   // The studio lists it among the earlier photoshoots.
   await open(page, "/photoshoot");
-  await expect(page.getByRole("link", { name: /Maya · Street/ }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /Maya, Street/ }).first()).toBeVisible();
 });

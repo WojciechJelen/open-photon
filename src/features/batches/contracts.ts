@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import {
   allowanceSchema,
+  assetSchema,
   generationSchema,
   generationStatusSchema,
 } from "../../shared/contracts.ts";
@@ -93,6 +94,9 @@ export const createBatchInputSchema = z
 
 export type CreateBatchInput = z.output<typeof createBatchInputSchema>;
 
+/** A stored file as a batch's pages name it: what its `/media` URL takes. */
+const batchMediaSchema = assetSchema.pick({ id: true, mime: true });
+
 /** A batch item's character as the batch page shows it; `null` when the visitor may not see it. */
 const batchCharacterSchema = characterSummarySchema.pick({
   id: true,
@@ -134,13 +138,15 @@ export type BatchItem = z.output<typeof batchItemSchema>;
 /**
  * A batch: `GET /api/batches/:id`, and the answer to `POST /api/batches` (201 admitted now, 200
  * the batch its request key admitted before). `shot` is the common shot (for a character batch,
- * without the character each item sets).
+ * without the character each item sets), and `motion` its clip, with the sample motion's title
+ * (`null` for the visitor's own clip).
  */
 export const batchSchema = z.object({
   created_at: z.iso.datetime(),
   id: z.uuid(),
   items: z.array(batchItemSchema).min(1),
   kind: z.enum(["seeds", "characters"]),
+  motion: z.object({ asset: batchMediaSchema, title: z.string().nullable() }).nullable(),
   shot: z.record(z.string(), z.union([z.string(), z.number()])),
 });
 
@@ -148,7 +154,8 @@ export type Batch = z.output<typeof batchSchema>;
 
 /**
  * `GET /api/batches` (a session is needed): the workspace's batches, most recent first, each
- * with the status of every item's current generation in order, and the session's allowance.
+ * with the status of every item's current generation in order and a picture of each (its poster,
+ * else its character's image), and the session's allowance.
  */
 export const batchListSchema = z.object({
   allowance: allowanceSchema,
@@ -158,6 +165,7 @@ export const batchListSchema = z.object({
       id: z.uuid(),
       kind: z.enum(["seeds", "characters"]),
       statuses: z.array(generationStatusSchema).min(1),
+      thumbnails: z.array(batchMediaSchema.nullable()).min(1),
     }),
   ),
 });

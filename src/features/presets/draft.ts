@@ -88,6 +88,35 @@ export function reconciledDirection(
   return held.prompt === meant.prompt && held.seed === meant.seed ? current : wanted;
 }
 
+/** A background a look names: the rest of its `Background: …` sentence. */
+const namedBackground = /(?:^|\s)Background: ([^]+?)(?:[.!?](?=\s|$)|$)/;
+
+/**
+ * What a look comes to in a few words, for the page's look row (a preset names no look of its own):
+ * the background `prompt` names, the photo's when it keeps that one or says nothing (a blank look is
+ * Motion Transfer's default, the photo's), else the visitor's words as they are. `own` says the look
+ * is no longer the preset's; `caption` says where it comes from.
+ */
+export function lookSummary(preset: Preset, prompt: string) {
+  const look = prompt.trim();
+  const background = namedBackground.exec(look)?.[1];
+  const own = prompt !== preset.defaults.prompt;
+
+  if (background) {
+    return {
+      caption: own ? "Your look" : "Background from this preset",
+      own,
+      title: `${background.charAt(0).toUpperCase()}${background.slice(1)}`,
+    };
+  }
+
+  return {
+    caption: own ? "Your look" : "Look from this preset",
+    own,
+    title: look === "" || /(?:^|\s)Background as in /.test(look) ? "As in your photo" : look,
+  };
+}
+
 /**
  * What Generate sends, before `presetGenerateInputSchema` checks it: the version, the character
  * (none yet is `undefined`, which the schema refuses) and the changes (`changedMembers`).

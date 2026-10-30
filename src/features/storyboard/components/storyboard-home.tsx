@@ -1,75 +1,97 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRightIcon } from "lucide-react";
-import { type FormEvent, useRef, useState } from "react";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { PaletteIcon, SparklesIcon, TriangleAlertIcon, UserIcon } from "lucide-react";
+import {
+  type ComponentType,
+  type FormEvent,
+  type ReactNode,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
-import type { CharacterSummary } from "#/features/characters";
+import type { PickableCharacter } from "#/features/characters";
+import { type CharacterPickerProps, snapshotDraft } from "#/features/motionTransfer/api";
 import {
   StoryboardFrame,
   useStoryboardRead,
 } from "#/features/storyboard/components/storyboard-frame";
-import { StylePicker } from "#/features/storyboard/components/style-picker";
+import { StylePicker, styleLabels } from "#/features/storyboard/components/style-picker";
 import {
   CARD_COUNT,
   type StoryboardList,
   type StoryboardStyle,
 } from "#/features/storyboard/contracts";
-import { characterAlt, characterName } from "#/features/storyboard/names";
-import {
-  fetchCharacters,
-  fetchStoryboards,
-  postStoryboard,
-} from "#/features/storyboard/storyboard-client";
-import { Hud } from "#/shared/components/brand";
+import { characterName, storyboardName } from "#/features/storyboard/names";
+import { fetchStoryboards, postStoryboard } from "#/features/storyboard/storyboard-client";
+import { PageHeading } from "#/shared/components/page-heading";
+import { StableText } from "#/shared/components/stable-text";
+import { SummaryPanel, SummaryRow } from "#/shared/components/summary-panel";
+import { ToolColumns, ToolSection } from "#/shared/components/tool-layout";
 import { mediaUrl } from "#/shared/media";
+import type { HoldForCode } from "#/shared/use-access-code";
+import { dayAndTime } from "#/shared/when";
+
+// The picker's links carry no Motion Transfer shot from here.
+const noShot = snapshotDraft({});
 
 type SceneSource = "model" | "manual";
 
-type HomeData = { characters: CharacterSummary[]; list: StoryboardList };
+// The statuses of a card that will not get its image unless it is rendered again.
+const stopped = new Set<string | null | undefined>(["failed", "cancelled", "unknown"]);
 
 const emptyScenes = () => Array.from({ length: CARD_COUNT }, () => "");
 
-/** The workspace's storyboards and the characters to start one from, read together. */
-async function readHome(signal: AbortSignal) {
-  const [list, characters] = await Promise.all([fetchStoryboards(signal), fetchCharacters(signal)]);
-
-  if (!("data" in list)) {
-    return list;
-  }
-
-  return "data" in characters
-    ? { data: { characters: characters.data.characters, list: list.data } }
-    : characters;
-}
-
 /**
- * `/storyboards`: a new storyboard (a library character, a short sequence, a style, and either
- * the text model's four scenes or four written by hand), and the workspace's storyboards, most
- * recently changed first, each linking to its page. One workspace per installation.
+ * `/storyboards`: a new storyboard (a library character, from the composition's `characterPicker`,
+ * a short sequence, a style, and either the text model's four scenes or four written by hand), and
+ * the workspace's storyboards, most recently changed first, each linking to its page. One workspace
+ * per installation. `characters` comes with the page, so the form is whole at first paint; only the
+ * list is read after it (`null` until then).
  */
-export function StoryboardHome() {
-  const { reload, state } = useStoryboardRead<HomeData>(readHome, () => false);
+export function StoryboardHome({
+  characterPicker,
+  characters,
+}: {
+  characterPicker: ComponentType<CharacterPickerProps & { number?: string }>;
+  characters: PickableCharacter[];
+}) {
+  const router = useRouter();
+
+  const { reload, state } = useStoryboardRead<StoryboardList | null>(
+    fetchStoryboards,
+    () => false,
+    null,
+  );
+
+  const readAgain = useCallback(() => {
+    reload();
+    void router.invalidate();
+  }, [reload, router]);
 
   return (
-    <StoryboardFrame holdKey="storyboards" noun="storyboards" reload={reload} state={state}>
-      {({ characters, list }, askForCode) => (
+    <StoryboardFrame
+      gap={10}
+      holdKey="storyboards"
+      noun="storyboards"
+      reload={readAgain}
+      state={state}
+      top={10}
+    >
+      {(list, askForCode, { hold, release }) => (
         <>
-          <div className="flex flex-col gap-4">
-            <Hud>Storyboard</Hud>
-            <h1 className="font-display text-4xl leading-none font-bold tracking-display sm:text-5xl">
-              Storyboards
-            </h1>
-            <p className="max-w-2xl text-soft-foreground">
-              Pick a character, describe a short sequence, and get four scene cards you can edit and
-              render one by one, the character kept from card to card.
-            </p>
-          </div>
-          <NewStoryboard characters={characters} onAccess={askForCode} />
+          <NewStoryboard
+            characterPicker={characterPicker}
+            characters={characters}
+            hold={hold}
+            onAccess={askForCode}
+            onUploaded={() => void router.invalidate()}
+            release={release}
+          />
           <StoryboardIndex list={list} />
         </>
       )}
@@ -77,15 +99,98 @@ export function StoryboardHome() {
   );
 }
 
-function NewStoryboard({
-  characters,
-  onAccess,
+/** A labelled row of the style section: the word, then its segmented choice. */
+function Setting({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <span aria-hidden="true" className="w-16 type-caption font-medium text-soft-foreground">
+        {label}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+/** "Your storyboard": what the form has picked so far, and the action that creates it. */
+function StoryboardSummary({
+  busy,
+  character,
+  look,
+  ready,
+  refusal,
 }: {
-  characters: CharacterSummary[];
+  busy: boolean;
+  character?: PickableCharacter;
+  look: StoryboardStyle | null;
+  ready: boolean;
+  refusal: string | null;
+}) {
+  return (
+    <SummaryPanel
+      actions={
+        <Button disabled={!ready || busy} type="submit" variant="photon">
+          <SparklesIcon />
+          <StableText
+            current={busy ? "Creating…" : "Create storyboard"}
+            labels={["Create storyboard", "Creating…"]}
+          />
+        </Button>
+      }
+      label="Your storyboard"
+      note={
+        refusal ? (
+          <span className="text-destructive-foreground" role="alert">
+            {refusal}
+          </span>
+        ) : (
+          "You can edit every scene before it renders."
+        )
+      }
+    >
+      <SummaryRow
+        icon={<UserIcon aria-hidden="true" className="size-4" strokeWidth={1.75} />}
+        image={character && mediaUrl(character.image)}
+        label="Character"
+        placeholder="Pick a character"
+        value={character && characterName(character)}
+      />
+      <SummaryRow
+        icon={<PaletteIcon aria-hidden="true" className="size-4" strokeWidth={1.75} />}
+        label="Look"
+        media={
+          look && (
+            <span className="absolute inset-0 grid place-items-center text-soft-foreground">
+              <PaletteIcon aria-hidden="true" className="size-4" strokeWidth={1.75} />
+            </span>
+          )
+        }
+        placeholder="Pick a look"
+        value={look && styleLabels[look]}
+      />
+    </SummaryPanel>
+  );
+}
+
+function NewStoryboard({
+  characterPicker: CharacterPicker,
+  characters,
+  hold,
+  onAccess,
+  onUploaded,
+  release,
+}: {
+  characterPicker: ComponentType<CharacterPickerProps & { number?: string }>;
+  characters: PickableCharacter[];
+  hold: HoldForCode;
   onAccess: () => void;
+  onUploaded: () => void;
+  release: (key: string) => void;
 }) {
   const navigate = useNavigate();
-  const [characterId, setCharacterId] = useState<string | null>(characters[0]?.id ?? null);
+  const [picked, setPicked] = useState<string | null>(characters[0]?.id ?? null);
+  // A new upload takes over from the pick once the list holds it: until then the picker would call
+  // it a character this visitor may not see, and the summary would have nothing to show.
+  const [uploaded, setUploaded] = useState<string | null>(null);
   const [sequence, setSequence] = useState("");
   const [title, setTitle] = useState("");
   // No default: naming the style keeps the four cards in one look (an unnamed one drifted on Cloud).
@@ -97,6 +202,7 @@ function NewStoryboard({
   // One key per storyboard asked for: kept until an answer comes, so sending again after a lost
   // answer finds the storyboard the first request made.
   const requestKey = useRef<string | null>(null);
+  const characterId = characters.some(({ id }) => id === uploaded) ? uploaded : picked;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -141,193 +247,223 @@ function NewStoryboard({
     }
   }
 
+  const character = characters.find(({ id }) => id === characterId);
+
   const ready =
     characterId !== null &&
+    // While an upload reaches the list the pick is still the one before it: not what was meant.
+    (uploaded === null || uploaded === characterId) &&
     style !== null &&
     sequence.trim() !== "" &&
     (source === "model" || scenes.every((scene) => scene.trim() !== ""));
 
   return (
-    <form
-      aria-labelledby="new-storyboard"
-      className="flex flex-col gap-6 rounded-3xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-4 sm:p-6"
-      onSubmit={(event) => void submit(event)}
-    >
-      <h2 className="font-display text-2xl font-semibold" id="new-storyboard">
-        New storyboard
-      </h2>
-
-      <fieldset className="flex flex-col gap-3">
-        <legend className="mb-3 text-sm font-medium">Character</legend>
-        {characters.length === 0 ? (
-          <p className="text-sm text-soft-foreground">
-            The library has no characters yet.{" "}
-            <Link className="underline underline-offset-3" to="/characters/new">
-              Create one
-            </Link>
-            .
-          </p>
-        ) : (
-          <ul className="grid grid-cols-3 gap-2.5 sm:grid-cols-6">
-            {characters.map((character) => (
-              <li key={character.id}>
-                <button
-                  aria-label={characterName(character)}
-                  aria-pressed={character.id === characterId}
-                  className="flex w-full flex-col gap-1.5 rounded-xl border p-1.5 text-left text-xs outline-none hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-pressed:border-primary aria-pressed:bg-primary/10"
-                  onClick={() => setCharacterId(character.id)}
-                  type="button"
-                >
-                  <img
-                    alt={characterAlt(character)}
-                    className="aspect-4/7 w-full rounded-lg bg-foreground/5 object-cover"
-                    src={mediaUrl(character.image)}
-                  />
-                  <span className="truncate">{characterName(character)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </fieldset>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="storyboard-sequence">Sequence</Label>
-        <Textarea
-          id="storyboard-sequence"
-          maxLength={1000}
-          onChange={(event) => setSequence(event.target.value)}
-          placeholder="Maya arrives on an empty rooftop at sunset, stretches, breakdances as the city lights come on, then sits on the ledge looking at the skyline."
-          rows={3}
-          value={sequence}
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="storyboard-title">Title (optional)</Label>
-          <Input
-            id="storyboard-title"
-            maxLength={80}
-            onChange={(event) => setTitle(event.target.value)}
-            value={title}
+    <form aria-label="New storyboard" onSubmit={(event) => void submit(event)}>
+      <ToolColumns
+        aside={
+          <StoryboardSummary
+            busy={busy}
+            character={character}
+            look={style}
+            ready={ready}
+            refusal={refusal}
           />
-        </div>
-        <StylePicker onChange={setStyle} value={style} />
-      </div>
+        }
+        asideClassName="sticky top-6"
+      >
+        <PageHeading subtitle="Four scenes of one character, ready to edit." title="Storyboards" />
 
-      <div className="flex flex-col gap-3">
-        <span className="text-sm font-medium" id="scene-source">
-          Scenes
-        </span>
-        <ToggleGroup
-          aria-labelledby="scene-source"
-          onValueChange={(value) => {
-            if (value === "model" || value === "manual") {
-              setSource(value);
+        <CharacterPicker
+          character={character ?? null}
+          characterId={characterId ?? undefined}
+          characters={characters}
+          draft={noShot}
+          hold={hold}
+          number="01"
+          onPick={(next) => {
+            // The tile picked stays picked: a storyboard always needs a character.
+            if (!next) {
+              return;
+            }
+
+            if (characters.some(({ id }) => id === next)) {
+              setPicked(next);
+              setUploaded(null);
+            } else {
+              setUploaded(next);
+              onUploaded();
             }
           }}
-          type="single"
-          value={source}
-          variant="outline"
-        >
-          <ToggleGroupItem value="model">Split it for me</ToggleGroupItem>
-          <ToggleGroupItem value="manual">I'll write four</ToggleGroupItem>
-        </ToggleGroup>
-        <p className="text-sm text-soft-foreground">
-          {source === "model"
-            ? "An open-weights text model (Qwen3.5 4B) splits the sequence into four scenes. You can edit every one before rendering."
-            : "Write each scene yourself: what the character does, where, and the framing."}
-        </p>
-        {source === "manual" && (
-          <ol className="grid gap-3 sm:grid-cols-2">
-            {scenes.map((scene, position) => (
-              // The four places are fixed, so the position is the scene's identity.
-              // oxlint-disable-next-line react/no-array-index-key
-              <li className="flex flex-col gap-1.5" key={position}>
-                <Label htmlFor={`new-scene-${position}`}>Scene {position + 1}</Label>
-                <Textarea
-                  id={`new-scene-${position}`}
-                  maxLength={1000}
-                  onChange={(event) =>
-                    setScenes((current) =>
-                      current.map((text, index) =>
-                        index === position ? event.target.value : text,
-                      ),
-                    )
-                  }
-                  rows={3}
-                  value={scene}
-                />
-              </li>
-            ))}
-          </ol>
-        )}
-      </div>
+          release={release}
+          signedIn
+        />
 
-      <div className="flex flex-wrap items-center gap-4">
-        <Button disabled={!ready || busy} type="submit">
-          {busy ? "Creating…" : "Create storyboard"}
-          <ArrowRightIcon />
-        </Button>
-        {refusal && (
-          <p className="text-sm text-destructive-foreground" role="alert">
-            {refusal}
-          </p>
-        )}
-      </div>
+        <ToolSection number="02" title="Sequence">
+          <div className="flex min-w-0 flex-col gap-2">
+            <Label htmlFor="storyboard-sequence">What happens</Label>
+            <Textarea
+              id="storyboard-sequence"
+              maxLength={1000}
+              onChange={(event) => setSequence(event.target.value)}
+              placeholder="Maya arrives on an empty rooftop at sunset, stretches, breakdances as the city lights come on, then sits on the ledge looking at the skyline."
+              rows={3}
+              value={sequence}
+            />
+          </div>
+          <div className="flex min-w-0 flex-col gap-2">
+            <Label htmlFor="storyboard-title">Title</Label>
+            <Input
+              id="storyboard-title"
+              maxLength={80}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Optional"
+              value={title}
+            />
+          </div>
+        </ToolSection>
+
+        <ToolSection number="03" title="Style">
+          <Setting label="Look">
+            <StylePicker onChange={setStyle} value={style} />
+          </Setting>
+          <Setting label="Scenes">
+            <ToggleGroup
+              aria-label="Scenes"
+              onValueChange={(value) => {
+                if (value === "model" || value === "manual") {
+                  setSource(value);
+                }
+              }}
+              spacing={1}
+              type="single"
+              value={source}
+              variant="segmented"
+            >
+              <ToggleGroupItem value="model">Split it for me</ToggleGroupItem>
+              <ToggleGroupItem value="manual">I'll write four</ToggleGroupItem>
+            </ToggleGroup>
+          </Setting>
+          {source === "manual" && (
+            <ol className="grid gap-3 sm:grid-cols-2">
+              {scenes.map((scene, position) => (
+                // The four places are fixed, so the position is the scene's identity.
+                // oxlint-disable-next-line react/no-array-index-key
+                <li className="flex min-w-0 flex-col gap-2" key={position}>
+                  <Label htmlFor={`new-scene-${position}`}>Scene {position + 1}</Label>
+                  <Textarea
+                    id={`new-scene-${position}`}
+                    maxLength={1000}
+                    onChange={(event) =>
+                      setScenes((current) =>
+                        current.map((text, index) =>
+                          index === position ? event.target.value : text,
+                        ),
+                      )
+                    }
+                    placeholder="What the character does, where, and the framing."
+                    rows={3}
+                    value={scene}
+                  />
+                </li>
+              ))}
+            </ol>
+          )}
+        </ToolSection>
+      </ToolColumns>
     </form>
   );
 }
 
-function StoryboardIndex({ list }: { list: StoryboardList }) {
+/** One storyboard in the list: its four scenes small, its name and when it last changed. */
+function StoryboardTile({ storyboard }: { storyboard: StoryboardList["storyboards"][number] }) {
+  const name = storyboardName(storyboard);
+  const done = storyboard.images.filter((image) => image !== null).length;
+  const failed = storyboard.statuses.filter((status) => stopped.has(status)).length;
+
   return (
-    <section aria-labelledby="storyboard-index" className="flex flex-col gap-4">
-      <h2 className="font-display text-2xl font-semibold" id="storyboard-index">
-        Your storyboards
-      </h2>
-      {list.storyboards.length === 0 ? (
-        <p className="text-soft-foreground">No storyboards yet.</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {list.storyboards.map((storyboard) => {
-            const done = storyboard.statuses.filter((status) => status === "done").length;
+    <Link
+      className="flex min-w-0 items-center gap-3.5 rounded-xl border bg-card/72 py-2.5 pr-4 pl-2.5 transition-colors hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      params={{ storyboardId: storyboard.id }}
+      to="/storyboards/$storyboardId"
+    >
+      <span
+        aria-label={`${done} of ${CARD_COUNT} rendered${failed > 0 ? `, ${failed} failed` : ""}${done > 0 ? ", AI-generated images" : ""}`}
+        className="relative flex shrink-0 gap-0.75"
+        role="img"
+      >
+        {storyboard.images.map((image, position) => (
+          // The four places are fixed, so the position is the scene's identity.
+          // oxlint-disable-next-line react/no-array-index-key
+          <span
+            className="relative grid h-14 w-9.5 place-items-center overflow-hidden rounded-sm bg-screen text-warning"
+            key={position}
+          >
+            {image ? (
+              <img
+                alt=""
+                className="absolute inset-0 size-full object-cover"
+                loading="lazy"
+                src={mediaUrl(image)}
+              />
+            ) : (
+              stopped.has(storyboard.statuses[position]) && (
+                <TriangleAlertIcon aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
+              )
+            )}
+          </span>
+        ))}
+        {done > 0 && (
+          <span className="absolute bottom-1 left-1 rounded-tag bg-background/66 px-1.75 py-0.75 type-tag text-foreground">
+            AI-generated
+          </span>
+        )}
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate type-label text-foreground" title={name}>
+          {name}
+        </span>
+        <time
+          className="truncate type-caption text-muted-foreground"
+          dateTime={storyboard.updated_at}
+        >
+          {dayAndTime(storyboard.updated_at)}
+        </time>
+      </span>
+    </Link>
+  );
+}
 
-            const failed = storyboard.statuses.filter(
-              (status) => status === "failed" || status === "cancelled" || status === "unknown",
-            ).length;
-
-            return (
-              <li key={storyboard.id}>
-                <Link
-                  className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-3 outline-none hover:border-edge-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  params={{ storyboardId: storyboard.id }}
-                  to="/storyboards/$storyboardId"
-                >
-                  <img
-                    alt={characterAlt(storyboard.character)}
-                    className="h-14 w-8 rounded-md bg-foreground/5 object-cover"
-                    src={mediaUrl(storyboard.character.image)}
-                  />
-                  <span className="font-medium">
-                    {storyboard.title ?? `${characterName(storyboard.character)}'s storyboard`}
-                  </span>
-                  <time className="text-sm text-muted-foreground" dateTime={storyboard.updated_at}>
-                    {new Date(storyboard.updated_at).toLocaleString()}
-                  </time>
-                  <span className="flex flex-wrap gap-2">
-                    <Badge variant="brand">
-                      {done} of {CARD_COUNT} rendered
-                    </Badge>
-                    {failed > 0 && <Badge variant="destructive">{failed} failed</Badge>}
-                  </span>
-                  <ArrowRightIcon aria-hidden="true" className="ml-auto size-4" />
-                </Link>
+function StoryboardIndex({ list }: { list: StoryboardList | null }) {
+  return (
+    // Below the summary on a phone, so that a long list never parts the form from Create. Wide, it
+    // stays in the form's column (340 of aside + 40 of gap), a section's 36 under the last one.
+    <div className="-mt-1 lg:pr-95">
+      <ToolSection title="Your storyboards">
+        {list === null && (
+          <>
+            <p className="sr-only" role="status">
+              Loading storyboards…
+            </p>
+            <div aria-hidden="true" className="grid grid-fill-80 gap-2.5">
+              {["first", "second"].map((tile) => (
+                <div className="h-19.5 skeleton rounded-xl" key={tile} />
+              ))}
+            </div>
+          </>
+        )}
+        {list?.storyboards.length === 0 && (
+          <p className="type-caption text-muted-foreground">No storyboards yet.</p>
+        )}
+        {list && list.storyboards.length > 0 && (
+          <ul className="grid grid-fill-80 gap-2.5">
+            {list.storyboards.map((storyboard) => (
+              <li className="min-w-0" key={storyboard.id}>
+                <StoryboardTile storyboard={storyboard} />
               </li>
-            );
-          })}
-        </ul>
-      )}
-    </section>
+            ))}
+          </ul>
+        )}
+      </ToolSection>
+    </div>
   );
 }

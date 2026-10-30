@@ -7,13 +7,23 @@ import { ClapperboardIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { animateImageHref } from "#/features/animateImage";
 
-/** "Animate": opens Animate Image with this generation's image output preselected as its source. */
-export function AnimateAction({ generationId, output }: { generationId: string; output: string }) {
+/**
+ * "Animate", an icon button: opens Animate Image with this generation's image output preselected
+ * as its source. `variant` is `scrim` over a result's picture, `outline` on a card beside it.
+ */
+export function AnimateAction({
+  generationId,
+  output,
+  variant = "scrim",
+}: {
+  generationId: string;
+  output: string;
+  variant?: "outline" | "scrim";
+}) {
   return (
-    <Button asChild size="sm" variant="outline">
+    <Button aria-label="Animate" asChild size="icon" title="Animate" variant={variant}>
       <a href={animateImageHref({ generationId, output })}>
-        <ClapperboardIcon />
-        Animate
+        <ClapperboardIcon aria-hidden="true" strokeWidth={1.75} />
       </a>
     </Button>
   );

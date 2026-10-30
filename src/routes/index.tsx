@@ -2,10 +2,10 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { loadStudio } from "#/features/motionTransfer/selection.functions";
+import { ResultWall } from "#/features/studio/components/result-wall";
 import { StudioHero } from "#/features/studio/components/studio-hero";
-import { BuiltOpen, StudioTools } from "#/features/studio/components/studio-tools";
-import { PageGlow } from "#/shared/components/brand";
-import { GithubButton, OpenWeightsBadge, SiteFooter, SiteHeader } from "#/shared/components/site";
+import { StudioTools } from "#/features/studio/components/studio-tools";
+import { SitePage } from "#/shared/components/site";
 
 // `/` used to be the whole picker, and links to it name picks: those open the wizard with them.
 const searchSchema = z.object({
@@ -31,20 +31,10 @@ function Studio() {
   const { characters, motions, sampleTake, wall } = Route.useLoaderData();
 
   return (
-    <div className="relative isolate">
-      <PageGlow />
-      <SiteHeader nav>
-        <span className="hidden sm:inline-flex">
-          <OpenWeightsBadge />
-        </span>
-        <GithubButton label="Star on GitHub" />
-      </SiteHeader>
-      <main>
-        <StudioHero characters={characters} motions={motions} wall={wall} />
-        <StudioTools characters={characters} motions={motions} take={sampleTake} />
-        <BuiltOpen />
-      </main>
-      <SiteFooter tagline="Open Photon · MIT licensed · Made for #OpenSourceHiggsfield" />
-    </div>
+    <SitePage className="max-sm:gap-11" gap={10} top={14}>
+      <StudioHero characters={characters} motions={motions} take={sampleTake} />
+      <StudioTools characters={characters} motions={motions} take={sampleTake} />
+      {wall.length > 0 && <ResultWall takes={wall} />}
+    </SitePage>
   );
 }

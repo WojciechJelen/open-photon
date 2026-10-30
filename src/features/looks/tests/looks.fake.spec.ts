@@ -9,6 +9,9 @@ const tile = (page: Page, name: string) => page.getByRole("button", { exact: tru
 /** The prompt the Direct step will send, as the editor previews it. */
 const sent = (page: Page) => page.getByLabel("Prompt sent");
 
+/** Unfolds the Advanced row, which holds the lighting and the color; a new page folds it again. */
+const openAdvanced = (page: Page) => page.getByRole("button", { name: /^Advanced/ }).click();
+
 // On the fake provider's server (project `fake`): the look editor in the wizard's Direct step,
 // end to end. Picks and the visitor's words compose one prompt, kept through a reload and the
 // step links; the finished take's recipe holds that prompt byte for byte, and a draft started
@@ -27,6 +30,7 @@ test("looks compose with the description, survive a reload and step changes, lan
   const words = "A dancer in a red  jacket,\nwhite sneakers.";
 
   await description.fill(words);
+  await openAdvanced(page);
   await tile(page, "Sunny beach").click();
   await tile(page, "Golden hour").click();
 
@@ -54,18 +58,23 @@ test("looks compose with the description, survive a reload and step changes, lan
   await page.locator("html[data-hydrated]").waitFor();
   await expect(sent(page)).toHaveText(prompt);
   await expect(page.getByLabel("Look")).toHaveValue(words);
+  await openAdvanced(page);
 
   for (const name of ["Neon street", "Low-key", "Noir"]) {
     await expect(tile(page, name)).toHaveAttribute("aria-pressed", "true");
   }
 
   // So do the step links: back to Character and on to Direct again.
-  await page.getByRole("link", { name: "Character" }).first().click();
+  await page
+    .getByRole("navigation", { name: "Steps" })
+    .getByRole("link", { name: "Character" })
+    .click();
   await expect(page).toHaveURL(/step=character/);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(sent(page)).toHaveText(prompt);
 
   // A chip removes its pick; the words stay.
+  await openAdvanced(page);
   await page.getByRole("button", { name: "Remove Noir" }).click();
   await expect(tile(page, "Noir")).toHaveAttribute("aria-pressed", "false");
 
@@ -102,6 +111,7 @@ test("looks compose with the description, survive a reload and step changes, lan
   await expect(sent(page)).toHaveText(final);
   await expect(page.getByLabel("Look")).toHaveValue(words);
   await expect(tile(page, "Neon street")).toHaveAttribute("aria-pressed", "true");
+  await openAdvanced(page);
   await expect(tile(page, "Low-key")).toHaveAttribute("aria-pressed", "true");
 
   // Reset goes back to the workflow's default, a blank look, which a reload keeps too.
@@ -113,5 +123,6 @@ test("looks compose with the description, survive a reload and step changes, lan
   await page.reload();
   await page.locator("html[data-hydrated]").waitFor();
   await expect(sent(page)).toHaveText(/workflow's default/);
+  await openAdvanced(page);
   await expect(tile(page, "Low-key")).toHaveAttribute("aria-pressed", "false");
 });

@@ -1,5 +1,5 @@
 import { InfoIcon, ScissorsIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -14,6 +14,7 @@ import {
 import { Slider } from "#/components/ui/slider";
 import { MAX_CLIP_MS, MIN_CLIP_MS, type UploadedVideo } from "#/features/motionTransfer/contracts";
 import { Hud, StatusDot, Viewfinder } from "#/shared/components/brand";
+import { StableText } from "#/shared/components/stable-text";
 import { type Asset, assetSchema } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 import { callApi } from "#/shared/requests";
@@ -60,12 +61,13 @@ export function TrimDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const nextSignal = useRequestSignal();
-  // State, not a ref: the dialog mounts its content in a portal after the first render, so the
-  // effect has to run again once the element exists.
+  // State, not refs: the dialog mounts its content in a portal after the first render, so the
+  // effects have to run again once the elements exist.
   const [preview, setPreview] = useState<HTMLVideoElement | null>(null);
-  const timeline = useRef<HTMLDivElement>(null);
+  const [timeline, setTimeline] = useState<HTMLDivElement | null>(null);
   const [start, end] = range;
   const portrait = (video.height ?? 0) >= (video.width ?? 0);
+  const use = `Use these ${Number(((end - start) / 1000).toFixed(1))} seconds`;
 
   useEffect(() => {
     if (!preview) {
@@ -90,9 +92,9 @@ export function TrimDialog({
 
   // The window over the timeline, from the range, as CSS variables (no inline styles).
   useEffect(() => {
-    timeline.current?.style.setProperty("--from", `${(start / length) * 100}%`);
-    timeline.current?.style.setProperty("--to", `${100 - (end / length) * 100}%`);
-  }, [start, end, length]);
+    timeline?.style.setProperty("--from", `${(start / length) * 100}%`);
+    timeline?.style.setProperty("--to", `${100 - (end / length) * 100}%`);
+  }, [timeline, start, end, length]);
 
   async function confirm() {
     if (start === initial[0] && end === initial[1]) {
@@ -137,8 +139,8 @@ export function TrimDialog({
     >
       <DialogContent size="lg">
         <DialogHeader>
-          <Hud>
-            <span className="break-all">{name}</span> · {duration(length)}
+          <Hud className="line-clamp-2">
+            {name} · {duration(length)}
           </Hud>
           <DialogTitle>Choose up to 8 seconds</DialogTitle>
           <DialogDescription>
@@ -147,7 +149,7 @@ export function TrimDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-stretch">
-          <div className="relative mx-auto w-44 shrink-0 overflow-hidden rounded-xl border bg-screen sm:mx-0 sm:w-55">
+          <div className="relative mx-auto w-44 shrink-0 overflow-hidden rounded-field border bg-screen sm:mx-0 sm:w-55">
             <video
               aria-label="Preview of the chosen part"
               className={
@@ -159,13 +161,14 @@ export function TrimDialog({
               ref={setPreview}
               src={mediaUrl(video)}
             />
-            <span className="absolute top-3 left-3">
+            {/* Inside the viewfinder's corners; the scrim keeps the readout legible over the clip. */}
+            <span className="absolute top-5 left-5">
               <Badge variant="solid">
                 <StatusDot tone="brand" />
                 Loop
               </Badge>
             </span>
-            <span className="absolute inset-x-3 bottom-3 flex justify-between">
+            <span className="absolute inset-x-0 bottom-0 flex justify-between bg-linear-to-t from-background/80 to-transparent px-5 pt-8 pb-5">
               <Hud tone="foreground">{timecode(start / 1000)}</Hud>
               <Hud tone="foreground">{duration(end - start)}</Hud>
             </span>
@@ -173,16 +176,16 @@ export function TrimDialog({
           </div>
           <div className="flex min-w-0 flex-1 flex-col justify-center gap-4">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <span className="text-sm font-semibold">Selection</span>
-              <span className="font-mono text-sm" aria-hidden="true">
+              <span className="type-label">Selection</span>
+              <span className="font-mono text-sm tabular-nums" aria-hidden="true">
                 {timecode(start / 1000)} → {timecode(end / 1000)}{" "}
                 <span className="text-muted-foreground">· {duration(end - start)}</span>
               </span>
             </div>
-            <div className="relative" ref={timeline}>
+            <div className="relative" ref={setTimeline}>
               <div
                 aria-hidden="true"
-                className="relative h-16 overflow-hidden rounded-xl border bg-field"
+                className="relative h-16 overflow-hidden rounded-field border bg-field"
               >
                 <span className="absolute inset-y-0 right-(--to) left-(--from) rounded-lg border-2 border-brand bg-brand/12 ring-4 ring-brand/18" />
               </div>
@@ -204,16 +207,22 @@ export function TrimDialog({
               <Hud>{timecode(length / 2000)}</Hud>
               <Hud>{timecode(length / 1000)}</Hud>
             </div>
-            <p className="flex items-start gap-3 rounded-xl border bg-foreground/3 px-4 py-3.5 text-sm text-soft-foreground">
-              <InfoIcon aria-hidden="true" className="mt-0.5 size-4.5 shrink-0 text-brand" />
+            <p className="flex items-start gap-3 rounded-field border bg-foreground/3 px-4 py-3.5 type-caption text-soft-foreground">
+              <InfoIcon
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0 text-brand"
+                strokeWidth={1.75}
+              />
               Keep between 3 and 8 seconds. The first 8 seconds are ready to go; any other part is
               cut when you confirm.
             </p>
-            {error && (
-              <p className="text-sm text-destructive-foreground" role="alert">
-                {error}
-              </p>
-            )}
+            {/* A fixed slot: a refused cut moves nothing. */}
+            <p
+              className="min-h-5 type-caption wrap-anywhere text-destructive-foreground"
+              role="alert"
+            >
+              {error}
+            </p>
           </div>
         </div>
         <DialogFooter>
@@ -222,9 +231,12 @@ export function TrimDialog({
           </Button>
           <Button disabled={pending} onClick={confirm}>
             <ScissorsIcon />
-            {pending
-              ? "Cutting…"
-              : `Use these ${Number(((end - start) / 1000).toFixed(1))} seconds`}
+            {/* As wide as any length reads (0.0 is none), so the range and "Cutting…" move nothing. */}
+            <StableText
+              className="tabular-nums"
+              current={pending ? "Cutting…" : use}
+              labels={[use, "Use these 0.0 seconds", "Cutting…"]}
+            />
           </Button>
         </DialogFooter>
       </DialogContent>

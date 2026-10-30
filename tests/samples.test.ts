@@ -123,7 +123,7 @@ test("a sample motion's clip is stored as ffprobe reads it", async () => {
 });
 
 test("the picker resolves a motion clip and a character, and falls back to none for anything else", async () => {
-  const { characters, motions } = readSelection({}, true);
+  const { motions, samples: characters } = readSelection({}, true);
   const [motion] = motions;
   const [character] = characters;
 
@@ -187,7 +187,7 @@ function take({
   result: string;
   seed: number;
 }) {
-  const { characters, motions } = readSelection({}, true);
+  const { motions, samples: characters } = readSelection({}, true);
   const [motion] = motions;
   const [first] = characters;
 
@@ -233,7 +233,7 @@ test("the free sample take is the newest done pre-rendered generation, and there
   assert.equal(readStudio().sampleTake, null);
   assert.equal(readSelection({}, false).sampleTakeId, null);
 
-  const { characters, motions } = readSelection({}, true);
+  const { motions, samples: characters } = readSelection({}, true);
   const result = await storeResult();
 
   // A done generation someone made is not a free sample, however recent.
@@ -270,7 +270,7 @@ test("a pre-rendered take whose clip is not stored is never offered, and the pag
 });
 
 test("the result wall lists the done pre-rendered sample takes by character title, newest first within one, each with its public share page; the free take is one of them", async () => {
-  const { characters, motions } = readSelection({}, true);
+  const { motions, samples: characters } = readSelection({}, true);
   const before = readStudio().wall.map(({ id }) => id);
   const result = await storeResult();
   const [first] = characters;

@@ -31,8 +31,8 @@ export const Route = createFileRoute("/explore/")({
     ],
   }),
   pendingMs: 200,
-  pendingComponent: () => <ExploreLoading label="Loading examples…" />,
-  errorComponent: () => <ExploreError title="Explore could not be loaded" />,
+  pendingComponent: () => <ExploreLoading label="Loading takes…" />,
+  errorComponent: () => <ExploreError title="Explore didn't load" />,
   component: Explore,
 });
 

@@ -18,7 +18,7 @@ import {
 import { type Admit, submitMany } from "../../../shared/server/generation/service.ts";
 import { transaction } from "../../../shared/server/migrate.ts";
 import { getCharacter } from "../../characters/api.ts";
-import { imageEditDefinition } from "../../imageEdit/api.ts";
+import { IMAGE_EDIT_OUTPUT, imageEditDefinition } from "../../imageEdit/api.ts";
 import {
   CARD_COUNT,
   CARD_SIZE,
@@ -110,17 +110,18 @@ function scenesOf(storyboard: StoryboardRow) {
       ? { generation, message: null, scenes, state: "ready" as const }
       : {
           generation,
-          message:
-            "The text model did not answer with four scenes. Write them yourself, or try the split again.",
+          message: "The text model did not answer with four scenes. Write them yourself.",
           scenes: null,
           state: "failed" as const,
         };
   }
 
   if (row.status === "failed" || row.status === "cancelled" || row.status === "unknown") {
+    const cause = (row.error_message ?? row.status).replace(/\.+$/, "");
+
     return {
       generation,
-      message: `The scenes could not be written: ${row.error_message ?? row.status}. Write them yourself${row.status === "unknown" ? "" : ", or try again"}.`,
+      message: `The scenes could not be written: ${cause}. Write them yourself${row.status === "unknown" ? "" : ", or try again"}.`,
       scenes: null,
       state: "failed" as const,
     };
@@ -256,14 +257,26 @@ export function createStoryboard(
   });
 }
 
+/**
+ * The body of a save as stored: until the split has given its scenes a blank card stays unsaved,
+ * so they still fill it when they come; after that, blank is what the user asked for.
+ */
+function savedText(storyboard: StoryboardRow, input: SaveStoryboardInput) {
+  return scenesOf(storyboard).scenes
+    ? input
+    : { ...input, descriptions: input.descriptions.map((text) => text || null) };
+}
+
 /** Saves the title, style and every card's description; 404 for an id no storyboard has. */
 export function saveStoryboardText(id: string, input: SaveStoryboardInput) {
   return transaction(database, () => {
-    if (!findStoryboard(id)) {
+    const storyboard = findStoryboard(id);
+
+    if (!storyboard) {
       throw new GenerateError(404, "Storyboard not found.", "not_found");
     }
 
-    saveStoryboard(id, input);
+    saveStoryboard(id, savedText(storyboard, input));
 
     return readStoryboard(id);
   });
@@ -342,7 +355,7 @@ export function generateCards(
       }
     }
 
-    saveStoryboard(storyboard.id, input);
+    saveStoryboard(storyboard.id, savedText(storyboard, input));
 
     const history = historyByCard(storyboard.id);
 
@@ -388,20 +401,35 @@ export function generateCards(
   });
 }
 
-/** `GET /api/storyboards`: the workspace's latest storyboards, each with its cards' statuses. */
+/** The image a card's current generation finished with, `null` until it has one. */
+function cardImage(row: Generation) {
+  const image = snapshot(row).outputs.find((output) => output.name === IMAGE_EDIT_OUTPUT);
+
+  return image && image.media !== "text" ? image.asset : null;
+}
+
+/**
+ * `GET /api/storyboards`: the workspace's latest storyboards, each with its cards' statuses and
+ * finished images.
+ */
 export function listWorkspaceStoryboards() {
   return storyboardListSchema.parse({
-    storyboards: listStoryboards(LISTED).map((storyboard) => ({
-      character: characterOf(storyboard),
-      created_at: storyboard.created_at,
-      id: storyboard.id,
-      statuses: historyByCard(storyboard.id).map((history) => {
+    storyboards: listStoryboards(LISTED).map((storyboard) => {
+      const rows = historyByCard(storyboard.id).map((history) => {
         const latest = history.at(-1);
 
-        return latest ? currentGeneration(latest.generation_id).row.status : null;
-      }),
-      title: storyboard.title,
-      updated_at: storyboard.updated_at,
-    })),
+        return latest ? currentGeneration(latest.generation_id).row : null;
+      });
+
+      return {
+        character: characterOf(storyboard),
+        created_at: storyboard.created_at,
+        id: storyboard.id,
+        images: rows.map((row) => (row ? cardImage(row) : null)),
+        statuses: rows.map((row) => row?.status ?? null),
+        title: storyboard.title,
+        updated_at: storyboard.updated_at,
+      };
+    }),
   });
 }

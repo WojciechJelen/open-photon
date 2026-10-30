@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { lookLabels } from "../look-labels.ts";
@@ -12,12 +13,38 @@ const neonGlow = "Lighting: magenta and cyan neon light on the character.";
 
 test("one look is named by its first sentence", () => {
   assert.deepEqual(
-    [...lookLabels([{ key: "a", text: `${character} ${photoBackground}` }])],
-    [["a", "The character from the reference image, as…"]],
+    [...lookLabels([{ key: "a", text: "A red raincoat. In the rain." }])],
+    [["a", "A red raincoat"]],
   );
   assert.deepEqual(
     [...lookLabels([{ key: "a", text: "e2e seeded result" }])],
     [["a", "e2e seeded result"]],
+  );
+});
+
+test("a composed look alone is named by its picks, not by the sentences it leads with", () => {
+  assert.equal(
+    lookLabels([{ key: "a", text: `${character} ${beach}` }]).get("a"),
+    "A sunny sandy beach with the blue sea and…",
+  );
+  assert.equal(
+    lookLabels([{ key: "a", text: character }]).get("a"),
+    "The character from the reference image, as…",
+  );
+});
+
+test("the workflow's default look is From the photo, alone and among others", () => {
+  const { prompt } = JSON.parse(
+    readFileSync("src/features/motionTransfer/workflows/defaults.json", "utf8"),
+  );
+
+  assert.equal(lookLabels([{ key: "a", text: prompt }]).get("a"), "From the photo");
+  assert.equal(
+    lookLabels([
+      { key: "a", text: prompt },
+      { key: "b", text: `${character} ${beach}` },
+    ]).get("a"),
+    "From the photo",
   );
 });
 
@@ -32,8 +59,8 @@ test("looks editor sentences: the character sentence every look shares is left o
   assert.deepEqual(Object.fromEntries(labels), {
     beach: "A sunny sandy beach with the blue sea and…",
     "beach-glow": "A sunny sandy beach… · Magenta and cyan…",
-    default: "Background as in the reference image",
-    glow: "Background as in… · Magenta and cyan…",
+    default: "From the photo",
+    glow: "Magenta and cyan neon light on the character",
   });
 
   for (const label of labels.values()) {

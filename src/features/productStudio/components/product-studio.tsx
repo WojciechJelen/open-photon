@@ -1,13 +1,17 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ImageUpIcon, SparklesIcon } from "lucide-react";
+import { cn } from "cn";
+import { CheckIcon, SparklesIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "#/components/ui/button";
-import { Checkbox } from "#/components/ui/checkbox";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
+import advertising from "#/features/productStudio/assets/preset-advertising.webp";
+import lifestyle from "#/features/productStudio/assets/preset-lifestyle.webp";
+import packshot from "#/features/productStudio/assets/preset-packshot.webp";
+import { PhotoField, type ProductPhoto } from "#/features/productStudio/components/photo-field";
 import { ShootView } from "#/features/productStudio/components/shoot-view";
 import {
   createShootInputSchema,
@@ -21,11 +25,12 @@ import {
 } from "#/features/productStudio/contracts";
 import type { StudioSearch } from "#/features/productStudio/search";
 import { fetchShoots, postShoot } from "#/features/productStudio/studio-client";
-import { AccessCodeDialog, AccessStatus } from "#/shared/components/access-code-dialog";
-import { Hud, PageGlow } from "#/shared/components/brand";
-import { SiteHeader } from "#/shared/components/site";
-import type { Asset } from "#/shared/contracts";
-import { IMAGE_UPLOAD_TYPES, uploadImageFile } from "#/shared/image-upload";
+import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
+import { PageHeading } from "#/shared/components/page-heading";
+import { SitePage } from "#/shared/components/site";
+import { StateCard } from "#/shared/components/state-card";
+import { ToolSection } from "#/shared/components/tool-layout";
+import { uploadImageFile } from "#/shared/image-upload";
 import { mediaUrl } from "#/shared/media";
 import type { Refusal } from "#/shared/requests";
 import { useAccessCode } from "#/shared/use-access-code";
@@ -39,13 +44,12 @@ type Form = {
 
 const emptyForm: Form = { description: "", format: "square", presets: ["packshot"], product: "" };
 
-/**
- * The workspace's latest shoots, read again whenever `version` changes (a new shoot, a sign-in),
- * and whether that read had a session (`null` until it answers): the page's access status.
- */
+/** What stands for each preset in the list of shots: one product, rendered as that preset. */
+const presetImages: Record<ProductShotPreset, string> = { advertising, lifestyle, packshot };
+
+/** The workspace's latest shoots, read again whenever `version` changes (a new shoot, a sign-in). */
 function useRecentShoots(version: number) {
   const [shoots, setShoots] = useState<ShootList["shoots"]>([]);
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -57,16 +61,92 @@ function useRecentShoots(version: number) {
 
       if ("data" in answer) {
         setShoots(answer.data.shoots);
-        setSignedIn(true);
-      } else if (answer.refusal.reason === "access_required") {
-        setSignedIn(false);
       }
     });
 
     return () => controller.abort();
   }, [version]);
 
-  return { shoots, signedIn, setSignedIn };
+  return shoots;
+}
+
+/** A field's label with its error on the same line, so the error moves nothing. */
+function FieldHead({
+  error,
+  htmlFor,
+  label,
+}: {
+  error: string | false;
+  htmlFor: string;
+  label: string;
+}) {
+  return (
+    <div className="flex min-h-5 min-w-0 items-baseline justify-between gap-3">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {error && (
+        <span
+          className="min-w-0 truncate type-caption text-destructive-foreground"
+          id={`${htmlFor}-error`}
+          title={error}
+        >
+          {error}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * One kind of shot to tick: the box is the checkbox's own hit area, and being ticked changes only
+ * its colors and the check.
+ */
+function ShotOption({
+  checked,
+  onChange,
+  preset,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  preset: ProductShotPreset;
+}) {
+  const { label, summary } = presetDetails[preset];
+
+  return (
+    <label
+      className={cn(
+        "relative flex min-h-16 min-w-0 cursor-pointer items-center gap-3 rounded-field border py-2 pr-3.5 pl-2 transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-3 has-focus-visible:outline-ring",
+        checked ? "border-brand/55 bg-brand/6" : "border-input bg-field hover:border-edge-strong",
+      )}
+    >
+      <input
+        checked={checked}
+        className="absolute inset-0 size-full cursor-pointer opacity-0"
+        onChange={(event) => onChange(event.target.checked)}
+        type="checkbox"
+        value={preset}
+      />
+      <span className="relative block size-12 shrink-0 overflow-hidden rounded-thumb">
+        <img
+          alt={`${label}, AI-generated image`}
+          className="absolute inset-0 size-full object-cover"
+          src={presetImages[preset]}
+        />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate type-label">{label}</span>
+        <span className="truncate type-caption text-muted-foreground">{summary}</span>
+      </span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "grid size-5 shrink-0 place-items-center rounded-full",
+          checked ? "bg-brand text-primary-foreground" : "border border-edge-strong",
+        )}
+      >
+        {checked && <CheckIcon className="size-3" strokeWidth={3} />}
+      </span>
+    </label>
+  );
 }
 
 /**
@@ -75,27 +155,26 @@ function useRecentShoots(version: number) {
  * shot, admitted together as a shoot (`POST /api/product-shots`) under one request key, so a
  * double click or a resend after a lost answer returns the same shoot. The shoot shown is in the
  * URL (`?shoot=`), so a reload follows it. The product keeps its own pixels; only the scene around
- * it is generated.
+ * it is generated. The recent shoots sit under both columns, where a shoot appearing moves nothing.
  */
 export function ProductStudio({ search }: { search: StudioSearch }) {
   const navigate = useNavigate({ from: "/product-studio" });
   const access = useAccessCode();
   const [form, setForm] = useState<Form>(emptyForm);
-  const [photo, setPhoto] = useState<Asset | null>(null);
+  const [photo, setPhoto] = useState<ProductPhoto | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProblem, setUploadProblem] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [refusal, setRefusal] = useState<Refusal | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Set<PropertyKey>>(new Set());
   const [version, setVersion] = useState(0);
-  const { setSignedIn, shoots: recent, signedIn } = useRecentShoots(version);
+  const recent = useRecentShoots(version);
   // The request key of the body last sent without an answer naming a shoot: sending the same
   // body again reuses it, so the server answers with the shoot the first request admitted.
   const unanswered = useRef<{ body: string; key: string } | null>(null);
 
   function needCode(resume: () => void, action: "generate" | "upload" | "unlock") {
-    setSignedIn(false);
     access.hold(action, action, () => {
-      setSignedIn(true);
       setVersion((count) => count + 1);
       resume();
     });
@@ -103,18 +182,18 @@ export function ProductStudio({ search }: { search: StudioSearch }) {
 
   async function upload(file: File) {
     setUploading(true);
-    setRefusal(null);
+    setUploadProblem(null);
 
     const answer = await uploadImageFile(file);
 
     setUploading(false);
 
     if ("data" in answer) {
-      setPhoto(answer.data);
+      setPhoto({ asset: answer.data, name: file.name });
     } else if (answer.refusal.reason === "access_required") {
       needCode(() => void upload(file), "upload");
     } else {
-      setRefusal(answer.refusal);
+      setUploadProblem(answer.refusal.message);
     }
   }
 
@@ -124,7 +203,7 @@ export function ProductStudio({ search }: { search: StudioSearch }) {
       format: form.format,
       presets: form.presets,
       product: form.product,
-      product_asset_id: photo?.id,
+      product_asset_id: photo?.asset.id,
     });
 
     if (!parsed.success) {
@@ -150,7 +229,7 @@ export function ProductStudio({ search }: { search: StudioSearch }) {
     if ("data" in answer) {
       unanswered.current = null;
       setVersion((count) => count + 1);
-      void navigate({ search: { shoot: answer.data.id } });
+      void navigate({ resetScroll: false, search: { shoot: answer.data.id } });
     } else if (answer.refusal.reason === "access_required") {
       needCode(() => void generate(), "generate");
     } else {
@@ -159,151 +238,105 @@ export function ProductStudio({ search }: { search: StudioSearch }) {
   }
 
   const count = form.presets.length;
+  const productError = fieldErrors.has("product") && "Say in a few words what the product is.";
 
   return (
-    <div className="relative isolate min-h-svh">
-      <PageGlow />
-      <SiteHeader category="Image">
-        {signedIn !== null && <AccessStatus onOpen={access.unlock} signedIn={signedIn} />}
-      </SiteHeader>
-      <main className="mx-auto grid w-full max-w-330 gap-10 px-4 pt-6 pb-18 sm:px-8 lg:grid-cols-12 lg:pt-10">
-        <section aria-labelledby="studio-heading" className="flex flex-col gap-6 lg:col-span-5">
-          <div className="flex flex-col gap-3">
-            <Hud>Image · Product Studio</Hud>
-            <h1
-              className="font-display text-4xl leading-none font-bold tracking-display"
-              id="studio-heading"
-            >
-              Product Studio
-            </h1>
-            <p className="text-soft-foreground">
-              Upload a product photo and get a packshot, a lifestyle scene or an ad visual. The
-              product keeps its own pixels, so its shape, colours, logo and label text stay exactly
-              as photographed; only the scene around it is generated.
-            </p>
-          </div>
+    <SitePage category="Image" gap={10} onAccess={access.unlock} top={10}>
+      <div className="flex flex-wrap items-start gap-10">
+        <div className="flex max-w-105 min-w-0 flex-1 basis-90 flex-col gap-5">
+          <PageHeading
+            className="pb-1"
+            subtitle="Your product, exactly as photographed. Only the scene is new."
+            title="Product Studio"
+          />
 
           <form
-            className="flex flex-col gap-6"
+            className="flex min-w-0 flex-col gap-5"
             onSubmit={(event) => {
               event.preventDefault();
               void generate();
             }}
           >
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="product-photo">Product photo</Label>
-              <label
-                className="flex cursor-pointer items-center gap-4 rounded-2xl border border-dashed p-4 focus-within:outline-2 focus-within:outline-ring hover:border-edge-strong"
-                htmlFor="product-photo"
-              >
-                {photo ? (
-                  <img
-                    alt="The uploaded product photo"
-                    className="size-20 rounded-xl border bg-white object-contain"
-                    src={mediaUrl(photo)}
-                  />
-                ) : (
-                  <span className="grid size-20 place-items-center rounded-xl border bg-foreground/4">
-                    <ImageUpIcon aria-hidden="true" className="size-6" />
-                  </span>
-                )}
-                <span className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium">
-                    {uploading ? "Uploading…" : photo ? "Replace the photo" : "Choose a photo"}
-                  </span>
-                  <span className="text-soft-foreground">
-                    The whole product, front-on, on a plain background. PNG, JPEG or WebP.
-                  </span>
-                </span>
-                <input
-                  accept={IMAGE_UPLOAD_TYPES.join(",")}
-                  aria-invalid={fieldErrors.has("product_asset_id") || undefined}
-                  className="sr-only"
-                  disabled={uploading}
-                  id="product-photo"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
+            <PhotoField
+              onFile={(file) => void upload(file)}
+              photo={photo}
+              problem={
+                uploadProblem ??
+                (!photo && fieldErrors.has("product_asset_id")
+                  ? "Upload a product photo first."
+                  : null)
+              }
+              uploading={uploading}
+            />
 
-                    event.target.value = "";
-
-                    if (file) {
-                      void upload(file);
-                    }
-                  }}
-                  type="file"
-                />
-              </label>
-              {fieldErrors.has("product_asset_id") && (
-                <p className="text-sm text-destructive-foreground">Upload a product photo first.</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="product-name">What is it?</Label>
+            <div className="flex min-w-0 flex-col gap-2">
+              <FieldHead error={productError} htmlFor="product-name" label="What is it?" />
               <Input
-                aria-invalid={fieldErrors.has("product") || undefined}
+                aria-describedby={productError ? "product-name-error" : undefined}
+                aria-invalid={productError ? true : undefined}
                 id="product-name"
                 maxLength={120}
                 onChange={(event) => setForm({ ...form, product: event.target.value })}
-                placeholder="e.g. a clear glass perfume bottle"
+                placeholder="A clear glass perfume bottle"
                 value={form.product}
               />
-              {fieldErrors.has("product") && (
-                <p className="text-sm text-destructive-foreground">
-                  Say in a few words what the product is.
-                </p>
-              )}
             </div>
 
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-sm font-medium">Shots</legend>
-              {productShotPresets.map((preset) => (
-                <label
-                  className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 hover:border-edge-strong has-data-[state=checked]:border-brand"
-                  key={preset}
-                >
-                  <Checkbox
+            <ToolSection
+              end={
+                fieldErrors.has("presets") && (
+                  <span className="type-caption text-destructive-foreground">
+                    Pick at least one shot.
+                  </span>
+                )
+              }
+              title="Shots"
+            >
+              <div aria-label="Shots" className="flex min-w-0 flex-col gap-2" role="group">
+                {productShotPresets.map((preset) => (
+                  <ShotOption
                     checked={form.presets.includes(preset)}
-                    onCheckedChange={(checked) =>
+                    key={preset}
+                    onChange={(checked) =>
                       setForm({
                         ...form,
                         presets: productShotPresets.filter((item) =>
-                          item === preset ? checked === true : form.presets.includes(item),
+                          item === preset ? checked : form.presets.includes(item),
                         ),
                       })
                     }
-                    value={preset}
+                    preset={preset}
                   />
-                  <span className="flex flex-col gap-0.5">
-                    <span className="text-sm font-medium">{presetDetails[preset].label}</span>
-                    <span className="text-xs text-soft-foreground">
-                      {presetDetails[preset].summary}
-                    </span>
-                  </span>
-                </label>
-              ))}
-              {fieldErrors.has("presets") && (
-                <p className="text-sm text-destructive-foreground">Pick at least one shot.</p>
-              )}
-            </fieldset>
+                ))}
+              </div>
+            </ToolSection>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="scene">Scene (optional)</Label>
+            <div className="flex min-w-0 flex-col gap-2">
+              <div className="flex min-h-5 min-w-0 items-baseline justify-between gap-3">
+                <Label htmlFor="scene">Scene</Label>
+                <span
+                  className="min-w-0 truncate type-caption text-muted-foreground"
+                  id="scene-note"
+                  title="Glass and other see-through products keep the background they were photographed on."
+                >
+                  Glass products keep their original background
+                </span>
+              </div>
               <Textarea
-                aria-describedby="scene-hint"
+                aria-describedby="scene-note"
                 id="scene"
                 maxLength={400}
                 onChange={(event) => setForm({ ...form, description: event.target.value })}
-                placeholder="e.g. a white marble vanity in a hotel bathroom, warm evening light"
+                placeholder="Optional: a white marble vanity, warm evening light"
+                size="compact"
                 value={form.description}
               />
-              <p className="text-xs text-soft-foreground" id="scene-hint">
-                Replaces each shot&apos;s own background.
-              </p>
             </div>
 
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-sm font-medium">Format</legend>
+            <div className="flex min-w-0 flex-col gap-2">
+              <Label asChild>
+                <span>Format</span>
+              </Label>
               <ToggleGroup
                 aria-label="Format"
                 onValueChange={(value) => {
@@ -313,41 +346,41 @@ export function ProductStudio({ search }: { search: StudioSearch }) {
                     setForm({ ...form, format });
                   }
                 }}
-                spacing={2}
+                spacing={1}
                 type="single"
                 value={form.format}
-                variant="outline"
+                variant="segmented"
               >
                 {productShotFormats.map((format) => (
                   <ToggleGroupItem key={format} value={format}>
-                    {formatDetails[format].label} {formatDetails[format].ratio}
+                    {formatDetails[format].label}
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
-            </fieldset>
+            </div>
 
-            {refusal && (
-              <p className="text-sm text-destructive-foreground" role="alert">
-                {refusal.message}
-              </p>
-            )}
-
-            <Button disabled={pending || uploading} size="lg" type="submit" variant="photon">
+            <Button disabled={pending || uploading} type="submit" variant="photon">
               <SparklesIcon aria-hidden="true" />
-              {pending
-                ? "Starting…"
-                : count === 0
-                  ? "Generate shots"
-                  : `Generate ${count} ${count === 1 ? "shot" : "shots"}`}
+              <span>
+                {pending
+                  ? "Starting…"
+                  : count === 0
+                    ? "Generate shots"
+                    : `Generate ${count} ${count === 1 ? "shot" : "shots"}`}
+              </span>
             </Button>
-            <p className="text-xs text-soft-foreground">
-              Shots are AI-generated with open-weights models (FLUX 3 Image Klein, BiRefNet). Glass
-              and other see-through products keep the background they were photographed on.
-            </p>
-          </form>
-        </section>
 
-        <div className="flex flex-col gap-10 lg:col-span-7">
+            <div className="min-h-5">
+              {refusal && (
+                <p className="type-caption wrap-anywhere text-destructive-foreground" role="alert">
+                  {refusal.message}
+                </p>
+              )}
+            </div>
+          </form>
+        </div>
+
+        <div className="min-w-0 grow-999 basis-120">
           {search.shoot ? (
             <ShootView
               key={search.shoot}
@@ -355,43 +388,52 @@ export function ProductStudio({ search }: { search: StudioSearch }) {
               shootId={search.shoot}
             />
           ) : (
-            <section className="grid min-h-60 place-items-center rounded-3xl border border-dashed p-8 text-center text-soft-foreground">
-              Your shots appear here.
-            </section>
-          )}
-
-          {recent.length > 0 && (
-            <section aria-labelledby="recent-heading" className="flex flex-col gap-3">
-              <h2 className="font-display text-xl font-semibold" id="recent-heading">
-                Recent shoots
-              </h2>
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {recent.map((shoot) => (
-                  <li key={shoot.id}>
-                    <Link
-                      aria-current={shoot.id === search.shoot ? "page" : undefined}
-                      className="flex flex-col gap-2 rounded-2xl border p-2 text-sm hover:border-edge-strong aria-[current=page]:border-brand"
-                      search={{ shoot: shoot.id }}
-                      to="/product-studio"
-                    >
-                      <img
-                        alt=""
-                        className="aspect-square w-full rounded-xl bg-white object-contain"
-                        src={mediaUrl(shoot.product.image)}
-                      />
-                      <span className="truncate font-medium">{shoot.product.name}</span>
-                      <span className="text-xs text-soft-foreground">
-                        {shoot.presets.map((preset) => presetDetails[preset].label).join(", ")}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <StateCard frame text="Fill in the form and generate." title="Your shots appear here" />
           )}
         </div>
-      </main>
+      </div>
+
+      {recent.length > 0 && (
+        <ToolSection title="Earlier shoots">
+          <ul className="grid tiles-fill-40 gap-3">
+            {recent.map((shoot) => {
+              const presets = shoot.presets.map((preset) => presetDetails[preset].label).join(", ");
+
+              return (
+                <li className="min-w-0" key={shoot.id}>
+                  <Link
+                    aria-current={shoot.id === search.shoot ? "page" : undefined}
+                    className="group/shoot flex min-w-0 flex-col gap-2 rounded-lg outline-none focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-ring"
+                    search={{ shoot: shoot.id }}
+                    to="/product-studio"
+                  >
+                    <span className="relative block aspect-square overflow-hidden rounded-lg bg-white shadow-hairline group-aria-[current=page]/shoot:shadow-picked">
+                      <img
+                        alt=""
+                        className="absolute inset-0 size-full object-cover"
+                        src={mediaUrl(shoot.product.image)}
+                      />
+                    </span>
+                    <span className="flex min-w-0 flex-col">
+                      <span
+                        className="truncate type-caption font-medium text-soft-foreground group-hover/shoot:text-foreground group-aria-[current=page]/shoot:font-semibold group-aria-[current=page]/shoot:text-foreground"
+                        title={shoot.product.name}
+                      >
+                        {shoot.product.name}
+                      </span>
+                      <span className="truncate type-caption text-muted-foreground" title={presets}>
+                        {presets}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </ToolSection>
+      )}
+
       <AccessCodeDialog {...access.dialog} />
-    </div>
+    </SitePage>
   );
 }

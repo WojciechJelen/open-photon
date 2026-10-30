@@ -1,6 +1,5 @@
-// The storyboard feature's client calls: its own endpoints, the workspace character list a
-// storyboard picks its character from, and the shared retry of a generation. Client-safe.
-import { characterListSchema } from "#/features/characters";
+// The storyboard feature's client calls: its own endpoints and the shared retry of a generation.
+// Client-safe.
 import {
   type CreateStoryboardBody,
   type GenerateCardsBody,
@@ -55,11 +54,6 @@ export function postCardGenerations(id: string, body: GenerateCardsBody, request
     headers: sending,
     method: "POST",
   });
-}
-
-/** `GET /api/characters`: the workspace library and the samples, the characters to pick from. */
-export function fetchCharacters(signal?: AbortSignal) {
-  return callApi(characterListSchema, "/api/characters", { headers: json, signal });
 }
 
 /**

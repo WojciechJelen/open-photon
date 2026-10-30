@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { accessCode, open, seededResult } from "./e2e/session.ts";
 
-test("the studio home features Motion Transfer and links its live character tools, and the navigation links every shipped tool", async ({
+test("the studio home features Motion Transfer and links every other tool, and the navigation links every shipped tool", async ({
   page,
 }) => {
   await open(page, "/");
@@ -24,11 +24,15 @@ test("the studio home features Motion Transfer and links its live character tool
   // link.
   const navigation = page.getByRole("navigation", { name: "Main" });
 
-  await expect(navigation.getByRole("button")).toHaveText(["Image", "Video", "Library"]);
+  await expect(navigation.getByRole("button")).toHaveText(["Image", "Video"]);
   await expect(navigation).not.toContainText(/soon/i);
   await expect(navigation.getByRole("link", { exact: true, name: "Explore" })).toHaveAttribute(
     "href",
     "/explore",
+  );
+  await expect(navigation.getByRole("link", { exact: true, name: "Characters" })).toHaveAttribute(
+    "href",
+    "/characters",
   );
 
   for (const [label, shipped] of [
@@ -49,10 +53,9 @@ test("the studio home features Motion Transfer and links its live character tool
         ["Motion Transfer", "/motionTransfer"],
         ["Motion presets", "/presets"],
         ["Animate image", "/animate"],
-        ["Batch variations", "/batches"],
+        ["Batches", "/batches"],
       ],
     ],
-    ["Library", [["Characters", "/characters"]]],
   ] as const) {
     await expect(navigation.getByRole("button", { name: label })).toBeEnabled();
     await navigation.getByRole("button", { name: label }).click();
@@ -73,28 +76,38 @@ test("the studio home features Motion Transfer and links its live character tool
     await expect(menu).toHaveCount(0);
   }
 
-  const cards = page.getByRole("list", { name: "Character tools" }).getByRole("listitem");
-
-  await expect(cards).toHaveCount(8);
-
-  for (const [name, path] of [
-    ["Describe a character", "/characters/new"],
-    ["Character photoshoot", "/photoshoot"],
-    ["Character library", "/characters"],
-    ["Shots & Angles", "/angles"],
-    ["Sprite Forge", "/sprites"],
-    ["Storyboard", "/storyboards"],
-    ["Animate an image", "/animate"],
-    ["Product Studio", "/product-studio"],
+  for (const [list, shipped] of [
+    [
+      "Image tools",
+      [
+        ["Create character", "/characters/new"],
+        ["Photoshoot", "/photoshoot"],
+        ["Shots & Angles", "/angles"],
+        ["Storyboard", "/storyboards"],
+        ["Sprite Forge", "/sprites"],
+        ["Product Studio", "/product-studio"],
+      ],
+    ],
+    [
+      "Video tools",
+      [
+        ["Motion presets", "/presets"],
+        ["Animate image", "/animate"],
+        ["Batches", "/batches"],
+      ],
+    ],
   ] as const) {
-    const card = cards.filter({ has: page.getByRole("heading", { name }) });
+    const cards = page.getByRole("list", { name: list }).getByRole("link");
 
-    await expect(card).toContainText("Live");
-    await expect(card.getByRole("link")).toHaveAttribute("href", path);
+    await expect(cards).toHaveCount(shipped.length);
+
+    for (const [index, [name, path]] of shipped.entries()) {
+      await expect(cards.nth(index)).toContainText(name);
+      await expect(cards.nth(index)).toHaveAttribute("href", path);
+    }
   }
 
-  await expect(page.getByText("Built open")).toBeVisible();
-  await expect(page.getByRole("contentinfo")).toContainText("MIT licensed");
+  await expect(page.getByRole("contentinfo")).toContainText("Open source");
 });
 
 test("no page scrolls sideways, on a phone or a desktop", async ({ page }) => {

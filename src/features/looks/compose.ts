@@ -104,6 +104,17 @@ export function readLook(prompt: string, catalog: LookCatalog = lookCatalog): Lo
 }
 
 /**
+ * What `prompt` is called where it does not fit: the names of its picks, then the visitor's own
+ * words. A blank look is the photo's own, named as the Background row names it.
+ */
+export function lookName(prompt: string, catalog: LookCatalog = lookCatalog) {
+  const { description, selection } = readLook(prompt, catalog);
+  const picks = pickedOptions(selection, catalog).map(({ label }) => label);
+
+  return [...picks, description.trim()].filter(Boolean).join(" · ") || "From the photo";
+}
+
+/**
  * `look` with the description typed or pasted as `text`. A catalog fragment in it is a pick, as
  * a click on its tile would make it (`pickOption`: it replaces its group's, drops conflicting
  * picks, and a background takes the place of the other background sentences of the text), and

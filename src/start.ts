@@ -1,10 +1,20 @@
 import { createCsrfMiddleware, createMiddleware, createStart } from "@tanstack/react-start";
 
+import goldenHourRooftop from "#/shared/assets/access/golden-hour-rooftop.webp?inline";
+import neonNight from "#/shared/assets/access/neon-night.webp?inline";
+import streetDance from "#/shared/assets/access/street-dance.webp?inline";
+
+import appCss from "./styles.css?url";
+
+// What the access page, rendered without React, loads. The stills are data URLs: only the server
+// code below uses them, which the client build strips, so as files they would never be emitted.
+const accessArt = { stills: [streetDance, neonNight, goldenHourRooftop], stylesheet: appCss };
+
 // This file is in the client bundle too: server modules are imported inside `.server()` only,
 // where the compiler strips them from the client, since a static import would pull in SQLite.
 const access = createMiddleware().server(async ({ request, next }) => {
   const { accessGuard } = await import("#/shared/server/access.server");
-  const denied = await accessGuard(request);
+  const denied = await accessGuard(request, accessArt);
 
   if (denied) {
     return denied;

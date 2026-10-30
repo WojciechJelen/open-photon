@@ -48,11 +48,11 @@ test("pick a character, draw its five directions, forge a sprite sheet and find 
   // The side view faces right, and one take per direction keeps the fake run short.
   await page
     .getByRole("radiogroup", { name: "Side facing" })
-    .getByRole("radio", { name: "Faces right" })
+    .getByRole("radio", { name: "Right" })
     .check();
   await page
-    .getByRole("radiogroup", { name: "Takes per direction" })
-    .getByRole("radio", { name: "Quick (1 take)" })
+    .getByRole("radiogroup", { name: "Walk quality" })
+    .getByRole("radio", { name: "Quick" })
     .check();
 
   const forged = page.waitForResponse(

@@ -7,14 +7,13 @@
 @import "@fontsource-variable/syne";
 
 /* "Night Shoot": the app is dark only. The shadcn variables carry the palette; the extra tokens
-   below them are the photon accent (violet → magenta), the softer text tone and the status
-   colors (tally red is `destructive`). */
+   below them are the photon accent (violet → magenta), the render gradient, the light on the top
+   of every page, the softer text tone and the status colors (tally red is `destructive`). */
 :root {
   color-scheme: dark;
   --background: #09080d;
   --foreground: #f4f2f8;
   --card: #13111a;
-  --card-foreground: #f4f2f8;
   --popover: #0f0d15;
   --popover-foreground: #f4f2f8;
   --primary: #f3eeff;
@@ -30,33 +29,27 @@
   --border: rgb(255 255 255 / 0.08);
   --input: rgb(255 255 255 / 0.14);
   --ring: #a68bff;
-  --chart-1: #a68bff;
-  --chart-2: #f072d8;
-  --chart-3: #7be0b0;
-  --chart-4: #ffb54a;
-  --chart-5: #ff5b4f;
   --radius: 0.75rem;
-  --sidebar: #0f0d15;
-  --sidebar-foreground: #f4f2f8;
-  --sidebar-primary: #f3eeff;
-  --sidebar-primary-foreground: #0b0910;
-  --sidebar-accent: rgb(255 255 255 / 0.08);
-  --sidebar-accent-foreground: #f4f2f8;
-  --sidebar-border: rgb(255 255 255 / 0.08);
-  --sidebar-ring: #a68bff;
 
   --soft-foreground: #bdb7cb;
   --edge-strong: rgb(255 255 255 / 0.24);
   --field: #0f0d15;
   --screen: #000000;
   --brand: #a68bff;
-  --brand-mid: #c97cf0;
   --brand-2: #f072d8;
   --brand-foreground: #d9ceff;
   --warning: #ffb54a;
   --warning-foreground: #ffd08a;
   --success: #7be0b0;
+  --gradient-render: linear-gradient(95deg, #a68bff 0%, #c97cf0 52%, #f072d8 100%);
+  --page-light:
+    radial-gradient(1000px 460px at 78% -160px, rgb(166 139 255 / 0.12), transparent 72%),
+    radial-gradient(720px 360px at 6% -180px, rgb(240 114 216 / 0.05), transparent 72%);
 }
+
+/* A device that really hovers. `pointer-fine` alone also takes in a pen, which cannot: what shows
+   only on hover would never show there. */
+@custom-variant can-hover (@media (hover: hover) and (pointer: fine));
 
 @theme inline {
   --font-sans: "Geist Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
@@ -65,7 +58,6 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -81,32 +73,22 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-tag: 0.375rem;
+  --radius-thumb: 0.5625rem;
+  --radius-field: 0.875rem;
+  --radius-menu: 1.125rem;
 
   --color-soft-foreground: var(--soft-foreground);
   --color-edge-strong: var(--edge-strong);
   --color-field: var(--field);
   --color-screen: var(--screen);
   --color-brand: var(--brand);
-  --color-brand-mid: var(--brand-mid);
   --color-brand-2: var(--brand-2);
   --color-brand-foreground: var(--brand-foreground);
   --color-warning: var(--warning);
@@ -117,14 +99,24 @@
 @theme {
   --tracking-display: -0.035em;
 
+  /* What a `StateCard` keeps of the picture behind it. */
+  --blur-backdrop: 22px;
+
+  /* Where the site header turns from the phone's menu button to the full navigation. */
+  --breakpoint-nav: 55rem;
+
   /* A status light's halo, in the light's own color. */
   --shadow-dot: 0 0 10px currentColor;
-  --shadow-glow: 0 10px 40px -12px rgb(166 139 255 / 0.7);
-  --shadow-glow-photon: 0 14px 48px -14px rgb(240 114 216 / 0.7);
-  --shadow-monitor: 0 60px 140px -40px rgb(166 139 255 / 0.45);
-  --shadow-picked:
-    0 0 0 2px rgb(166 139 255), 0 0 0 7px rgb(166 139 255 / 0.16),
-    0 28px 60px -24px rgb(166 139 255 / 0.7);
+  --shadow-glow-photon: 0 14px 34px -16px rgb(240 114 216 / 0.7);
+  --shadow-hairline: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  /* The light under a monitor, as the boards draw it: a render and a share page, the home page's
+     hero, a preset's example. */
+  --shadow-monitor: 0 70px 140px -70px rgb(166 139 255 / 0.55);
+  --shadow-monitor-hero: 0 60px 140px -60px rgb(166 139 255 / 0.4);
+  --shadow-monitor-preset: 0 60px 120px -70px rgb(166 139 255 / 0.5);
+  /* A selected tile's ring: outside its box, so selecting one moves nothing. */
+  --shadow-picked: 0 0 0 2px rgb(9 8 13), 0 0 0 4px rgb(166 139 255);
+  --shadow-menu: 0 30px 80px -30px rgb(0 0 0 / 0.85);
   --shadow-modal: 0 40px 120px -20px rgb(0 0 0 / 0.85), 0 0 0 1px rgb(166 139 255 / 0.08);
 
   /* The render monitor's scan line, the progress bar's sheen and the REC tally dot. */
@@ -165,11 +157,27 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* The ground and the light fill the whole canvas; the light stays at the top of the page and
+     scrolls away with it. On a desktop the scrollbar's gutter is always kept, so a page does not
+     jump when its height changes (a phone's scrollbars take no room). */
   html {
     @apply bg-background;
+    background-image: var(--page-light);
+    background-repeat: no-repeat;
+  }
+  @variant nav {
+    html {
+      scrollbar-gutter: stable;
+    }
   }
   body {
-    @apply m-0 min-h-svh overflow-x-clip bg-background font-sans text-foreground antialiased;
+    @apply m-0 min-h-svh overflow-x-clip font-sans text-[15px] leading-normal text-foreground antialiased;
+  }
+  /* The kept gutter stands in for the scrollbar a dialog hides: without this, the scroll lock would
+     add its width again and the page would move. */
+  body[data-scroll-locked] {
+    margin-right: 0 !important;
+    padding-right: 0 !important;
   }
   ::selection {
     @apply bg-brand/40 text-foreground;
@@ -197,7 +205,183 @@
   font-weight: 500;
   letter-spacing: 0.12em;
   line-height: 1rem;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
+}
+
+/* The type scale. Size, weight and leading only: the color stays a `text-*` class beside them,
+   and these are utilities for the reason `hud` is: `text-caption text-muted-foreground` would be
+   read as two colors by class merging, and lose the size. */
+@utility type-hero {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5.6vw, 4.25rem);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.02;
+}
+
+@utility type-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+/* A heading within a page: the home page's sections. */
+@utility type-heading {
+  font-family: var(--font-display);
+  font-size: clamp(1.625rem, 2.6vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* A `StateCard`'s title. */
+@utility type-card-title {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+/* The site's name beside its mark. */
+@utility type-brand {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+
+  @variant nav {
+    font-size: 1.125rem;
+  }
+}
+
+@utility type-section {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* The sentence under a page's title. */
+@utility type-lead {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+
+  @variant sm {
+    font-size: 1rem;
+  }
+}
+
+@utility type-body {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+/* A control's or a tile's name: a button's type. */
+@utility type-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+@utility type-caption {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+/* The line under a field. */
+@utility type-hint {
+  font-size: 0.78125rem;
+  line-height: 1.45;
+}
+
+/* A number in a mono readout, such as a step's. */
+@utility type-readout {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+/* The tag on a picture: "AI-generated". */
+@utility type-tag {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The boards' responsive grids: as many columns as fit, each at least `N` on the spacing scale
+   (`grid-fit-80` is 320 px). `fit` stretches a short row to the full width, `fill` keeps its columns
+   the same width. A `grid-*` falls to one column on a narrow screen; `tiles-*` keeps two. */
+@utility grid-fit-* {
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(calc(var(--spacing) * --value(integer)), 100%), 1fr)
+  );
+}
+
+@utility grid-fill-* {
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(calc(var(--spacing) * --value(integer)), 100%), 1fr)
+  );
+}
+
+@utility tiles-fit-* {
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(calc(var(--spacing) * --value(integer)), 46%), 1fr)
+  );
+}
+
+@utility tiles-fill-* {
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(calc(var(--spacing) * --value(integer)), 46%), 1fr)
+  );
+}
+
+/* The render gradient as a background; `bg-clip-text text-transparent` beside it paints text. */
+@utility bg-render {
+  background-image: var(--gradient-render);
+}
+
+/* What a box shows until its content is read: one tone, on the radius of what will fill it. */
+@utility skeleton {
+  @apply bg-foreground/6 motion-safe:animate-pulse;
+}
+
+/* The page's side padding: the site header, `main` and the footer line up on it. */
+@utility px-page {
+  padding-inline: clamp(1rem, 2.2vw, 2rem);
+}
+
+/* Reserves a label's semibold width (`data-label`, its text), so a current or selected state that
+   turns it semibold moves nothing beside it. The one column can shrink below that width and its
+   items never pass it, so a label that must fit cuts short: bare text is only clipped, which is
+   fine for a fixed word, but the label in a `truncate` span ends in an ellipsis. */
+@utility reserve-semibold {
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  min-width: 0;
+
+  & > * {
+    max-width: 100%;
+  }
+
+  &::after {
+    content: attr(data-label);
+    font-weight: 600;
+    height: 0;
+    max-width: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+    visibility: hidden;
+  }
 }
 
 /* The compare player's frames fit the viewport with the transport under them: a portrait frame is
@@ -209,12 +393,12 @@
    are the server-rendered first guess: the result page at 1440×800, and on a phone, where the
    heading and the view toggle stack. */
 :root {
-  --stage-chrome: 21.875rem;
+  --stage-chrome: 20.3rem;
 }
 
 @media (width < 40rem) {
   :root {
-    --stage-chrome: 23.375rem;
+    --stage-chrome: 23.15rem;
   }
 }
 

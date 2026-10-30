@@ -1,9 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
-import { RotateCwIcon, TriangleAlertIcon } from "lucide-react";
+import { HourglassIcon, RotateCwIcon, TriangleAlertIcon } from "lucide-react";
 import { type ComponentType, useEffect, useState } from "react";
 
 import { Button } from "#/components/ui/button";
+import { Progress } from "#/components/ui/progress";
 import {
   MotionTransferHeader,
   type HeaderStep,
@@ -11,7 +12,8 @@ import {
 import {
   type ChildState,
   endingTitle,
-  RenderEnded,
+  RenderEndedCard,
+  RenderEndedDetail,
 } from "#/features/motionTransfer/components/render-ended";
 import { RenderProgress, stageTitle } from "#/features/motionTransfer/components/render-progress";
 import { ResultView } from "#/features/motionTransfer/components/result-view";
@@ -23,15 +25,19 @@ import {
 import { loadResult } from "#/features/motionTransfer/generate.functions";
 import type { ResultGenerationActionsProps } from "#/features/motionTransfer/slots";
 import { AccessCodeDialog } from "#/shared/components/access-code-dialog";
-import { Hud, PageGlow, StatusDot, Viewfinder } from "#/shared/components/brand";
+import { Hud, StatusDot, Viewfinder } from "#/shared/components/brand";
 import { ClipStill } from "#/shared/components/clip-still";
 import {
   GeneratedOutputs,
   generatedTitle,
   shownOutputs,
 } from "#/shared/components/generated-outputs";
+import { PageHeading } from "#/shared/components/page-heading";
+import { Panel } from "#/shared/components/panel";
 import { PublishLink } from "#/shared/components/publish-link";
-import { OpenWeightsBadge, SiteHeader } from "#/shared/components/site";
+import { SitePage } from "#/shared/components/site";
+import { StableText } from "#/shared/components/stable-text";
+import { StateCard } from "#/shared/components/state-card";
 import { generationReceiptSchema, type GenerationSnapshot } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 import { callApi } from "#/shared/requests";
@@ -47,110 +53,117 @@ type MotionTransferResult = Extract<Result, { view: "motionTransfer" }>;
 type OutputsResult = Extract<Result, { view: "outputs" }>;
 
 /**
- * The monitor of a take that is not a video yet: the character (or the clip) blurred behind the
- * live percent while it renders, under a scan line; where it stopped when it failed; the amber
- * question mark of an unknown one.
+ * The stage's place on the page, whatever it shows: the take's own shape from the first paint, so
+ * no state of a take moves it; on a phone a landscape stage is as tall as a state card, which 16:9
+ * of that width could not hold. `live` lights it from under while the take is on its way.
+ */
+function Stage({
+  children,
+  live,
+  portrait,
+}: {
+  children: React.ReactNode;
+  live: boolean;
+  portrait: boolean;
+}) {
+  return (
+    <div className={cn("min-w-0 grow", portrait ? "max-w-97.5 basis-80" : "max-w-170 basis-150")}>
+      <div
+        className={cn(
+          "relative rounded-2xl",
+          portrait ? "aspect-9/16" : "max-sm:h-80 sm:aspect-video",
+          live && "shadow-monitor",
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// `StateCard` in the stage: it fills the box, and the box decides the height.
+const stageCard = "absolute inset-0 min-h-0";
+
+/**
+ * The percent in slots of its own: the sign stays put while the digits, right-aligned in the room
+ * of two, tick up beside it (Syne's digits are not tabular), and 100 grows to the left.
+ */
+function StagePercent({ value }: { value: number }) {
+  return (
+    <span className="flex items-baseline font-display text-8xl leading-none font-bold tracking-display">
+      <span className="flex w-29 justify-end whitespace-nowrap">{value}</span>
+      <span className="text-4xl text-soft-foreground">%</span>
+    </span>
+  );
+}
+
+/**
+ * The monitor of a take on its way: the character (or the clip) blurred behind the live percent,
+ * under the viewfinder, with where it stands and which take it is. Decoration for assistive
+ * technology, which hears the status line and the progress bar.
  */
 function RenderMonitor({
   background,
   generation,
-  portrait,
-  size,
-  target,
+  take,
 }: {
   background: React.ReactNode;
   generation: GenerationSnapshot;
-  portrait: boolean;
-  size: string;
-  target: string;
+  take: string;
 }) {
-  const running = !isFinished(generation.status);
-  const cancelled = generation.status === "cancelled";
-  const failed = generation.status === "failed" || cancelled;
+  const rolling = generation.status === "running";
 
   return (
-    <div className="mx-auto flex w-full max-w-52 shrink-0 flex-col gap-3 sm:max-w-72 lg:mx-0 lg:max-w-105">
-      <div aria-hidden="true" className="flex items-center justify-between gap-3">
-        <Hud className="inline-flex items-center gap-2" tone={running ? "foreground" : "soft"}>
-          <StatusDot tone={running ? "tally" : failed ? "danger" : "warning"} />
-          {running
-            ? generation.status === "waiting"
-              ? "In line"
-              : "Rendering"
-            : failed
-              ? "Stopped"
-              : "Unknown"}
+    <div aria-hidden="true" className="absolute inset-0 overflow-hidden rounded-2xl bg-screen">
+      <div className="absolute inset-0 scale-120 blur-backdrop brightness-38">{background}</div>
+      <Viewfinder tone="brand" />
+      <div className="absolute inset-x-7 top-6.5 flex items-center justify-between gap-3">
+        <Hud className="inline-flex items-center gap-2" tone="foreground">
+          <StatusDot tone={rolling ? "tally" : "brand"} />
+          {rolling ? "Rec" : stageTitle(generation)}
         </Hud>
-        <Hud>{size}</Hud>
+        <Hud tone="foreground">{take}</Hud>
       </div>
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-3xl border bg-screen",
-          portrait ? "aspect-9/16" : "aspect-video",
-          running && "shadow-monitor",
-        )}
-      >
-        <div
-          aria-hidden="true"
-          className={cn(
-            "absolute inset-0 scale-115 blur-xl",
-            running ? "opacity-45 saturate-70" : "opacity-30 grayscale",
-          )}
-        >
-          {background}
-        </div>
-        {running && (
-          <span
-            aria-hidden="true"
-            className="absolute inset-0 bg-linear-to-b from-transparent via-brand/16 to-transparent motion-safe:animate-scan motion-reduce:hidden"
-          />
-        )}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center"
-        >
-          {running ? (
-            <>
-              <span className="font-display text-6xl leading-none font-bold tracking-display sm:text-8xl">
-                {generation.progress ?? 0}
-                <span className="text-3xl text-soft-foreground sm:text-4xl">%</span>
-              </span>
-              <Hud tone="foreground">{stageTitle(generation)}</Hud>
-            </>
-          ) : (
-            <>
-              <span
-                className={cn(
-                  "grid size-16 place-items-center rounded-full border",
-                  failed
-                    ? "border-destructive/40 bg-destructive/12 text-destructive-foreground"
-                    : "border-warning/40 bg-warning/12 text-warning-foreground",
-                )}
-              >
-                <TriangleAlertIcon className="size-7" />
-              </span>
-              <Hud tone="foreground">
-                {cancelled
-                  ? "Cancelled"
-                  : failed
-                    ? generation.progress
-                      ? `Stopped at ${generation.progress}%`
-                      : "Stopped"
-                    : "Status unknown"}
-              </Hud>
-            </>
-          )}
-        </div>
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-3.5 bottom-3.5 hidden items-center justify-between gap-2 sm:flex"
-        >
-          <Hud tone="foreground">Wan Animate 2</Hud>
-          <Hud tone="foreground">{target}</Hud>
-        </div>
-        <Viewfinder tone={running ? "brand" : failed ? "danger" : "dim"} />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <StagePercent
+          value={generation.status === "finalizing" ? 100 : (generation.progress ?? 0)}
+        />
       </div>
     </div>
+  );
+}
+
+/** A place in line in words, `1` being the next to start; no place known yet says only the rest. */
+function placeInLine(position: number | null) {
+  const rest = "It starts by itself, so you can leave.";
+
+  if (position === null) {
+    return rest;
+  }
+
+  const ahead = position - 1;
+
+  return `${ahead === 0 ? "Yours is next." : ahead === 1 ? "One take is ahead of yours." : `${ahead} takes are ahead of yours.`} ${rest}`;
+}
+
+/** A waiting take's stage. The bar only moves: a line has a place in it, not a percent. */
+function LineCard({ backdrop, position }: { backdrop?: string; position: number | null }) {
+  return (
+    <StateCard
+      backdrop={backdrop}
+      className={stageCard}
+      icon={HourglassIcon}
+      text={placeInLine(position)}
+      title="In line"
+      tone="quiet"
+    >
+      <span
+        aria-hidden="true"
+        className="relative h-1.5 w-50 overflow-hidden rounded-full bg-foreground/12"
+      >
+        <span className="absolute inset-0 bg-linear-to-r from-transparent via-brand to-transparent motion-safe:animate-sheen" />
+      </span>
+    </StateCard>
   );
 }
 
@@ -237,7 +250,10 @@ function OutputsView({ data }: { data: OutputsResult }) {
     output.media === "text" ? [] : [output],
   );
 
-  const { category, media } = shownOutputs(outputs);
+  const { media } = shownOutputs(outputs);
+  // Before it has outputs, or when it ended without any, the page goes by what its workflow makes.
+  const kind = media ?? data.media;
+  const category = kind === "video" ? "Video" : kind === "image" ? "Image" : undefined;
   const publishable = data.signedIn && data.publish === "on-request" && status === "done";
   const retryable = data.signedIn && (status === "failed" || status === "cancelled");
 
@@ -267,54 +283,77 @@ function OutputsView({ data }: { data: OutputsResult }) {
   }
 
   return (
-    <div className="relative isolate min-h-svh">
-      <PageGlow />
-      <SiteHeader category={category}>
-        <span className="hidden sm:inline-flex">
-          <OpenWeightsBadge />
-        </span>
-      </SiteHeader>
-      <main className="mx-auto flex w-full max-w-150 flex-col gap-6 px-4 pt-10 pb-18 sm:px-8">
-        <p
-          aria-label="Generation status"
-          className="inline-flex items-center gap-2 hud text-muted-foreground"
-          data-status={status}
-          role="status"
+    <SitePage category={category} className="max-w-150" gap={6} top={6}>
+      <p
+        aria-label="Generation status"
+        className="inline-flex items-center gap-2 hud text-muted-foreground"
+        data-status={status}
+        role="status"
+      >
+        <StatusDot tone={status === "done" ? "ok" : isFinished(status) ? "danger" : "tally"} />
+        {status === "done"
+          ? "Done"
+          : isFinished(status)
+            ? "Render stopped"
+            : stageTitle({ position: live.generation.position, status })}
+        {live.providerUnavailable && " · Comfy is not answering"}
+      </p>
+      {status === "done" ? (
+        media === null ? (
+          <StateCard
+            heading="h1"
+            text="This generation has no image or video to show here."
+            title="Nothing to show"
+          />
+        ) : (
+          <PageHeading title={`Your ${media} is ready`} />
+        )
+      ) : isFinished(status) ? (
+        <StateCard
+          heading="h1"
+          icon={TriangleAlertIcon}
+          text={live.generation.error_message}
+          title={endingTitle(live.generation, kind === "image" ? "image" : "take")}
+          tone="warning"
         >
-          <StatusDot tone={status === "done" ? "ok" : isFinished(status) ? "danger" : "tally"} />
-          {status === "done"
-            ? "Done"
-            : isFinished(status)
-              ? endingTitle(live.generation)
-              : stageTitle({ position: live.generation.position, status })}
-          {live.providerUnavailable && " · Comfy is not answering"}
+          {retryable && (
+            <Button disabled={retry.pending} onClick={() => void startRetry()}>
+              <RotateCwIcon aria-hidden="true" />
+              <StableText
+                current={retry.pending ? "Retrying…" : "Try again"}
+                labels={["Try again", "Retrying…"]}
+              />
+            </Button>
+          )}
+        </StateCard>
+      ) : (
+        <StateCard
+          frame
+          heading="h1"
+          text={
+            status === "waiting"
+              ? placeInLine(live.generation.position)
+              : "This page updates by itself."
+          }
+          title={status === "waiting" ? "In line" : "Rendering"}
+        >
+          <span className="block w-50">
+            <Progress aria-label="Render progress" value={live.generation.progress ?? 0} />
+          </span>
+        </StateCard>
+      )}
+      {retry.message && (
+        <p className="text-sm text-destructive-foreground" role="alert">
+          {retry.message}
         </p>
-        {retryable && (
-          <div className="flex flex-col gap-2">
-            <div>
-              <Button disabled={retry.pending} onClick={() => void startRetry()} variant="outline">
-                <RotateCwIcon aria-hidden="true" />
-                {retry.pending ? "Retrying…" : "Retry with a new seed"}
-              </Button>
-            </div>
-            {retry.message && (
-              <p className="text-sm text-destructive-foreground" role="alert">
-                {retry.message}
-              </p>
-            )}
-          </div>
-        )}
-        <GeneratedOutputs outputs={outputs} />
-        {publishable && media !== null && (
+      )}
+      <GeneratedOutputs outputs={outputs} />
+      {publishable && media !== null && (
+        <Panel className="gap-3 p-5">
           <PublishLink generationId={id} media={media} slug={share_slug} />
-        )}
-        {status === "done" && media === null && (
-          <p className="text-sm text-soft-foreground">
-            This generation has no image or video to show here.
-          </p>
-        )}
-      </main>
-    </div>
+        </Panel>
+      )}
+    </SitePage>
   );
 }
 
@@ -353,11 +392,13 @@ export function generationTitle(data: Result) {
 }
 
 /**
- * Step 4 and Step 5 of Motion Transfer. While it renders: the monitor, the named stages and
- * "Safe to leave" with the page's link. Failed or unknown: why, in plain words, and what can be
- * done. Done: the result (`useWhenDone` loads it when the stream says done). Retry (a new seed) and Re-run (the same recipe) open the child they start; a
- * re-run of a done generation answers with this one, which the page says. An action that needs
- * the access code asks for it in the dialog, then carries on.
+ * Step 4 and Step 5 of Motion Transfer. On its way: the stage (in line, then the monitor), the
+ * track and "Safe to leave" with the page's link, all in one place through every status. Failed
+ * or unknown: the stage says what happened and what can be done, beside why, in plain words.
+ * Done: the result (`useWhenDone` loads it when the stream says done). Retry (a new seed) and
+ * Re-run (the same recipe) open the child they start; a re-run of a done generation answers with
+ * this one, which the page says. An action that needs the access code asks for it in the dialog,
+ * then carries on.
  */
 function MotionTransferView({
   data,
@@ -366,8 +407,7 @@ function MotionTransferView({
   data: MotionTransferResult;
   generationActions: GenerationActions;
 }) {
-  const { character, direction, motionTitle, origin, recipe, rerunOfParent, signedIn, source } =
-    data;
+  const { character, direction, motionTitle, origin, recipe, rerunOfParent, source } = data;
 
   const live = useLiveGeneration(data.generation);
   const { providerUnavailable } = live;
@@ -453,19 +493,10 @@ function MotionTransferView({
   const status = (
     <p
       aria-label="Generation status"
-      className={cn(
-        "inline-flex items-center gap-2 hud",
-        failedRender ? "text-destructive-foreground" : "text-muted-foreground",
-        generation.status === "unknown" && "text-warning-foreground",
-      )}
+      className="sr-only"
       data-status={generation.status}
       role="status"
     >
-      <StatusDot
-        tone={
-          done ? "ok" : running ? "tally" : generation.status === "unknown" ? "warning" : "danger"
-        }
-      />
       {done
         ? `${takeName} · Done · ${duration(final.duration_ms ?? 0)}`
         : running
@@ -479,7 +510,7 @@ function MotionTransferView({
   );
 
   const parentNote = generation.parent_id && (
-    <p className="text-sm text-soft-foreground">
+    <>
       {rerunOfParent ? "A re-run of the recipe of " : "A retry of "}
       <Link
         className="text-foreground underline decoration-edge-strong underline-offset-3 hover:decoration-brand"
@@ -489,115 +520,96 @@ function MotionTransferView({
         the earlier generation
       </Link>
       {rerunOfParent ? ", with the same seed." : ", with a new seed."}
-    </p>
+    </>
   );
 
   const characterName =
     character?.title ?? (generation.character_id ? "Your character" : "The character");
 
+  const characterImage = character ? mediaUrl(character.image) : undefined;
+
   return (
-    <div className="relative isolate min-h-svh">
-      <PageGlow />
-      <MotionTransferHeader
-        end={done ? "new-shot" : "exit"}
-        mobileStatus={done ? takeName : undefined}
-        onAccess={access.unlock}
-        signedIn={signedIn}
-        steps={steps}
-      />
-      <main className="mx-auto w-full max-w-330 px-4 pt-6 pb-18 sm:px-8 lg:pt-10">
-        {done ? (
-          <div className="flex flex-col gap-4">
-            {parentNote}
-            <ResultView
-              character={character}
-              child={child}
-              compare={compare ? mediaUrl(compare) : undefined}
-              draft={snapshotDraft({ ...shot, ...directionFields(direction) })}
-              final={final}
-              generation={generation}
-              generationActions={generationActions}
-              onRerun={() => void startChild("rerun")}
-              origin={origin}
-              poster={poster ? mediaUrl(poster) : undefined}
-              recipe={recipe}
-              source={source}
-              status={status}
-            />
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-10 lg:flex-row lg:items-start lg:justify-center lg:gap-14">
-            <RenderMonitor
-              background={
-                character ? (
-                  <img alt="" className="size-full object-cover" src={mediaUrl(character.image)} />
-                ) : (
-                  <ClipStill src={mediaUrl(source)} />
-                )
-              }
-              generation={generation}
-              portrait={portrait}
-              size={`${recipe.params.width}×${recipe.params.height}`}
-              target={recipe.target === "cloud" ? "Comfy Cloud" : "Self-hosted"}
-            />
-            <div className="flex w-full max-w-150 min-w-0 flex-col gap-7 lg:pt-8">
-              <div className="flex flex-col gap-3">
-                {status}
-                <h1 className="font-display text-3xl leading-none font-bold tracking-display sm:text-4xl lg:text-5xl">
-                  {running ? "Rendering your shot" : endingTitle(generation)}
-                </h1>
-                {running && (
-                  <p className="text-lg text-pretty text-soft-foreground">
-                    {characterName} is taking on{" "}
-                    {motionTitle ? `the ${motionTitle.toLowerCase()}` : "your clip"}. This page
-                    updates on its own and shows the result when it's ready.
-                  </p>
-                )}
-                {parentNote}
-              </div>
-              {running ? (
+    <SitePage category="Video" gap={6} onAccess={access.unlock} top={6}>
+      <MotionTransferHeader end={done ? "new-shot" : "exit"} steps={steps} />
+      {done ? (
+        <ResultView
+          character={character}
+          child={child}
+          compare={compare ? mediaUrl(compare) : undefined}
+          draft={snapshotDraft({ ...shot, ...directionFields(direction) })}
+          final={final}
+          generation={generation}
+          generationActions={generationActions}
+          note={parentNote}
+          onRerun={() => void startChild("rerun")}
+          origin={origin}
+          poster={poster ? mediaUrl(poster) : undefined}
+          recipe={recipe}
+          source={source}
+          status={status}
+        />
+      ) : (
+        <div className="flex flex-wrap items-center justify-center gap-x-16 gap-y-10">
+          <Stage live={running} portrait={portrait}>
+            {generation.status === "waiting" ? (
+              <LineCard backdrop={characterImage} position={generation.position} />
+            ) : running ? (
+              <RenderMonitor
+                background={
+                  characterImage ? (
+                    <img alt="" className="size-full object-cover" src={characterImage} />
+                  ) : (
+                    <ClipStill src={mediaUrl(source)} />
+                  )
+                }
+                generation={generation}
+                take={takeName}
+              />
+            ) : (
+              <RenderEndedCard
+                backdrop={characterImage}
+                child={child}
+                className={stageCard}
+                generation={generation}
+                onChild={(action) => void startChild(action)}
+                shot={shot}
+              />
+            )}
+          </Stage>
+          <div className="flex max-w-150 min-w-0 grow-999 basis-110 flex-col gap-4">
+            {status}
+            {running ? (
+              <>
+                <PageHeading
+                  className="pb-3"
+                  subtitle={
+                    <>
+                      {characterName} is taking on{" "}
+                      {motionTitle ? `the ${motionTitle.toLowerCase()}` : "your clip"}. This page
+                      updates by itself. {parentNote}
+                    </>
+                  }
+                  title="Rendering your shot"
+                />
                 <RenderProgress
                   generation={generation}
                   pageUrl={`${origin}/g/${generation.id}`}
                   providerUnavailable={providerUnavailable}
                 />
-              ) : (
-                <RenderEnded
-                  child={child}
-                  generation={generation}
-                  onChild={(action) => void startChild(action)}
-                  seed={recipe.params.seed}
-                  shot={shot}
-                />
-              )}
-              <div className="flex flex-wrap items-center gap-3.5">
-                <span className="relative h-13 w-10 overflow-hidden rounded-lg border bg-muted">
-                  <ClipStill
-                    label={`Motion: ${motionTitle ?? "your clip"}`}
-                    src={mediaUrl(source)}
-                  />
-                </span>
-                <span aria-hidden="true" className="text-muted-foreground">
-                  +
-                </span>
-                <span className="relative h-13 w-10 overflow-hidden rounded-lg border bg-muted">
-                  {character && (
-                    <img
-                      alt={`Character: ${characterName}`}
-                      className="absolute inset-0 size-full object-cover"
-                      src={mediaUrl(character.image)}
-                    />
-                  )}
-                </span>
-                <span className="text-sm text-soft-foreground">
-                  {motionTitle ?? "Your clip"} · {characterName} · seed {recipe.params.seed}
-                </span>
-              </div>
-            </div>
+              </>
+            ) : (
+              <RenderEndedDetail
+                child={child}
+                generation={generation}
+                note={parentNote}
+                onChild={(action) => void startChild(action)}
+                seed={recipe.params.seed}
+              />
+            )}
           </div>
-        )}
-      </main>
+        </div>
+      )}
       <AccessCodeDialog {...access.dialog} />
-    </div>
+    </SitePage>
   );
 }

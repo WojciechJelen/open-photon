@@ -1,8 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { CircleAlertIcon, RotateCwIcon } from "lucide-react";
+import { CircleAlertIcon, RotateCwIcon, TriangleAlertIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Button } from "#/components/ui/button";
+import { RenderTrack } from "#/features/motionTransfer/components/render-progress";
 import type { MotionTransferDraft } from "#/features/motionTransfer/draft";
+import { Panel } from "#/shared/components/panel";
+import { StableText } from "#/shared/components/stable-text";
+import { StateCard } from "#/shared/components/state-card";
 import type { GenerationSnapshot } from "#/shared/contracts";
 
 type ErrorCode = NonNullable<GenerationSnapshot["error_code"]>;
@@ -75,120 +80,162 @@ export type ChildState =
   | { action: "rerun" | "retry"; state: "needs-code" | "running" }
   | { action: "rerun" | "retry"; message: string; state: "refused" };
 
+/** Whether `action` is what the page is waiting for. */
+function isRunning(child: ChildState, action: "rerun" | "retry") {
+  return child.state === "running" && child.action === action;
+}
+
 /**
- * The endings that are not a video. `failed` (or `cancelled` in line): the reason in plain
- * words, the stored message and code as the alert, and what the API can do about it: Retry with
- * a new seed (`POST …/retry`), Re-run the same recipe (`POST …/rerun`), or change the shot (the
- * wizard with the same picks). `unknown`: Comfy may still be rendering it, so it is never sent
- * again; only a new take is offered.
+ * The stage of a take that ended without a video, the page's heading: what happened and the way
+ * on. `failed` (or `cancelled` in line): Try again with a new seed (`POST …/retry`), or change the
+ * shot (the wizard with the same picks). `unknown`: Comfy may still be rendering it, so it is never
+ * sent again; only a new take is offered. `className` fits it to the stage.
  */
-export function RenderEnded({
+export function RenderEndedCard({
+  backdrop,
   child,
+  className,
   generation,
   onChild,
-  seed,
   shot,
 }: {
+  backdrop?: string;
   child: ChildState;
+  className?: string;
   generation: GenerationSnapshot;
   onChild: (action: "rerun" | "retry") => void;
-  seed: number;
   shot: MotionTransferDraft;
 }) {
   const unknown = generation.status === "unknown";
-  const failure = endingOf(generation);
-  const busy = child.state === "running";
+  const { lead } = endingOf(generation);
+  const changeLeads = unknown || lead === "change";
 
   const changeShot = (
-    <Button
-      asChild
-      size="lg"
-      variant={unknown || failure.lead === "change" ? "default" : "outline"}
-    >
+    <Button asChild variant={changeLeads ? "default" : "outline"}>
       <Link search={{ ...shot, step: "direct" }} to="/motionTransfer">
-        Change the shot
+        Edit the shot
       </Link>
     </Button>
   );
 
   return (
-    <div className="flex flex-col gap-6">
-      <p className="text-lg text-pretty text-soft-foreground">
-        {unknown
-          ? "Comfy may still be rendering this one, so it isn't sent again. Start a new take instead: your picks are kept."
-          : failure.text}
-      </p>
-      <div
-        className={
-          unknown
-            ? "flex items-start gap-3.5 rounded-2xl border border-warning/40 bg-warning/6 px-5 py-4"
-            : "flex items-start gap-3.5 rounded-2xl border border-destructive/40 bg-destructive/6 px-5 py-4"
-        }
-        role="alert"
-      >
-        <CircleAlertIcon
-          aria-hidden="true"
-          className={
-            unknown
-              ? "mt-0.5 size-5 shrink-0 text-warning"
-              : "mt-0.5 size-5 shrink-0 text-destructive-foreground"
-          }
-        />
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <span>
-            {generation.error_message ??
-              (unknown ? "The status of this take is unknown." : "The generation failed.")}
-          </span>
-          <span className="font-mono text-xs break-all text-muted-foreground">
-            {generation.error_code ?? generation.status} · seed {seed}
-          </span>
-        </div>
-      </div>
-      {child.state === "refused" && (
-        <p className="text-sm text-destructive-foreground" role="alert">
-          {child.message}
-        </p>
+    <StateCard
+      backdrop={backdrop}
+      className={className}
+      heading="h1"
+      icon={TriangleAlertIcon}
+      text={
+        unknown
+          ? "Start a new take: your picks are kept."
+          : changeLeads
+            ? "Change the shot, or try again."
+            : "Try again, or change the shot."
+      }
+      title={endingTitle(generation)}
+      tone="warning"
+    >
+      {changeLeads && changeShot}
+      {unknown ? (
+        <Button asChild variant="outline">
+          <Link search={{}} to="/motionTransfer">
+            New shot
+          </Link>
+        </Button>
+      ) : (
+        <Button
+          disabled={child.state === "running"}
+          onClick={() => onChild("retry")}
+          variant={changeLeads ? "outline" : "default"}
+        >
+          <RotateCwIcon aria-hidden="true" />
+          <StableText
+            current={isRunning(child, "retry") ? "Retrying…" : "Try again"}
+            labels={["Try again", "Retrying…"]}
+          />
+        </Button>
       )}
-      <div className="flex flex-wrap gap-2.5">
-        {unknown ? (
-          <>
-            {changeShot}
-            <Button asChild size="lg" variant="ghost">
-              <Link search={{}} to="/motionTransfer">
-                New shot
-              </Link>
-            </Button>
-          </>
-        ) : (
-          <>
-            {failure.lead === "change" && changeShot}
-            <Button
-              disabled={busy}
-              onClick={() => onChild("retry")}
-              size="lg"
-              variant={failure.lead === "retry" ? "default" : "outline"}
-            >
-              <RotateCwIcon />
-              {child.state === "running" && child.action === "retry"
-                ? "Retrying…"
-                : "Retry with a new seed"}
-            </Button>
-            {failure.lead === "retry" && changeShot}
-            <Button disabled={busy} onClick={() => onChild("rerun")} size="lg" variant="ghost">
-              {child.state === "running" && child.action === "rerun"
-                ? "Re-running…"
-                : "Re-run same recipe"}
-            </Button>
-          </>
-        )}
-      </div>
-    </div>
+      {!changeLeads && changeShot}
+    </StateCard>
   );
 }
 
-/** The heading of an ending that is not a video. */
-export function endingTitle(generation: GenerationSnapshot) {
-  return generation.status === "unknown"
-    ? "This take's status is unknown"
-    : endingOf(generation).title;
+/**
+ * Beside `RenderEndedCard`: the bar where it stopped, then why in plain words with the stored
+ * message and code as the alert, and Re-run the same recipe (`POST …/rerun`), which an `unknown`
+ * take does not offer. `note` says what this take is a retry of.
+ */
+export function RenderEndedDetail({
+  child,
+  generation,
+  note,
+  onChild,
+  seed,
+}: {
+  child: ChildState;
+  generation: GenerationSnapshot;
+  note?: ReactNode;
+  onChild: (action: "rerun" | "retry") => void;
+  seed: number;
+}) {
+  const unknown = generation.status === "unknown";
+  const { progress } = generation;
+  const refused = child.state === "refused" ? child.message : null;
+
+  return (
+    <>
+      <RenderTrack generation={generation} />
+      <Panel className="flex-row items-start gap-3 p-5" role="alert">
+        <CircleAlertIcon
+          aria-hidden="true"
+          className="mt-0.5 size-4.5 shrink-0 text-warning"
+          strokeWidth={1.75}
+        />
+        <div className="flex min-w-0 flex-col gap-2">
+          <p className="text-pretty wrap-anywhere text-soft-foreground">
+            {unknown
+              ? "Comfy may still be rendering this one, so it isn't sent again. Start a new take instead: your picks are kept."
+              : endingOf(generation).text}
+          </p>
+          {generation.error_message && (
+            <p className="line-clamp-5 text-sm wrap-anywhere" title={generation.error_message}>
+              {generation.error_message}
+            </p>
+          )}
+          <span className="font-mono text-xs break-all text-muted-foreground">
+            {generation.error_code ?? generation.status} · seed {seed}
+            {progress ? ` · stopped at ${progress}%` : ""}
+          </span>
+        </div>
+      </Panel>
+      {!unknown && (
+        <div className="flex flex-wrap items-center gap-x-4">
+          <Button
+            disabled={child.state === "running"}
+            onClick={() => onChild("rerun")}
+            size="inline"
+            variant="link"
+          >
+            <StableText
+              current={isRunning(child, "rerun") ? "Re-running…" : "Re-run recipe"}
+              labels={["Re-run recipe", "Re-running…"]}
+            />
+          </Button>
+          {refused && (
+            <p className="min-w-0 type-caption text-destructive-foreground" role="alert">
+              {refused}
+            </p>
+          )}
+        </div>
+      )}
+      {note && <p className="type-caption text-muted-foreground">{note}</p>}
+    </>
+  );
+}
+
+/** The heading of an ending that is not a video; `noun` is what the page calls its result. */
+export function endingTitle(generation: GenerationSnapshot, noun: "image" | "take" = "take") {
+  const title =
+    generation.status === "unknown" ? "This take's status is unknown" : endingOf(generation).title;
+
+  return title.replace("take", noun);
 }

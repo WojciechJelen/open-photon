@@ -4,7 +4,6 @@
 // adds its seeder; one with a workflow the generation service runs adds its definition.
 import { angleViewDefinition } from "../features/angles/workflows/definition.ts";
 import { animateImageDefinition } from "../features/animateImage/workflows/definition.ts";
-import { characterBuilderAccess } from "../features/characterBuilder/server/public-access.ts";
 import { characterCaptionDefinition } from "../features/characterBuilder/workflows/caption-definition.ts";
 import { characterGenerationDefinition } from "../features/characterBuilder/workflows/definition.ts";
 import { charactersAccess } from "../features/characters/server/public-access.ts";
@@ -28,14 +27,15 @@ import { database } from "../shared/server/db.server.ts";
 import { workflows } from "../shared/server/generation/definition.ts";
 import { generationAccess } from "../shared/server/generation/public-access.ts";
 import { transaction } from "../shared/server/migrate.ts";
+import { sessionAccess } from "../shared/server/public-access.ts";
 
 /** The composed access rules (`createAccessPolicy`); anything no feature declares is private. */
 export const { isIndexable, isPublicAsset, isPublicRequest, isPublicServerFn } = createAccessPolicy(
   [
+    sessionAccess,
     generationAccess,
     studioAccess,
     charactersAccess,
-    characterBuilderAccess,
     motionTransferAccess,
     presetsAccess,
     exploreAccess,

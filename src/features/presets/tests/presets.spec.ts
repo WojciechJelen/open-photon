@@ -40,6 +40,7 @@ test("the gallery lists every preset with its example still, and opening it and 
       "alt",
       new RegExp(preset.example.character.title),
     );
+    await expect(card.getByText("AI-generated", { exact: true })).toBeVisible();
     await expect(
       card.getByRole("link", { name: `Use this preset: ${preset.title}` }),
     ).toHaveAttribute("href", `/presets/${preset.id}?version=${preset.version}`);
@@ -49,14 +50,15 @@ test("the gallery lists every preset with its example still, and opening it and 
   await expect(page).toHaveURL(/\/presets\/neon-night\?version=1$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Neon night");
 
-  // The example take plays only when asked, with its own controls.
+  // The example take plays only when asked; its own controls join it from then on.
   const video = page.locator("video");
 
-  await expect(video).toHaveAttribute("controls", "");
+  await expect(video).not.toHaveAttribute("controls");
   await expect(video).not.toHaveAttribute("autoplay");
   expect(await video.evaluate((element: HTMLVideoElement) => element.paused)).toBe(true);
   await page.getByRole("button", { name: "Play example" }).click();
   await expect(page.getByRole("button", { name: "Pause example" })).toBeVisible();
+  await expect(video).toHaveAttribute("controls", "");
   await page.getByRole("button", { name: "Pause example" }).click();
   await expect(page.getByRole("button", { name: "Play example" })).toBeVisible();
 
@@ -82,6 +84,10 @@ test("the preset fills in the look and seed byte for byte; the character and eve
   await open(page, "/presets/golden-hour-rooftop");
   // A link without a version records the one shown.
   await expect(page).toHaveURL(/version=1/);
+  // The look is one row until Adjust shows its controls.
+  await expect(page.getByText("A rooftop at golden hour", { exact: true })).toBeVisible();
+  await expect(page.getByText("Background from this preset", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Adjust" }).click();
 
   const look = page.getByRole("textbox", { name: /Look/ });
   const seed = page.getByRole("textbox", { name: "Seed" });
@@ -100,15 +106,27 @@ test("the preset fills in the look and seed byte for byte; the character and eve
   // Generate without a character asks for one, and starts nothing.
   await page.getByRole("button", { exact: true, name: "Generate" }).click();
   await expect(page.getByRole("alert")).toHaveText("Pick a character first.");
+  await expect(page.getByRole("alert")).toBeInViewport();
 
   await page.getByRole("button", { name: "Arthur" }).click();
   await expect(page).toHaveURL(/character=/);
+  await expect(page.getByRole("alert")).toHaveCount(0);
+
+  // An edit stays where it is: the search changes, the page does not scroll.
+  await seed.scrollIntoViewIfNeeded();
+
+  const scrolled = await page.evaluate(() => window.scrollY);
+
   await seed.fill("4242");
+  await expect(page).toHaveURL(/seed=4242/);
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
   // A picked background takes the place of the preset's: the prompt asks for one.
   await page.getByRole("button", { exact: true, name: "Neon street" }).click();
   await expect(sent).toHaveText(`${character} ${neonStreet}`);
   await expect(look).toHaveValue("");
+  await expect(page.getByText("Your look", { exact: true })).toBeVisible();
 
+  // The reload opens on the changed look and seed, with Adjust's controls showing them.
   await page.reload();
   await page.locator("html[data-hydrated]").waitFor();
   await expect(page.getByRole("button", { name: "Arthur" })).toHaveAttribute(
@@ -152,6 +170,7 @@ test("a background picked on any preset replaces the preset's own: the prompt sh
 
   for (const preset of presets) {
     await open(page, `/presets/${preset.id}?version=${preset.version}`);
+    await page.getByRole("button", { name: "Adjust" }).click();
 
     const tiles = page.getByRole("group", { name: /^Background/ }).getByRole("button");
     const labels = (await tiles.allTextContents()).map((label) => label.trim());
@@ -161,6 +180,7 @@ test("a background picked on any preset replaces the preset's own: the prompt sh
 
     for (const label of labels) {
       await open(page, `/presets/${preset.id}?version=${preset.version}`);
+      await page.getByRole("button", { name: "Adjust" }).click();
       await page.getByRole("button", { name: "Arthur" }).click();
       await expect(page).toHaveURL(/character=/);
 
@@ -203,7 +223,7 @@ test("a link to another version of a preset says so and waits; an unknown preset
   expect(count("generations")).toBe(generations);
 
   await open(page, "/presets/no-such-preset");
-  await expect(page.getByText("Preset not found")).toBeVisible();
+  await expect(page.getByText("This preset doesn't exist.")).toBeVisible();
 });
 
 test("the gallery and a preset's controls work from the keyboard", async ({ page }) => {
@@ -220,16 +240,30 @@ test("the gallery and a preset's controls work from the keyboard", async ({ page
   // The library lists every character the run's other specs saved too, so allow plenty of stops.
   for (let index = 0; index < 300 && !reached.includes("Generate"); index += 1) {
     await page.keyboard.press("Tab");
-    reached.push(
-      await page.evaluate(() => {
-        const element = document.activeElement;
 
-        return element?.getAttribute("aria-label") ?? element?.textContent?.trim() ?? "";
-      }),
-    );
+    // The text shown: Generate keeps the width of its other label in hidden text.
+    const name = await page.evaluate(() => {
+      const element = document.activeElement;
+      const text = element instanceof HTMLElement ? element.innerText.trim() : "";
+
+      return element?.getAttribute("aria-label") ?? text;
+    });
+
+    reached.push(name);
+
+    if (name === "Adjust") {
+      await page.keyboard.press("Enter");
+    }
   }
 
-  for (const name of ["Play example", "Choose photo", "Neon street", "Low-key", "Generate"]) {
+  for (const name of [
+    "Play example",
+    "Add a photo",
+    "Adjust",
+    "Neon street",
+    "Low-key",
+    "Generate",
+  ]) {
     expect(reached).toContain(name);
   }
 

@@ -3,7 +3,7 @@
 Each preset of [`../catalog.ts`](../catalog.ts) shows one real Motion Transfer render of its own
 motion, look and seed with a sample character. The files here are those renders re-encoded for the
 page (H.264 High, CRF 26, `+faststart`, AAC 96 kb/s; 480×848, 5.04 s) and a poster cut from each
-at 4.4 s. Nothing in them is edited: no crop, no grading, no compositing.
+at 1.6 s, mid-move. Nothing in them is edited: no crop, no grading, no compositing.
 
 | Preset | Example | Character | Render | Output SHA-256 (`video`) | Latency |
 | --- | --- | --- | --- | --- | --- |
@@ -43,7 +43,7 @@ other jobs in the same window.
 
 ```sh
 enc() { ffmpeg -y -i "$1" -c:v libx264 -profile:v high -pix_fmt yuv420p -crf 26 -preset slow \
-  -movflags +faststart -c:a aac -b:a 96k "$2.mp4"; ffmpeg -y -ss 4.4 -i "$2.mp4" -frames:v 1 -q:v 4 "$2.jpg"; }
+  -movflags +faststart -c:a aac -b:a 96k "$2.mp4"; ffmpeg -y -ss 1.6 -i "$2.mp4" -frames:v 1 -q:v 4 "$2.jpg"; }
 enc <street-dance output> street-dance
 enc <neon-night output> neon-night
 enc <golden-hour output> golden-hour-rooftop

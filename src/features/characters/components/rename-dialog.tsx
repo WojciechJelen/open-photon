@@ -13,6 +13,7 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import type { CharacterSummary } from "#/features/characters/contracts";
 import { characterName, patchCharacter, validTitle } from "#/features/characters/library";
+import { StableText } from "#/shared/components/stable-text";
 import type { Refusal } from "#/shared/requests";
 
 /** One opening of the rename dialog: the character, and an id no other opening has. */
@@ -125,8 +126,10 @@ function RenameForm({
       <DialogHeader>
         <DialogTitle>Rename character</DialogTitle>
         <DialogDescription>
-          The new name shows for everyone in this workspace, wherever “{characterName(character)}”
-          is listed.
+          <span className="wrap-anywhere">
+            The new name shows for everyone in this workspace, wherever “{characterName(character)}”
+            is listed.
+          </span>
         </DialogDescription>
       </DialogHeader>
       <form
@@ -150,12 +153,14 @@ function RenameForm({
             }}
             value={title}
           />
-          <p className="text-sm text-muted-foreground" id={`${id}-hint`}>
-            1–80 characters.
-          </p>
-          {refusal && (
-            <p className="text-sm text-destructive-foreground" role="alert">
+          {/* The hint's line takes a refusal in its place, so the footer stays where it is. */}
+          {refusal ? (
+            <p className="type-hint wrap-anywhere text-destructive-foreground" role="alert">
               {refusal.message}
+            </p>
+          ) : (
+            <p className="type-hint text-muted-foreground" id={`${id}-hint`}>
+              1–80 characters.
             </p>
           )}
         </div>
@@ -164,7 +169,10 @@ function RenameForm({
             Cancel
           </Button>
           <Button disabled={pending || !valid} type="submit">
-            {pending ? "Saving…" : "Save name"}
+            <StableText
+              current={pending ? "Saving…" : "Save name"}
+              labels={["Save name", "Saving…"]}
+            />
           </Button>
         </DialogFooter>
       </form>

@@ -11,8 +11,8 @@ ComfyUI, because it runs this folder's custom ComfyUI nodes ([Self-host](#self-h
 1. `/sprites`: pick a library character and choose **Draw 5 directions**. That admits five
    `sprite-view` generations, one per direction (S, SW, W, NW, N) with one seed: Shots & Angles'
    Qwen-Image-Edit-2511 graph with the fal Multiple-Angles LoRA and the lightx2v Lightning LoRA.
-2. `/sprites/:id`: confirm which way each turned view (SW, W, NW) faces (**Faces left** or
-   **Faces right**, left preselected) and choose the takes: **Best of 3** (the default) or
+2. `/sprites/:id`: confirm which way each turned view (SW, W, NW) faces (**Left** or
+   **Right**, left preselected) and choose the takes: **Best of 3** (the default) or
    **Quick** (one).
 3. **Forge sprite sheet** admits one `sprite-sheet` generation. Per direction, Wan 2.2 14B
    image-to-video (fp8, with the lightx2v 4-step LoRAs) walks the view on flat grey with the view

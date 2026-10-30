@@ -3,6 +3,7 @@
 // the shared image edit's enhanced variant (`imageEditDefinitionFor`); the dispatcher renders the
 // shots within `IN_FLIGHT_MAX` with no browser open. This module records which generations make up a
 // photoshoot, under the request key that admitted them, and composes each shot's prompt.
+import type { GenerationSnapshot } from "../../../shared/contracts.ts";
 import type { Session } from "../../../shared/server/access.server.ts";
 import type { Provider } from "../../../shared/server/comfy-provider.ts";
 import { database } from "../../../shared/server/db.server.ts";
@@ -58,6 +59,13 @@ function characterOf(row: PhotoshootRow) {
       title: character.title,
     }
   );
+}
+
+/** A shot's finished image, `null` until it is done. */
+function stillOf({ outputs }: GenerationSnapshot) {
+  const image = outputs.find(({ name }) => name === IMAGE_EDIT_OUTPUT);
+
+  return image && "asset" in image ? image.asset : null;
 }
 
 /** A photoshoot with every shot's current generation (`photoshootSchema`); `null` for none. */
@@ -151,16 +159,21 @@ export function createPhotoshoot(
   });
 }
 
-/** `GET /api/photoshoots`: the workspace's latest photoshoots with their shots' statuses. */
+/** `GET /api/photoshoots`: the workspace's latest photoshoots, their shots' statuses and images. */
 export function listWorkspacePhotoshoots() {
   return {
-    photoshoots: listPhotoshoots(LISTED).map((row) => ({
-      character: characterOf(row),
-      created_at: row.created_at,
-      id: row.id,
-      setting: row.setting,
-      statuses: findShots(row.id).map((shot) => currentAttempt(shot).row.status),
-    })),
+    photoshoots: listPhotoshoots(LISTED).map((row) => {
+      const shots = findShots(row.id).map((shot) => snapshot(currentAttempt(shot).row));
+
+      return {
+        character: characterOf(row),
+        created_at: row.created_at,
+        id: row.id,
+        setting: row.setting,
+        statuses: shots.map(({ status }) => status),
+        stills: shots.map(stillOf),
+      };
+    }),
   };
 }
 

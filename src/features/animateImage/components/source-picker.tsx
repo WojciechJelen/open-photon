@@ -1,17 +1,28 @@
-import { ImageUpIcon } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { cn } from "cn";
+import { LoaderCircleIcon, TriangleAlertIcon, UploadIcon } from "lucide-react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { Button } from "#/components/ui/button";
 import { readGeneration, readLibrary } from "#/features/animateImage/animate-client";
 import type { AnimationSource } from "#/features/animateImage/contracts";
 import type { CharacterSummary } from "#/features/characters";
+import { AddTile, PictureTile } from "#/shared/components/picture-tile";
 import type { Asset } from "#/shared/contracts";
 import { IMAGE_UPLOAD_TYPES, uploadImageFile } from "#/shared/image-upload";
 import { mediaUrl } from "#/shared/media";
 import type { Refusal } from "#/shared/requests";
 
-/** The image an animation starts from, as the page shows it. */
-export type PickedSource = { image: Asset; label: string; source: AnimationSource };
+/**
+ * The image an animation starts from, as the page shows it. `generated` is how an AI-generated one
+ * says so: a result or a character saved from the builder is `tagged` on the picture, a `sample` in
+ * its alt text; an upload is `null`.
+ */
+export type PickedSource = {
+  generated: "sample" | "tagged" | null;
+  image: Asset;
+  label: string;
+  source: AnimationSource;
+};
 
 /**
  * The source a link preselects (`?generation=…&output=…` or `?character=…`), read once: the
@@ -39,7 +50,7 @@ export async function readPreselected(
     const output = answer.data.outputs.find(({ name }) => name === source.output);
 
     return output?.media === "image"
-      ? { picked: { image: output.asset, label: "Your result", source } }
+      ? { picked: { generated: "tagged", image: output.asset, label: "Your result", source } }
       : { problem: `That result has no image "${source.output}" to animate.` };
   }
 
@@ -58,16 +69,46 @@ export async function readPreselected(
 
 function pickedCharacter(character: CharacterSummary): PickedSource {
   return {
+    generated: character.origin !== "generated" ? null : character.is_sample ? "sample" : "tagged",
     image: character.image,
     label: character.title ?? "Library character",
     source: { character_id: character.id, kind: "character" },
   };
 }
 
+// A phone scrolls the tiles in one row, 96 px each; a wider screen wraps them in a grid.
+const tileWidth = "w-24 shrink-0 sm:w-full";
+
+const placeholders = ["first", "second", "third", "fourth", "fifth", "sixth"];
+
+/** What a tile says to assistive technology: the button's name replaces the picture's alt text. */
+function tileText(name: string, generated: boolean) {
+  const alt = generated ? "AI-generated image" : "";
+
+  return { alt, "aria-label": alt ? `Animate ${name}, ${alt}` : `Animate ${name}` };
+}
+
+/** The first tile's box while it has no picture: dashed, as `AddTile`'s, in `tone`. */
+function TileState({ children, tone }: { children: ReactNode; tone: "busy" | "warning" }) {
+  return (
+    <span
+      className={cn(
+        "absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-2 text-center",
+        tone === "busy" && "border-brand/50 bg-background text-brand-foreground",
+        tone === "warning" && "border-warning/50 bg-warning/5 text-warning",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
 /**
  * Where the source comes from: an image uploaded here (any subject: a product, an animal, a
  * scene, a person; `POST /api/image-uploads`) or a character of the workspace library, samples
- * included. `onRefused` gets a refusal the page handles (the access code).
+ * included. The first tile holds the upload through all its states, and then its picture (or a
+ * result handed over by link) with a way to replace it, so the tiles after it never move.
+ * `onRefused` gets a refusal the page handles (the access code).
  */
 export function SourcePicker({
   onPick,
@@ -78,11 +119,17 @@ export function SourcePicker({
   onRefused: (refusal: Refusal, resume: () => void) => void;
   picked: PickedSource | null;
 }) {
-  const id = useId();
+  const input = useRef<HTMLInputElement>(null);
   const [characters, setCharacters] = useState<CharacterSummary[] | null>(null);
+  const [own, setOwn] = useState<PickedSource | null>(null);
   const [uploading, setUploading] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+
+  // What did not come from the library stays on the first tile once a character is picked instead.
+  if (picked && picked.source.kind !== "character" && picked !== own) {
+    setOwn(picked);
+  }
 
   useEffect(() => {
     let stopped = false;
@@ -104,6 +151,11 @@ export function SourcePicker({
     };
   }, [attempt, onRefused]);
 
+  function pick(source: PickedSource) {
+    setProblem(null);
+    onPick(source);
+  }
+
   async function upload(file: File) {
     setUploading(true);
     setProblem(null);
@@ -114,6 +166,7 @@ export function SourcePicker({
 
     if ("data" in answer) {
       onPick({
+        generated: null,
         image: answer.data,
         label: file.name,
         source: { asset_id: answer.data.id, kind: "upload" },
@@ -125,79 +178,133 @@ export function SourcePicker({
     }
   }
 
+  const browse = () => input.current?.click();
+
+  function firstTile() {
+    if (uploading) {
+      return (
+        <PictureTile caption="Uploading…" className={tileWidth} disabled pressed={false}>
+          <TileState tone="busy">
+            <LoaderCircleIcon
+              aria-hidden="true"
+              className="size-5 motion-safe:animate-spin"
+              strokeWidth={1.75}
+            />
+          </TileState>
+        </PictureTile>
+      );
+    }
+
+    if (problem) {
+      return (
+        <PictureTile
+          aria-label="Add a photo"
+          caption="Try another"
+          className={tileWidth}
+          onClick={browse}
+          pressed={false}
+        >
+          <TileState tone="warning">
+            <TriangleAlertIcon aria-hidden="true" className="size-5" strokeWidth={1.75} />
+            <span
+              className="line-clamp-5 type-hint wrap-anywhere text-soft-foreground"
+              title={problem}
+            >
+              {problem}
+            </span>
+          </TileState>
+        </PictureTile>
+      );
+    }
+
+    if (own) {
+      return (
+        <div className={cn("relative min-w-0", tileWidth)}>
+          <PictureTile
+            {...tileText(own.label, own.generated !== null)}
+            caption={own.label}
+            onClick={() => pick(own)}
+            pressed={own.source === picked?.source}
+            src={mediaUrl(own.image)}
+            tagged={own.generated === "tagged"}
+          />
+          <span className="absolute top-1.5 left-1.5">
+            <Button aria-label="Replace the photo" onClick={browse} size="icon" variant="scrim">
+              <UploadIcon aria-hidden="true" />
+            </Button>
+          </span>
+        </div>
+      );
+    }
+
+    return <AddTile caption="Add a photo" className={tileWidth} onClick={browse} />;
+  }
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button asChild disabled={uploading} variant="outline">
-          <label htmlFor={`${id}-file`}>
-            <ImageUpIcon />
-            {uploading ? "Uploading…" : "Upload an image"}
-          </label>
-        </Button>
-        <input
-          accept={IMAGE_UPLOAD_TYPES.join(",")}
-          aria-label="Image to animate"
-          className="sr-only"
-          disabled={uploading}
-          id={`${id}-file`}
-          onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
+    <>
+      <input
+        accept={IMAGE_UPLOAD_TYPES.join(",")}
+        aria-label="Image to animate"
+        className="sr-only"
+        disabled={uploading}
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
 
-            event.currentTarget.value = "";
+          event.currentTarget.value = "";
 
-            if (file) {
-              void upload(file);
-            }
-          }}
-          type="file"
-        />
-        <span className="text-sm text-muted-foreground">PNG, JPEG or WebP, up to 25 MiB.</span>
-      </div>
+          if (file) {
+            void upload(file);
+          }
+        }}
+        ref={input}
+        tabIndex={-1}
+        type="file"
+      />
       {problem && (
-        <p className="text-sm text-destructive-foreground" role="alert">
+        <p className="sr-only" role="alert">
           {problem}
         </p>
       )}
-      <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-medium" id={`${id}-library`}>
-          Or pick a character from the library
-        </h3>
-        {characters === null ? (
-          <p className="text-sm text-muted-foreground" role="status">
-            Loading the library…
-          </p>
-        ) : (
-          <ul aria-labelledby={`${id}-library`} className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-            {characters.map((character) => {
-              const selected =
-                picked?.source.kind === "character" && picked.source.character_id === character.id;
-
-              const name = character.title ?? "Untitled character";
+      {characters === null && (
+        <p className="sr-only" role="status">
+          Loading the library…
+        </p>
+      )}
+      <div
+        aria-label="Characters"
+        className="-mr-4 -ml-1 flex gap-2.5 overflow-x-auto py-1 pr-4 pl-1 sm:m-0 sm:grid sm:grid-fill-28 sm:gap-3 sm:overflow-visible sm:p-0"
+        role="group"
+      >
+        {firstTile()}
+        {characters === null
+          ? placeholders.map((key) => (
+              <span aria-hidden="true" className={cn("flex flex-col gap-2", tileWidth)} key={key}>
+                <span className="block aspect-4/7 skeleton rounded-lg" />
+                <span className="block h-4.75" />
+              </span>
+            ))
+          : characters.map((character) => {
+              const name =
+                character.title ??
+                (character.origin === "upload" ? "Untitled photo" : "Untitled character");
 
               return (
-                <li key={character.id}>
-                  <button
-                    aria-label={`Animate ${name}`}
-                    aria-pressed={selected}
-                    className="relative block aspect-3/4 w-full overflow-hidden rounded-xl border bg-screen outline-offset-2 aria-pressed:border-brand aria-pressed:ring-2 aria-pressed:ring-brand"
-                    onClick={() => onPick(pickedCharacter(character))}
-                    type="button"
-                  >
-                    <img
-                      alt=""
-                      className="absolute inset-0 size-full object-cover"
-                      src={mediaUrl(character.image)}
-                    />
-                    <span className="absolute inset-x-0 bottom-0 truncate bg-linear-to-t from-black/70 px-1.5 pt-3 pb-1 text-left text-xs text-white">
-                      {name}
-                    </span>
-                  </button>
-                </li>
+                <PictureTile
+                  {...tileText(name, character.origin === "generated")}
+                  caption={name}
+                  className={tileWidth}
+                  key={character.id}
+                  onClick={() => pick(pickedCharacter(character))}
+                  pressed={
+                    picked?.source.kind === "character" &&
+                    picked.source.character_id === character.id
+                  }
+                  src={mediaUrl(character.image)}
+                  tagged={character.origin === "generated" && !character.is_sample}
+                />
               );
             })}
-          </ul>
-        )}
       </div>
-    </div>
+    </>
   );
 }

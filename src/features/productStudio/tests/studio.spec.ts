@@ -14,8 +14,8 @@ test("the studio is a live tool on the home page and in the Image menu", async (
 
   await open(page, "/product-studio");
   await expect(page.getByRole("heading", { level: 1, name: "Product Studio" })).toBeVisible();
-  await expect(page.getByText("Your shots appear here.")).toBeVisible();
-  await expect(page.getByText("Code active")).toBeVisible();
+  await expect(page.getByText("Your shots appear here")).toBeVisible();
+  await expect(page.getByRole("banner").getByText(/\d+ renders?$/)).toBeVisible();
 });
 
 test("Generate asks for a photo, what it is and a shot before sending anything", async ({

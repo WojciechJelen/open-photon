@@ -160,7 +160,7 @@ test("a failed generation of any workflow is retried from its result page with a
 
   await open(page, `/g/${generation.id}`);
   await expect(page.getByRole("button", { name: "Publish & copy link" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Retry with a new seed" }).click();
+  await page.getByRole("button", { name: "Try again" }).click();
   await expect(page).not.toHaveURL(new RegExp(`/g/${generation.id}$`));
   await expect(page).toHaveURL(/\/g\/[0-9a-f-]{36}$/);
 

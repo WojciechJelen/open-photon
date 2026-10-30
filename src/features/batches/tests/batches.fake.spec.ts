@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 
 import { open } from "../../../../tests/e2e/session.ts";
-import { batchListSchema, batchSchema } from "../contracts.ts";
+import { batchSchema } from "../contracts.ts";
 
 // On the fake provider's server (project `fake`, `IN_FLIGHT_MAX=4`): a batch of six characters is
 // larger than the places in flight, so two of its takes wait in line while four render. It
@@ -25,17 +25,13 @@ test("a six-character batch queues past the places in flight, renders with its p
   // The page's own requests: they carry its access session.
   const { request } = page;
 
-  const allowance = batchListSchema.parse(
-    await (await request.get("/api/batches")).json(),
-  ).allowance;
-
   // A look no run used before, so every take is new (an earlier run's would come back reused).
   const look = `Background: a batch rehearsal stage, run ${randomUUID().slice(0, 8)}.`;
 
   await direct(page, look);
   await page.getByRole("button", { name: "Variations" }).click();
 
-  const dialog = page.getByRole("dialog", { name: "Render variations" });
+  const dialog = page.getByRole("dialog", { name: "Variations" });
 
   await dialog.getByRole("radio", { name: "Characters" }).click();
 
@@ -44,19 +40,10 @@ test("a six-character batch queues past the places in flight, renders with its p
     await dialog.getByRole("button", { name: new RegExp(`^${name}`) }).click();
   }
 
-  await expect(
-    dialog.getByRole("heading", { name: "6 takes, same motion and look" }),
-  ).toBeVisible();
+  await expect(dialog.getByText("6 takes", { exact: true })).toBeVisible();
   await expect(dialog.getByText(look)).toBeVisible();
-  await expect(dialog.getByRole("list", { name: "Takes" }).getByRole("listitem")).toHaveCount(6);
-  await expect(
-    dialog.getByText(
-      `Uses up to 6 of the ${allowance.remaining} generations your access code has left.`,
-      {
-        exact: false,
-      },
-    ),
-  ).toBeVisible();
+  await expect(dialog.getByRole("button", { pressed: true })).toHaveCount(6);
+  await expect(dialog.getByText("Uses up to 6 renders")).toBeVisible();
 
   const admitted = page.waitForResponse(
     (response) => response.url().endsWith("/api/batches") && response.request().method() === "POST",

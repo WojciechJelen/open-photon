@@ -50,7 +50,7 @@ test("Generate follows a take to its result: the stream reports it done, the pag
     "src",
     `/media/${video?.media === "video" ? video.asset.id : ""}.mp4`,
   );
-  await expect(page.getByRole("link", { name: "Download side-by-side (9:16)" })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: "Download side by side" })).toHaveAttribute(
     "href",
     `${compareSrc}?download=1`,
   );
@@ -60,7 +60,7 @@ test("Generate follows a take to its result: the stream reports it done, the pag
   const visitor = await anonymous.newPage();
 
   await open(visitor, `/r/${generation.share_slug}`);
-  await expect(visitor.getByRole("link", { name: "Download side-by-side (9:16)" })).toHaveAttribute(
+  await expect(visitor.getByRole("link", { name: "Download side by side" })).toHaveAttribute(
     "href",
     `${compareSrc}?download=1`,
   );

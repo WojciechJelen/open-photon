@@ -1,20 +1,29 @@
 import { Link } from "@tanstack/react-router";
-import { ExternalLinkIcon, RotateCwIcon, TriangleAlertIcon } from "lucide-react";
+import { cn } from "cn";
+import {
+  CompassIcon,
+  DownloadIcon,
+  HourglassIcon,
+  LockIcon,
+  MaximizeIcon,
+  RotateCwIcon,
+  TriangleAlertIcon,
+} from "lucide-react";
 import { useEffect, useReducer, useState } from "react";
 
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
 import {
-  formatDetails,
   PRODUCT_SHOT_OUTPUT,
   presetDetails,
+  type ProductShotFormat,
   type Shoot,
   type ShootItem,
 } from "#/features/productStudio/contracts";
 import { fetchShoot, retryShot } from "#/features/productStudio/studio-client";
-import { Hud } from "#/shared/components/brand";
-import { GeneratedImage } from "#/shared/components/generated-image";
+import { GENERATED_IMAGE_ALT } from "#/shared/components/generated-image";
+import { ResultFigure } from "#/shared/components/result-figure";
+import { StateCard } from "#/shared/components/state-card";
 import type { GenerationSnapshot } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 import type { Refusal } from "#/shared/requests";
@@ -26,6 +35,13 @@ type ShootState =
   | { kind: "missing" }
   | { kind: "error"; refusal: Refusal }
   | { kind: "ready"; shoot: Shoot };
+
+/** A shot's box, the same from waiting in line to its image: the shoot's format. */
+const formatAspects: Record<ProductShotFormat, string> = {
+  landscape: "aspect-3/2",
+  portrait: "aspect-4/5",
+  square: "aspect-square",
+};
 
 /**
  * `GET /api/product-shots/:id`, read when the view opens and again on `reload` (after a retry
@@ -67,20 +83,51 @@ function useShoot(id: string) {
   return { reload, state };
 }
 
-/** What a shot that is not done says: its place in line, its progress, or why it stopped. */
+/** What a shot still rendering says: its place in line, or the step it is on. */
+function workingCopy({ position, status }: GenerationSnapshot) {
+  switch (status) {
+    case "waiting":
+      return {
+        text: position
+          ? `Number ${position} in line. It starts by itself.`
+          : "It starts by itself, so you can leave.",
+        title: "In line",
+      };
+    case "preparing":
+      return { text: "Sending the photo to Comfy.", title: "Getting ready" };
+    case "queued":
+      return { text: "Waiting for a free GPU.", title: "Getting ready" };
+    case "finalizing":
+      return { text: "Saving the image.", title: "Finishing" };
+    default:
+      return { text: "It keeps going if you leave.", title: "Rendering" };
+  }
+}
+
+/**
+ * The box of a shot that is not done: its place in line, its progress, or why it stopped, over the
+ * product photo, blurred. A landscape box is too low to hold the icon as well.
+ */
 function ShotStatus({
+  aspect,
+  backdrop,
   generation,
+  landscape,
   onAccess,
   onRetried,
   preset,
 }: {
+  aspect: string;
+  backdrop: string;
   generation: GenerationSnapshot;
+  landscape: boolean;
   onAccess: () => void;
   onRetried: () => void;
   preset: ShootItem["preset"];
 }) {
   const [retrying, setRetrying] = useState(false);
   const [refusal, setRefusal] = useState<Refusal | null>(null);
+  const box = cn(aspect, "min-h-0 rounded-field p-4");
 
   async function retry() {
     setRetrying(true);
@@ -100,100 +147,160 @@ function ShotStatus({
   }
 
   if (generation.status === "failed" || generation.status === "cancelled") {
+    const reason = refusal?.message ?? generation.error_message ?? "Try again, or change the shot.";
+
     return (
-      <div className="flex flex-col items-start gap-3 p-6" role="alert">
-        <p className="flex items-center gap-2 font-medium text-destructive-foreground">
-          <TriangleAlertIcon aria-hidden="true" className="size-4" />
-          This shot failed.
-        </p>
-        {generation.error_message && (
-          <p className="text-sm text-soft-foreground">{generation.error_message}</p>
-        )}
-        <Button disabled={retrying} onClick={() => void retry()} size="sm" variant="outline">
-          <RotateCwIcon aria-hidden="true" />
-          Try again with a new seed
-        </Button>
-        {refusal && <p className="text-sm text-destructive-foreground">{refusal.message}</p>}
+      <div role="alert">
+        <StateCard
+          backdrop={backdrop}
+          className={box}
+          heading="h3"
+          icon={landscape ? undefined : TriangleAlertIcon}
+          text={
+            <span className="line-clamp-2" title={reason}>
+              {reason}
+            </span>
+          }
+          title="This shot didn't finish"
+          tone="warning"
+        >
+          <Button
+            aria-label="Try again with a new seed"
+            disabled={retrying}
+            onClick={() => void retry()}
+          >
+            <RotateCwIcon aria-hidden="true" />
+            Try again
+          </Button>
+        </StateCard>
       </div>
     );
   }
 
   if (generation.status === "unknown") {
     return (
-      <p className="p-6 text-sm text-soft-foreground" role="status">
-        Comfy may still be rendering this shot, so it is not sent again. Check its result page
-        later.
-      </p>
+      <div role="status">
+        <StateCard
+          backdrop={backdrop}
+          className={box}
+          heading="h3"
+          icon={landscape ? undefined : HourglassIcon}
+          text="Comfy may still be rendering this shot, so it is not sent again."
+          title="Not sure yet"
+          tone="quiet"
+        />
+      </div>
     );
   }
 
-  const label =
-    generation.status === "waiting"
-      ? `Waiting in line${generation.position ? ` (${generation.position})` : ""}`
-      : generation.status === "finalizing"
-        ? "Saving the image"
-        : "Rendering";
+  const { text, title } = workingCopy(generation);
 
   return (
-    <div className="flex flex-col gap-3 p-6" role="status">
-      <p className="text-sm text-soft-foreground">{label}…</p>
-      <Progress
-        aria-label={`${presetDetails[preset].label} shot progress`}
-        value={generation.status === "waiting" ? 0 : (generation.progress ?? 5)}
-      />
+    <div role="status">
+      <StateCard
+        backdrop={backdrop}
+        className={box}
+        heading="h3"
+        icon={HourglassIcon}
+        text={text}
+        title={title}
+        tone="quiet"
+      >
+        <div className="w-50 max-w-full">
+          <Progress
+            aria-label={`${presetDetails[preset].label} shot progress`}
+            value={generation.status === "waiting" ? 0 : (generation.progress ?? 5)}
+          />
+        </div>
+      </StateCard>
     </div>
   );
 }
 
 /**
  * One shot of the shoot, following its generation's event stream: its progress, then its image
- * once done (AI-generated label, Download, its result page), or why it stopped.
+ * once done (AI-generated label, Download, its result page), or why it stopped. Every state takes
+ * the same box and caption, so a shot finishing moves nothing.
  */
 function ShotCard({
+  backdrop,
+  format,
   item,
   onAccess,
   onRetried,
 }: {
+  backdrop: string;
+  format: ProductShotFormat;
   item: ShootItem;
   onAccess: () => void;
   onRetried: () => void;
 }) {
   const { generation } = useLiveGeneration(item.generation);
   const image = generation.outputs.find(({ name }) => name === PRODUCT_SHOT_OUTPUT);
+  const aspect = formatAspects[format];
+  const label = presetDetails[item.preset].label;
+  const attempt = item.attempt > 0 ? `Attempt ${item.attempt + 1}` : undefined;
 
   return (
-    <li
-      aria-label={`${presetDetails[item.preset].label} shot`}
-      className="flex flex-col gap-3 rounded-3xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-3"
-    >
-      <div className="flex items-center justify-between gap-2 px-2 pt-1">
-        <h3 className="font-display text-lg font-semibold">{presetDetails[item.preset].label}</h3>
-        {item.attempt > 0 && <Badge>Attempt {item.attempt + 1}</Badge>}
-      </div>
+    <li aria-label={`${label} shot`} className="min-w-0">
       {generation.status === "done" && image && image.media === "image" ? (
-        <>
-          <GeneratedImage asset={image.asset} download />
-          <Button asChild size="sm" variant="ghost">
-            <Link params={{ generationId: generation.id }} to="/g/$generationId">
-              <ExternalLinkIcon aria-hidden="true" />
-              Result page
-            </Link>
-          </Button>
-        </>
+        <ResultFigure
+          actions={
+            <>
+              <Button aria-label="Download" asChild size="icon" title="Download" variant="scrim">
+                <a download href={`${mediaUrl(image.asset)}?download=1`}>
+                  <DownloadIcon aria-hidden="true" strokeWidth={1.75} />
+                </a>
+              </Button>
+              <Button
+                aria-label="Result page"
+                asChild
+                size="icon"
+                title="Result page"
+                variant="scrim"
+              >
+                <Link params={{ generationId: generation.id }} to="/g/$generationId">
+                  <MaximizeIcon aria-hidden="true" strokeWidth={1.75} />
+                </Link>
+              </Button>
+            </>
+          }
+          aspect={aspect}
+          caption={label}
+          meta={attempt}
+          revealActions
+        >
+          <img
+            alt={GENERATED_IMAGE_ALT}
+            className="absolute inset-0 size-full object-cover"
+            src={mediaUrl(image.asset)}
+          />
+        </ResultFigure>
       ) : (
-        <ShotStatus
-          generation={generation}
-          onAccess={onAccess}
-          onRetried={onRetried}
-          preset={item.preset}
-        />
+        <figure className="m-0 flex min-w-0 flex-col gap-2.5">
+          <ShotStatus
+            aspect={aspect}
+            backdrop={backdrop}
+            generation={generation}
+            landscape={format === "landscape"}
+            onAccess={onAccess}
+            onRetried={onRetried}
+            preset={item.preset}
+          />
+          <figcaption className="flex min-w-0 items-baseline justify-between gap-2">
+            <span className="min-w-0 truncate type-label">{label}</span>
+            {attempt && (
+              <span className="shrink-0 type-caption text-muted-foreground">{attempt}</span>
+            )}
+          </figcaption>
+        </figure>
       )}
     </li>
   );
 }
 
 /**
- * A shoot: its product photo and settings, and one card per shot. The shots render on the server
+ * A shoot: one box per shot and the product photo it started from. The shots render on the server
  * whether or not this view is open; a failed one offers the shared retry (a new seed); an unknown
  * one is never retried: Comfy may still be rendering it.
  */
@@ -202,16 +309,19 @@ export function ShootView({ onAccess, shootId }: { onAccess: () => void; shootId
 
   if (state.kind === "loading") {
     return (
-      <p className="text-muted-foreground" role="status">
-        Loading the shoot…
-      </p>
+      <div role="status">
+        <StateCard frame title="Loading the shoot…" />
+      </div>
     );
   }
 
   if (state.kind === "access") {
     return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-soft-foreground">Enter the access code to see this shoot.</p>
+      <StateCard
+        icon={LockIcon}
+        text="Enter the access code to see this shoot."
+        title="This needs an access code"
+      >
         <Button
           onClick={() => {
             onAccess();
@@ -221,50 +331,75 @@ export function ShootView({ onAccess, shootId }: { onAccess: () => void; shootId
         >
           Enter code
         </Button>
-      </div>
+      </StateCard>
     );
   }
 
   if (state.kind === "missing") {
-    return <p className="text-soft-foreground">This shoot does not exist.</p>;
+    return <StateCard icon={CompassIcon} text="This shoot doesn't exist." title="Nothing here" />;
   }
 
   if (state.kind === "error") {
     return (
-      <div className="flex flex-col items-start gap-3" role="alert">
-        <p className="text-destructive-foreground">{state.refusal.message}</p>
-        <Button onClick={reload} variant="outline">
-          Try again
-        </Button>
+      <div role="alert">
+        <StateCard
+          icon={TriangleAlertIcon}
+          text={state.refusal.message}
+          title="This shoot didn't load"
+          tone="warning"
+        >
+          <Button onClick={reload} variant="outline">
+            Try again
+          </Button>
+        </StateCard>
       </div>
     );
   }
 
   const { shoot } = state;
+  const product = mediaUrl(shoot.product.image);
 
   return (
-    <section aria-labelledby="shoot-heading" className="flex flex-col gap-5">
-      <div className="flex items-center gap-4">
-        <img
-          alt={`Product photo: ${shoot.product.name}`}
-          className="size-16 rounded-2xl border bg-white object-contain"
-          src={mediaUrl(shoot.product.image)}
-        />
-        <div className="flex flex-col gap-1">
-          <h2 className="font-display text-2xl font-semibold" id="shoot-heading">
-            {shoot.product.name}
-          </h2>
-          <Hud>
-            {formatDetails[shoot.format].label} {formatDetails[shoot.format].ratio}
-            {shoot.description ? " · own scene" : ""}
-          </Hud>
-        </div>
-      </div>
-      <ul aria-label="Shots" className="grid gap-4 sm:grid-cols-2">
+    <section aria-labelledby="shoot-heading">
+      <h2 className="sr-only" id="shoot-heading">
+        {shoot.product.name}
+      </h2>
+      <ul
+        aria-label="Shots"
+        className={cn("grid gap-4", shoot.format === "landscape" ? "grid-fit-80" : "grid-fit-65")}
+      >
         {shoot.items.map((item) => (
           // Keyed by generation: a retried shot follows its new generation's stream.
-          <ShotCard item={item} key={item.generation.id} onAccess={onAccess} onRetried={reload} />
+          <ShotCard
+            backdrop={product}
+            format={shoot.format}
+            item={item}
+            key={item.generation.id}
+            onAccess={onAccess}
+            onRetried={reload}
+          />
         ))}
+        <li className="min-w-0">
+          <figure className="m-0 flex min-w-0 flex-col gap-2.5">
+            <div
+              className={cn(
+                "relative overflow-hidden rounded-field border bg-screen",
+                formatAspects[shoot.format],
+              )}
+            >
+              {/* A landscape box would cut a product down to its middle. */}
+              <img
+                alt={`Product photo: ${shoot.product.name}`}
+                className={cn(
+                  "absolute inset-0 size-full",
+                  shoot.format === "landscape" ? "object-contain" : "object-cover",
+                )}
+                src={product}
+              />
+            </div>
+            <figcaption className="min-w-0 truncate type-label">Your photo</figcaption>
+          </figure>
+        </li>
       </ul>
     </section>
   );

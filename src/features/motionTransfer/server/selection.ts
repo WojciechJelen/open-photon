@@ -3,7 +3,12 @@ import { z } from "zod";
 import { type Asset, assetSchema } from "../../../shared/contracts.ts";
 import { findAsset } from "../../../shared/server/assets.ts";
 import { database } from "../../../shared/server/db.server.ts";
-import { getCharacter, listSampleCharacters, visibleCharacter } from "../../characters/api.ts";
+import {
+  getCharacter,
+  listCharacters,
+  listSampleCharacters,
+  visibleCharacter,
+} from "../../characters/api.ts";
 import { MAX_CLIP_MS, type SampleMotion, sampleMotionSchema } from "../contracts.ts";
 import type { Direction } from "../draft.ts";
 import { findGeneration } from "./generations.ts";
@@ -94,17 +99,20 @@ function readDirection(id: string, signedIn: boolean) {
 }
 
 /**
- * What the Motion Transfer wizard (`/motionTransfer`) shows: the sample motions and
- * characters, the motion clip and character the URL names, the description a blank one stands
- * for (`defaultPrompt`), the direction of the take the URL comes `from` (`readDirection`), and
- * the id of the pre-rendered sample take anyone may open for free (`sampleTakeId`). A character in
- * the URL may be an upload (every upload has consent); there are no accounts, so an uploaded
- * character is listed only while the URL names it. An id that names nothing usable (unknown, not
- * a video, a clip over 8 s) resolves to `null`, so the picker falls back to no choice. Without a
- * session (`signedIn` false), a usable choice whose file is not public (`isPublicAsset`: an
- * upload rather than a sample or a shared clip) keeps its id (`motionId`, `characterId`) but not
- * its details (`motion`, `character` are `null`): the picker asks for the code to show it, and
- * Generate can still send it and ask for the code then.
+ * What a page that picks a motion and a character shows (`/motionTransfer`, a preset's page and
+ * the other tools): the sample motions, the characters to pick from, the motion clip and character
+ * the URL names, the description a blank one stands for (`defaultPrompt`), the direction of the
+ * take the URL comes `from` (`readDirection`), and the id of the pre-rendered sample take anyone may
+ * open for free (`sampleTakeId`). `characters` is, with a session, the workspace library with the
+ * samples, exactly what `GET /api/characters` answers, so the picker's first paint is its settled
+ * one; without a session, only the samples: an upload needs the code. `samples` is the samples
+ * alone, by title, for what must not list the library. A character in the URL may be an upload
+ * (every upload has consent). An id that names nothing usable (unknown, not a video, a clip over
+ * 8 s) resolves to `null`, so the picker falls back to no choice. Without a session (`signedIn`
+ * false), a usable choice whose file is not public (`isPublicAsset`: an upload rather than a sample
+ * or a shared clip) keeps its id (`motionId`, `characterId`) but not its details (`motion`,
+ * `character` are `null`): the picker asks for the code to show it, and Generate can still send it
+ * and ask for the code then.
  */
 export function readSelection(
   {
@@ -120,17 +128,19 @@ export function readSelection(
 ) {
   const chosen = character ? getCharacter(character) : null;
   const clip = motion ? findMotionClip(motion) : null;
+  const samples = listSampleCharacters();
 
   return {
     character: visibleCharacter(chosen, signedIn),
     characterId: chosen?.id ?? null,
-    characters: listSampleCharacters(),
+    characters: signedIn ? listCharacters({ includeSamples: true }) : samples,
     defaultPrompt: generateDefaults.prompt,
     direction: from ? readDirection(from, signedIn) : null,
     motion: clip && (signedIn || isPublicAsset(clip.id)) ? clip : null,
     motionId: clip?.id ?? null,
     motions: listSampleMotions(),
     sampleTakeId: findSampleTakeId(),
+    samples,
     signedIn,
   };
 }

@@ -3,28 +3,27 @@ import { LockIcon, TriangleAlertIcon, UploadIcon } from "lucide-react";
 
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { tileFrame } from "#/features/motionTransfer/components/pick-tile";
 import type { Refusal } from "#/shared/requests";
 
 // A refusal's title, keyed by the API's runtime `reason` string.
 const rejectionTitles = new Map([
-  ["consent_required", "Consent needed"],
   ["no_video", "No video"],
-  ["not_image", "Not an image"],
   ["rate_limited", "Slow down"],
   ["too_large", "Too large"],
   ["too_short", "Too short"],
 ]);
 
-/** The upload tile's frame for a state: dashed while idle, then violet, amber or red. */
+/**
+ * The upload tile's frame for a state: dashed while idle, then violet, amber or red. The border
+ * only changes color, so a state keeps the tile's box.
+ */
 export function uploadTileClass(tone: "busy" | "danger" | "idle" | "warning") {
   return cn(
-    tileFrame,
-    "flex flex-col items-center justify-center gap-3 p-5 text-center",
+    "relative flex min-w-0 flex-col items-center justify-center gap-3.5 rounded-field border p-8 text-center text-foreground",
     tone === "idle" &&
       "border-dashed border-edge-strong bg-foreground/2 transition-colors hover:border-brand hover:bg-brand/6",
     tone === "warning" && "border-warning/50 bg-warning/5",
-    tone === "busy" && "border-brand/50",
+    tone === "busy" && "border-brand/50 bg-foreground/2",
     tone === "danger" && "border-destructive/55 bg-destructive/5",
   );
 }
@@ -41,10 +40,10 @@ export function StateIcon({
     <span
       aria-hidden="true"
       className={cn(
-        "grid size-13 shrink-0 place-items-center rounded-full border",
-        tone === "brand" && "border-brand/35 bg-brand/12 text-brand-foreground",
-        tone === "warning" && "border-warning/40 bg-warning/12 text-warning-foreground",
-        tone === "danger" && "border-destructive/40 bg-destructive/12 text-destructive-foreground",
+        "grid size-13 shrink-0 place-items-center rounded-full",
+        tone === "brand" && "bg-brand/14 text-brand-foreground",
+        tone === "warning" && "bg-warning/14 text-warning-foreground",
+        tone === "danger" && "bg-destructive/14 text-destructive-foreground",
       )}
     >
       {children}
@@ -53,30 +52,45 @@ export function StateIcon({
 }
 
 /**
- * The idle state: the whole tile is the file input's label, so a click anywhere browses. The
- * input itself stays in the page (visually hidden) and takes the keyboard focus.
+ * The idle state: the whole tile is the file input's label, so a click anywhere browses, "Choose a
+ * clip" included (it only looks like a button). The input itself stays in the page (visually
+ * hidden) and takes the keyboard focus. `children` is more to say under it, in phrasing content.
  */
 export function IdleUpload({
+  choose,
   children,
+  hint,
   htmlFor,
   signedIn,
   title,
 }: {
-  children: React.ReactNode;
+  choose: string;
+  children?: React.ReactNode;
+  hint: string;
   htmlFor: string;
   signedIn: boolean;
   title: string;
 }) {
   return (
     <label
-      className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center gap-3 p-5"
+      className="-m-8 flex flex-1 cursor-pointer flex-col items-center justify-center gap-3.5 self-stretch p-8"
       htmlFor={htmlFor}
     >
       <StateIcon tone="brand">
-        <UploadIcon className="size-5.5" />
+        <UploadIcon className="size-5" strokeWidth={1.75} />
       </StateIcon>
-      <span className="font-semibold">{title}</span>
-      {children}
+      <span aria-hidden="true" className="flex max-w-full min-w-0 flex-col gap-0.5 wrap-anywhere">
+        <span className="text-base font-semibold">{title}</span>
+        <span className="type-caption text-muted-foreground">{hint}</span>
+      </span>
+      <Button asChild variant="outline">
+        <span>{choose}</span>
+      </Button>
+      {children && (
+        <span aria-hidden="true" className="max-w-full min-w-0">
+          {children}
+        </span>
+      )}
       {!signedIn && (
         <Badge>
           <LockIcon />
@@ -96,8 +110,8 @@ export function WorkingState({ text, title }: { text: string; title: string }) {
         <span className="size-1.5 rounded-full bg-brand motion-safe:animate-pulse" />
         <span className="size-1.5 rounded-full bg-brand motion-safe:animate-pulse" />
       </span>
-      <span className="font-semibold">{title}</span>
-      <span className="text-sm text-soft-foreground">{text}</span>
+      <span className="max-w-full text-base font-semibold wrap-anywhere">{title}</span>
+      <span className="max-w-full type-caption wrap-anywhere text-soft-foreground">{text}</span>
     </>
   );
 }
@@ -111,14 +125,18 @@ export function RejectedState({
   refusal: Refusal;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3" role="alert">
+    <div className="flex min-w-0 flex-col items-center gap-3.5" role="alert">
       <StateIcon tone="danger">
-        <TriangleAlertIcon className="size-5" />
+        <TriangleAlertIcon className="size-5" strokeWidth={1.75} />
       </StateIcon>
-      <span className="font-semibold">
-        {rejectionTitles.get(refusal.reason ?? "") ?? "Not used"}
+      <span className="flex max-w-full min-w-0 flex-col gap-0.5">
+        <span className="text-base font-semibold wrap-anywhere">
+          {rejectionTitles.get(refusal.reason ?? "") ?? "Not used"}
+        </span>
+        <span className="line-clamp-4 type-caption wrap-anywhere text-soft-foreground">
+          {refusal.message}
+        </span>
       </span>
-      <span className="text-sm text-soft-foreground">{refusal.message}</span>
       <Button onClick={onTryAnother} size="sm" variant="outline">
         Try another
       </Button>

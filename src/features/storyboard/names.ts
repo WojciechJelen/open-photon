@@ -1,4 +1,5 @@
-// How the storyboard pages name a character and describe its image. Client-safe.
+// How the storyboard pages name a character and a storyboard, and describe a character's image.
+// Client-safe.
 type Named = { origin: "generated" | "upload"; title: string | null };
 
 /** A character's title, or what it is when it has none. */
@@ -18,4 +19,9 @@ export function characterAlt(character: Named) {
   const name = characterName(character);
 
   return character.origin === "upload" ? name : `${name}, AI-generated image`;
+}
+
+/** A storyboard's title, or whose it is when it has none. */
+export function storyboardName(storyboard: { character: Named; title: string | null }) {
+  return storyboard.title ?? `${characterName(storyboard.character)}'s storyboard`;
 }

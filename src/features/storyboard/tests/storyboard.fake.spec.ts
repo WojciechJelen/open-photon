@@ -49,8 +49,8 @@ test("make a storyboard of four hand-written scenes, edit one, generate all, reg
   await expect(page.getByRole("heading", { level: 1, name: "Storyboards" })).toBeVisible();
 
   await page.getByRole("button", { name: "Maya" }).click();
-  await page.getByLabel("Sequence").fill("Maya on a rooftop from sunset to night.");
-  await page.getByLabel("Title (optional)").fill(`Rooftop ${run}`);
+  await page.getByLabel("What happens").fill("Maya on a rooftop from sunset to night.");
+  await page.getByRole("textbox", { exact: true, name: "Title" }).fill(`Rooftop ${run}`);
   await page.getByRole("radio", { name: "Photo" }).click();
   await page.getByRole("radio", { name: "I'll write four" }).click();
 
@@ -68,9 +68,7 @@ test("make a storyboard of four hand-written scenes, edit one, generate all, reg
   const storyboard = storyboardSchema.parse(await (await created).json());
 
   await expect(page).toHaveURL(`/storyboards/${storyboard.id}`);
-  await expect(page.getByRole("textbox", { exact: true, name: "Title" })).toHaveValue(
-    `Rooftop ${run}`,
-  );
+  await expect(page.getByRole("heading", { level: 1, name: `Rooftop ${run}` })).toBeVisible();
   await expect(page.getByLabel("Scene 1 description")).toHaveValue(scenes[0] ?? "");
 
   // An edit stays on the page until Generate saves it.

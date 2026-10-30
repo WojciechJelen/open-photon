@@ -36,6 +36,8 @@ export type Allowance = z.output<typeof allowanceSchema>;
 /** `GET /api/session` (a session is needed): what the session's access code still allows. */
 export const sessionStatusSchema = z.object({ allowance: allowanceSchema });
 
+export type SessionStatus = z.output<typeof sessionStatusSchema>;
+
 // Generations, whatever workflow made them (`src/shared/server/generation/`). There is one
 // workspace per installation: who may start, read or share a generation is decided on the server
 // from the request's access-code session, never from anything a client sends.

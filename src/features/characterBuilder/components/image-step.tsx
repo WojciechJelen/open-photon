@@ -1,4 +1,5 @@
 import { defaultStringifySearch } from "@tanstack/react-router";
+import { cn } from "cn";
 import {
   ArrowLeftIcon,
   BookmarkCheckIcon,
@@ -6,20 +7,30 @@ import {
   ClapperboardIcon,
   DownloadIcon,
   LibraryIcon,
+  ListTreeIcon,
+  Share2Icon,
+  ShieldCheckIcon,
   ShuffleIcon,
 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { type ImageRecipe, readImageRecipe } from "#/features/characterBuilder/builder-client";
+import { Disclosure } from "#/features/characterBuilder/components/disclosure";
 import {
   GenerationFailure,
   GenerationProgress,
 } from "#/features/characterBuilder/components/generation-progress";
-import { LoadFailure, StepSkeleton } from "#/features/characterBuilder/components/load-states";
+import { LoadFailure } from "#/features/characterBuilder/components/load-states";
 import { StepHeading } from "#/features/characterBuilder/components/step-heading";
 import {
   useFollowedGeneration,
@@ -33,7 +44,10 @@ import {
   withCharacter,
 } from "#/features/motionTransfer/api";
 import { Viewfinder } from "#/shared/components/brand";
+import { Panel } from "#/shared/components/panel";
 import { PublishLink } from "#/shared/components/publish-link";
+import { ResultFigure } from "#/shared/components/result-figure";
+import { StableText } from "#/shared/components/stable-text";
 import type { GenerationSnapshot } from "#/shared/contracts";
 import { mediaUrl } from "#/shared/media";
 import { isFinished } from "#/shared/use-live-generation";
@@ -41,7 +55,7 @@ import { isFinished } from "#/shared/use-live-generation";
 /** What the image screen does, as the page (`CharacterBuilder`) carries it out. */
 export type ImageActions = {
   onBack: () => void;
-  /** Back to the caption editor of this image, to change it. */
+  /** Back to the prompt editor of this image, to change it. */
   onEditCaption: () => void;
   /** Save the image as a workspace character, with an optional title. */
   onSave: (generationId: string, title: string | undefined) => void;
@@ -66,20 +80,29 @@ type Props = ImageActions & {
 const headingId = "builder-image-title";
 
 /**
- * Step 3: the image. Its progress while it renders; why it failed and what to do; then the
- * picture with the caption and seed it was made from, a download, the explicit "Save to library"
- * and "Publish & copy link" (it stays private until then). Once saved: open it in the library, or
- * animate it (Motion Transfer, with the draft the visitor came with).
+ * Step 3: the image, in one frame from the first moment: the picture's box on the left and the
+ * panels on the right. Its progress in that box while it renders, then the picture, the explicit
+ * "Save to library", "Animate" once saved (Motion Transfer, with the draft the visitor came with), a
+ * download and a share button that opens "Publish & copy link" (it stays private until then), with
+ * the prompt and seed it was made from on demand. A failed one says why, and what to do, in a card
+ * of its own.
  */
 export function ImageStep(props: Props) {
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-7">
-      <StepHeading id={headingId} label="Step 3 of 3" title="Your character">
-        Rendered by FLUX 3 Image Klein from your caption. Keep it by saving it to the workspace
-        library, then animate it.
-      </StepHeading>
+    <section aria-labelledby={headingId} className="flex min-w-0 flex-col gap-6">
+      <StepHeading id={headingId} title="Your character" />
       <StoredImage {...props} key={props.imageId} />
     </section>
+  );
+}
+
+/** The screen's two columns: the picture's box and, beside it or under it, `children`. */
+function ImageFrame({ children, figure }: { children: React.ReactNode; figure: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-start gap-8">
+      <div className="max-w-85 min-w-0 flex-1 basis-75 max-sm:max-w-none">{figure}</div>
+      <div className="flex min-w-0 grow-999 basis-85 flex-col gap-4">{children}</div>
+    </div>
   );
 }
 
@@ -87,7 +110,21 @@ function StoredImage(props: Props) {
   const { loaded, reload } = useStoredGeneration(props.imageId);
 
   if (loaded.state === "loading") {
-    return <StepSkeleton label="Loading the image" />;
+    return (
+      <ImageFrame
+        figure={
+          <div
+            aria-busy="true"
+            aria-label="Loading the image"
+            className="aspect-4/7 skeleton rounded-field"
+            role="status"
+          />
+        }
+      >
+        <div className="h-42 skeleton rounded-2xl" />
+        <div className="h-42 skeleton rounded-2xl" />
+      </ImageFrame>
+    );
   }
 
   if (loaded.state === "refused") {
@@ -137,29 +174,48 @@ function LiveImage(props: Props & { initial: GenerationSnapshot }) {
 
   if (!isFinished(generation.status)) {
     return (
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-        <div
-          aria-hidden="true"
-          className="relative mx-auto aspect-4/7 w-full max-w-60 shrink-0 overflow-hidden rounded-3xl border bg-screen shadow-monitor sm:max-w-72 lg:mx-0"
-        >
-          <span className="absolute inset-0 bg-linear-to-b from-transparent via-brand/16 to-transparent motion-safe:animate-scan motion-reduce:hidden" />
-          <span className="absolute inset-0 grid place-items-center font-display text-6xl font-bold tracking-display">
-            {generation.progress ?? 0}
-            <span className="text-3xl text-soft-foreground">%</span>
-          </span>
-          <Viewfinder tone="brand" />
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-5">
+      <ImageFrame
+        figure={
+          <div
+            aria-hidden="true"
+            className="relative aspect-4/7 overflow-hidden rounded-field border bg-screen"
+          >
+            <span className="absolute inset-0 bg-linear-to-b from-transparent via-brand/16 to-transparent motion-safe:animate-scan motion-reduce:hidden" />
+            <span className="absolute inset-0 grid place-items-center font-display text-6xl font-bold tracking-display">
+              {generation.status === "waiting" && generation.position !== null ? (
+                `#${generation.position}`
+              ) : (
+                <span>
+                  {generation.progress ?? 0}
+                  <span className="text-3xl text-soft-foreground">%</span>
+                </span>
+              )}
+            </span>
+            <Viewfinder tone="brand" />
+          </div>
+        }
+      >
+        <Panel className="gap-3.5 p-5">
           <GenerationProgress
             generation={generation}
             making="image"
             providerUnavailable={providerUnavailable}
           />
-          <p className="text-sm text-soft-foreground">
-            Safe to leave or reload: the render keeps going, and this page picks it up again.
-          </p>
-        </div>
-      </div>
+        </Panel>
+        <Panel className="flex-row items-start gap-3 p-5">
+          <ShieldCheckIcon
+            aria-hidden="true"
+            className="mt-0.5 size-4.5 shrink-0 text-success"
+            strokeWidth={1.75}
+          />
+          <div className="flex min-w-0 flex-col">
+            <span className="font-semibold">Safe to leave</span>
+            <span className="text-sm text-soft-foreground">
+              The render keeps going, and this page picks it up again.
+            </span>
+          </div>
+        </Panel>
+      </ImageFrame>
     );
   }
 
@@ -168,121 +224,167 @@ function LiveImage(props: Props & { initial: GenerationSnapshot }) {
       <GenerationFailure
         generation={generation}
         making="image"
+        notice={props.notice}
         onTryAgain={() => props.onTryAgain(generation.id)}
         pending={props.pending}
       >
-        <Button onClick={props.onEditCaption} size="lg" variant="outline">
-          Edit the caption
+        <Button onClick={props.onEditCaption} variant="outline">
+          Edit the prompt
         </Button>
-        {props.notice}
       </GenerationFailure>
     );
   }
 
+  const url = mediaUrl(image);
+
   return (
-    <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-      <figure className="mx-auto flex w-full max-w-sm shrink-0 flex-col gap-3 lg:mx-0 lg:max-w-md">
-        {/* FLUX Kommunity licence: an output is disclosed as AI-generated wherever it is shown. */}
-        <div className="relative">
+    <ImageFrame
+      figure={
+        // FLUX Kommunity licence: an output is disclosed as AI-generated wherever it is shown.
+        <ResultFigure>
           <img
             alt={
               recipe
                 ? `AI-generated character: ${recipe.caption.slice(0, 160)}`
                 : "AI-generated character"
             }
-            className="w-full rounded-3xl border bg-screen"
+            className="absolute inset-0 size-full object-cover"
             height={image.height ?? undefined}
-            src={mediaUrl(image)}
+            src={url}
             width={image.width ?? undefined}
           />
-          <span className="absolute top-3.5 left-3.5">
-            <Badge variant="solid">AI-generated image</Badge>
+        </ResultFigure>
+      }
+    >
+      <SaveCharacter {...props} generationId={generation.id} />
+      <Panel className="gap-2.5 p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          {props.saved ? (
+            <Button asChild variant="outline">
+              <a
+                aria-label="Animate this character"
+                href={draftHref(withCharacter(props.draft ?? {}, props.saved.id))}
+              >
+                <ClapperboardIcon aria-hidden="true" />
+                Animate
+              </a>
+            </Button>
+          ) : (
+            <Button disabled variant="outline">
+              <ClapperboardIcon aria-hidden="true" />
+              Animate
+            </Button>
+          )}
+          <Button asChild size="icon" variant="outline">
+            <a
+              aria-label="Download image"
+              download={`ai-generated-character-${generation.id.slice(0, 8)}.png`}
+              href={url}
+            >
+              <DownloadIcon aria-hidden="true" strokeWidth={1.75} />
+            </a>
+          </Button>
+          <ShareDialog generation={generation} />
+        </div>
+        {/* One cell for both, so saving moves nothing under them at any width. */}
+        <p className="grid min-w-0 grid-cols-1 type-caption wrap-anywhere text-muted-foreground">
+          <span className={cn("col-start-1 row-start-1", props.saved && "invisible")}>
+            Save it to animate it. Sharing makes this image public.
           </span>
-        </div>
-        <figcaption className="text-sm text-soft-foreground">
-          AI-generated with FLUX 3 Image Klein (open weights, FLUX Kommunity licence).
-        </figcaption>
-        <Button asChild variant="outline">
-          <a
-            download={`ai-generated-character-${generation.id.slice(0, 8)}.png`}
-            href={mediaUrl(image)}
-          >
-            <DownloadIcon aria-hidden="true" />
-            Download image
-          </a>
-        </Button>
-      </figure>
-      <div className="flex min-w-0 flex-1 flex-col gap-6">
-        <SaveCharacter {...props} generationId={generation.id} />
-        <div className="rounded-2xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-5">
-          <PublishLink generationId={generation.id} slug={generation.share_slug} />
-        </div>
-        {props.notice}
-        <dl
-          aria-label="Made with"
-          className="flex flex-col gap-4 rounded-2xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-5 text-sm"
+          <span className={cn("col-start-1 row-start-1", !props.saved && "invisible")}>
+            Sharing makes this image public.
+          </span>
+        </p>
+      </Panel>
+      <div className="flex flex-wrap gap-1.5">
+        <Button
+          disabled={props.pending !== null}
+          onClick={() => props.onTryAgain(generation.id)}
+          size="sm"
+          variant="ghost"
         >
-          <div className="flex flex-wrap gap-x-8 gap-y-3">
-            <div className="flex flex-col gap-1">
-              <dt className="text-muted-foreground">Seed</dt>
-              <dd className="font-mono" data-testid="image-seed">
-                {recipe?.seed ?? "…"}
-              </dd>
-            </div>
-            <div className="flex flex-col gap-1">
-              <dt className="text-muted-foreground">Size</dt>
-              <dd className="font-mono">{recipe ? `${recipe.width}×${recipe.height}` : "…"}</dd>
-            </div>
-            <div className="flex flex-col gap-1">
-              <dt className="text-muted-foreground">Caption</dt>
-              <dd>
-                {recipe ? (
-                  <Badge>
-                    {recipe.source.enhancement
-                      ? recipe.source.enhancement.edited
-                        ? "Enhanced, then edited"
-                        : "Enhanced"
-                      : "Written by hand"}
-                  </Badge>
-                ) : (
-                  "…"
-                )}
-              </dd>
-            </div>
+          <ShuffleIcon aria-hidden="true" />
+          <StableText
+            current={props.pending === "again" ? "Starting…" : "Another image"}
+            labels={["Another image", "Starting…"]}
+          />
+        </Button>
+        <Button onClick={props.onEditCaption} size="sm" variant="ghost">
+          <ArrowLeftIcon aria-hidden="true" />
+          Edit the prompt
+        </Button>
+      </div>
+      <Disclosure
+        icon={<ListTreeIcon aria-hidden="true" className="size-4" strokeWidth={1.75} />}
+        summary={recipe ? `Seed: ${recipe.seed}` : undefined}
+        title="Made with"
+      >
+        <dl className="grid min-w-0 grid-cols-2 gap-x-6 gap-y-3 type-caption">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <dt className="text-muted-foreground">Seed</dt>
+            <dd className="font-mono break-all" data-testid="image-seed">
+              {recipe?.seed ?? "…"}
+            </dd>
           </div>
-          <div className="flex flex-col gap-1">
-            <dt className="text-muted-foreground">Caption used</dt>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <dt className="text-muted-foreground">Size</dt>
+            <dd className="font-mono">{recipe ? `${recipe.width}×${recipe.height}` : "…"}</dd>
+          </div>
+          <div className="col-span-2 flex min-w-0 flex-col gap-0.5">
+            <dt className="text-muted-foreground">
+              {!recipe
+                ? "Prompt"
+                : recipe.source.enhancement
+                  ? recipe.source.enhancement.edited
+                    ? "Prompt, enhanced, then edited"
+                    : "Prompt, enhanced"
+                  : "Prompt, written by hand"}
+            </dt>
             <dd
-              className="max-h-48 overflow-y-auto font-mono text-xs leading-relaxed whitespace-pre-wrap text-soft-foreground"
+              className="max-h-48 overflow-y-auto font-mono type-hint wrap-anywhere whitespace-pre-wrap text-soft-foreground"
               data-testid="image-caption"
             >
               {recipe?.caption ?? "…"}
             </dd>
           </div>
         </dl>
-        <div className="flex flex-wrap gap-2.5">
-          <Button
-            disabled={props.pending !== null}
-            onClick={() => props.onTryAgain(generation.id)}
-            variant="ghost"
-          >
-            <ShuffleIcon aria-hidden="true" />
-            {props.pending === "again" ? "Starting…" : "Another image, same caption"}
-          </Button>
-          <Button onClick={props.onEditCaption} variant="ghost">
-            <ArrowLeftIcon aria-hidden="true" />
-            Edit the caption
-          </Button>
-        </div>
-      </div>
-    </div>
+        <p className="type-hint text-muted-foreground">
+          AI-generated with FLUX 3 Image Klein (open weights, FLUX Kommunity licence).
+        </p>
+      </Disclosure>
+      {props.notice}
+    </ImageFrame>
   );
 }
 
 /**
- * "Save to library", an explicit choice, never done on its own: an optional title, then the
+ * The share button of a done image. Publishing stays the owner's explicit step after checking the
+ * image, so it opens `PublishLink`, which says what publishing does and holds the link after.
+ */
+function ShareDialog({ generation }: { generation: GenerationSnapshot }) {
+  const [slug, setSlug] = useState(generation.share_slug);
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button aria-label="Publish and copy a share link" size="icon" variant="outline">
+          <Share2Icon aria-hidden="true" strokeWidth={1.75} />
+        </Button>
+      </DialogTrigger>
+      <DialogContent aria-describedby={undefined} size="sm">
+        <DialogHeader>
+          <DialogTitle>Share this image</DialogTitle>
+        </DialogHeader>
+        <PublishLink generationId={generation.id} onPublished={setSlug} slug={slug} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * "Save to library", an explicit choice, never done on its own: an optional name, then the
  * workspace character. Saving the same image again (a reload, a second click) answers with the
- * same character. Saved: where it is, and the way on to animating it.
+ * same character. Saved, the panel keeps its size: where it is, and the way to it.
  */
 function SaveCharacter({
   draft,
@@ -296,69 +398,62 @@ function SaveCharacter({
 
   if (saved) {
     const libraryHref = `/characters${defaultStringifySearch({ selected: saved.id, ...carryDraft(draft) })}`;
+    const status = `Saved to the library${saved.character?.title ? ` as “${saved.character.title}”` : ""}`;
 
     return (
-      <div className="flex flex-col gap-4 rounded-2xl border border-success/40 bg-success/6 p-5">
-        <p
-          aria-live="polite"
-          className="flex items-center gap-2.5 font-semibold"
-          data-character={saved.id}
-          role="status"
-        >
-          <BookmarkCheckIcon aria-hidden="true" className="size-5 text-success" />
-          Saved to the library
-          {saved.character?.title ? ` as “${saved.character.title}”` : ""}
-        </p>
-        <p className="text-sm text-soft-foreground">
-          Everyone with an access code to this workspace can see and use it.
-        </p>
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
-          <Button asChild size="lg" variant="photon">
-            <a href={draftHref(withCharacter(draft ?? {}, saved.id))}>
-              <ClapperboardIcon aria-hidden="true" />
-              Animate this character
-            </a>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <a href={libraryHref}>
-              <LibraryIcon aria-hidden="true" />
-              Open in library
-            </a>
-          </Button>
+      <Panel className="gap-3.5 p-5">
+        <div className="flex min-w-0 flex-col gap-2">
+          <Label asChild>
+            <span>Name</span>
+          </Label>
+          <p
+            aria-live="polite"
+            className="flex h-11 min-w-0 items-center gap-2.5 font-semibold"
+            data-character={saved.id}
+            role="status"
+          >
+            <BookmarkCheckIcon aria-hidden="true" className="size-4.5 shrink-0 text-success" />
+            <span className="truncate" title={status}>
+              {status}
+            </span>
+          </p>
         </div>
-      </div>
+        <Button asChild variant="outline">
+          <a href={libraryHref}>
+            <LibraryIcon aria-hidden="true" />
+            Open in library
+          </a>
+        </Button>
+      </Panel>
     );
   }
 
   return (
     <form
-      className="flex flex-col gap-4 rounded-2xl border bg-linear-to-b from-foreground/4 to-foreground/1 p-5"
       onSubmit={(event) => {
         event.preventDefault();
         onSave(generationId, title.trim() === "" ? undefined : title);
       }}
     >
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={`${id}-title`}>Name (optional)</Label>
-        <Input
-          aria-describedby={`${id}-title-hint`}
-          id={`${id}-title`}
-          maxLength={80}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="Lighthouse keeper"
-          value={title}
-        />
-        <p className="text-sm text-muted-foreground" id={`${id}-title-hint`}>
-          Saved to the workspace library, shared by everyone with an access code. Nothing is saved
-          until you choose to.
-        </p>
-      </div>
-      <div>
-        <Button disabled={pending !== null} size="lg" type="submit">
+      <Panel className="gap-3.5 p-5">
+        <div className="flex min-w-0 flex-col gap-2">
+          <Label htmlFor={`${id}-title`}>Name</Label>
+          <Input
+            id={`${id}-title`}
+            maxLength={80}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Name your character"
+            value={title}
+          />
+        </div>
+        <Button disabled={pending !== null} type="submit">
           <BookmarkPlusIcon aria-hidden="true" />
-          {pending === "save" ? "Saving…" : "Save to library"}
+          <StableText
+            current={pending === "save" ? "Saving…" : "Save to library"}
+            labels={["Save to library", "Saving…"]}
+          />
         </Button>
-      </div>
+      </Panel>
     </form>
   );
 }

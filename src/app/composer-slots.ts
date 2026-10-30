@@ -9,7 +9,7 @@ import { createElement } from "react";
 import { BatchVariations } from "#/features/batches/components/batch-variations";
 import { LibraryCharacterPicker } from "#/features/characters/components/library-character-picker";
 import { type CreateCharacterHref, libraryHref } from "#/features/characters/library";
-import { LookEditor } from "#/features/looks";
+import { LookEditor, lookName } from "#/features/looks";
 import type {
   CharacterPickerProps,
   ComposerSlots,
@@ -39,7 +39,7 @@ function DirectGenerationActions(props: DirectGenerationActionsProps) {
   return createElement(BatchVariations, {
     action: createElement(GenerateButton, props),
     draft: props.draft,
-    place: props.place,
+    place: "panel",
   });
 }
 
@@ -56,5 +56,6 @@ export const composerSlots: ComposerSlots = {
   characterPicker: CharacterPicker,
   directGenerationActions: DirectGenerationActions,
   directionEditor: LookEditor,
+  lookName,
   resultGenerationActions: ResultGenerationActions,
 };

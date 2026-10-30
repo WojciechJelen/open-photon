@@ -22,7 +22,7 @@ test("upload an image, describe the action, follow the render, play and download
   page,
 }) => {
   await open(page, "/animate");
-  await expect(page.getByRole("heading", { name: "Animate an image", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Animate image", level: 1 })).toBeVisible();
 
   // Not the fake's own PNG: assets are stored once by content, so uploading the image the fake
   // answers every image node with would make the run's later image outputs that `upload` asset.
@@ -36,7 +36,7 @@ test("upload an image, describe the action, follow the render, play and download
   const animate = page.getByRole("button", { name: "Animate", exact: true });
 
   await expect(animate).toBeDisabled();
-  await page.getByLabel("What happens in the video").fill(`The cube spins ${crypto.randomUUID()}.`);
+  await page.getByLabel("What happens").fill(`The cube spins ${crypto.randomUUID()}.`);
   await animate.click();
 
   await expect.poll(() => takeOf(page)).not.toBeNull();
@@ -99,7 +99,7 @@ test("a done image another feature hands over with animateImageHref is preselect
 
   await open(page, href);
   await expect(page.getByRole("img", { name: "Image to animate: Your result" })).toBeVisible();
-  await page.getByRole("button", { name: /^Waves at the camera/ }).click();
+  await page.getByRole("button", { name: "Wave and smile" }).click();
   await page.getByRole("button", { name: "Animate", exact: true }).click();
   await expect(statusOf(page)).toHaveText("Done", { timeout: 30_000 });
   await expect(video(page).locator("video")).toBeVisible();
@@ -122,17 +122,17 @@ test("a failed render says so and offers Retry, which opens the attempt it start
   page,
 }) => {
   await open(page, "/animate");
-  await page.getByRole("button", { name: /^Animate Maya$/ }).click();
+  await page.getByRole("button", { name: /^Animate Maya/ }).click();
   await expect(page.getByRole("img", { name: "Image to animate: Maya" })).toBeVisible();
   await page
-    .getByLabel("What happens in the video")
+    .getByLabel("What happens")
     .fill(`[fake:provider_failed] She jumps ${crypto.randomUUID()}.`);
   await page.getByRole("button", { name: "Animate", exact: true }).click();
   await expect(statusOf(page)).toHaveText("Failed", { timeout: 30_000 });
 
   const first = takeOf(page);
 
-  await video(page).getByRole("button", { name: "Retry" }).click();
+  await video(page).getByRole("button", { name: "Try again" }).click();
   await expect.poll(() => takeOf(page)).not.toBe(first);
   // The marker is in the prompt, so the attempt fails the same way.
   await expect(statusOf(page)).toHaveText("Failed", { timeout: 30_000 });
