@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-10-30T13:03:33.273Z",
+  "runpod": {
+    "id": "clzw9tc7n58z04",
+    "stopConfirmedAt": "2026-10-30T13:02:47Z",
+    "deleteConfirmedAt": "2026-10-30T13:02:48Z",
+    "getStatus": 404
+  },
+  "railway": {
+    "projectId": "00ee33cd-4c49-462b-af66-1ff81a2feed3",
+    "selfhostEnvironmentAbsent": true,
+    "stagingDeployment": [
+      {
+        "id": "d45fad65-ece5-4265-9bd0-5cb05d08c667",
+        "status": "SUCCESS"
+      }
+    ],
+    "stagingVolumeInstances": [
+      {
+        "id": "4e58dba0-d454-439a-b03c-4d8616703018",
+        "mountPath": "/app/data",
+        "state": "READY"
+      }
+    ]
+  }
+}

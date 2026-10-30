@@ -1,0 +1,6 @@
+
+> open-photon@0.3.0 check:comfy
+> node --env-file-if-exists=.env scripts/check-comfy.mjs
+
+comfy target=selfhost base=https://clzw9tc7n58z04-8189.proxy.runpod.net auth=bearer
+OK: reachable and authorized (an unknown job id is 404 not found)

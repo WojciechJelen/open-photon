@@ -1,0 +1,39 @@
+{
+  "models": [
+    {
+      "file": "qwen_image_vae.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f"
+    },
+    {
+      "file": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "22226e8d05d354bb356627d428809f5afd7819399b077238a2b70a82883a904f"
+    },
+    {
+      "file": "qwen_image_edit_2511_bf16.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "ae42d927b5fac4f278b9a894554c727e619727a63622976f2d95625be4bce08c"
+    },
+    {
+      "file": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "cb5636d852a0ea6a9075ab1bef496c0db7aef13c02350571e388aea959c5c0b4"
+    },
+    {
+      "file": "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "42426ded4e25fd22879d9e198b857556445ef4ca56e8da3246d0345155bb6765"
+    }
+  ],
+  "target": "selfhost",
+  "workflow": {
+    "id": "sprite-view",
+    "sha256": "40a24063bfc776b040c45d74450b8bfc66309ef50e1b6d826e2d22dfe8b0b654",
+    "version": 1
+  },
+  "direction": "sw",
+  "prompt": "<sks> front-right quarter view eye-level shot medium shot",
+  "reference_image_sha256": "6ed9b586da623b1b7aae7193a4bad124cc919faec588f9cc891c308f2adfe4e4",
+  "seed": 33168478506243
+}

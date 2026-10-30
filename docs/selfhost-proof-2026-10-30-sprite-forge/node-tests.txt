@@ -1,0 +1,27 @@
+test_a_full_sheet_fits_a_text_output (test_sprite_forge.AtlasTest.test_a_full_sheet_fits_a_text_output) ... ok
+test_grid_tags_and_pivots (test_sprite_forge.AtlasTest.test_grid_tags_and_pivots) ... ok
+test_loops_are_omitted_when_no_row_has_them (test_sprite_forge.AtlasTest.test_loops_are_omitted_when_no_row_has_them) ... ok
+test_rows_must_share_a_cell_size_and_names_must_be_unique (test_sprite_forge.AtlasTest.test_rows_must_share_a_cell_size_and_names_must_be_unique) ... ok
+test_a_still_lead_in_longer_than_a_loop_is_not_a_loop (test_sprite_forge.LoopTest.test_a_still_lead_in_longer_than_a_loop_is_not_a_loop) ... ok
+test_finds_one_cycle_after_a_still_lead_in (test_sprite_forge.LoopTest.test_finds_one_cycle_after_a_still_lead_in) ... ok
+test_refuses_a_clip_shorter_than_the_shortest_loop (test_sprite_forge.LoopTest.test_refuses_a_clip_shorter_than_the_shortest_loop) ... ok
+test_refuses_a_clip_that_does_not_move (test_sprite_forge.LoopTest.test_refuses_a_clip_that_does_not_move) ... ok
+test_samples_evenly_and_keeps_short_loops_whole (test_sprite_forge.LoopTest.test_samples_evenly_and_keeps_short_loops_whole) ... ok
+test_a_gpu_palette_matches_the_cpu_one (test_sprite_forge.PaletteTest.test_a_gpu_palette_matches_the_cpu_one) ... ok
+test_colours_come_from_one_palette_and_alpha_is_binary (test_sprite_forge.PaletteTest.test_colours_come_from_one_palette_and_alpha_is_binary) ... ok
+test_outline_only_touches_the_character (test_sprite_forge.PaletteTest.test_outline_only_touches_the_character) ... ok
+test_the_palette_is_on_the_frames_device (test_sprite_forge.PaletteTest.test_the_palette_is_on_the_frames_device) ... ok
+test_drifting_frames_share_ground_and_centre (test_sprite_forge.PivotTest.test_drifting_frames_share_ground_and_centre) ... ok
+test_empty_frame_is_refused (test_sprite_forge.PivotTest.test_empty_frame_is_refused) ... ok
+test_rescale_moves_the_pivot_with_the_cells (test_sprite_forge.PivotTest.test_rescale_moves_the_pivot_with_the_cells) ... ok
+test_a_missing_take_keeps_its_number (test_sprite_forge.TakeTest.test_a_missing_take_keeps_its_number) ... ok
+test_a_take_needs_frames_and_a_mask (test_sprite_forge.TakeTest.test_a_take_needs_frames_and_a_mask) ... ok
+test_a_take_that_does_not_move_loses_to_one_that_does (test_sprite_forge.TakeTest.test_a_take_that_does_not_move_loses_to_one_that_does) ... ok
+test_keeps_the_take_with_the_lowest_seam_ratio (test_sprite_forge.TakeTest.test_keeps_the_take_with_the_lowest_seam_ratio) ... ok
+test_refuses_takes_that_all_stand_still (test_sprite_forge.TakeTest.test_refuses_takes_that_all_stand_still) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 2.990s
+
+OK
+TEST_EXIT=0

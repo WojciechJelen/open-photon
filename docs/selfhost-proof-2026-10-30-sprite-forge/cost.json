@@ -1,0 +1,47 @@
+{
+  "approvedBudgetUsd": 5,
+  "estimateAsOf": "2026-10-30T13:03:33Z",
+  "pod": {
+    "elapsedSeconds": 4510.78,
+    "computeUsdPerHour": 0.59,
+    "computeEstimateUsd": 0.7392667222222221,
+    "runningDiskGB": 220,
+    "diskUsdPerGBMonth": 0.1,
+    "monthlyHoursAssumed": 720,
+    "runningDiskEstimateUsd": 0.03828594135802468,
+    "totalEstimateUsd": 0.7775526635802468,
+    "billingSnapshot": [
+      {
+        "cpuAmount": 0,
+        "diskAmount": 0.005092592444270849,
+        "endTime": "2026-10-30T12:00:00Z",
+        "gpuAmount": 0.11603529751300812,
+        "podId": "clzw9tc7n58z04",
+        "startTime": "2026-10-30T11:00:00Z",
+        "totalAmount": 0.12112788995727897
+      },
+      {
+        "cpuAmount": 0,
+        "diskAmount": 0.0025462962221354246,
+        "endTime": "2026-10-30T13:00:00Z",
+        "gpuAmount": 0.04862140864133835,
+        "podId": "clzw9tc7n58z04",
+        "startTime": "2026-10-30T12:00:00Z",
+        "totalAmount": 0.05116770486347377
+      }
+    ],
+    "postedTotalUsd": 0.17229559482075274,
+    "note": "Billing snapshot is incomplete and lags usage. Estimate includes boot, model download, renders and validation until stop; deletion ended persistent disk charges."
+  },
+  "railway": {
+    "environmentCreatedAt": "2026-10-30T11:34:35.622Z",
+    "deletionConfirmedBy": "2026-10-30T13:03:33Z",
+    "configuredCpu": 1,
+    "configuredMemoryGB": 1,
+    "volumeCapacityGB": 5,
+    "conservativeComputeAndStorageEstimateUsd": 0.07,
+    "note": "About 89 minutes at configured CPU/RAM ceilings plus the 5 GB volume capacity, rounded up. Actual use is lower; small output downloads add egress. This is an estimate, not an invoice."
+  },
+  "estimatedCombinedUsd": 0.85,
+  "github": "Public standard GitHub Actions runner and GHCR container image; no billable charge expected"
+}

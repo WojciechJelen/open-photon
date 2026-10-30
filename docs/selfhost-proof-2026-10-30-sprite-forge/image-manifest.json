@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+  "config": {
+    "mediaType": "application/vnd.docker.container.image.v1+json",
+    "size": 16087,
+    "digest": "sha256:25ea7362e2e09274c9c89276aa6b40e602efceec4f59ee57f5ae49c9536e9d1d"
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 29723147,
+      "digest": "sha256:4b3ffd8ccb5201a0fc03585952effb4ed2d1ea5e704d2e7330212fb8b16c86a3"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 4547272,
+      "digest": "sha256:c567a87f21d2f8e46feb4f6c427eb5559d45a1a222f73d601352403d13af1ada"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 105166716,
+      "digest": "sha256:0b3b5bd928240da4156c41fcfb400c1f4f8674acd2faee0413ab5a032dfb5f76"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 182,
+      "digest": "sha256:70f87b6ed43e1cbbe67ce74c7877fb771bf352b25d602a82ee4f840f2e265155"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 6886,
+      "digest": "sha256:526d5438c009ab7178af1646fed10ff6f47a73f5a1ae7b9f49e63e4ade7e3ae6"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 40454819,
+      "digest": "sha256:600ba0e7c82de515b3f1e9c3d85758c9e737db4e73bb73cdfe3b8b958092f13d"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 2908550165,
+      "digest": "sha256:b1c7eb8a1c1acb325199d9fc9c54c73309998d7dbc5edb14c640ef915c7af1b8"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 806581140,
+      "digest": "sha256:a93de2d53581c3ce9113b43509bc9a16361089518d169269d7064d44c33e3fe7"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 13249740,
+      "digest": "sha256:00f494048815843abc62e00788f3db13fc21276fde7df94109325e4fdd0efb62"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 45623575,
+      "digest": "sha256:93fe9ff557217322c93b06fb1e9827bf7e03afb00527cde870acfb292cc7cb20"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 118,
+      "digest": "sha256:ceac4200e08c0974b1bf553de647daf17bf654ac2d5f30d84460bf3b071e0430"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 26828809,
+      "digest": "sha256:8065ea4ffc00c3d88eccf5091b474445c96a2ddee342d2b9f74e0df6f06f1dc0"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 1124,
+      "digest": "sha256:0023b1850cdfaca0dc9901989a045523f229b2ce8c6d06d54feba12b859a3759"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 3584,
+      "digest": "sha256:d602ceb451dcd5d4316c9b8a43f4c7fc046690928bc02ac1275fb80861e5e7ad"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 5287,
+      "digest": "sha256:4623cc30faf4911b691db7df4bb0729e217508c20aaec45cc4b93473558c54a1"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 98559,
+      "digest": "sha256:c42b7c0045d7a18d8f5a20754e1ded7eccd79ecfa4721847b9cb656a29640352"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 10754,
+      "digest": "sha256:6f846b79d9f17d90800772a3b6b8bf345c3eebf06fa6c66adbeb3cdb15d1ccb5"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 2225,
+      "digest": "sha256:0271878458ae8d45f17a43294137757f257ae8938661182304f71587669addf6"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 1492,
+      "digest": "sha256:c067a61373edf2a0c85cb907e39e751ea94a2653f4c79b11216b509f005b6cf0"
+    }
+  ]
+}

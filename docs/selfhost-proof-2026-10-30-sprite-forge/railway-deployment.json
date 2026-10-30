@@ -1,0 +1,12 @@
+{
+  "id": "14eea325-3366-4c6e-8542-a499538272ba",
+  "status": "SUCCESS",
+  "createdAt": "2026-10-30T12:26:23.745Z",
+  "sourceCommit": "be383ec0aed94d0d9d057ee15e63cd1bbdb1bf32",
+  "healthcheckPath": "/healthz",
+  "healthObserved": {
+    "status": 200,
+    "body": "ok",
+    "source": "Live HTTP check after SUCCESS, before submitting the five views"
+  }
+}

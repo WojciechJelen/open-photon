@@ -1,0 +1,5 @@
+{"timestamp":"2026-10-30T11:49:05.351577406Z","level":"info","message":"Mounting volume on: /var/lib/containers/railwayapp/bind-mounts/51106d52-bd9d-4dc6-9b49-0e5e44dddcef/vol_lvjsehrv6no6g00p"}
+{"level":"info","timestamp":"2026-10-30T11:49:05.351587701Z","message":"Starting Container"}
+{"message":"","timestamp":"2026-10-30T11:49:05.778130172Z","level":"info","cancelled":[],"event":"generation.recovered","released":[],"unknown":[]}
+{"timestamp":"2026-10-30T11:49:05.778138702Z","level":"info","message":"➜ Listening on: http://localhost:3000/ (all interfaces)"}
+{"upload_timeout_ms":600000,"message":"","timestamp":"2026-10-30T11:49:05.778232351Z","level":"info","base":"https://clzw9tc7n58z04-8189.proxy.runpod.net","provider":"comfy","event":"comfy.target","target":"selfhost","auth":"bearer"}

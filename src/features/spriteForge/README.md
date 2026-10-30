@@ -86,7 +86,7 @@ loads the nodes only when ComfyUI asks.
 | `SpritePivotLock` | Every frame on a fixed cell at one scale: lowest character row on the ground line, head-and-chest centroid on the centre column. Removes the drift and jitter of a generated clip, keeps stride and bob. |
 | `SpriteRow` | Adds one direction to a sheet, mirrored with `flip_horizontal` (pivot mirrored too). Chained, one per direction. Given `SpriteLoopCut`'s `seam_ratio` and `take` (both or neither), the atlas JSON reports them for the row. |
 | `SpriteRescale` | Every row to a new cell size, pivots moved with the cells. |
-| `SpritePalette` | One k-means palette for every frame of every row, hard 0/1 alpha, optional one-pixel outline in the darkest colour. Deterministic: fitted on the CPU whatever device the frames are on. |
+| `SpritePalette` | One k-means palette for every frame of every row, hard 0/1 alpha, optional one-pixel outline at half the darkest palette colour's brightness. The outline can add one colour beyond the declared base palette. Deterministic: fitted on the CPU whatever device the frames are on. |
 | `SpriteAtlasPack` | The atlas as an RGBA IMAGE (one row per direction) and its compact Aseprite JSON array as a STRING (`frames`, `frameTags`, a `pivot` slice keyed per tag, `palette` when there is one, `loops` when rows carry a take and seam ratio; `meta.image` from `image_name`). Saves nothing: core `SaveImage` and `SaveText` do. |
 
 ## Verification of the shipped code (2026-10-30)
@@ -103,16 +103,24 @@ loads the nodes only when ComfyUI asks.
   take 2 (0.890 against 2.532 and 1.190), the takes the prototype chose by hand, and saved a
   1024×1280 RGBA HD atlas and a 384×480 pixel atlas with JSON of 14,093 and 13,906 bytes (the
   app's text-output limit is 16,384).
-- **Gates.** `npm run check`; `npm run test:server` (325 tests, 9 of them Sprite Forge's); the 15
+- **Gates.** `npm run check`; `npm run test:server` (325 tests, 9 of them Sprite Forge's); the 21
   node-pack unit tests; `npm run check:models` (`spriteForge/sprite-view.v1: 5 model files`,
   `spriteForge/sprite-sheet.v1: 7 model files`, 0 conflicts); `npm run check:open-weights`
   (0 forbidden); Playwright `tests/sprites.fake.spec.ts` (this folder) and the root
   `tests/app.spec.ts`.
 
-Not run: a sheet on a real self-hosted GPU, which needs the self-host image rebuilt with the pack
-and a GPU pod. Its latency, cost and peak VRAM are unmeasured. The Wan walk branch uses the same
-core nodes and settings the prototype ran on Comfy Cloud. Actions other than walk (idle, run,
-attack) were not tried.
+**Self-hosted A40, 2026-10-30.** The rebuilt image rendered Kenji's five views, then complete
+Quick and Best of 3 sheets through Railway. The views took 257.2 s together and peaked at
+45,249 MiB; Quick took 416.3 s at 43,169 MiB; Best of 3 took 825.8 s at 39,241 MiB. All seven
+recipes matched the deployed workflows and model pins, both atlas contracts passed, all eight
+playground directions worked, and every back-row frame stayed back-facing. All 21 node-pack
+unit tests passed on the GPU without skips. Best of 3 improved the back seam from 2.097 to
+0.760 but worsened the other four base directions against the independently seeded Quick
+sheet, so the quality comparison failed. The 24-entry pixel palette gains a separate outline
+colour in the PNG. The [evidence](../../../docs/selfhost-proof-2026-10-30-sprite-forge/README.md)
+includes the cold/warm timings, samples, original outputs and cleanup. Estimated pod and disk
+cost was $0.78; the temporary pod and Railway environment were deleted. Actions other than
+walk were not tried.
 
 The models are Apache-2.0 (Qwen-Image-Edit-2511, the Multiple-Angles and Lightning LoRAs, Wan 2.2
 and its lightx2v LoRAs) and MIT

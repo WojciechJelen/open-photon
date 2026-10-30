@@ -1,0 +1,32 @@
+2026-10-30T12:02:00.125636871Z Verified qwen_image_edit_2511_bf16.safetensors
+2026-10-30T12:03:02.515761509Z Verified qwen_2.5_vl_7b_fp8_scaled.safetensors
+2026-10-30T12:03:05.153050808Z Verified qwen_image_vae.safetensors
+2026-10-30T12:03:08.092617835Z Verified qwen-image-edit-2511-multiple-angles-lora.safetensors
+2026-10-30T12:03:17.534043703Z Verified Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors
+2026-10-30T12:05:12.877069114Z Verified umt5_xxl_fp8_e4m3fn_scaled.safetensors
+2026-10-30T12:09:28.712646634Z Verified wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors
+2026-10-30T12:09:52.375640084Z Verified wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
+2026-10-30T12:10:17.151622442Z Verified wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
+2026-10-30T12:14:34.956850576Z Verified wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors
+2026-10-30T12:14:40.270667899Z Verified wan_2.1_vae.safetensors
+2026-10-30T12:16:30.290617010Z Verified flux3-image-klein-int8-convrot.safetensors
+2026-10-30T12:18:16.693143245Z Verified qwen3vl_4b_int8_convrot.safetensors
+2026-10-30T12:19:58.244767318Z Verified qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors
+2026-10-30T12:20:01.134711917Z Verified flux2-vae.safetensors
+2026-10-30T12:20:06.045966599Z Verified Wan2_1_VAE_bf16.safetensors
+2026-10-30T12:20:24.713685803Z Verified clip_vision_h.safetensors
+2026-10-30T12:20:34.712148151Z Verified lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors
+2026-10-30T12:23:13.590305725Z Verified wan_animate_2_int8_convrot.safetensors
+2026-10-30T12:23:17.482435962Z Verified birefnet.safetensors
+2026-10-30T12:24:31.045294429Z Verified qwen3.5_4b_bf16.safetensors
+2026-10-30T12:24:40.751094037Z [INFO]    0.0 seconds: /opt/ComfyUI/custom_nodes/sprite_forge
+2026-10-30T12:24:41.742100208Z spriteForge/sprite-sheet.v1: 7 model files, 7 locked, 0 missing (Apache-2.0, MIT)
+2026-10-30T12:24:41.743165374Z spriteForge/sprite-view.v1: 5 model files, 5 locked, 0 missing (Apache-2.0)
+2026-10-30T12:24:41.759658757Z Serving the Comfy API v2 on 0.0.0.0:8189 (auth: bearer)
+2026-10-30T12:30:52.517253795Z [INFO] Prompt executed in 186.98 seconds
+2026-10-30T12:31:10.352877298Z [INFO] Prompt executed in 15.89 seconds
+2026-10-30T12:31:28.453670593Z [INFO] Prompt executed in 16.10 seconds
+2026-10-30T12:31:45.741211577Z [INFO] Prompt executed in 14.40 seconds
+2026-10-30T12:32:02.164249903Z [INFO] Prompt executed in 14.52 seconds
+2026-10-30T12:39:58.196484701Z [INFO] Prompt executed in 414.78 seconds
+2026-10-30T12:57:31.134885421Z [INFO] Prompt executed in 00:13:42
