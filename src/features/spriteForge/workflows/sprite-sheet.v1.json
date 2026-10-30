@@ -1,0 +1,1639 @@
+{
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "A full-body character walks in place on the spot in a smooth, looping walk cycle: the legs step alternately and the arms swing naturally. The character stays in the same place in the frame, does not move forward and does not turn. Static camera, locked-off shot, plain grey studio background, even lighting.",
+      "clip": ["2", 0]
+    },
+    "_meta": {
+      "title": "Walk prompt"
+    }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走",
+      "clip": ["2", 0]
+    },
+    "_meta": {
+      "title": "Negative prompt"
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "Seen from behind: a full-body character with their back to the camera walks in place on the spot in a smooth, looping walk cycle, the legs stepping alternately and the arms swinging. The character faces away from the camera the whole time and never turns around, never shows the face, and stays in the same place in the frame. Static camera, locked-off shot, plain grey studio background, even lighting.",
+      "clip": ["2", 0]
+    },
+    "_meta": {
+      "title": "Walk prompt, back view"
+    }
+  },
+  "7": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "8": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+      "strength_model": 1,
+      "model": ["7", 0]
+    }
+  },
+  "9": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "shift": 5,
+      "model": ["8", 0]
+    }
+  },
+  "10": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "11": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+      "strength_model": 1,
+      "model": ["10", 0]
+    }
+  },
+  "12": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "shift": 5,
+      "model": ["11", 0]
+    }
+  },
+  "21": {
+    "class_type": "LoadBackgroundRemovalModel",
+    "inputs": {
+      "bg_removal_name": "birefnet.safetensors"
+    }
+  },
+  "23": {
+    "class_type": "EmptyImage",
+    "inputs": {
+      "width": 480,
+      "height": 832,
+      "batch_size": 1,
+      "color": 11842740
+    }
+  },
+  "1001": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "view.png"
+    },
+    "_meta": {
+      "title": "View s"
+    }
+  },
+  "1002": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": ["1001", 0],
+      "upscale_method": "lanczos",
+      "width": 480,
+      "height": 832,
+      "crop": "center"
+    }
+  },
+  "1003": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["1002", 0]
+    }
+  },
+  "1004": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": ["23", 0],
+      "source": ["1002", 0],
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "mask": ["1003", 0]
+    }
+  },
+  "1101": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["1004", 0],
+      "end_image": ["1004", 0]
+    }
+  },
+  "1102": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["1101", 0],
+      "negative": ["1101", 1],
+      "latent_image": ["1101", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, s take 1"
+    }
+  },
+  "1103": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["1101", 0],
+      "negative": ["1101", 1],
+      "latent_image": ["1102", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, s take 1"
+    }
+  },
+  "1104": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["1103", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "1105": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["1104", 0]
+    }
+  },
+  "1201": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["1004", 0],
+      "end_image": ["1004", 0]
+    }
+  },
+  "1202": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["1201", 0],
+      "negative": ["1201", 1],
+      "latent_image": ["1201", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, s take 2"
+    }
+  },
+  "1203": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["1201", 0],
+      "negative": ["1201", 1],
+      "latent_image": ["1202", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, s take 2"
+    }
+  },
+  "1204": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["1203", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "1205": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["1204", 0]
+    }
+  },
+  "1301": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["1004", 0],
+      "end_image": ["1004", 0]
+    }
+  },
+  "1302": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["1301", 0],
+      "negative": ["1301", 1],
+      "latent_image": ["1301", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, s take 3"
+    }
+  },
+  "1303": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["1301", 0],
+      "negative": ["1301", 1],
+      "latent_image": ["1302", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, s take 3"
+    }
+  },
+  "1304": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["1303", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "1305": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["1304", 0]
+    }
+  },
+  "1005": {
+    "class_type": "SpriteLoopCut",
+    "inputs": {
+      "frames": ["1104", 0],
+      "mask": ["1105", 0],
+      "min_frames": 10,
+      "max_frames": 32,
+      "frame_count": 8,
+      "frames_2": ["1204", 0],
+      "mask_2": ["1205", 0],
+      "frames_3": ["1304", 0],
+      "mask_3": ["1305", 0]
+    }
+  },
+  "1006": {
+    "class_type": "SpritePivotLock",
+    "inputs": {
+      "frames": ["1005", 0],
+      "mask": ["1005", 1],
+      "cell_width": 128,
+      "cell_height": 160,
+      "fill": 0.92,
+      "alpha_threshold": 0.5
+    }
+  },
+  "2001": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "view.png"
+    },
+    "_meta": {
+      "title": "View sw"
+    }
+  },
+  "2002": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": ["2001", 0],
+      "upscale_method": "lanczos",
+      "width": 480,
+      "height": 832,
+      "crop": "center"
+    }
+  },
+  "2003": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["2002", 0]
+    }
+  },
+  "2004": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": ["23", 0],
+      "source": ["2002", 0],
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "mask": ["2003", 0]
+    }
+  },
+  "2101": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["2004", 0],
+      "end_image": ["2004", 0]
+    }
+  },
+  "2102": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["2101", 0],
+      "negative": ["2101", 1],
+      "latent_image": ["2101", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, sw take 1"
+    }
+  },
+  "2103": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["2101", 0],
+      "negative": ["2101", 1],
+      "latent_image": ["2102", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, sw take 1"
+    }
+  },
+  "2104": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["2103", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "2105": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["2104", 0]
+    }
+  },
+  "2201": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["2004", 0],
+      "end_image": ["2004", 0]
+    }
+  },
+  "2202": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["2201", 0],
+      "negative": ["2201", 1],
+      "latent_image": ["2201", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, sw take 2"
+    }
+  },
+  "2203": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["2201", 0],
+      "negative": ["2201", 1],
+      "latent_image": ["2202", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, sw take 2"
+    }
+  },
+  "2204": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["2203", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "2205": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["2204", 0]
+    }
+  },
+  "2301": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["2004", 0],
+      "end_image": ["2004", 0]
+    }
+  },
+  "2302": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["2301", 0],
+      "negative": ["2301", 1],
+      "latent_image": ["2301", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, sw take 3"
+    }
+  },
+  "2303": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["2301", 0],
+      "negative": ["2301", 1],
+      "latent_image": ["2302", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, sw take 3"
+    }
+  },
+  "2304": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["2303", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "2305": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["2304", 0]
+    }
+  },
+  "2005": {
+    "class_type": "SpriteLoopCut",
+    "inputs": {
+      "frames": ["2104", 0],
+      "mask": ["2105", 0],
+      "min_frames": 10,
+      "max_frames": 32,
+      "frame_count": 8,
+      "frames_2": ["2204", 0],
+      "mask_2": ["2205", 0],
+      "frames_3": ["2304", 0],
+      "mask_3": ["2305", 0]
+    }
+  },
+  "2006": {
+    "class_type": "SpritePivotLock",
+    "inputs": {
+      "frames": ["2005", 0],
+      "mask": ["2005", 1],
+      "cell_width": 128,
+      "cell_height": 160,
+      "fill": 0.92,
+      "alpha_threshold": 0.5
+    }
+  },
+  "3001": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "view.png"
+    },
+    "_meta": {
+      "title": "View w"
+    }
+  },
+  "3002": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": ["3001", 0],
+      "upscale_method": "lanczos",
+      "width": 480,
+      "height": 832,
+      "crop": "center"
+    }
+  },
+  "3003": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["3002", 0]
+    }
+  },
+  "3004": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": ["23", 0],
+      "source": ["3002", 0],
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "mask": ["3003", 0]
+    }
+  },
+  "3101": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["3004", 0],
+      "end_image": ["3004", 0]
+    }
+  },
+  "3102": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["3101", 0],
+      "negative": ["3101", 1],
+      "latent_image": ["3101", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, w take 1"
+    }
+  },
+  "3103": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["3101", 0],
+      "negative": ["3101", 1],
+      "latent_image": ["3102", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, w take 1"
+    }
+  },
+  "3104": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["3103", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "3105": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["3104", 0]
+    }
+  },
+  "3201": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["3004", 0],
+      "end_image": ["3004", 0]
+    }
+  },
+  "3202": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["3201", 0],
+      "negative": ["3201", 1],
+      "latent_image": ["3201", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, w take 2"
+    }
+  },
+  "3203": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["3201", 0],
+      "negative": ["3201", 1],
+      "latent_image": ["3202", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, w take 2"
+    }
+  },
+  "3204": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["3203", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "3205": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["3204", 0]
+    }
+  },
+  "3301": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["3004", 0],
+      "end_image": ["3004", 0]
+    }
+  },
+  "3302": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["3301", 0],
+      "negative": ["3301", 1],
+      "latent_image": ["3301", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, w take 3"
+    }
+  },
+  "3303": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["3301", 0],
+      "negative": ["3301", 1],
+      "latent_image": ["3302", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, w take 3"
+    }
+  },
+  "3304": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["3303", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "3305": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["3304", 0]
+    }
+  },
+  "3005": {
+    "class_type": "SpriteLoopCut",
+    "inputs": {
+      "frames": ["3104", 0],
+      "mask": ["3105", 0],
+      "min_frames": 10,
+      "max_frames": 32,
+      "frame_count": 8,
+      "frames_2": ["3204", 0],
+      "mask_2": ["3205", 0],
+      "frames_3": ["3304", 0],
+      "mask_3": ["3305", 0]
+    }
+  },
+  "3006": {
+    "class_type": "SpritePivotLock",
+    "inputs": {
+      "frames": ["3005", 0],
+      "mask": ["3005", 1],
+      "cell_width": 128,
+      "cell_height": 160,
+      "fill": 0.92,
+      "alpha_threshold": 0.5
+    }
+  },
+  "4001": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "view.png"
+    },
+    "_meta": {
+      "title": "View nw"
+    }
+  },
+  "4002": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": ["4001", 0],
+      "upscale_method": "lanczos",
+      "width": 480,
+      "height": 832,
+      "crop": "center"
+    }
+  },
+  "4003": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["4002", 0]
+    }
+  },
+  "4004": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": ["23", 0],
+      "source": ["4002", 0],
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "mask": ["4003", 0]
+    }
+  },
+  "4101": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["4004", 0],
+      "end_image": ["4004", 0]
+    }
+  },
+  "4102": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["4101", 0],
+      "negative": ["4101", 1],
+      "latent_image": ["4101", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, nw take 1"
+    }
+  },
+  "4103": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["4101", 0],
+      "negative": ["4101", 1],
+      "latent_image": ["4102", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, nw take 1"
+    }
+  },
+  "4104": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["4103", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "4105": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["4104", 0]
+    }
+  },
+  "4201": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["4004", 0],
+      "end_image": ["4004", 0]
+    }
+  },
+  "4202": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["4201", 0],
+      "negative": ["4201", 1],
+      "latent_image": ["4201", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, nw take 2"
+    }
+  },
+  "4203": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["4201", 0],
+      "negative": ["4201", 1],
+      "latent_image": ["4202", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, nw take 2"
+    }
+  },
+  "4204": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["4203", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "4205": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["4204", 0]
+    }
+  },
+  "4301": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["4004", 0],
+      "end_image": ["4004", 0]
+    }
+  },
+  "4302": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["4301", 0],
+      "negative": ["4301", 1],
+      "latent_image": ["4301", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, nw take 3"
+    }
+  },
+  "4303": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["4301", 0],
+      "negative": ["4301", 1],
+      "latent_image": ["4302", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, nw take 3"
+    }
+  },
+  "4304": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["4303", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "4305": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["4304", 0]
+    }
+  },
+  "4005": {
+    "class_type": "SpriteLoopCut",
+    "inputs": {
+      "frames": ["4104", 0],
+      "mask": ["4105", 0],
+      "min_frames": 10,
+      "max_frames": 32,
+      "frame_count": 8,
+      "frames_2": ["4204", 0],
+      "mask_2": ["4205", 0],
+      "frames_3": ["4304", 0],
+      "mask_3": ["4305", 0]
+    }
+  },
+  "4006": {
+    "class_type": "SpritePivotLock",
+    "inputs": {
+      "frames": ["4005", 0],
+      "mask": ["4005", 1],
+      "cell_width": 128,
+      "cell_height": 160,
+      "fill": 0.92,
+      "alpha_threshold": 0.5
+    }
+  },
+  "5001": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "view.png"
+    },
+    "_meta": {
+      "title": "View n"
+    }
+  },
+  "5002": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": ["5001", 0],
+      "upscale_method": "lanczos",
+      "width": 480,
+      "height": 832,
+      "crop": "center"
+    }
+  },
+  "5003": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["5002", 0]
+    }
+  },
+  "5004": {
+    "class_type": "ImageCompositeMasked",
+    "inputs": {
+      "destination": ["23", 0],
+      "source": ["5002", 0],
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "mask": ["5003", 0]
+    }
+  },
+  "5101": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["6", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["5004", 0],
+      "end_image": ["5004", 0]
+    }
+  },
+  "5102": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["5101", 0],
+      "negative": ["5101", 1],
+      "latent_image": ["5101", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, n take 1"
+    }
+  },
+  "5103": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["5101", 0],
+      "negative": ["5101", 1],
+      "latent_image": ["5102", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, n take 1"
+    }
+  },
+  "5104": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["5103", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "5105": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["5104", 0]
+    }
+  },
+  "5201": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["6", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["5004", 0],
+      "end_image": ["5004", 0]
+    }
+  },
+  "5202": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["5201", 0],
+      "negative": ["5201", 1],
+      "latent_image": ["5201", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, n take 2"
+    }
+  },
+  "5203": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["5201", 0],
+      "negative": ["5201", 1],
+      "latent_image": ["5202", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, n take 2"
+    }
+  },
+  "5204": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["5203", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "5205": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["5204", 0]
+    }
+  },
+  "5301": {
+    "class_type": "WanFirstLastFrameToVideo",
+    "inputs": {
+      "positive": ["6", 0],
+      "negative": ["5", 0],
+      "vae": ["3", 0],
+      "width": 480,
+      "height": 832,
+      "length": 49,
+      "batch_size": 1,
+      "start_image": ["5004", 0],
+      "end_image": ["5004", 0]
+    }
+  },
+  "5302": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["9", 0],
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["5301", 0],
+      "negative": ["5301", 1],
+      "latent_image": ["5301", 2],
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable"
+    },
+    "_meta": {
+      "title": "High-noise sampler, n take 3"
+    }
+  },
+  "5303": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "model": ["12", 0],
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["5301", 0],
+      "negative": ["5301", 1],
+      "latent_image": ["5302", 0],
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable"
+    },
+    "_meta": {
+      "title": "Low-noise sampler, n take 3"
+    }
+  },
+  "5304": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["5303", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "5305": {
+    "class_type": "RemoveBackground",
+    "inputs": {
+      "bg_removal_model": ["21", 0],
+      "image": ["5304", 0]
+    }
+  },
+  "5005": {
+    "class_type": "SpriteLoopCut",
+    "inputs": {
+      "frames": ["5104", 0],
+      "mask": ["5105", 0],
+      "min_frames": 10,
+      "max_frames": 32,
+      "frame_count": 8,
+      "frames_2": ["5204", 0],
+      "mask_2": ["5205", 0],
+      "frames_3": ["5304", 0],
+      "mask_3": ["5305", 0]
+    }
+  },
+  "5006": {
+    "class_type": "SpritePivotLock",
+    "inputs": {
+      "frames": ["5005", 0],
+      "mask": ["5005", 1],
+      "cell_width": 128,
+      "cell_height": 160,
+      "fill": 0.92,
+      "alpha_threshold": 0.5
+    }
+  },
+  "901": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["1006", 0],
+      "mask": ["1006", 1],
+      "pivot_x": ["1006", 2],
+      "pivot_y": ["1006", 3],
+      "name": "walk_s",
+      "flip_horizontal": false,
+      "seam_ratio": ["1005", 4],
+      "take": ["1005", 5]
+    }
+  },
+  "902": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["2006", 0],
+      "mask": ["2006", 1],
+      "pivot_x": ["2006", 2],
+      "pivot_y": ["2006", 3],
+      "name": "walk_sw",
+      "flip_horizontal": false,
+      "rows": ["901", 0],
+      "seam_ratio": ["2005", 4],
+      "take": ["2005", 5]
+    }
+  },
+  "903": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["3006", 0],
+      "mask": ["3006", 1],
+      "pivot_x": ["3006", 2],
+      "pivot_y": ["3006", 3],
+      "name": "walk_w",
+      "flip_horizontal": false,
+      "rows": ["902", 0],
+      "seam_ratio": ["3005", 4],
+      "take": ["3005", 5]
+    }
+  },
+  "904": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["4006", 0],
+      "mask": ["4006", 1],
+      "pivot_x": ["4006", 2],
+      "pivot_y": ["4006", 3],
+      "name": "walk_nw",
+      "flip_horizontal": false,
+      "rows": ["903", 0],
+      "seam_ratio": ["4005", 4],
+      "take": ["4005", 5]
+    }
+  },
+  "905": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["5006", 0],
+      "mask": ["5006", 1],
+      "pivot_x": ["5006", 2],
+      "pivot_y": ["5006", 3],
+      "name": "walk_n",
+      "flip_horizontal": false,
+      "rows": ["904", 0],
+      "seam_ratio": ["5005", 4],
+      "take": ["5005", 5]
+    }
+  },
+  "906": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["4006", 0],
+      "mask": ["4006", 1],
+      "pivot_x": ["4006", 2],
+      "pivot_y": ["4006", 3],
+      "name": "walk_ne",
+      "flip_horizontal": false,
+      "rows": ["905", 0],
+      "seam_ratio": ["4005", 4],
+      "take": ["4005", 5]
+    }
+  },
+  "907": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["3006", 0],
+      "mask": ["3006", 1],
+      "pivot_x": ["3006", 2],
+      "pivot_y": ["3006", 3],
+      "name": "walk_e",
+      "flip_horizontal": false,
+      "rows": ["906", 0],
+      "seam_ratio": ["3005", 4],
+      "take": ["3005", 5]
+    }
+  },
+  "908": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["2006", 0],
+      "mask": ["2006", 1],
+      "pivot_x": ["2006", 2],
+      "pivot_y": ["2006", 3],
+      "name": "walk_se",
+      "flip_horizontal": false,
+      "rows": ["907", 0],
+      "seam_ratio": ["2005", 4],
+      "take": ["2005", 5]
+    }
+  },
+  "910": {
+    "class_type": "SpriteAtlasPack",
+    "inputs": {
+      "rows": ["908", 0],
+      "fps": 10,
+      "image_name": "hd.png"
+    }
+  },
+  "911": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["910", 0],
+      "filename_prefix": "sprite_hd"
+    }
+  },
+  "912": {
+    "class_type": "SaveText",
+    "inputs": {
+      "text": ["910", 1],
+      "filename_prefix": "sprite_hd",
+      "format": "txt"
+    }
+  },
+  "920": {
+    "class_type": "SpriteRescale",
+    "inputs": {
+      "rows": ["908", 0],
+      "cell_width": 48,
+      "cell_height": 60
+    }
+  },
+  "921": {
+    "class_type": "SpritePalette",
+    "inputs": {
+      "rows": ["920", 0],
+      "colors": 24,
+      "outline": true,
+      "alpha_threshold": 0.5
+    }
+  },
+  "922": {
+    "class_type": "SpriteAtlasPack",
+    "inputs": {
+      "rows": ["921", 0],
+      "fps": 10,
+      "image_name": "pixel.png"
+    }
+  },
+  "923": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["922", 0],
+      "filename_prefix": "sprite_pixel"
+    }
+  },
+  "924": {
+    "class_type": "SaveText",
+    "inputs": {
+      "text": ["922", 1],
+      "filename_prefix": "sprite_pixel",
+      "format": "txt"
+    }
+  }
+}

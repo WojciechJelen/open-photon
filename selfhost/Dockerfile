@@ -60,6 +60,11 @@ COPY src/shared/server/comfy-workflows.ts \
   ./src/shared/server/
 # Every feature's workflows/: its runtime workflows and the models.lock beside them.
 COPY --parents src/features/*/workflows ./
+# The Sprite Forge node pack: the sprite-sheet workflow's custom nodes. Without them the
+# entrypoint's `check-models-lock.mjs --definitions` preflight fails boot. It needs only torch,
+# numpy and Pillow, which ComfyUI's requirements already install. The repository's .dockerignore
+# excludes **/__pycache__, so no compiled bytecode comes along.
+COPY src/features/spriteForge/comfy_nodes/sprite_forge /opt/ComfyUI/custom_nodes/sprite_forge
 COPY --chmod=755 selfhost/entrypoint.sh ./selfhost/entrypoint.sh
 COPY selfhost/proxy.py ./selfhost/proxy.py
 

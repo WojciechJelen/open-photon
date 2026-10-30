@@ -1,0 +1,9 @@
+{
+  "id": "f8430bd4-93bb-4b1c-adba-b0f588a32bc4",
+  "status": "succeeded",
+  "graph": "../../../../src/features/spriteForge/prototype/graphs/walk-open.api.json",
+  "binds": ["1:image=directions/3002/view-e_00001_.png"],
+  "run_s": 42.262,
+  "wall_s": 147.809,
+  "outputs": 50
+}

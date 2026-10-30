@@ -1,0 +1,20 @@
+{
+  "workflow": "sprite-view.v1.json",
+  "inputs": {
+    "reference_image": {
+      "node": "1",
+      "field": "image",
+      "class_type": "LoadImage"
+    },
+    "prompt": {
+      "node": "151",
+      "field": "prompt",
+      "class_type": "TextEncodeQwenImageEditPlus"
+    },
+    "seed": {
+      "node": "169",
+      "field": "seed",
+      "class_type": "KSampler"
+    }
+  }
+}

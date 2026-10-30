@@ -1,0 +1,141 @@
+{
+  "workflow": "sprite-sheet.v1.json",
+  "inputs": {
+    "view_s": {
+      "node": "1001",
+      "field": "image",
+      "class_type": "LoadImage"
+    },
+    "view_sw": {
+      "node": "2001",
+      "field": "image",
+      "class_type": "LoadImage"
+    },
+    "view_w": {
+      "node": "3001",
+      "field": "image",
+      "class_type": "LoadImage"
+    },
+    "view_nw": {
+      "node": "4001",
+      "field": "image",
+      "class_type": "LoadImage"
+    },
+    "view_n": {
+      "node": "5001",
+      "field": "image",
+      "class_type": "LoadImage"
+    },
+    "seed_1": [
+      {
+        "node": "1102",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      },
+      {
+        "node": "2102",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      },
+      {
+        "node": "3102",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      },
+      {
+        "node": "4102",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      },
+      {
+        "node": "5102",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      }
+    ],
+    "seed_2": [
+      {
+        "node": "1202",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      },
+      {
+        "node": "2202",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      },
+      {
+        "node": "3202",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      },
+      {
+        "node": "4202",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      },
+      {
+        "node": "5202",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      }
+    ],
+    "seed_3": [
+      {
+        "node": "1302",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      },
+      {
+        "node": "2302",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      },
+      {
+        "node": "3302",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      },
+      {
+        "node": "4302",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      },
+      {
+        "node": "5302",
+        "field": "noise_seed",
+        "class_type": "KSamplerAdvanced"
+      }
+    ],
+    "flip_sw": {
+      "node": "902",
+      "field": "flip_horizontal",
+      "class_type": "SpriteRow"
+    },
+    "flip_w": {
+      "node": "903",
+      "field": "flip_horizontal",
+      "class_type": "SpriteRow"
+    },
+    "flip_nw": {
+      "node": "904",
+      "field": "flip_horizontal",
+      "class_type": "SpriteRow"
+    },
+    "flip_ne": {
+      "node": "906",
+      "field": "flip_horizontal",
+      "class_type": "SpriteRow"
+    },
+    "flip_e": {
+      "node": "907",
+      "field": "flip_horizontal",
+      "class_type": "SpriteRow"
+    },
+    "flip_se": {
+      "node": "908",
+      "field": "flip_horizontal",
+      "class_type": "SpriteRow"
+    }
+  }
+}

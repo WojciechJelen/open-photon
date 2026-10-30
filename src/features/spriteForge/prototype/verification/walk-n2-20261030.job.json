@@ -1,0 +1,9 @@
+{
+  "id": "c3eec8b2-98a6-431e-8f68-54e6968f2645",
+  "status": "succeeded",
+  "graph": "../../../../src/features/spriteForge/prototype/graphs/walk-back.api.json",
+  "binds": ["1:image=directions/5002/view-n_00001_.png", "13:noise_seed=20261030"],
+  "run_s": 48.581,
+  "wall_s": 59.109,
+  "outputs": 50
+}

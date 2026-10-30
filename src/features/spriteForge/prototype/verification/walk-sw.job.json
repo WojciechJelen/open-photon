@@ -1,0 +1,9 @@
+{
+  "id": "bbb35d87-8c09-4d44-a408-15a1c6f7cf0a",
+  "status": "succeeded",
+  "graph": "../../../../src/features/spriteForge/prototype/graphs/walk.api.json",
+  "binds": ["1:image=directions/2002/view-se_00001_.png"],
+  "run_s": 43.304,
+  "wall_s": 57.847,
+  "outputs": 50
+}

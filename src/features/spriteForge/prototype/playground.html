@@ -1,0 +1,191 @@
+<!doctype html>
+<!--
+  Sprite Forge playground: walks a character around with WASD or the arrow keys using nothing
+  but a Sprite Forge atlas (PNG) and its Aseprite JSON, as a game would. Open the file and drop
+  both files on the page, or serve a folder and open `playground.html?json=<atlas.json URL>`.
+  Tags `walk_<s|sw|w|nw|n|ne|e|se>` pick the animation; the pivot slice anchors the feet.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sprite Forge playground</title>
+    <style>
+      body {
+        margin: 0;
+        font:
+          14px system-ui,
+          sans-serif;
+        background: #1d2128;
+        color: #d8dde6;
+      }
+      header {
+        padding: 10px 16px;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      canvas {
+        display: block;
+        margin: 0 auto;
+        image-rendering: pixelated;
+        background: #3b4a3a;
+      }
+      #status {
+        opacity: 0.8;
+      }
+      label {
+        cursor: pointer;
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>Sprite Forge playground</strong>
+      <label>load atlas (.png + .json)<input id="files" type="file" multiple hidden /></label>
+      <span>WASD / arrows to walk, 1–4 zoom</span>
+      <span id="status">no atlas loaded</span>
+    </header>
+    <canvas id="world" width="960" height="600"></canvas>
+    <script>
+      const DIRECTIONS = {
+        "0,1": "s",
+        "-1,1": "sw",
+        "-1,0": "w",
+        "-1,-1": "nw",
+        "0,-1": "n",
+        "1,-1": "ne",
+        "1,0": "e",
+        "1,1": "se",
+      };
+      const canvas = document.getElementById("world");
+      const context = canvas.getContext("2d");
+      const status = document.getElementById("status");
+      const keys = new Set();
+      let sheet = null;
+      let zoom = 2;
+      const hero = { x: 480, y: 560, facing: "s", walking: false, time: 0 };
+
+      function load(json, image) {
+        const tags = Object.fromEntries(json.meta.frameTags.map((tag) => [tag.name, tag]));
+        const pivots = json.meta.slices?.find((s) => s.name === "pivot")?.keys ?? [];
+        const pivotAt = (frame) =>
+          [...pivots].reverse().find((key) => key.frame <= frame)?.pivot ?? { x: 0, y: 0 };
+        sheet = { json, image, tags, pivotAt };
+        const cell = json.frames[0].sourceSize;
+        zoom = cell.h <= 80 ? 4 : 2;
+        status.textContent = `${json.meta.frameTags.map((t) => t.name).join(" ")} · ${cell.w}×${cell.h} cells · ${json.meta.palette ? json.meta.palette.length + " colours" : "full colour"}`;
+      }
+
+      async function loadUrl(url) {
+        const json = await (await fetch(url)).json();
+        const image = new Image();
+        image.src = new URL(json.meta.image, new URL(url, location.href)).href;
+        await image.decode();
+        load(json, image);
+      }
+
+      document.getElementById("files").addEventListener("change", async (event) => {
+        const files = [...event.target.files];
+        const jsonFile = files.find((f) => f.name.endsWith(".json"));
+        const pngFile = files.find((f) => f.name.endsWith(".png"));
+        if (!jsonFile || !pngFile)
+          return (status.textContent = "pick the atlas .png and its .json");
+        const image = new Image();
+        image.src = URL.createObjectURL(pngFile);
+        await image.decode();
+        load(JSON.parse(await jsonFile.text()), image);
+      });
+
+      addEventListener("keydown", (e) => {
+        keys.add(e.key.toLowerCase());
+        if ("1234".includes(e.key)) zoom = Number(e.key);
+      });
+      addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
+
+      function tagFor(direction) {
+        return sheet.tags[`walk_${direction}`] ?? Object.values(sheet.tags)[0];
+      }
+
+      function drawHero(x, y, direction, time, moving, scale) {
+        const tag = tagFor(direction);
+        let index = tag.from;
+        if (moving) {
+          const frames = sheet.json.frames.slice(tag.from, tag.to + 1);
+          const total = frames.reduce((sum, f) => sum + f.duration, 0);
+          let t = time % total;
+          for (const [k, f] of frames.entries()) {
+            if (t < f.duration) {
+              index = tag.from + k;
+              break;
+            }
+            t -= f.duration;
+          }
+        }
+        const { frame } = sheet.json.frames[index];
+        const pivot = sheet.pivotAt(index);
+        context.drawImage(
+          sheet.image,
+          frame.x,
+          frame.y,
+          frame.w,
+          frame.h,
+          Math.round(x - pivot.x * scale),
+          Math.round(y - pivot.y * scale),
+          frame.w * scale,
+          frame.h * scale,
+        );
+      }
+
+      function drawGround() {
+        context.fillStyle = "#3b4a3a";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#435443";
+        for (let y = 0; y < canvas.height; y += 48)
+          for (let x = (y / 48) % 2 ? 0 : 48; x < canvas.width; x += 96)
+            context.fillRect(x, y, 48, 48);
+      }
+
+      let last = performance.now();
+      function frame(now) {
+        const dt = Math.min(50, now - last);
+        last = now;
+        drawGround();
+        if (sheet) {
+          context.imageSmoothingEnabled = false;
+          // The eight directions along the top, always walking: the sheet at a glance. The strip
+          // takes the largest whole scale at which all eight fit the width and 160px of height.
+          const order = ["s", "sw", "w", "nw", "n", "ne", "e", "se"];
+          const cell = sheet.json.frames[0].sourceSize;
+          const slot = canvas.width / order.length;
+          const small = Math.max(1, Math.floor(Math.min((slot - 8) / cell.w, 160 / cell.h)));
+          const stripBottom = 12 + cell.h * small;
+          order.forEach((d, i) => drawHero(slot * (i + 0.5), stripBottom, d, now, true, small));
+
+          const dx =
+            (keys.has("d") || keys.has("arrowright")) - (keys.has("a") || keys.has("arrowleft"));
+          const dy =
+            (keys.has("s") || keys.has("arrowdown")) - (keys.has("w") || keys.has("arrowup"));
+          hero.walking = dx !== 0 || dy !== 0;
+          if (hero.walking) {
+            hero.facing = DIRECTIONS[`${dx},${dy}`];
+            const speed = 0.06 * zoom * (dx && dy ? Math.SQRT1_2 : 1) * dt;
+            const top = stripBottom + 8 + cell.h * zoom;
+            hero.x = Math.max(
+              (cell.w * zoom) / 2,
+              Math.min(canvas.width - (cell.w * zoom) / 2, hero.x + dx * speed),
+            );
+            hero.y = Math.max(top, Math.min(canvas.height - 4, hero.y + dy * speed));
+            hero.time += dt;
+          }
+          drawHero(hero.x, hero.y, hero.facing, hero.time, hero.walking, zoom);
+        }
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+
+      const fromQuery = new URLSearchParams(location.search).get("json");
+      if (fromQuery) loadUrl(fromQuery).catch((e) => (status.textContent = String(e)));
+    </script>
+  </body>
+</html>

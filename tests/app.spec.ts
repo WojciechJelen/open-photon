@@ -38,6 +38,7 @@ test("the studio home features Motion Transfer and links its live character tool
         ["Create character", "/characters/new"],
         ["Photoshoot", "/photoshoot"],
         ["Shots & Angles", "/angles"],
+        ["Sprite Forge", "/sprites"],
         ["Storyboard", "/storyboards"],
         ["Product Studio", "/product-studio"],
       ],
@@ -74,13 +75,14 @@ test("the studio home features Motion Transfer and links its live character tool
 
   const cards = page.getByRole("list", { name: "Character tools" }).getByRole("listitem");
 
-  await expect(cards).toHaveCount(7);
+  await expect(cards).toHaveCount(8);
 
   for (const [name, path] of [
     ["Describe a character", "/characters/new"],
     ["Character photoshoot", "/photoshoot"],
     ["Character library", "/characters"],
     ["Shots & Angles", "/angles"],
+    ["Sprite Forge", "/sprites"],
     ["Storyboard", "/storyboards"],
     ["Animate an image", "/animate"],
     ["Product Studio", "/product-studio"],

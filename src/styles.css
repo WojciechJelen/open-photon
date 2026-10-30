@@ -231,3 +231,10 @@
 @utility clip-split {
   clip-path: inset(0 0 0 var(--split, 50%));
 }
+
+/* Pixel art scaled up stays crisp, nearest-neighbour (Sprite Forge's playground canvas,
+   `src/features/spriteForge/components/sprite-playground.tsx`). Tailwind has no image-rendering
+   utility. */
+@utility pixelated {
+  image-rendering: pixelated;
+}
