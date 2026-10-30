@@ -1,0 +1,59 @@
+{
+  "facing": {
+    "nw": "left",
+    "sw": "left",
+    "w": "left"
+  },
+  "models": [
+    {
+      "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68"
+    },
+    {
+      "file": "wan_2.1_vae.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b"
+    },
+    {
+      "file": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "6122e79d55e0f235698d11d657f3b196c5273c830da00b2b013c5a048d5e6a42"
+    },
+    {
+      "file": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "d176c808d6fc461999b68e321efcb7501b20b8c3797523ed0df14f7d1deff11e"
+    },
+    {
+      "file": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "5471a457b6ac404202a5fbe6c11595a3d5641fc766b00f38763f72303fffc21e"
+    },
+    {
+      "file": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+      "license": "Apache-2.0",
+      "sha256": "024f21de095bc8fad9809ded3e9e49a2e170dcf27075da8145ba7d60d8aab7f9"
+    },
+    {
+      "file": "birefnet.safetensors",
+      "license": "MIT",
+      "sha256": "9ab37426bf4de0567af6b5d21b16151357149139362e6e8992021b8ce356a154"
+    }
+  ],
+  "seed": 102377815663440,
+  "takes": 3,
+  "target": "selfhost",
+  "views": {
+    "n": "7048ca5fba2539ed514551770ac9e200adac7007a83c060f9bcd23e10ccde686",
+    "nw": "65e0e877d5fb48fd3842a656d73831469114f091d6b96a112ff9a2e342d8d669",
+    "s": "93d6e72721c057540b0a1babffd49af9d6ba39c29bca9f6cc02b8aadc8ff299e",
+    "sw": "eb590907e0c3e72d3d373a274e9daef1882790500689e58d5eb9bbf683f9e34b",
+    "w": "dbd747d152881cd7096b2d56d9049940d9831db4a1a13b7e8720f46766ed5bf3"
+  },
+  "workflow": {
+    "id": "sprite-sheet",
+    "sha256": "dc84a442d6c1a2696a7850fde34595b92d0e09e449ac9f589844d7262be456ba",
+    "version": 1
+  }
+}

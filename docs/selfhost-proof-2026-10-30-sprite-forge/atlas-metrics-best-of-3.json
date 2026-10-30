@@ -1,0 +1,136 @@
+{
+  "hd": {
+    "mode": "RGBA",
+    "width": 1024,
+    "height": 1280,
+    "alphaMin": 0,
+    "alphaMax": 255,
+    "alphaValueCount": 256,
+    "rows": [
+      {
+        "tag": "walk_s",
+        "meanStep": 0.03542501851916313,
+        "wrapDifference": 0.03571108728647232,
+        "wrapOverMedianStep": 0.9735555969238635,
+        "wrapOverLargestStep": 0.6840798183821882
+      },
+      {
+        "tag": "walk_sw",
+        "meanStep": 0.05227265879511833,
+        "wrapDifference": 0.033848173916339874,
+        "wrapOverMedianStep": 0.5958702080373044,
+        "wrapOverLargestStep": 0.4224282208393862
+      },
+      {
+        "tag": "walk_w",
+        "meanStep": 0.05599960312247276,
+        "wrapDifference": 0.04041789844632149,
+        "wrapOverMedianStep": 0.818062850220248,
+        "wrapOverLargestStep": 0.4818735959080883
+      },
+      {
+        "tag": "walk_nw",
+        "meanStep": 0.04208016395568848,
+        "wrapDifference": 0.043814659118652344,
+        "wrapOverMedianStep": 0.9771983603976289,
+        "wrapOverLargestStep": 0.6626925649273633
+      },
+      {
+        "tag": "walk_n",
+        "meanStep": 0.03395969048142433,
+        "wrapDifference": 0.019331762567162514,
+        "wrapOverMedianStep": 0.50013015663129,
+        "wrapOverLargestStep": 0.38511830371720507
+      },
+      {
+        "tag": "walk_ne",
+        "meanStep": 0.04208016395568848,
+        "wrapDifference": 0.04381466656923294,
+        "wrapOverMedianStep": 0.977198526567931,
+        "wrapOverLargestStep": 0.6626926776166884
+      },
+      {
+        "tag": "walk_e",
+        "meanStep": 0.05599960312247276,
+        "wrapDifference": 0.04041789844632149,
+        "wrapOverMedianStep": 0.818062850220248,
+        "wrapOverLargestStep": 0.4818735959080883
+      },
+      {
+        "tag": "walk_se",
+        "meanStep": 0.05227265879511833,
+        "wrapDifference": 0.033848173916339874,
+        "wrapOverMedianStep": 0.5958702080373044,
+        "wrapOverLargestStep": 0.4224281815603628
+      }
+    ]
+  },
+  "pixel": {
+    "mode": "RGBA",
+    "width": 384,
+    "height": 480,
+    "alphaMin": 0,
+    "alphaMax": 255,
+    "alphaValueCount": 2,
+    "rows": [
+      {
+        "tag": "walk_s",
+        "meanStep": 0.0302332304418087,
+        "wrapDifference": 0.03247617185115814,
+        "wrapOverMedianStep": 0.9434440437502767,
+        "wrapOverLargestStep": 0.7250494462132239
+      },
+      {
+        "tag": "walk_sw",
+        "meanStep": 0.049927592277526855,
+        "wrapDifference": 0.0284657534211874,
+        "wrapOverMedianStep": 0.5193044454416582,
+        "wrapOverLargestStep": 0.3621367621904532
+      },
+      {
+        "tag": "walk_w",
+        "meanStep": 0.0565362386405468,
+        "wrapDifference": 0.04057598114013672,
+        "wrapOverMedianStep": 0.834682536112443,
+        "wrapOverLargestStep": 0.46157238927168565
+      },
+      {
+        "tag": "walk_nw",
+        "meanStep": 0.03969946503639221,
+        "wrapDifference": 0.03839120268821716,
+        "wrapOverMedianStep": 0.9203736522907441,
+        "wrapOverLargestStep": 0.6034070474581813
+      },
+      {
+        "tag": "walk_n",
+        "meanStep": 0.031420547515153885,
+        "wrapDifference": 0.01913296803832054,
+        "wrapOverMedianStep": 0.565363097866236,
+        "wrapOverLargestStep": 0.40617595456114564
+      },
+      {
+        "tag": "walk_ne",
+        "meanStep": 0.03969946131110191,
+        "wrapDifference": 0.03839120268821716,
+        "wrapOverMedianStep": 0.9203737344879013,
+        "wrapOverLargestStep": 0.6034071887800115
+      },
+      {
+        "tag": "walk_e",
+        "meanStep": 0.0565362386405468,
+        "wrapDifference": 0.04057598114013672,
+        "wrapOverMedianStep": 0.8346824081850133,
+        "wrapOverLargestStep": 0.46157238927168565
+      },
+      {
+        "tag": "walk_se",
+        "meanStep": 0.049927592277526855,
+        "wrapDifference": 0.02846575528383255,
+        "wrapOverMedianStep": 0.5193044441297098,
+        "wrapOverLargestStep": 0.3621367858867269
+      }
+    ],
+    "opaqueColors": 25,
+    "declaredPaletteColors": 24
+  }
+}

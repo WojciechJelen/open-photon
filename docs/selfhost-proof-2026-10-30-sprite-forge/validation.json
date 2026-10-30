@@ -1,0 +1,24 @@
+{
+  "check": "passed",
+  "serverTests": {
+    "passed": 325,
+    "failed": 0,
+    "skipped": 0
+  },
+  "models": {
+    "uniqueFiles": 21,
+    "conflicts": 0
+  },
+  "gpuNodeTests": {
+    "passed": 21,
+    "failed": 0,
+    "skipped": 0
+  },
+  "recipeOutputAndPeakChecks": {
+    "passedGenerations": 7,
+    "report": "verify.json",
+    "gpuSamples": 3802
+  },
+  "visualAndControls": "browser-checks.json",
+  "comparativeLoopQuality": "failed"
+}

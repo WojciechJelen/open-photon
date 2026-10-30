@@ -1,0 +1,46 @@
+{
+  "sourceCommit": "be383ec0aed94d0d9d057ee15e63cd1bbdb1bf32",
+  "imageTag": "ghcr.io/wojciechjelen/open-photon-comfy:sprite-forge-be383ec",
+  "imageDigest": "sha256:7f704152b17bbc5e7ffaa193589ccbd5222d7756dece70c366ec33f2e3e99afc",
+  "imageBuild": "https://github.com/WojciechJelen/open-photon/actions/runs/41049761990",
+  "anonymousManifestVerified": true,
+  "pod": {
+    "id": "clzw9tc7n58z04",
+    "createdAt": "2026-10-30T11:47:36.22Z",
+    "cloud": "SECURE",
+    "dataCenterId": "EU-SE-1",
+    "cudaVersion": "13.2",
+    "gpu": {
+      "name": "NVIDIA A40",
+      "memoryMiB": 46068,
+      "driver": "595.91.07",
+      "cuda": "13.2",
+      "dataCenter": "EU-SE-1"
+    },
+    "computeUsdPerHour": 0.59,
+    "containerDiskGB": 50,
+    "persistentVolumeGB": 170
+  },
+  "railway": {
+    "appUrl": "https://open-photon-selfhost.up.railway.app",
+    "environmentId": "fd45da43-0fcd-4c7e-b38e-51d9e5616a51",
+    "volumeInstanceId": "a2bd6e08-ce41-4050-9c1d-b4af7e914afd",
+    "stagingVolumeInstanceId": "4e58dba0-d454-439a-b03c-4d8616703018",
+    "stagingDeploymentUnchanged": "d45fad65-ece5-4265-9bd0-5cb05d08c667",
+    "deploymentId": "14eea325-3366-4c6e-8542-a499538272ba",
+    "sourceCommit": "be383ec0aed94d0d9d057ee15e63cd1bbdb1bf32",
+    "configuration": {
+      "COMFY_API_KEY": "absent",
+      "COMFY_BASE_URL": "https://clzw9tc7n58z04-8189.proxy.runpod.net",
+      "COMFY_PROXY_TOKEN": "set; value omitted",
+      "IN_FLIGHT_MAX": "1",
+      "DATABASE_PATH": "/app/data/app.sqlite",
+      "PUBLIC_APP_URL": "https://open-photon-selfhost.up.railway.app"
+    }
+  },
+  "workflowSha256": {
+    "sprite-view.v1": "40a24063bfc776b040c45d74450b8bfc66309ef50e1b6d826e2d22dfe8b0b654",
+    "sprite-sheet.v1": "dc84a442d6c1a2696a7850fde34595b92d0e09e449ac9f589844d7262be456ba"
+  },
+  "gpuRecordingStartedAt": "2026-10-30T11:54:53.345Z"
+}

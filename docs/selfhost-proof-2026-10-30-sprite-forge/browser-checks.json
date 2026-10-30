@@ -1,0 +1,58 @@
+{
+  "spriteSetId": "d2b5d54a-b709-457c-ad43-516d436226ec",
+  "sheetsAvailable": true,
+  "allFiveViewsDone": true,
+  "forgeEnabled": true,
+  "facing": {
+    "sw": "left",
+    "w": "left",
+    "nw": "left"
+  },
+  "bestPixelControls": [
+    {
+      "keys": "a",
+      "direction": "w",
+      "result": "moves left, faces left"
+    },
+    {
+      "keys": "d",
+      "direction": "e",
+      "result": "moves right, faces right"
+    },
+    {
+      "keys": "w",
+      "direction": "n",
+      "result": "moves up, shows back"
+    },
+    {
+      "keys": "s",
+      "direction": "s",
+      "result": "moves down, shows front"
+    },
+    {
+      "keys": "w+a",
+      "direction": "nw",
+      "result": "moves up-left, shows back-left three-quarter"
+    },
+    {
+      "keys": "s+d",
+      "direction": "se",
+      "result": "moves down-right, shows front-right three-quarter"
+    },
+    {
+      "keys": "w+d",
+      "direction": "ne",
+      "result": "moves up-right, shows back-right three-quarter"
+    },
+    {
+      "keys": "s+a",
+      "direction": "sw",
+      "result": "moves down-left, shows front-left three-quarter"
+    }
+  ],
+  "holdMs": 800,
+  "quickHdArrowControls": ["Up shows back", "Down shows front"],
+  "atlasReadErrors": false,
+  "backFramesShowingFace": 0,
+  "qualityExpectation": "failed: Best of 3 seam ratios exceed Quick in four of five base directions; smoothness is not a blanket pass"
+}

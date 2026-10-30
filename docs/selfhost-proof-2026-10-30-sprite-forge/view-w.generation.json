@@ -1,0 +1,37 @@
+{
+  "character_id": "4e726b8f-415d-47de-82d9-f46a087a3f54",
+  "created_at": "2026-10-30T12:27:43.991Z",
+  "error_code": null,
+  "error_message": null,
+  "final_asset_id": null,
+  "finished_at": "2026-10-30T12:31:29.863Z",
+  "id": "18a93651-33cd-4bca-ad8a-d9d5f5c00cf6",
+  "outputs": [
+    {
+      "asset": {
+        "bytes": 891134,
+        "created_at": "2026-10-30T12:31:29.842Z",
+        "duration_ms": null,
+        "fps": null,
+        "has_audio": null,
+        "height": 1328,
+        "id": "d15864b5-dbe8-4413-85e2-fc233fcd9fd8",
+        "kind": "image",
+        "mime": "image/png",
+        "role": "provider_output",
+        "sha256": "dbd747d152881cd7096b2d56d9049940d9831db4a1a13b7e8720f46766ed5bf3",
+        "source_asset_id": null,
+        "width": 800
+      },
+      "media": "image",
+      "name": "image"
+    }
+  ],
+  "parent_id": null,
+  "position": null,
+  "poster_asset_id": null,
+  "progress": 100,
+  "share_slug": null,
+  "status": "done",
+  "submitted_at": "2026-10-30T12:31:12.384Z"
+}

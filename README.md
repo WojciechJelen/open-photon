@@ -73,7 +73,8 @@ Volumes, Compose, filling the result wall and a run from source: [Setup](#setup)
 
 ## Numbers
 
-One 5-second 480×848 Motion Transfer take, one caption, one 768×1344 character image:
+One 5-second 480×848 Motion Transfer take, one caption, one 768×1344 character image, and
+Sprite Forge's five views and two 8-direction sheets:
 
 | Workflow | Backend | Submit → done | Peak VRAM | Cost |
 | --- | --- | --- | --- | --- |
@@ -84,6 +85,9 @@ One 5-second 480×848 Motion Transfer take, one caption, one 768×1344 character
 | FLUX 3 caption | A40 48 GB | 26.6 s | 6,601 MiB | pod time |
 | FLUX 3 image | Comfy Cloud | 14.3 s | — | ≈ 0.8 ¢ |
 | FLUX 3 image | A40 48 GB | 31.9 s | 10,653 MiB | pod time |
+| Sprite Forge, five views | A40 48 GB | 257.2 s total; 188.3 s cold first view, 15.1–17.5 s thereafter | 45,249 MiB | ≈ $0.04 compute |
+| Sprite Forge, sheet Quick | A40 48 GB | 416.3 s | 43,169 MiB | ≈ $0.07 compute |
+| Sprite Forge, sheet Best of 3 | A40 48 GB | 825.8 s | 39,241 MiB | ≈ $0.14 compute |
 
 Sources: Cloud Motion Transfer [DEV-280](CHECKLIST.md#sample-matrix-and-result-wall-dev-280), its direct-submit execution [CHECKLIST 1.6](CHECKLIST.md#phase-1--the-workflow-as-data); RTX 5090 [CHECKLIST 8.3](CHECKLIST.md#phase-8-open-weights-proof) (Oct 21) and the [Oct 23 follow-up](CHECKLIST.md#deployment-evidence-after-the-docker-simplification); A40 `0.2.0` and its pod rate the [self-host proof](docs/selfhost-proof-2026-10-23/README.md); A40 `0.1.0` [CHECKLIST](CHECKLIST.md#deployment-evidence-after-the-docker-simplification); FLUX 3 on Cloud the [character workflows README](src/features/characterBuilder/workflows/README.md#measurements-comfy-cloud-2026-10-23).
 
@@ -93,6 +97,15 @@ over the six takes, per take; Cloud VRAM is not observable. A40 VRAM is the whol
 the job ran. The RTX 5090 (Oct 21) and A40 `0.2.0` jobs were each the first of their models on
 the pod, so model loading is included. The whole A40 run (boot, model download, three jobs,
 restart) cost about $0.21 of pod time.
+
+Sprite Forge measurements come from the [Oct 30 self-host proof](docs/selfhost-proof-2026-10-30-sprite-forge/README.md).
+Its first view and Quick sheet loaded their models cold; Best of 3 followed with warm caches.
+Peaks are whole-device one-second samples within each submission-to-completion interval.
+Both sheets have 64 frames in eight directions, an RGBA HD atlas and a pixel atlas with JSON.
+All seven generations passed their recipe and output checks. Best of 3 improved the back
+loop but had worse seam ratios than Quick in the other base directions, so the loop-quality
+comparison failed. The temporary deployment was deleted; pod and disk cost was about $0.78
+including the full cold boot, with a few cents estimated for Railway.
 
 ## Setup
 
@@ -133,12 +146,15 @@ Product Studio; 9.3 GB for Storyboard's Qwen3.5-4B scene writer; 51.6 GB for Sho
 is Motion Transfer's); and 0.4 GB for Product Studio's BiRefNet. That leaves about 34 GB for
 ComfyUI's inputs and outputs. On the A40 test of `0.2.0`, the then 43.4 GB of Motion Transfer and
 character generation took 5 minutes to download and the API served 9 minutes after the pod was
-created; a restart downloaded nothing but re-checked those nine files in about 4 minutes. The
-download and re-check of the other 92.7 GB are unmeasured. A volume of your own needs at least
-140 GB. The GPU runs one job at a time, so it must fit the largest workflow: measured peaks exist
-for Motion Transfer and FLUX 3 only ([Numbers](#numbers)); Shots & Angles, Animate Image,
-Storyboard's scene split, Product Studio and Sprite Forge have not run on a self-hosted GPU, so
-their peaks are unmeasured. Sprite Forge's sheets need its custom node pack, which
+created; a restart downloaded nothing but re-checked those nine files in about 4 minutes.
+Oct 30's cold Sprite Forge boot installed all 136.1 GB and served the API 37 minutes 6 seconds
+after pod creation, including image pull. A full-volume restart remains unmeasured. A volume
+of your own needs at least 140 GB. The GPU runs one job at a time, so it must fit the largest
+workflow: measured peaks exist
+for Motion Transfer, FLUX 3 and Sprite Forge ([Numbers](#numbers)); Shots & Angles, Animate Image,
+Storyboard's scene split and Product Studio have not run as standalone workflows on a self-hosted GPU, so
+their peaks are unmeasured. Sprite Forge reached 45,249 MiB on the A40, with only 819 MiB of
+reported capacity remaining. Sprite Forge's sheets need its custom node pack, which
 `selfhost/Dockerfile` copies into the image (boot fails if it is missing); an image built before
 Sprite Forge lacks it and must be rebuilt. Then save:
 
@@ -306,10 +322,12 @@ the FLUX 3 character workflows have run on your own GPU:
 boot log, GPU memory samples, recipes, outputs and `verify-selfhost.mjs` report, and Motion
 Transfer also rendered on an RTX 5090 ([CHECKLIST 8.3](CHECKLIST.md#phase-8-open-weights-proof)).
 Shots & Angles, Animate Image, the Photoshoot and Storyboard edits, Storyboard's scene split,
-Product Studio and Sprite Forge's views have run only on Comfy Cloud so far; their node classes
+Product Studio have run only on Comfy Cloud so far; their node classes
 exist at the self-host image's ComfyUI 0.42.0, but they have not run on a self-hosted GPU and
-their VRAM is unmeasured. Sprite Forge's sheet cannot run on Cloud and has not run on a GPU as one
-job; its node pack's half ran on CPU in a local ComfyUI 0.42.0.
+their VRAM is unmeasured. Sprite Forge's five views and complete Quick and Best of 3 sheets
+ran on a self-hosted A40. The [Oct 30 proof](docs/selfhost-proof-2026-10-30-sprite-forge/README.md)
+records their recipes, outputs, memory peaks and the failed Best of 3 versus Quick quality
+comparison. Sprite Forge's sheet cannot run on Cloud because it needs the custom node pack.
 Open does not mean OSI here: the FLUX 3 Image Klein transformer is open weights under the FLUX
 Kommunity License, not an OSI licence; BiRefNet is MIT and every other file is Apache-2.0.
 

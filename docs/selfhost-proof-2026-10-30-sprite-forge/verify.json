@@ -1,0 +1,366 @@
+[
+  {
+    "name": "view-s",
+    "id": "8abcdf01-ddff-40d1-b0a1-2245ccc3e448",
+    "seed": 33168478506243,
+    "submittedAt": "2026-10-30T12:27:45.565Z",
+    "finishedAt": "2026-10-30T12:30:53.890Z",
+    "seconds": 188.325,
+    "peakMiB": 45089,
+    "workflowSha256": "40a24063bfc776b040c45d74450b8bfc66309ef50e1b6d826e2d22dfe8b0b654",
+    "outputs": [
+      {
+        "name": "image",
+        "width": 800,
+        "height": 1328,
+        "sha256": "93d6e72721c057540b0a1babffd49af9d6ba39c29bca9f6cc02b8aadc8ff299e"
+      }
+    ]
+  },
+  {
+    "name": "view-sw",
+    "id": "48a100a4-6b68-48b7-bb88-7d4a6ae8099d",
+    "seed": 33168478506243,
+    "submittedAt": "2026-10-30T12:30:54.491Z",
+    "finishedAt": "2026-10-30T12:31:11.819Z",
+    "seconds": 17.328,
+    "peakMiB": 45249,
+    "workflowSha256": "40a24063bfc776b040c45d74450b8bfc66309ef50e1b6d826e2d22dfe8b0b654",
+    "outputs": [
+      {
+        "name": "image",
+        "width": 800,
+        "height": 1328,
+        "sha256": "eb590907e0c3e72d3d373a274e9daef1882790500689e58d5eb9bbf683f9e34b"
+      }
+    ]
+  },
+  {
+    "name": "view-w",
+    "id": "18a93651-33cd-4bca-ad8a-d9d5f5c00cf6",
+    "seed": 33168478506243,
+    "submittedAt": "2026-10-30T12:31:12.384Z",
+    "finishedAt": "2026-10-30T12:31:29.863Z",
+    "seconds": 17.479,
+    "peakMiB": 45057,
+    "workflowSha256": "40a24063bfc776b040c45d74450b8bfc66309ef50e1b6d826e2d22dfe8b0b654",
+    "outputs": [
+      {
+        "name": "image",
+        "width": 800,
+        "height": 1328,
+        "sha256": "dbd747d152881cd7096b2d56d9049940d9831db4a1a13b7e8720f46766ed5bf3"
+      }
+    ]
+  },
+  {
+    "name": "view-nw",
+    "id": "9aeb2fe7-a158-422e-998f-a7c4f009597e",
+    "seed": 33168478506243,
+    "submittedAt": "2026-10-30T12:31:31.374Z",
+    "finishedAt": "2026-10-30T12:31:46.529Z",
+    "seconds": 15.155,
+    "peakMiB": 45185,
+    "workflowSha256": "40a24063bfc776b040c45d74450b8bfc66309ef50e1b6d826e2d22dfe8b0b654",
+    "outputs": [
+      {
+        "name": "image",
+        "width": 800,
+        "height": 1328,
+        "sha256": "65e0e877d5fb48fd3842a656d73831469114f091d6b96a112ff9a2e342d8d669"
+      }
+    ]
+  },
+  {
+    "name": "view-n",
+    "id": "2f516c6f-6278-4322-8a44-23c315df5f95",
+    "seed": 33168478506243,
+    "submittedAt": "2026-10-30T12:31:47.676Z",
+    "finishedAt": "2026-10-30T12:32:02.801Z",
+    "seconds": 15.125,
+    "peakMiB": 45121,
+    "workflowSha256": "40a24063bfc776b040c45d74450b8bfc66309ef50e1b6d826e2d22dfe8b0b654",
+    "outputs": [
+      {
+        "name": "image",
+        "width": 800,
+        "height": 1328,
+        "sha256": "7048ca5fba2539ed514551770ac9e200adac7007a83c060f9bcd23e10ccde686"
+      }
+    ]
+  },
+  {
+    "name": "sheet-best-of-3",
+    "id": "713e38ed-a509-47d8-8ad9-5871dd0f6e01",
+    "seed": 102377815663440,
+    "submittedAt": "2026-10-30T12:43:48.448Z",
+    "finishedAt": "2026-10-30T12:57:34.240Z",
+    "seconds": 825.792,
+    "peakMiB": 39241,
+    "workflowSha256": "dc84a442d6c1a2696a7850fde34595b92d0e09e449ac9f589844d7262be456ba",
+    "outputs": [
+      {
+        "name": "hd",
+        "width": 1024,
+        "height": 1280,
+        "sha256": "126d08b179dfa9df02ab4686f84750108c812dc0969decd0a398657ba1119815"
+      },
+      {
+        "name": "hd-json",
+        "frames": 64,
+        "tags": [
+          "walk_s",
+          "walk_sw",
+          "walk_w",
+          "walk_nw",
+          "walk_n",
+          "walk_ne",
+          "walk_e",
+          "walk_se"
+        ],
+        "loops": [
+          {
+            "tag": "walk_s",
+            "take": 2,
+            "seam_ratio": 1.349
+          },
+          {
+            "tag": "walk_sw",
+            "take": 3,
+            "seam_ratio": 1.059
+          },
+          {
+            "tag": "walk_w",
+            "take": 1,
+            "seam_ratio": 0.788
+          },
+          {
+            "tag": "walk_nw",
+            "take": 3,
+            "seam_ratio": 1.559
+          },
+          {
+            "tag": "walk_n",
+            "take": 3,
+            "seam_ratio": 0.76
+          },
+          {
+            "tag": "walk_ne",
+            "take": 3,
+            "seam_ratio": 1.559
+          },
+          {
+            "tag": "walk_e",
+            "take": 1,
+            "seam_ratio": 0.788
+          },
+          {
+            "tag": "walk_se",
+            "take": 3,
+            "seam_ratio": 1.059
+          }
+        ]
+      },
+      {
+        "name": "pixel",
+        "width": 384,
+        "height": 480,
+        "sha256": "1c04b1c024880bcb6fe8610e8445dd224e601456d3237a03cac642e447acc35c"
+      },
+      {
+        "name": "pixel-json",
+        "frames": 64,
+        "tags": [
+          "walk_s",
+          "walk_sw",
+          "walk_w",
+          "walk_nw",
+          "walk_n",
+          "walk_ne",
+          "walk_e",
+          "walk_se"
+        ],
+        "loops": [
+          {
+            "tag": "walk_s",
+            "take": 2,
+            "seam_ratio": 1.349
+          },
+          {
+            "tag": "walk_sw",
+            "take": 3,
+            "seam_ratio": 1.059
+          },
+          {
+            "tag": "walk_w",
+            "take": 1,
+            "seam_ratio": 0.788
+          },
+          {
+            "tag": "walk_nw",
+            "take": 3,
+            "seam_ratio": 1.559
+          },
+          {
+            "tag": "walk_n",
+            "take": 3,
+            "seam_ratio": 0.76
+          },
+          {
+            "tag": "walk_ne",
+            "take": 3,
+            "seam_ratio": 1.559
+          },
+          {
+            "tag": "walk_e",
+            "take": 1,
+            "seam_ratio": 0.788
+          },
+          {
+            "tag": "walk_se",
+            "take": 3,
+            "seam_ratio": 1.059
+          }
+        ],
+        "palette": 24
+      }
+    ]
+  },
+  {
+    "name": "sheet-quick",
+    "id": "8dee4564-d95d-4918-8eb1-2c51e6a1dc44",
+    "seed": 120879560239192,
+    "submittedAt": "2026-10-30T12:33:03.442Z",
+    "finishedAt": "2026-10-30T12:39:59.747Z",
+    "seconds": 416.305,
+    "peakMiB": 43169,
+    "workflowSha256": "dc84a442d6c1a2696a7850fde34595b92d0e09e449ac9f589844d7262be456ba",
+    "outputs": [
+      {
+        "name": "hd",
+        "width": 1024,
+        "height": 1280,
+        "sha256": "7176ec1cdc79278c576574a3a62755b99cdd8e025ef82729bb95b67cb753c3f8"
+      },
+      {
+        "name": "hd-json",
+        "frames": 64,
+        "tags": [
+          "walk_s",
+          "walk_sw",
+          "walk_w",
+          "walk_nw",
+          "walk_n",
+          "walk_ne",
+          "walk_e",
+          "walk_se"
+        ],
+        "loops": [
+          {
+            "tag": "walk_s",
+            "take": 1,
+            "seam_ratio": 0.724
+          },
+          {
+            "tag": "walk_sw",
+            "take": 1,
+            "seam_ratio": 1.029
+          },
+          {
+            "tag": "walk_w",
+            "take": 1,
+            "seam_ratio": 0.531
+          },
+          {
+            "tag": "walk_nw",
+            "take": 1,
+            "seam_ratio": 1.15
+          },
+          {
+            "tag": "walk_n",
+            "take": 1,
+            "seam_ratio": 2.097
+          },
+          {
+            "tag": "walk_ne",
+            "take": 1,
+            "seam_ratio": 1.15
+          },
+          {
+            "tag": "walk_e",
+            "take": 1,
+            "seam_ratio": 0.531
+          },
+          {
+            "tag": "walk_se",
+            "take": 1,
+            "seam_ratio": 1.029
+          }
+        ]
+      },
+      {
+        "name": "pixel",
+        "width": 384,
+        "height": 480,
+        "sha256": "34f70386da74f85faf68ad64a8b09b190b1c589016e995bc49790f7abeea44d4"
+      },
+      {
+        "name": "pixel-json",
+        "frames": 64,
+        "tags": [
+          "walk_s",
+          "walk_sw",
+          "walk_w",
+          "walk_nw",
+          "walk_n",
+          "walk_ne",
+          "walk_e",
+          "walk_se"
+        ],
+        "loops": [
+          {
+            "tag": "walk_s",
+            "take": 1,
+            "seam_ratio": 0.724
+          },
+          {
+            "tag": "walk_sw",
+            "take": 1,
+            "seam_ratio": 1.029
+          },
+          {
+            "tag": "walk_w",
+            "take": 1,
+            "seam_ratio": 0.531
+          },
+          {
+            "tag": "walk_nw",
+            "take": 1,
+            "seam_ratio": 1.15
+          },
+          {
+            "tag": "walk_n",
+            "take": 1,
+            "seam_ratio": 2.097
+          },
+          {
+            "tag": "walk_ne",
+            "take": 1,
+            "seam_ratio": 1.15
+          },
+          {
+            "tag": "walk_e",
+            "take": 1,
+            "seam_ratio": 0.531
+          },
+          {
+            "tag": "walk_se",
+            "take": 1,
+            "seam_ratio": 1.029
+          }
+        ],
+        "palette": 24
+      }
+    ]
+  }
+]
