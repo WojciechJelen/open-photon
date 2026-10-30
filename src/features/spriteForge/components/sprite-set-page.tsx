@@ -400,8 +400,8 @@ function ForgePanel({
       {!available && (
         <p className="max-w-3xl rounded-xl border p-3 text-sm text-soft-foreground">
           Sprite sheets run the Sprite Forge custom nodes, which only a self-hosted ComfyUI has.
-          Point <code>COMFY_BASE_URL</code> at your own GPU (see the self-host section of the Sprite
-          Forge README) to forge one.
+          Point the app at your own GPU (see the self-host section of the Sprite Forge README) to
+          forge one.
         </p>
       )}
       <div className="flex flex-wrap items-center gap-4">
