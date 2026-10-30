@@ -17,7 +17,8 @@ npx shadcn@latest add button
   reference-image edit other features submit through: `imageEditDefinitionFor`), `photoshoot`
   (`/photoshoot`), `angles` (Shots & Angles, `/angles`), `storyboard` (`/storyboards`),
   `productStudio` (`/product-studio`), `animateImage` (`/animate`; `animateImageHref` hands a
-  still to it) and
+  still to it), `spriteForge` (Sprite Forge, `/sprites`; its custom ComfyUI node pack
+  `comfy_nodes/sprite_forge` is copied into the self-host image) and
   `motion-score` (a Python/ComfyUI PoC: nothing imports it and no workflow of it is a runtime
   workflow, but both images package its `workflows/` and the app image its `samples/`).
 - A feature's public surface is `api.ts` (server code of other features) and `index.ts`

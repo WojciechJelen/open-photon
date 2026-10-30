@@ -34,6 +34,11 @@ photo with the person's consent; then photograph, turn, storyboard or animate it
 - **Product Studio** (`/product-studio`): a product photo into a packshot, a lifestyle scene or an
   ad visual around the product's own pixels; BiRefNet mattes it, FLUX 3 Image Klein renders the
   scene.
+- **Sprite Forge** (`/sprites`): a library character into an 8-direction walk-cycle sprite sheet,
+  HD and pixel art, each an RGBA PNG atlas with its Aseprite JSON and a WASD playground;
+  Qwen-Image-Edit-2511 draws five directions, Wan 2.2 14B image-to-video walks them, BiRefNet and
+  Sprite Forge's own ComfyUI nodes cut the loops and pack the atlases (sheets need the
+  [self-hosted backend](#choose-a-rendering-backend)).
 
 **Try it:** [open-photon-staging.up.railway.app](https://open-photon-staging.up.railway.app/). The
 home page, the samples and every share page open without a code. Judges: use the link in the
@@ -106,6 +111,11 @@ access and credits.
 COMFY_API_KEY=your-cloud-key
 ```
 
+Comfy Cloud does not install custom nodes, so Sprite Forge on Cloud draws a character's five
+direction views but cannot forge the sheet: the button is disabled and the API answers 422
+`selfhost_required`. Sheets run its node pack on the self-hosted backend
+([Sprite Forge README](src/features/spriteForge/README.md#self-host)).
+
 **Runpod:** deploy the [Open Photon template](https://console.runpod.io/deploy?template=iqcvzqgt1q)
 on an NVIDIA GPU with a **CUDA 13-compatible driver**. **48 GB VRAM is recommended** for Motion
 Transfer (peaks per workflow in [Numbers](#numbers)); 32 GB passed with little headroom.
@@ -127,8 +137,10 @@ created; a restart downloaded nothing but re-checked those nine files in about 4
 download and re-check of the other 92.7 GB are unmeasured. A volume of your own needs at least
 140 GB. The GPU runs one job at a time, so it must fit the largest workflow: measured peaks exist
 for Motion Transfer and FLUX 3 only ([Numbers](#numbers)); Shots & Angles, Animate Image,
-Storyboard's scene split and Product Studio have not run on a self-hosted GPU, so their peaks are
-unmeasured. Then save:
+Storyboard's scene split, Product Studio and Sprite Forge have not run on a self-hosted GPU, so
+their peaks are unmeasured. Sprite Forge's sheets need its custom node pack, which
+`selfhost/Dockerfile` copies into the image (boot fails if it is missing); an image built before
+Sprite Forge lacks it and must be rebuilt. Then save:
 
 ```dotenv
 COMFY_BASE_URL=https://POD_ID-8189.proxy.runpod.net
@@ -247,6 +259,11 @@ Product Studio:
 - **BiRefNet** (`birefnet`): removes the product photo's background, so FLUX 3 regenerates only
   the scene and the product's own pixels are pasted back.
 
+Sprite Forge has no file of its own: Shots & Angles' Qwen-Image-Edit-2511 files and LoRAs draw
+the five direction views, Animate Image's Wan 2.2 I2V experts and 4-step LoRAs walk each view in
+place (the view as both first and last frame), and Product Studio's BiRefNet mattes the views and
+the walk frames.
+
 Tools:
 
 - **ComfyUI 0.42** + **comfy-api-proxy** (self-host): run the workflow graphs on your GPU and
@@ -264,19 +281,22 @@ Tools:
 ## Open weights
 
 The Open Weights Only claim rests on two things: no partner nodes and no closed APIs. Every graph
-uses ComfyUI core nodes, and every file it loads is pinned to an immutable Hugging Face revision
-URL and SHA-256 in its feature's lock, seven locks and 21 distinct files in all:
+uses ComfyUI core nodes (Sprite Forge's sheet also its own node pack, in this repository), and
+every file it loads is pinned to an immutable Hugging Face revision URL and SHA-256 in its
+feature's lock, eight locks and 21 distinct files in all:
 [`motionTransfer`](src/features/motionTransfer/workflows/models.lock) (five files),
 [`characterBuilder`](src/features/characterBuilder/workflows/models.lock) (four),
 [`imageEdit`](src/features/imageEdit/workflows/models.lock) (the character builder's four, byte for
 byte; Photoshoot and Storyboard cards),
 [`productStudio`](src/features/productStudio/workflows/models.lock) (three of those and BiRefNet),
 [`storyboard`](src/features/storyboard/workflows/models.lock) (one),
-[`angles`](src/features/angles/workflows/models.lock) (five) and
+[`angles`](src/features/angles/workflows/models.lock) (five),
 [`animateImage`](src/features/animateImage/workflows/models.lock) (six, its UMT5-XXL pinned
-exactly as Motion Transfer's). `npm run check:models` fails when a workflow loads a file no lock
-pins, a pin has a mutable or unapproved URL or a bad hash, or two features pin one file
-differently; `npm run check:open-weights` scans every feature's workflows,
+exactly as Motion Transfer's) and
+[`spriteForge`](src/features/spriteForge/workflows/models.lock) (twelve: the `angles` five, the
+`animateImage` six and BiRefNet, each pinned exactly as there). `npm run check:models` fails when
+a workflow loads a file no lock pins, a pin has a mutable or unapproved URL or a bad hash, or two
+features pin one file differently; `npm run check:open-weights` scans every feature's workflows,
 subgraphs included, for partner and API nodes ([`scripts/forbidden-nodes.json`](scripts/forbidden-nodes.json)).
 CI runs both on every pull request and push to `main`, and its server tests plant a partner node
 ([`tests/fixtures/partner-node.json`](tests/fixtures/partner-node.json)) that the check must
@@ -285,9 +305,11 @@ the FLUX 3 character workflows have run on your own GPU:
 [`docs/selfhost-proof-2026-10-23/`](docs/selfhost-proof-2026-10-23/README.md) holds the A40 run's
 boot log, GPU memory samples, recipes, outputs and `verify-selfhost.mjs` report, and Motion
 Transfer also rendered on an RTX 5090 ([CHECKLIST 8.3](CHECKLIST.md#phase-8-open-weights-proof)).
-Shots & Angles, Animate Image, the Photoshoot and Storyboard edits, Storyboard's scene split and
-Product Studio have run only on Comfy Cloud so far; their node classes exist at the self-host
-image's ComfyUI 0.42.0, but they have not run on a self-hosted GPU and their VRAM is unmeasured.
+Shots & Angles, Animate Image, the Photoshoot and Storyboard edits, Storyboard's scene split,
+Product Studio and Sprite Forge's views have run only on Comfy Cloud so far; their node classes
+exist at the self-host image's ComfyUI 0.42.0, but they have not run on a self-hosted GPU and
+their VRAM is unmeasured. Sprite Forge's sheet cannot run on Cloud and has not run on a GPU as one
+job; its node pack's half ran on CPU in a local ComfyUI 0.42.0.
 Open does not mean OSI here: the FLUX 3 Image Klein transformer is open weights under the FLUX
 Kommunity License, not an OSI licence; BiRefNet is MIT and every other file is Apache-2.0.
 

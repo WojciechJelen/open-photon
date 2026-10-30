@@ -1,0 +1,9 @@
+{
+  "id": "32f98c8d-ac44-4e03-8c38-4471fc5e06dc",
+  "status": "succeeded",
+  "graph": "src/features/spriteForge/prototype/graphs/directions.api.json",
+  "binds": ["1:image=src/features/characters/samples/characters/kenji.png"],
+  "run_s": 30.404,
+  "wall_s": 92,
+  "outputs": 5
+}

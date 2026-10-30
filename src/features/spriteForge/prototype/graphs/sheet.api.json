@@ -1,0 +1,311 @@
+{
+  "100": {
+    "class_type": "SpriteFramesLoad",
+    "inputs": {
+      "directory": "sprite-forge/kenji/walk-s"
+    }
+  },
+  "101": {
+    "class_type": "SpriteLoopCut",
+    "inputs": {
+      "frames": ["100", 0],
+      "mask": ["100", 1],
+      "min_frames": 10,
+      "max_frames": 32,
+      "frame_count": 8
+    }
+  },
+  "102": {
+    "class_type": "SpritePivotLock",
+    "inputs": {
+      "frames": ["101", 0],
+      "mask": ["101", 1],
+      "cell_width": 128,
+      "cell_height": 160,
+      "fill": 0.92,
+      "alpha_threshold": 0.5
+    }
+  },
+  "500": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["102", 0],
+      "mask": ["102", 1],
+      "pivot_x": ["102", 2],
+      "pivot_y": ["102", 3],
+      "name": "walk_s",
+      "flip_horizontal": false,
+      "seam_ratio": ["101", 4],
+      "take": ["101", 5]
+    }
+  },
+  "110": {
+    "class_type": "SpriteFramesLoad",
+    "inputs": {
+      "directory": "sprite-forge/kenji/walk-sw"
+    }
+  },
+  "111": {
+    "class_type": "SpriteLoopCut",
+    "inputs": {
+      "frames": ["110", 0],
+      "mask": ["110", 1],
+      "min_frames": 10,
+      "max_frames": 32,
+      "frame_count": 8
+    }
+  },
+  "112": {
+    "class_type": "SpritePivotLock",
+    "inputs": {
+      "frames": ["111", 0],
+      "mask": ["111", 1],
+      "cell_width": 128,
+      "cell_height": 160,
+      "fill": 0.92,
+      "alpha_threshold": 0.5
+    }
+  },
+  "501": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["112", 0],
+      "mask": ["112", 1],
+      "pivot_x": ["112", 2],
+      "pivot_y": ["112", 3],
+      "name": "walk_sw",
+      "flip_horizontal": false,
+      "seam_ratio": ["111", 4],
+      "take": ["111", 5],
+      "rows": ["500", 0]
+    }
+  },
+  "120": {
+    "class_type": "SpriteFramesLoad",
+    "inputs": {
+      "directory": "sprite-forge/kenji/walk-w"
+    }
+  },
+  "121": {
+    "class_type": "SpriteLoopCut",
+    "inputs": {
+      "frames": ["120", 0],
+      "mask": ["120", 1],
+      "min_frames": 10,
+      "max_frames": 32,
+      "frame_count": 8
+    }
+  },
+  "122": {
+    "class_type": "SpritePivotLock",
+    "inputs": {
+      "frames": ["121", 0],
+      "mask": ["121", 1],
+      "cell_width": 128,
+      "cell_height": 160,
+      "fill": 0.92,
+      "alpha_threshold": 0.5
+    }
+  },
+  "502": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["122", 0],
+      "mask": ["122", 1],
+      "pivot_x": ["122", 2],
+      "pivot_y": ["122", 3],
+      "name": "walk_w",
+      "flip_horizontal": false,
+      "seam_ratio": ["121", 4],
+      "take": ["121", 5],
+      "rows": ["501", 0]
+    }
+  },
+  "130": {
+    "class_type": "SpriteFramesLoad",
+    "inputs": {
+      "directory": "sprite-forge/kenji/walk-nw"
+    }
+  },
+  "131": {
+    "class_type": "SpriteLoopCut",
+    "inputs": {
+      "frames": ["130", 0],
+      "mask": ["130", 1],
+      "min_frames": 10,
+      "max_frames": 32,
+      "frame_count": 8
+    }
+  },
+  "132": {
+    "class_type": "SpritePivotLock",
+    "inputs": {
+      "frames": ["131", 0],
+      "mask": ["131", 1],
+      "cell_width": 128,
+      "cell_height": 160,
+      "fill": 0.92,
+      "alpha_threshold": 0.5
+    }
+  },
+  "503": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["132", 0],
+      "mask": ["132", 1],
+      "pivot_x": ["132", 2],
+      "pivot_y": ["132", 3],
+      "name": "walk_nw",
+      "flip_horizontal": false,
+      "seam_ratio": ["131", 4],
+      "take": ["131", 5],
+      "rows": ["502", 0]
+    }
+  },
+  "140": {
+    "class_type": "SpriteFramesLoad",
+    "inputs": {
+      "directory": "sprite-forge/kenji/walk-n"
+    }
+  },
+  "141": {
+    "class_type": "SpriteLoopCut",
+    "inputs": {
+      "frames": ["140", 0],
+      "mask": ["140", 1],
+      "min_frames": 10,
+      "max_frames": 32,
+      "frame_count": 8
+    }
+  },
+  "142": {
+    "class_type": "SpritePivotLock",
+    "inputs": {
+      "frames": ["141", 0],
+      "mask": ["141", 1],
+      "cell_width": 128,
+      "cell_height": 160,
+      "fill": 0.92,
+      "alpha_threshold": 0.5
+    }
+  },
+  "504": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["142", 0],
+      "mask": ["142", 1],
+      "pivot_x": ["142", 2],
+      "pivot_y": ["142", 3],
+      "name": "walk_n",
+      "flip_horizontal": false,
+      "seam_ratio": ["141", 4],
+      "take": ["141", 5],
+      "rows": ["503", 0]
+    }
+  },
+  "505": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["132", 0],
+      "mask": ["132", 1],
+      "pivot_x": ["132", 2],
+      "pivot_y": ["132", 3],
+      "name": "walk_ne",
+      "flip_horizontal": true,
+      "seam_ratio": ["131", 4],
+      "take": ["131", 5],
+      "rows": ["504", 0]
+    }
+  },
+  "506": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["122", 0],
+      "mask": ["122", 1],
+      "pivot_x": ["122", 2],
+      "pivot_y": ["122", 3],
+      "name": "walk_e",
+      "flip_horizontal": true,
+      "seam_ratio": ["121", 4],
+      "take": ["121", 5],
+      "rows": ["505", 0]
+    }
+  },
+  "507": {
+    "class_type": "SpriteRow",
+    "inputs": {
+      "frames": ["112", 0],
+      "mask": ["112", 1],
+      "pivot_x": ["112", 2],
+      "pivot_y": ["112", 3],
+      "name": "walk_se",
+      "flip_horizontal": true,
+      "seam_ratio": ["111", 4],
+      "take": ["111", 5],
+      "rows": ["506", 0]
+    }
+  },
+  "900": {
+    "class_type": "SpriteAtlasPack",
+    "inputs": {
+      "rows": ["507", 0],
+      "fps": 10,
+      "image_name": "hd.png"
+    }
+  },
+  "901": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["900", 0],
+      "filename_prefix": "sprite-forge/hd"
+    }
+  },
+  "902": {
+    "class_type": "SaveText",
+    "inputs": {
+      "text": ["900", 1],
+      "filename_prefix": "sprite-forge/hd",
+      "format": "txt"
+    }
+  },
+  "910": {
+    "class_type": "SpriteRescale",
+    "inputs": {
+      "rows": ["507", 0],
+      "cell_width": 48,
+      "cell_height": 60
+    }
+  },
+  "911": {
+    "class_type": "SpritePalette",
+    "inputs": {
+      "rows": ["910", 0],
+      "colors": 24,
+      "outline": true,
+      "alpha_threshold": 0.5
+    }
+  },
+  "920": {
+    "class_type": "SpriteAtlasPack",
+    "inputs": {
+      "rows": ["911", 0],
+      "fps": 10,
+      "image_name": "pixel.png"
+    }
+  },
+  "921": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["920", 0],
+      "filename_prefix": "sprite-forge/pixel"
+    }
+  },
+  "922": {
+    "class_type": "SaveText",
+    "inputs": {
+      "text": ["920", 1],
+      "filename_prefix": "sprite-forge/pixel",
+      "format": "txt"
+    }
+  }
+}

@@ -21,6 +21,7 @@ type ToolPath =
   | "/photoshoot"
   | "/presets"
   | "/product-studio"
+  | "/sprites"
   | "/storyboards";
 
 /** A category of the main navigation that has shipped tools. */
@@ -60,6 +61,12 @@ const navigation: NavigationEntry[] = [
         icon: "createCharacter",
         label: "Shots & Angles",
         to: "/angles",
+      },
+      {
+        description: "Turn a character into an 8-direction walk-cycle sprite sheet.",
+        icon: "createCharacter",
+        label: "Sprite Forge",
+        to: "/sprites",
       },
       {
         description: "Tell a short sequence in four scenes of one character.",

@@ -26,6 +26,7 @@ import { Route as ApiImageUploadsRouteImport } from './routes/api.image-uploads'
 import { Route as ApiPhotoshootsRouteImport } from './routes/api.photoshoots'
 import { Route as ApiProductShotsRouteImport } from './routes/api.product-shots'
 import { Route as ApiShareOriginRouteImport } from './routes/api.share-origin'
+import { Route as ApiSpriteSetsRouteImport } from './routes/api.sprite-sets'
 import { Route as ApiStoryboardsRouteImport } from './routes/api.storyboards'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as BatchesIndexRouteImport } from './routes/batches.index'
@@ -41,6 +42,8 @@ import { Route as PhotoshootPhotoshootIdRouteImport } from './routes/photoshoot.
 import { Route as PresetsIndexRouteImport } from './routes/presets.index'
 import { Route as PresetsPresetIdRouteImport } from './routes/presets.$presetId'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
+import { Route as SpritesIndexRouteImport } from './routes/sprites.index'
+import { Route as SpritesSpriteSetIdRouteImport } from './routes/sprites.$spriteSetId'
 import { Route as StoryboardsIndexRouteImport } from './routes/storyboards.index'
 import { Route as StoryboardsStoryboardIdRouteImport } from './routes/storyboards.$storyboardId'
 import { Route as ApiAngleSetsAngleSetIdRouteImport } from './routes/api.angle-sets.$angleSetId'
@@ -51,6 +54,7 @@ import { Route as ApiDebugStreamsRouteImport } from './routes/api.debug.streams'
 import { Route as ApiGenerationsGenerationIdRouteImport } from './routes/api.generations.$generationId'
 import { Route as ApiPhotoshootsPhotoshootIdRouteImport } from './routes/api.photoshoots.$photoshootId'
 import { Route as ApiProductShotsShootIdRouteImport } from './routes/api.product-shots.$shootId'
+import { Route as ApiSpriteSetsSpriteSetIdRouteImport } from './routes/api.sprite-sets.$spriteSetId'
 import { Route as ApiStoryboardsStoryboardIdRouteImport } from './routes/api.storyboards.$storyboardId'
 import { Route as ApiAssetsAssetIdTrimRouteImport } from './routes/api.assets.$assetId.trim'
 import { Route as ApiCharacterGenerationsGenerationIdCharacterRouteImport } from './routes/api.character-generations.$generationId.character'
@@ -61,6 +65,7 @@ import { Route as ApiGenerationsGenerationIdRerunRouteImport } from './routes/ap
 import { Route as ApiGenerationsGenerationIdRetryRouteImport } from './routes/api.generations.$generationId.retry'
 import { Route as ApiPhotoshootsPhotoshootIdCharacterRouteImport } from './routes/api.photoshoots.$photoshootId.character'
 import { Route as ApiPresetsPresetIdGenerationsRouteImport } from './routes/api.presets.$presetId.generations'
+import { Route as ApiSpriteSetsSpriteSetIdSheetsRouteImport } from './routes/api.sprite-sets.$spriteSetId.sheets'
 import { Route as ApiStoryboardsStoryboardIdGenerationsRouteImport } from './routes/api.storyboards.$storyboardId.generations'
 import { Route as ApiAngleSetsAngleSetIdItemsPositionCharacterRouteImport } from './routes/api.angle-sets.$angleSetId.items.$position.character'
 
@@ -149,6 +154,11 @@ const ApiShareOriginRoute = ApiShareOriginRouteImport.update({
   path: '/api/share-origin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSpriteSetsRoute = ApiSpriteSetsRouteImport.update({
+  id: '/api/sprite-sets',
+  path: '/api/sprite-sets',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStoryboardsRoute = ApiStoryboardsRouteImport.update({
   id: '/api/storyboards',
   path: '/api/storyboards',
@@ -224,6 +234,16 @@ const RSlugRoute = RSlugRouteImport.update({
   path: '/r/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SpritesIndexRoute = SpritesIndexRouteImport.update({
+  id: '/sprites/',
+  path: '/sprites/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpritesSpriteSetIdRoute = SpritesSpriteSetIdRouteImport.update({
+  id: '/sprites/$spriteSetId',
+  path: '/sprites/$spriteSetId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StoryboardsIndexRoute = StoryboardsIndexRouteImport.update({
   id: '/storyboards/',
   path: '/storyboards/',
@@ -277,6 +297,12 @@ const ApiProductShotsShootIdRoute = ApiProductShotsShootIdRouteImport.update({
   path: '/$shootId',
   getParentRoute: () => ApiProductShotsRoute,
 } as any)
+const ApiSpriteSetsSpriteSetIdRoute =
+  ApiSpriteSetsSpriteSetIdRouteImport.update({
+    id: '/$spriteSetId',
+    path: '/$spriteSetId',
+    getParentRoute: () => ApiSpriteSetsRoute,
+  } as any)
 const ApiStoryboardsStoryboardIdRoute =
   ApiStoryboardsStoryboardIdRouteImport.update({
     id: '/$storyboardId',
@@ -336,6 +362,12 @@ const ApiPresetsPresetIdGenerationsRoute =
     path: '/api/presets/$presetId/generations',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiSpriteSetsSpriteSetIdSheetsRoute =
+  ApiSpriteSetsSpriteSetIdSheetsRouteImport.update({
+    id: '/sheets',
+    path: '/sheets',
+    getParentRoute: () => ApiSpriteSetsSpriteSetIdRoute,
+  } as any)
 const ApiStoryboardsStoryboardIdGenerationsRoute =
   ApiStoryboardsStoryboardIdGenerationsRouteImport.update({
     id: '/generations',
@@ -366,6 +398,7 @@ export interface FileRoutesByFullPath {
   '/api/photoshoots': typeof ApiPhotoshootsRouteWithChildren
   '/api/product-shots': typeof ApiProductShotsRouteWithChildren
   '/api/share-origin': typeof ApiShareOriginRoute
+  '/api/sprite-sets': typeof ApiSpriteSetsRouteWithChildren
   '/api/storyboards': typeof ApiStoryboardsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
@@ -376,6 +409,7 @@ export interface FileRoutesByFullPath {
   '/photoshoot/$photoshootId': typeof PhotoshootPhotoshootIdRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
+  '/sprites/$spriteSetId': typeof SpritesSpriteSetIdRoute
   '/storyboards/$storyboardId': typeof StoryboardsStoryboardIdRoute
   '/angles/': typeof AnglesIndexRoute
   '/batches/': typeof BatchesIndexRoute
@@ -383,6 +417,7 @@ export interface FileRoutesByFullPath {
   '/explore/': typeof ExploreIndexRoute
   '/photoshoot/': typeof PhotoshootIndexRoute
   '/presets/': typeof PresetsIndexRoute
+  '/sprites/': typeof SpritesIndexRoute
   '/storyboards/': typeof StoryboardsIndexRoute
   '/api/angle-sets/$angleSetId': typeof ApiAngleSetsAngleSetIdRouteWithChildren
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
@@ -392,6 +427,7 @@ export interface FileRoutesByFullPath {
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/photoshoots/$photoshootId': typeof ApiPhotoshootsPhotoshootIdRouteWithChildren
   '/api/product-shots/$shootId': typeof ApiProductShotsShootIdRoute
+  '/api/sprite-sets/$spriteSetId': typeof ApiSpriteSetsSpriteSetIdRouteWithChildren
   '/api/storyboards/$storyboardId': typeof ApiStoryboardsStoryboardIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
@@ -402,6 +438,7 @@ export interface FileRoutesByFullPath {
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
   '/api/photoshoots/$photoshootId/character': typeof ApiPhotoshootsPhotoshootIdCharacterRoute
   '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
+  '/api/sprite-sets/$spriteSetId/sheets': typeof ApiSpriteSetsSpriteSetIdSheetsRoute
   '/api/storyboards/$storyboardId/generations': typeof ApiStoryboardsStoryboardIdGenerationsRoute
   '/api/angle-sets/$angleSetId/items/$position/character': typeof ApiAngleSetsAngleSetIdItemsPositionCharacterRoute
 }
@@ -422,6 +459,7 @@ export interface FileRoutesByTo {
   '/api/photoshoots': typeof ApiPhotoshootsRouteWithChildren
   '/api/product-shots': typeof ApiProductShotsRouteWithChildren
   '/api/share-origin': typeof ApiShareOriginRoute
+  '/api/sprite-sets': typeof ApiSpriteSetsRouteWithChildren
   '/api/storyboards': typeof ApiStoryboardsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
@@ -432,6 +470,7 @@ export interface FileRoutesByTo {
   '/photoshoot/$photoshootId': typeof PhotoshootPhotoshootIdRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
+  '/sprites/$spriteSetId': typeof SpritesSpriteSetIdRoute
   '/storyboards/$storyboardId': typeof StoryboardsStoryboardIdRoute
   '/angles': typeof AnglesIndexRoute
   '/batches': typeof BatchesIndexRoute
@@ -439,6 +478,7 @@ export interface FileRoutesByTo {
   '/explore': typeof ExploreIndexRoute
   '/photoshoot': typeof PhotoshootIndexRoute
   '/presets': typeof PresetsIndexRoute
+  '/sprites': typeof SpritesIndexRoute
   '/storyboards': typeof StoryboardsIndexRoute
   '/api/angle-sets/$angleSetId': typeof ApiAngleSetsAngleSetIdRouteWithChildren
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
@@ -448,6 +488,7 @@ export interface FileRoutesByTo {
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/photoshoots/$photoshootId': typeof ApiPhotoshootsPhotoshootIdRouteWithChildren
   '/api/product-shots/$shootId': typeof ApiProductShotsShootIdRoute
+  '/api/sprite-sets/$spriteSetId': typeof ApiSpriteSetsSpriteSetIdRouteWithChildren
   '/api/storyboards/$storyboardId': typeof ApiStoryboardsStoryboardIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
@@ -458,6 +499,7 @@ export interface FileRoutesByTo {
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
   '/api/photoshoots/$photoshootId/character': typeof ApiPhotoshootsPhotoshootIdCharacterRoute
   '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
+  '/api/sprite-sets/$spriteSetId/sheets': typeof ApiSpriteSetsSpriteSetIdSheetsRoute
   '/api/storyboards/$storyboardId/generations': typeof ApiStoryboardsStoryboardIdGenerationsRoute
   '/api/angle-sets/$angleSetId/items/$position/character': typeof ApiAngleSetsAngleSetIdItemsPositionCharacterRoute
 }
@@ -479,6 +521,7 @@ export interface FileRoutesById {
   '/api/photoshoots': typeof ApiPhotoshootsRouteWithChildren
   '/api/product-shots': typeof ApiProductShotsRouteWithChildren
   '/api/share-origin': typeof ApiShareOriginRoute
+  '/api/sprite-sets': typeof ApiSpriteSetsRouteWithChildren
   '/api/storyboards': typeof ApiStoryboardsRouteWithChildren
   '/api/uploads': typeof ApiUploadsRoute
   '/batches/$batchId': typeof BatchesBatchIdRoute
@@ -489,6 +532,7 @@ export interface FileRoutesById {
   '/photoshoot/$photoshootId': typeof PhotoshootPhotoshootIdRoute
   '/presets/$presetId': typeof PresetsPresetIdRoute
   '/r/$slug': typeof RSlugRoute
+  '/sprites/$spriteSetId': typeof SpritesSpriteSetIdRoute
   '/storyboards/$storyboardId': typeof StoryboardsStoryboardIdRoute
   '/angles/': typeof AnglesIndexRoute
   '/batches/': typeof BatchesIndexRoute
@@ -496,6 +540,7 @@ export interface FileRoutesById {
   '/explore/': typeof ExploreIndexRoute
   '/photoshoot/': typeof PhotoshootIndexRoute
   '/presets/': typeof PresetsIndexRoute
+  '/sprites/': typeof SpritesIndexRoute
   '/storyboards/': typeof StoryboardsIndexRoute
   '/api/angle-sets/$angleSetId': typeof ApiAngleSetsAngleSetIdRouteWithChildren
   '/api/batches/$batchId': typeof ApiBatchesBatchIdRoute
@@ -505,6 +550,7 @@ export interface FileRoutesById {
   '/api/generations/$generationId': typeof ApiGenerationsGenerationIdRouteWithChildren
   '/api/photoshoots/$photoshootId': typeof ApiPhotoshootsPhotoshootIdRouteWithChildren
   '/api/product-shots/$shootId': typeof ApiProductShotsShootIdRoute
+  '/api/sprite-sets/$spriteSetId': typeof ApiSpriteSetsSpriteSetIdRouteWithChildren
   '/api/storyboards/$storyboardId': typeof ApiStoryboardsStoryboardIdRouteWithChildren
   '/api/assets/$assetId/trim': typeof ApiAssetsAssetIdTrimRoute
   '/api/character-generations/$generationId/character': typeof ApiCharacterGenerationsGenerationIdCharacterRoute
@@ -515,6 +561,7 @@ export interface FileRoutesById {
   '/api/generations/$generationId/retry': typeof ApiGenerationsGenerationIdRetryRoute
   '/api/photoshoots/$photoshootId/character': typeof ApiPhotoshootsPhotoshootIdCharacterRoute
   '/api/presets/$presetId/generations': typeof ApiPresetsPresetIdGenerationsRoute
+  '/api/sprite-sets/$spriteSetId/sheets': typeof ApiSpriteSetsSpriteSetIdSheetsRoute
   '/api/storyboards/$storyboardId/generations': typeof ApiStoryboardsStoryboardIdGenerationsRoute
   '/api/angle-sets/$angleSetId/items/$position/character': typeof ApiAngleSetsAngleSetIdItemsPositionCharacterRoute
 }
@@ -537,6 +584,7 @@ export interface FileRouteTypes {
     | '/api/photoshoots'
     | '/api/product-shots'
     | '/api/share-origin'
+    | '/api/sprite-sets'
     | '/api/storyboards'
     | '/api/uploads'
     | '/batches/$batchId'
@@ -547,6 +595,7 @@ export interface FileRouteTypes {
     | '/photoshoot/$photoshootId'
     | '/presets/$presetId'
     | '/r/$slug'
+    | '/sprites/$spriteSetId'
     | '/storyboards/$storyboardId'
     | '/angles/'
     | '/batches/'
@@ -554,6 +603,7 @@ export interface FileRouteTypes {
     | '/explore/'
     | '/photoshoot/'
     | '/presets/'
+    | '/sprites/'
     | '/storyboards/'
     | '/api/angle-sets/$angleSetId'
     | '/api/batches/$batchId'
@@ -563,6 +613,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId'
     | '/api/photoshoots/$photoshootId'
     | '/api/product-shots/$shootId'
+    | '/api/sprite-sets/$spriteSetId'
     | '/api/storyboards/$storyboardId'
     | '/api/assets/$assetId/trim'
     | '/api/character-generations/$generationId/character'
@@ -573,6 +624,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/retry'
     | '/api/photoshoots/$photoshootId/character'
     | '/api/presets/$presetId/generations'
+    | '/api/sprite-sets/$spriteSetId/sheets'
     | '/api/storyboards/$storyboardId/generations'
     | '/api/angle-sets/$angleSetId/items/$position/character'
   fileRoutesByTo: FileRoutesByTo
@@ -593,6 +645,7 @@ export interface FileRouteTypes {
     | '/api/photoshoots'
     | '/api/product-shots'
     | '/api/share-origin'
+    | '/api/sprite-sets'
     | '/api/storyboards'
     | '/api/uploads'
     | '/batches/$batchId'
@@ -603,6 +656,7 @@ export interface FileRouteTypes {
     | '/photoshoot/$photoshootId'
     | '/presets/$presetId'
     | '/r/$slug'
+    | '/sprites/$spriteSetId'
     | '/storyboards/$storyboardId'
     | '/angles'
     | '/batches'
@@ -610,6 +664,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/photoshoot'
     | '/presets'
+    | '/sprites'
     | '/storyboards'
     | '/api/angle-sets/$angleSetId'
     | '/api/batches/$batchId'
@@ -619,6 +674,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId'
     | '/api/photoshoots/$photoshootId'
     | '/api/product-shots/$shootId'
+    | '/api/sprite-sets/$spriteSetId'
     | '/api/storyboards/$storyboardId'
     | '/api/assets/$assetId/trim'
     | '/api/character-generations/$generationId/character'
@@ -629,6 +685,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/retry'
     | '/api/photoshoots/$photoshootId/character'
     | '/api/presets/$presetId/generations'
+    | '/api/sprite-sets/$spriteSetId/sheets'
     | '/api/storyboards/$storyboardId/generations'
     | '/api/angle-sets/$angleSetId/items/$position/character'
   id:
@@ -649,6 +706,7 @@ export interface FileRouteTypes {
     | '/api/photoshoots'
     | '/api/product-shots'
     | '/api/share-origin'
+    | '/api/sprite-sets'
     | '/api/storyboards'
     | '/api/uploads'
     | '/batches/$batchId'
@@ -659,6 +717,7 @@ export interface FileRouteTypes {
     | '/photoshoot/$photoshootId'
     | '/presets/$presetId'
     | '/r/$slug'
+    | '/sprites/$spriteSetId'
     | '/storyboards/$storyboardId'
     | '/angles/'
     | '/batches/'
@@ -666,6 +725,7 @@ export interface FileRouteTypes {
     | '/explore/'
     | '/photoshoot/'
     | '/presets/'
+    | '/sprites/'
     | '/storyboards/'
     | '/api/angle-sets/$angleSetId'
     | '/api/batches/$batchId'
@@ -675,6 +735,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId'
     | '/api/photoshoots/$photoshootId'
     | '/api/product-shots/$shootId'
+    | '/api/sprite-sets/$spriteSetId'
     | '/api/storyboards/$storyboardId'
     | '/api/assets/$assetId/trim'
     | '/api/character-generations/$generationId/character'
@@ -685,6 +746,7 @@ export interface FileRouteTypes {
     | '/api/generations/$generationId/retry'
     | '/api/photoshoots/$photoshootId/character'
     | '/api/presets/$presetId/generations'
+    | '/api/sprite-sets/$spriteSetId/sheets'
     | '/api/storyboards/$storyboardId/generations'
     | '/api/angle-sets/$angleSetId/items/$position/character'
   fileRoutesById: FileRoutesById
@@ -706,6 +768,7 @@ export interface RootRouteChildren {
   ApiPhotoshootsRoute: typeof ApiPhotoshootsRouteWithChildren
   ApiProductShotsRoute: typeof ApiProductShotsRouteWithChildren
   ApiShareOriginRoute: typeof ApiShareOriginRoute
+  ApiSpriteSetsRoute: typeof ApiSpriteSetsRouteWithChildren
   ApiStoryboardsRoute: typeof ApiStoryboardsRouteWithChildren
   ApiUploadsRoute: typeof ApiUploadsRoute
   BatchesBatchIdRoute: typeof BatchesBatchIdRoute
@@ -716,6 +779,7 @@ export interface RootRouteChildren {
   PhotoshootPhotoshootIdRoute: typeof PhotoshootPhotoshootIdRoute
   PresetsPresetIdRoute: typeof PresetsPresetIdRoute
   RSlugRoute: typeof RSlugRoute
+  SpritesSpriteSetIdRoute: typeof SpritesSpriteSetIdRoute
   StoryboardsStoryboardIdRoute: typeof StoryboardsStoryboardIdRoute
   AnglesIndexRoute: typeof AnglesIndexRoute
   BatchesIndexRoute: typeof BatchesIndexRoute
@@ -723,6 +787,7 @@ export interface RootRouteChildren {
   ExploreIndexRoute: typeof ExploreIndexRoute
   PhotoshootIndexRoute: typeof PhotoshootIndexRoute
   PresetsIndexRoute: typeof PresetsIndexRoute
+  SpritesIndexRoute: typeof SpritesIndexRoute
   StoryboardsIndexRoute: typeof StoryboardsIndexRoute
   ApiDebugHeartbeatRoute: typeof ApiDebugHeartbeatRoute
   ApiDebugStreamsRoute: typeof ApiDebugStreamsRoute
@@ -852,6 +917,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiShareOriginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/sprite-sets': {
+      id: '/api/sprite-sets'
+      path: '/api/sprite-sets'
+      fullPath: '/api/sprite-sets'
+      preLoaderRoute: typeof ApiSpriteSetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/storyboards': {
       id: '/api/storyboards'
       path: '/api/storyboards'
@@ -957,6 +1029,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sprites/': {
+      id: '/sprites/'
+      path: '/sprites'
+      fullPath: '/sprites/'
+      preLoaderRoute: typeof SpritesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sprites/$spriteSetId': {
+      id: '/sprites/$spriteSetId'
+      path: '/sprites/$spriteSetId'
+      fullPath: '/sprites/$spriteSetId'
+      preLoaderRoute: typeof SpritesSpriteSetIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/storyboards/': {
       id: '/storyboards/'
       path: '/storyboards'
@@ -1027,6 +1113,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiProductShotsShootIdRouteImport
       parentRoute: typeof ApiProductShotsRoute
     }
+    '/api/sprite-sets/$spriteSetId': {
+      id: '/api/sprite-sets/$spriteSetId'
+      path: '/$spriteSetId'
+      fullPath: '/api/sprite-sets/$spriteSetId'
+      preLoaderRoute: typeof ApiSpriteSetsSpriteSetIdRouteImport
+      parentRoute: typeof ApiSpriteSetsRoute
+    }
     '/api/storyboards/$storyboardId': {
       id: '/api/storyboards/$storyboardId'
       path: '/$storyboardId'
@@ -1096,6 +1189,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/presets/$presetId/generations'
       preLoaderRoute: typeof ApiPresetsPresetIdGenerationsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/sprite-sets/$spriteSetId/sheets': {
+      id: '/api/sprite-sets/$spriteSetId/sheets'
+      path: '/sheets'
+      fullPath: '/api/sprite-sets/$spriteSetId/sheets'
+      preLoaderRoute: typeof ApiSpriteSetsSpriteSetIdSheetsRouteImport
+      parentRoute: typeof ApiSpriteSetsSpriteSetIdRoute
     }
     '/api/storyboards/$storyboardId/generations': {
       id: '/api/storyboards/$storyboardId/generations'
@@ -1219,6 +1319,32 @@ const ApiProductShotsRouteWithChildren = ApiProductShotsRoute._addFileChildren(
   ApiProductShotsRouteChildren,
 )
 
+interface ApiSpriteSetsSpriteSetIdRouteChildren {
+  ApiSpriteSetsSpriteSetIdSheetsRoute: typeof ApiSpriteSetsSpriteSetIdSheetsRoute
+}
+
+const ApiSpriteSetsSpriteSetIdRouteChildren: ApiSpriteSetsSpriteSetIdRouteChildren =
+  {
+    ApiSpriteSetsSpriteSetIdSheetsRoute: ApiSpriteSetsSpriteSetIdSheetsRoute,
+  }
+
+const ApiSpriteSetsSpriteSetIdRouteWithChildren =
+  ApiSpriteSetsSpriteSetIdRoute._addFileChildren(
+    ApiSpriteSetsSpriteSetIdRouteChildren,
+  )
+
+interface ApiSpriteSetsRouteChildren {
+  ApiSpriteSetsSpriteSetIdRoute: typeof ApiSpriteSetsSpriteSetIdRouteWithChildren
+}
+
+const ApiSpriteSetsRouteChildren: ApiSpriteSetsRouteChildren = {
+  ApiSpriteSetsSpriteSetIdRoute: ApiSpriteSetsSpriteSetIdRouteWithChildren,
+}
+
+const ApiSpriteSetsRouteWithChildren = ApiSpriteSetsRoute._addFileChildren(
+  ApiSpriteSetsRouteChildren,
+)
+
 interface ApiStoryboardsStoryboardIdRouteChildren {
   ApiStoryboardsStoryboardIdGenerationsRoute: typeof ApiStoryboardsStoryboardIdGenerationsRoute
 }
@@ -1288,6 +1414,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPhotoshootsRoute: ApiPhotoshootsRouteWithChildren,
   ApiProductShotsRoute: ApiProductShotsRouteWithChildren,
   ApiShareOriginRoute: ApiShareOriginRoute,
+  ApiSpriteSetsRoute: ApiSpriteSetsRouteWithChildren,
   ApiStoryboardsRoute: ApiStoryboardsRouteWithChildren,
   ApiUploadsRoute: ApiUploadsRoute,
   BatchesBatchIdRoute: BatchesBatchIdRoute,
@@ -1298,6 +1425,7 @@ const rootRouteChildren: RootRouteChildren = {
   PhotoshootPhotoshootIdRoute: PhotoshootPhotoshootIdRoute,
   PresetsPresetIdRoute: PresetsPresetIdRoute,
   RSlugRoute: RSlugRoute,
+  SpritesSpriteSetIdRoute: SpritesSpriteSetIdRoute,
   StoryboardsStoryboardIdRoute: StoryboardsStoryboardIdRoute,
   AnglesIndexRoute: AnglesIndexRoute,
   BatchesIndexRoute: BatchesIndexRoute,
@@ -1305,6 +1433,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreIndexRoute: ExploreIndexRoute,
   PhotoshootIndexRoute: PhotoshootIndexRoute,
   PresetsIndexRoute: PresetsIndexRoute,
+  SpritesIndexRoute: SpritesIndexRoute,
   StoryboardsIndexRoute: StoryboardsIndexRoute,
   ApiDebugHeartbeatRoute: ApiDebugHeartbeatRoute,
   ApiDebugStreamsRoute: ApiDebugStreamsRoute,

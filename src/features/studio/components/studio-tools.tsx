@@ -5,6 +5,7 @@ import {
   ClapperboardIcon,
   CpuIcon,
   FileCodeIcon,
+  Gamepad2Icon,
   LibraryIcon,
   PackageIcon,
   LockOpenIcon,
@@ -101,8 +102,8 @@ function Filmstrip({
 }
 
 // The image and character tools beside Motion Transfer, live: the builder, the photoshoot, the
-// library, Shots & Angles, storyboards, Animate Image, which brings a character (or any still) to
-// life from a description, and the product studio.
+// library, Shots & Angles, Sprite Forge, storyboards, Animate Image, which brings a character (or
+// any still) to life from a description, and the product studio.
 const characterTools = [
   {
     icon: <UserIcon />,
@@ -131,6 +132,13 @@ const characterTools = [
     text: "See a character from the front, three-quarter, profile and close up, each view rendered anew, and save the one you like to the library.",
     title: "Shots & Angles",
     to: "/angles",
+  },
+  {
+    icon: <Gamepad2Icon />,
+    model: "Qwen-Image-Edit-2511 · Wan 2.2 · Sprite Forge nodes",
+    text: "Draw a character from five directions and forge an 8-direction walk-cycle sprite sheet, in HD and pixel art, with its Aseprite JSON.",
+    title: "Sprite Forge",
+    to: "/sprites",
   },
   {
     icon: <PanelsTopLeftIcon />,
